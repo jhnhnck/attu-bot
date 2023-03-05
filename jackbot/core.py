@@ -32,6 +32,14 @@ async def gametime(ctx, message: str=None):
     else:
         await ctx.respond(f"<@&1082043670620024924> from {ctx.author.mention}!")
 
+# --- Reactions ---
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    user = payload.member
+    reaction = payload.emoji
+    logger.info(f'Message from {reaction}: {user}')
+
 # --- Events ---
 
 @bot.event
