@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from os import getenv
 
 import discord
+from discord.utils import escape_mentions
 
 from jackbot.logging import get_logger
 logger = get_logger(__name__)
@@ -21,6 +22,15 @@ intents.message_content = True
 intents.reactions = True
 
 bot = discord.Bot(intents=intents)
+
+# --- Slash Commands ---
+
+@bot.slash_command(guilds_only=True)
+async def gametime(ctx, message: str=None):
+    if message != None and len(message) > 0:
+        await ctx.respond(f"<@&1082043670620024924> from {ctx.author.mention}: `{escape_mentions(message)}`")
+    else:
+        await ctx.respond(f"<@&1082043670620024924> from {ctx.author.mention}!")
 
 # --- Events ---
 
