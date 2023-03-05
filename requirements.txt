@@ -1,1 +1,2 @@
 python-dotenv
+py-cord>=2.4,<3
