@@ -10,6 +10,7 @@ from os import getenv
 import discord
 from discord.utils import escape_mentions
 
+from jackbot.config import Config
 from jackbot.logging import get_logger
 logger = get_logger(__name__)
 
@@ -22,6 +23,7 @@ intents.message_content = True
 intents.reactions = True
 
 bot = discord.Bot(intents=intents)
+config = Config(getenv('BOT_CONFIG_FILE'))
 
 # --- Slash Commands ---
 
@@ -38,6 +40,7 @@ async def gametime(ctx, message: str=None):
 async def on_raw_reaction_add(payload):
     user = payload.member
     reaction = payload.emoji
+    guild = user.guild
     logger.info(f'Message from {reaction}: {user}')
 
 # --- Events ---
@@ -58,7 +61,9 @@ async def on_message(message):
 # --- Trigger Function ---
 
 def start_bot_loop():
-    global bot
+    global bot, config
+
+    config.load_from_file()
 
     logger.info('Starting bot...')
     bot.run(getenv('BOT_TOKEN'))
