@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from os import getenv, path
 
 import json
+import sys
 
 from jackbot.logging import get_logger
 logger = get_logger(__name__)
@@ -15,17 +16,15 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.0'
-    changed = False
+    config_version = 'v1.1'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
 
     def load_from_file(self):
         if not path.exists(self.file_name):
-            logger.info('Config file missing; regenerating...')
-            self.changed = True
-            self.save_to_file()
+            logger.error('Config file missing!')
+            sys.exit(1)
 
         logger.info(f'Loading config from "{self.file_name}"')
 
@@ -33,18 +32,16 @@ class Config:
             self._raw = json.loads(file.read())
 
         # Unpack raw json
-        ### do stuff here ###
+        if self._raw['config_version'] != self.config_version:
+            logger.info('Incompatible config version!')
+            sys.exit(1)
 
-    def save_to_file(self):
-        if not self.changed:
-            logger.info(f'Config unchanged; skipping save')
-            return
+        self.db_pass = self._raw['database']['password']
+        self.db_user = self._raw['database']['username']
+        self.db_host = self._raw['database']['hostname']
 
-        logger.info(f'Saving config to "{self.file_name}"')
+        self.rm_id = self._raw['role_menu']['id']
 
-        self._raw = {
-            'config_version': self.config_version
-        }
+        self.bot_token = self._raw['bot']['token']
 
-        with open(self.file_name, 'w') as file:
-            file.write(json.dumps(self._raw, indent=4))
+        self.game_times = self._raw['game_times']
