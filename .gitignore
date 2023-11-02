@@ -130,3 +130,5 @@ dmypy.json
 
 # Config files
 jack-bot.json
+docker-compose.yml
+db/

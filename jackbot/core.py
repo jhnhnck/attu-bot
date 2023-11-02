@@ -66,4 +66,4 @@ def start_bot_loop():
     config.load_from_file()
 
     logger.info('Starting bot...')
-    bot.run(getenv('BOT_TOKEN'))
+    bot.run(config.bot_token)
