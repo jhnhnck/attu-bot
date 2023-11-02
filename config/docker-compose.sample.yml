@@ -1,0 +1,23 @@
+version: '3'
+services:
+  bot:
+    build: .
+    restart: always
+    command: /app/jackbot.py
+    links:
+      - database
+    environment:
+      BOT_CONFIG_FILE: /app/jack-bot.json
+    volumes:
+    - ./jack-bot.json:/app/jack-bot.json
+
+  database:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'jackbot'
+      MYSQL_USER: 'bot'
+      MYSQL_PASSWORD: ''
+      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+    volumes:
+      - ./db:/var/lib/mysql
