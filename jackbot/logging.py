@@ -1,29 +1,42 @@
 """
-JackBot - Wrapper for all the shit that is the python 'logging' library
+JackBot - Logging wrapper
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import sys
-
-import logging
+from enum import Enum
 from os import getenv
 
-log_formatter = logging.Formatter(fmt='{asctime} {name} > {levelname}. {message}', style='{')
+class Logger:
+    class_name = 'jackbox.???'
 
-# create console handler
-console_handler = logging.StreamHandler()
-console_handler.setLevel(getenv('BOT_LOG_LVL', default='INFO'))
-console_handler.setFormatter(log_formatter)
+    def __init__(self, class_name):
+        self.class_name = class_name
 
-# TODO: something that formats better than the logging library
-def get_logger(logger_name):
-    # create logger
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(getenv('BOT_LOG_LVL', default='INFO'))
+    def _stdout(self, level, message):
+          print(f'{self.class_name} > {level}. {message}')
 
-    # Add console handler to logger
-    logger.addHandler(console_handler)
+    def _stderr(self, level, message):
+          print(f'{self.class_name} > {level}. {message}', file=sys.stderr)
 
-    return logger
+    def trace(self, message):
+        self._stdout('trace', message)
+
+    def debug(self, message):
+        self._stdout('debug', message)
+
+    def info(self, message):
+        self._stdout('info', message)
+
+    def warn(self, message):
+        self._stderr('warn', message)
+
+    def error(self, message):
+        self._stderr('error', message)
+
+    def fatal(self, message):
+        self._stderr('fatal', message)
+
+def get_logger(class_name):
+    return Logger(class_name)
