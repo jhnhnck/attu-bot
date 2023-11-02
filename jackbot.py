@@ -8,8 +8,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from dotenv import load_dotenv
+from os import getenv
 
 load_dotenv()  # take environment variables from .env.
+print(f'jackbot.runner > info. Container Build Time: {getenv("BUILD_TIME")}')
 
 from jackbot import core
 
