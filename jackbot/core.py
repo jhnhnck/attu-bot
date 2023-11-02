@@ -14,6 +14,8 @@ from jackbot.config import Config
 from jackbot.logging import get_logger
 logger = get_logger(__name__)
 
+from jackbot import role_menu
+
 # --- Initialization ---
 
 logger.info('Initializing...')
@@ -26,6 +28,8 @@ bot = discord.Bot(intents=intents)
 config = Config(getenv('BOT_CONFIG_FILE'))
 
 # --- Slash Commands ---
+
+role_menu.init(bot)
 
 @bot.slash_command(guilds_only=True)
 async def gametime(ctx, message: str=None):
