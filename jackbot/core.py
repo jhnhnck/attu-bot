@@ -38,10 +38,41 @@ async def gametime(ctx, message: str=None):
 
 @bot.event
 async def on_raw_reaction_add(payload):
-    user = payload.member
+    """
+    <RawReactionActionEvent
+        message_id=1082050030925512765
+        user_id=263116922793623555
+        channel_id=1082050009010282546
+        guild_id=572148465870700544
+        emoji=<PartialEmoji animated=False name='jh_green' id=619258364094054440>
+        event_type='REACTION_ADD'
+        member=<Member id=263116922793623555 name='jhnhnckjr' discriminator='6220' bot=False nick=None
+            guild=<Guild id=572148465870700544 name='PIVOT Playground' shard_id=0 chunked=False member_count=5>
+        >>
+    """
+    user = payload.user_id
     reaction = payload.emoji
-    guild = user.guild
-    logger.info(f'Message from {reaction}: {user}')
+    message_id = payload.message_id
+    logger.info(f'Added {reaction} on {message_id}: {user}')
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    """
+    <RawReactionActionEvent
+        message_id=1082050030925512765
+        user_id=263116922793623555
+        channel_id=1082050009010282546
+        guild_id=572148465870700544
+        emoji=<PartialEmoji animated=False name='jh_green' id=619258364094054440>
+        event_type='REACTION_ADD'
+        member=<Member id=263116922793623555 name='jhnhnckjr' discriminator='6220' bot=False nick=None
+            guild=<Guild id=572148465870700544 name='PIVOT Playground' shard_id=0 chunked=False member_count=5>
+        >>
+    """
+    user = payload.user_id
+    reaction = payload.emoji
+    message_id = payload.message_id
+    logger.info(f'Removed {reaction} on {message_id}: {user}')
 
 # --- Events ---
 
