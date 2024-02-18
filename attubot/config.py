@@ -10,13 +10,13 @@ from os import getenv, path
 import json
 import sys
 
-from jackbot.logging import get_logger
+from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.1'
+    config_version = 'v1.3'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
@@ -36,12 +36,35 @@ class Config:
             logger.info('Incompatible config version!')
             sys.exit(1)
 
-        self.db_pass = self._raw['database']['password']
-        self.db_user = self._raw['database']['username']
-        self.db_host = self._raw['database']['hostname']
+        self.bot_token = self._raw['auth']['token']
 
-        self.rm_id = self._raw['role_menu']['id']
+        self.wiki_key = self._raw['wiki']['key']
+        self.wiki_page = self._raw['wiki']['page']
+        self.wiki_user = self._raw['wiki']['user']
 
-        self.bot_token = self._raw['bot']['token']
+        self.activity_channel = self._raw['channels']['activity']
+        self.year_vc = self._raw['channels']['year_vc']
+        self.announce_channel = self._raw['channels']['announcements']
+        self.year_link_thread = self._raw['channels']['year_links']
+        self.meta_chat_channel = self._raw['channels']['meta_chat']
+        self.lore_channels = self._raw['lore_channels']
 
-        self.game_times = self._raw['game_times']
+        self.announce_role = self._raw['roles']['leaders']
+
+        self.epoch_time = self._raw['epoch']['time']
+        self.epoch_year = self._raw['epoch']['year']
+        self.guild = self._raw['guild']
+        self.timestamps = self._raw['timestamps']
+
+
+
+    def add_timestamp(self, timestamp):
+        logger.info(f'Saving config to "{self.file_name}"')
+
+        self._raw['timestamps'].append(timestamp)
+
+        with open(self.file_name, 'w') as file:
+            file.write(json.dumps(self._raw, indent=4))
+        logger.info(f'Saving config to "{self.file_name}"')
+
+        self.load_from_file()
