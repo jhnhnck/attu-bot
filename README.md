@@ -1,9 +1,9 @@
-# jack-bot
+# attu-bot
 
-## To-Do List
+## Build
 
-- Connect to discord
-- Add slash command setup
-- config setup
-- role menu
-- add actual commands in
+```
+$ cp config/attu-bot.sample.json ./attu-bot.json
+$ docker compose up --build -d
+```
+

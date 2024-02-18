@@ -1,5 +1,5 @@
 """
-JackBot - Logging wrapper
+AttuBot - Logging wrapper
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
@@ -9,7 +9,7 @@ from enum import Enum
 from os import getenv
 
 class Logger:
-    class_name = 'jackbox.???'
+    class_name = 'attubot.???'
 
     def __init__(self, class_name):
         self.class_name = class_name

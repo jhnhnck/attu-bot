@@ -129,6 +129,4 @@ dmypy.json
 .pyre/
 
 # Config files
-jack-bot.json
-docker-compose.yml
-db/
+attu-bot.json

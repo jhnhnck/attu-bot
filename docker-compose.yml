@@ -1,0 +1,10 @@
+version: '3'
+services:
+  core:
+    build: .
+    restart: always
+    command: python -u /app/attu-bot.py
+    environment:
+      BOT_CONFIG_FILE: /app/attu-bot.json
+    volumes:
+    - ./attu-bot.json:/app/attu-bot.json
