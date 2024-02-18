@@ -1,20 +1,29 @@
 {
     "config_version": "v1.1",
-    "bot": {
-        "token": ""
+    "auth": {
+        "token": "your token here"
     },
-    "database": {
-        "username": "bot",
-        "password": "",
-        "hostname": "database"
+    "wiki": {
+        "key": "",
+        "page": "",
+        "user": ""
     },
-    "role_menu": {
-        "id": ""
+    "activity_channel": 1000000000000000000,
+    "announcements": {
+        "channel": 1000000000000000000,
+        "leader_role": 1000000000000000000
     },
-    "game_times": [
-        "",
-        "",
-        "",
-        ""
-    ]
+    "epoch": {
+        "time": 1708120800,
+        "year": 30
+    },
+    "guild": 1000000000000000000,
+    "lore_channels": [
+        1000000000000000000,
+        1000000000000000000,
+        1000000000000000000,
+        1000000000000000000,
+        1000000000000000000
+    ],
+    "year_vc": 1000000000000000000
 }
