@@ -51,3 +51,25 @@ class AttuWiki:
 
         res = self.session.post(self.api_endpoint, data=data)
         logger.debug(res.text)
+
+    def block(self, user, reason):
+        res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'format': 'json' })
+        csrf = res.json()['query']['tokens']['csrftoken']
+
+        data = {
+            'action': 'block',
+            'user': user,
+            'expiry': 'never',
+            'reason': reason,
+            'nocreate': True,
+            'noemail': True,
+            'allowusertalk': False,
+            'partial': False,
+            'token': csrf,
+            'format': 'json',
+        }
+
+        res = self.session.post(self.api_endpoint, data=data)
+        logger.debug(res.text)
+
+        return res.json()
