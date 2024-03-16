@@ -153,7 +153,8 @@ async def check_for_new_year():
 
     # --- Send Year Links Message
 
-    thread = guild.get_channel(config.year_link_thread)
+    doom_forum = guild.get_channel(config.doom_forum)
+    thread = doom_forum.get_thread(config.year_link_thread)
     await thread.send(year_str + '\n' + '\n'.join(message_links))
 
 # --- Events ---

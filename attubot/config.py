@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.3'
+    config_version = 'v1.4'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
@@ -45,6 +45,7 @@ class Config:
         self.activity_channel = self._raw['channels']['activity']
         self.year_vc = self._raw['channels']['year_vc']
         self.announce_channel = self._raw['channels']['announcements']
+        self.doom_forum = self._raw['channels']['doom_forum']
         self.year_link_thread = self._raw['channels']['year_links']
         self.meta_chat_channel = self._raw['channels']['meta_chat']
         self.lore_channels = self._raw['lore_channels']
