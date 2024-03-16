@@ -96,6 +96,16 @@ async def force_year(ctx):
     await ctx.respond('Trying my best to manually trigger task!')
     await check_for_new_year()
 
+@bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+@discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
+@discord.commands.option(name='reason', required=True, description='Reason for blocking' input_type=str)
+async def wiki_block(ctx, user, reason):
+    await ctx.respond(f'Blocking user: {user}')
+
+    wiki = AttuWiki()
+    wiki.authenticate(config.wiki_user, config.wiki_key)
+    wiki.block(user, f'{reason} (on behalf of {ctx.user})')
+
 # --- Tasks ---
 
 @tasks.loop(time=time(17, 0, tzinfo=timezone('America/New_York')))
