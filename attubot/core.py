@@ -60,7 +60,9 @@ async def check_year(ctx):
     days_since_epoch =  (date.today() - date.fromtimestamp(config.epoch_time)).days
     year = config.epoch_year + (days_since_epoch // 14)
 
-    if days_since_epoch % 14 != 0:
+    if days_since_epoch % 14 == 1:
+        await ctx.respond(f'{14 - (days_since_epoch % 14)} Day Remaining Until Year {year + 1} PC')
+    elif days_since_epoch % 14 != 0:
         await ctx.respond(f'{14 - (days_since_epoch % 14)} Days Remaining Until Year {year + 1} PC')
     else:
         await ctx.respond(f'Happy New Year! Advancing to Year {year} PC at <t:1708207200:t>')
