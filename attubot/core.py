@@ -74,11 +74,11 @@ async def link_year(ctx, channel: discord.TextChannel, year: int):
     global bot, config
 
     if channel.id not in config.lore_channels and channel.id != config.meta_chat_channel:
-        await ctx.respond('Failed: Channel is not a lore channel.')
+        await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
         return
 
     if year < 1 or year > len(config.timestamps):
-        await ctx.respond(f'Failed: Pick a year between 1 and {len(config.timestamps)}.')
+        await ctx.respond(f'Failed: Pick a year between 1 and {len(config.timestamps)}.', ephemeral=True)
         return
 
     # Send message link
