@@ -7,6 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import requests
 
+from attubot.logging import get_logger
+logger = get_logger(__name__)
+
 class AttuWiki:
     api_endpoint = 'https://wiki.attuproject.org/api.php'
     session = requests.Session()
@@ -47,4 +50,4 @@ class AttuWiki:
         }
 
         res = self.session.post(self.api_endpoint, data=data)
-        print(res.text)
+        logger.debug(res.text)
