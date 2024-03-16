@@ -15,6 +15,11 @@ class AttuWiki:
     session = requests.Session()
     token = ''
 
+    def _get_csrf(self):
+        res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'format': 'json' })
+        return res.json()['query']['tokens']['csrftoken']
+
+
     def authenticate(self, user, key):
         res = self.session.get(self.api_endpoint, params={ 'action':"query", 'meta': 'tokens', 'type': 'login', 'format': 'json' })
         self.token = res.json()['query']['tokens']['logintoken']
@@ -35,8 +40,7 @@ class AttuWiki:
         return res.json()['parse']['wikitext']
 
     def edit(self, page_name, text, reason):
-        res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'format': 'json' })
-        csrf = res.json()['query']['tokens']['csrftoken']
+        csrf = self._get_csrf()
 
         data = {
             'action': 'edit',
@@ -53,8 +57,7 @@ class AttuWiki:
         logger.debug(res.text)
 
     def block(self, user, reason):
-        res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'format': 'json' })
-        csrf = res.json()['query']['tokens']['csrftoken']
+        csrf = self._get_csrf()
 
         data = {
             'action': 'block',
