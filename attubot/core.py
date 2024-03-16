@@ -11,6 +11,7 @@ from pytz import timezone
 import re
 
 import discord
+from discord import Permissions
 from discord.ext import tasks
 
 from attubot.config import Config
@@ -89,6 +90,12 @@ async def build_date(ctx):
     build_time = datetime.strptime(getenv("BUILD_TIME"), build_format)
     await ctx.respond(f'Container Build Time: <t:{int(build_time.timestamp())}:f>')
 
+@bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+async def force_year(ctx):
+
+    await ctx.respond('Trying my best to manually trigger task!')
+    await check_for_new_year()
+
 # --- Tasks ---
 
 @tasks.loop(time=time(17, 00, tzinfo=timezone('EST')))
@@ -105,7 +112,12 @@ async def check_for_new_year():
         logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (days_since_epoch % 14)}')
         return
 
-    logger.info(f'Happy New Year! Advancing to Year {year} PC')
+    elif year <= len(config.timestamps):
+        logger.error(f'Already enough years; was event manually triggered?')
+        return
+
+    else:
+        logger.info(f'Happy New Year! Advancing to Year {year} PC')
 
     # --- Lore Channel Year Markers ---
 
