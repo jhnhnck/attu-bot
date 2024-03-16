@@ -98,14 +98,14 @@ async def force_year(ctx):
 
 # --- Tasks ---
 
-@tasks.loop(time=time(17, 00, tzinfo=timezone('EST')))
+@tasks.loop(time=time(17, 0, tzinfo=timezone('America/New_York')))
 async def check_for_new_year():
     global bot, config
     guild = bot.get_guild(config.guild)
 
     # --- Checks ---
 
-    days_since_epoch =  (date.today() - date.fromtimestamp(config.epoch_time)).days
+    days_since_epoch = (date.today() - date.fromtimestamp(config.epoch_time)).days
     year = config.epoch_year + (days_since_epoch // 14)
 
     if days_since_epoch % 14 != 0:
