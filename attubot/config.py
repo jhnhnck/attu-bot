@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.4'
+    config_version = 'v1.5-pre'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
@@ -48,13 +48,13 @@ class Config:
         self.doom_forum = self._raw['channels']['doom_forum']
         self.year_link_thread = self._raw['channels']['year_links']
         self.meta_chat_channel = self._raw['channels']['meta_chat']
-        self.lore_channels = self._raw['lore_channels']
+        self.lore_channels = self._raw['channels']['lore_channels']
 
         self.announce_role = self._raw['roles']['leaders']
 
         self.epoch_time = self._raw['epoch']['time']
         self.epoch_year = self._raw['epoch']['year']
-        self.guild = self._raw['guild']
+        self.attu_guild = self._raw['guilds']['attu']
         self.timestamps = self._raw['timestamps']
 
 
