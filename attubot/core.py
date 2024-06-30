@@ -39,7 +39,6 @@ build_format = '%a %b %d %H:%M:%S %Z %Y'
 
 def format_year_line(year):
     global separators, escaped_separators, flipped_separators
-
     sep = separators[year % len(separators)]
 
     if len(sep) > 2:
@@ -53,11 +52,6 @@ def format_year_line(year):
 
 @bot.slash_command(guilds_only=True)
 async def check_year(ctx):
-    global bot, config
-    guild = bot.get_guild(config.guild)
-
-    # --- Checks ---
-
     days_since_epoch =  (date.today() - date.fromtimestamp(config.epoch_time)).days
     year = config.epoch_year + (days_since_epoch // 14)
 
@@ -72,8 +66,6 @@ async def check_year(ctx):
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int)
 async def link_year(ctx, channel: discord.TextChannel, year: int):
-    global bot, config
-
     if channel.id not in config.lore_channels and channel.id != config.meta_chat_channel:
         await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
         return
