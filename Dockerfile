@@ -1,4 +1,5 @@
 FROM python:3.11-alpine
+ENV TZ="America/New_York"
 RUN mkdir /app
 WORKDIR /app
 COPY ./requirements.txt .
