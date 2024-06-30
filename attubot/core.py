@@ -131,7 +131,7 @@ async def check_for_new_year(force=False):
     year = config.epoch_year + (days_since_epoch // 14)
 
     if force:
-        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {len(config.timestamps)}')
+        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {len(config.timestamps) + 1}')
         year = len(config.timestamps) + 1
 
     elif days_since_epoch % 14 != 0:
