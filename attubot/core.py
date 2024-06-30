@@ -141,7 +141,7 @@ async def admin(ctx, option: str):
         math = 10 / 0
 
     else:
-        await ctx.respond('Failed: Bad Option', ephemeral=True)
+        await ctx.respond('Failed: Options are date_check, force_error, force_year, time_pause, time_resume, and trigger_check', ephemeral=True)
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
