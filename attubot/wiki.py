@@ -60,15 +60,15 @@ class AttuWiki:
 
         data = {
             'action': 'block',
+            'format': 'json',
             'user': user,
             'expiry': 'never',
             'reason': reason,
             'nocreate': True,
+            'autoblock': True,
             'noemail': True,
-            'allowusertalk': False,
-            'partial': False,
+            'reblock': True,
             'token': csrf,
-            'format': 'json',
         }
 
         res = self.session.post(self.api_endpoint, data=data)
