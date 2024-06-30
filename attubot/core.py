@@ -64,9 +64,9 @@ async def send_to_error_log(error):
 
     tb_str = ''.join(traceback.format_tb(error.__traceback__))
 
-    await error_log.send(f'**{str(error)}**\n```\n{error.__context__}\n{tb_str}```')
+    await error_log.send(f'**{str(error)}**\n```\n{tb_str}```')
 
-    logger.error(error)
+    logger.error(error + '\n' + tb_str)
 
 # --- Slash Commands ---
 
