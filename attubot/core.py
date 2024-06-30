@@ -183,7 +183,6 @@ async def on_message(message):
     if message.channel.id == config.activity_channel and message.content.startswith('[DoomBot]'):
         await message.add_reaction('💖')
 
-
 """
 @bot.event
 async def on_message(message):
