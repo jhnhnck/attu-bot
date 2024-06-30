@@ -37,6 +37,7 @@ class Config:
             sys.exit(1)
 
         self.bot_token = self._raw['auth']['token']
+        self.bot_owner = self._raw['users']['bot_owner']
 
         self.wiki_key = self._raw['wiki']['key']
         self.wiki_page = self._raw['wiki']['page']

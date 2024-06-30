@@ -85,6 +85,12 @@ async def build_date(ctx):
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
 async def admin(ctx, option: str):
+    global config
+
+    if ctx.user.id != config.bot_owner:
+        await ctx.respond('You\'re not my real dad!')
+        return
+
     if option == 'force_year':
         await ctx.respond('Trying my best to manually trigger task!')
         await check_for_new_year(force=True)
