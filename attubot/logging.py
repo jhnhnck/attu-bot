@@ -6,7 +6,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from enum import Enum
-from os import getenv
+from os import environ
+
+import sys
 
 class Logger:
     class_name = 'attubot.???'
@@ -15,16 +17,18 @@ class Logger:
         self.class_name = class_name
 
     def _stdout(self, level, message):
-          print(f'{self.class_name} > {level}. {message}')
+        print(f'{self.class_name} > {level}. {message}')
 
     def _stderr(self, level, message):
-          print(f'{self.class_name} > {level}. {message}', file=sys.stderr)
+        print(f'{self.class_name} > {level}. {message}', file=sys.stderr)
 
     def trace(self, message):
-        self._stdout('trace', message)
+        if 'DEBUG' in environ:
+            self._stdout('trace', message)
 
     def debug(self, message):
-        self._stdout('debug', message)
+        if 'DEBUG' in environ:
+            self._stdout('debug', message)
 
     def info(self, message):
         self._stdout('info', message)

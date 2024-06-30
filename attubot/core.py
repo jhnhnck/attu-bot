@@ -124,6 +124,8 @@ async def check_for_new_year():
     global bot, config
     guild = bot.get_guild(config.guild)
 
+    logger.debug(f'check_for_new_year() Task triggered on {date.today()}, {datetime.now()}')
+
     # --- Checks ---
 
     days_since_epoch = (date.today() - date.fromtimestamp(config.epoch_time)).days
@@ -134,6 +136,7 @@ async def check_for_new_year():
         return
 
     elif year < len(config.timestamps):
+        logger.error('Already enough years; was event manually triggered?')
         return
 
     else:
