@@ -36,7 +36,6 @@ class AttuWiki:
 
     def get_page_contents(self, page_name):
         res = self.session.get(self.api_endpoint, params={ 'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2 , 'format': 'json' })
-
         return res.json()['parse']['wikitext']
 
     def edit(self, page_name, text, reason):

@@ -58,7 +58,6 @@ class Config:
         self.timestamps = self._raw['timestamps']
 
 
-
     def add_timestamp(self, timestamp):
         logger.info(f'Saving config to "{self.file_name}"')
 
