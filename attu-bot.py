@@ -8,10 +8,16 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from dotenv import load_dotenv
-from os import getenv
+from os import getenv, environ
 
 load_dotenv()  # take environment variables from .env.
+
 print(f'attubot.runner > info. Container Build Time: {getenv("BUILD_TIME")}')
+
+if 'DEBUG' in environ:
+    print('attubot.runner > info. Debug Mode: Enabled')
+else:
+    print('attubot.runner > info. Debug Mode: Disabled')
 
 from attubot import core
 
