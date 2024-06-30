@@ -49,6 +49,7 @@ class Config:
         self.doom_forum = self._raw['channels']['doom_forum']
         self.year_link_thread = self._raw['channels']['year_links']
         self.meta_chat_channel = self._raw['channels']['meta_chat']
+        self.error_log_channel = self._raw['channels']['error_log']
         self.lore_channels = self._raw['channels']['lore_channels']
 
         self.announce_role = self._raw['roles']['leaders']
@@ -56,8 +57,8 @@ class Config:
         self.epoch_time = self._raw['epoch']['time']
         self.epoch_year = self._raw['epoch']['year']
         self.attu_guild = self._raw['guilds']['attu']
+        self.jhn_guild = self._raw['guilds']['jhn']
         self.timestamps = self._raw['timestamps']
-
 
     def _save(self):
         logger.info(f'Writing new config to "{self.file_name}"')

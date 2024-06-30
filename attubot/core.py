@@ -9,6 +9,7 @@ from os import getenv
 from datetime import datetime, date, time
 from zoneinfo import ZoneInfo
 import re
+import traceback
 
 import discord
 from discord import Permissions
@@ -54,6 +55,18 @@ def get_year_status():
     year = config.epoch_year + (time_since_epoch.days // 14)
 
     return time_since_epoch, year
+
+async def send_to_error_log(error):
+    global bot
+
+    guild = bot.get_guild(config.jhn_guild)
+    error_log = guild.get_channel(config.error_log_channel)
+
+    tb_str = ''.join(traceback.format_tb(error.__traceback__))
+
+    await error_log.send(f'**{str(error)}**\n```\n{error.__context__}\n{tb_str}```')
+
+    logger.error(error)
 
 # --- Slash Commands ---
 
@@ -203,6 +216,10 @@ async def on_ready():
 async def on_message(message):
     if message.channel.id == config.activity_channel and message.content.startswith('[DoomBot]'):
         await message.add_reaction('💖')
+
+@bot.event
+async def on_application_command_error(ctx, error):
+    await send_to_error_log(error)
 
 """
 @bot.event
