@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from os import getenv
-from datetime import datetime, date, time
+from datetime import datetime, timedelta, date, time
 from zoneinfo import ZoneInfo
 import re
 import traceback
@@ -122,6 +122,20 @@ async def admin(ctx, option: str):
     elif option == 'date_check':
         await ctx.respond(f'Current Time is <t:{int(datetime.now().timestamp())}:f>')
 
+    elif option == 'time_pause':
+        await ctx.respond('The passage of time has been stopped')
+        config.time_paused = True
+
+    elif option == 'time_resume':
+        config.set_epoch(datetime.combine(date.today() + timedelta((4 - date.today().weekday()) % 7), trigger_time), len(config.timestamps) + 1)
+
+        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to {config.epoch_year} PC at <t:{config.epoch_time}:f>')
+        config.time_paused = False
+
+    elif option == 'force_error':
+        await ctx.respond('Forcing an error message')
+        math = 10 / 0
+
     else:
         await ctx.respond('Failed: Bad Option', ephemeral=True)
 
@@ -150,6 +164,8 @@ async def task_year_check():
 async def check_for_new_year():
     time_since_epoch, year = get_year_status()
 
+    if config.time_paused:
+        logger.info('The passage of time has been paused; skipping task')
 
     if time_since_epoch.days % 14 != 0:
         logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (time_since_epoch.days % 14)}')
