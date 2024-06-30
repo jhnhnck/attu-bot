@@ -74,12 +74,10 @@ async def send_to_error_log(error):
 async def check_year(ctx):
     time_since_epoch, year = get_year_status()
 
-    if days_since_epoch % 14 == 1:
-        await ctx.respond(f'{14 - (days_since_epoch % 14)} Day Remaining Until Year {year + 1} PC')
-    elif days_since_epoch % 14 != 0:
-        await ctx.respond(f'{14 - (days_since_epoch % 14)} Days Remaining Until Year {year + 1} PC')
+    if time_since_epoch.days % 14 != 0:
+        await ctx.respond(f'Advancing to Year {year} PC <t:{int(datetime.combine(date.today(), trigger_time).timestamp())}:R>')
     else:
-        await ctx.respond(f'Happy New Year! Advancing to Year {year} PC at <t:1708207200:t>')
+        await ctx.respond(f'Happy New Year! Advancing to Year {year} PC <t:{int(datetime.combine(date.today(), trigger_time).timestamp())}:R>')
 
 @bot.slash_command(guilds_only=True)
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
