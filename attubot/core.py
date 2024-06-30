@@ -109,13 +109,13 @@ async def admin(ctx, option: str):
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
-@discord.commands.option(name='reason', required=True, description='Reason for blocking' input_type=str)
+@discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 async def wiki_block(ctx, user, reason):
-    await ctx.respond(f'Blocking user: {user}')
+    await ctx.respond(f'Blocking user: {user}', ephemeral=True)
 
     wiki = AttuWiki()
     wiki.authenticate(config.wiki_user, config.wiki_key)
-    wiki.block(user, f'{reason} (on behalf of {ctx.user})')
+    wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- Tasks ---
 
