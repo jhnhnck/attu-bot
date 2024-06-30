@@ -109,11 +109,15 @@ async def admin(ctx, option: str):
         return
 
     if option == 'force_year':
-        await ctx.respond('Trying my best to manually trigger task!')
-        await check_for_new_year(force=True)
+        forced_year = len(config.timestamps) + 1
+        _, year = get_year_status()
+
+        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
+        await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
+        await advance_year(forced_year)
 
     elif option == 'trigger_check':
-        await ctx.respond(f'Next `check_for_new_year()` Task iteration expected on <t:{int(check_for_new_year.next_iteration.timestamp())}:f>')
+        await ctx.respond(f'Next `task_year_check()` Task iteration expected on <t:{int(task_year_check.next_iteration.timestamp())}:f>')
 
     elif option == 'date_check':
         await ctx.respond(f'Current Time is <t:{int(datetime.now().timestamp())}:f>')
@@ -132,33 +136,35 @@ async def wiki_block(ctx, user, reason):
     wiki.authenticate(config.wiki_user, config.wiki_key)
     wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
-# --- Tasks ---
+# --- New Year Handling ---
 
 @tasks.loop(time=trigger_time)
-async def check_for_new_year(force=False):
-    global bot, config
-    guild = bot.get_guild(config.guild)
+async def task_year_check():
+    logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
 
-    logger.debug(f'check_for_new_year() Task triggered on {date.today()}, {datetime.now()}')
+    try:
+        await check_for_new_year()
+    except Exception as error:
+        send_to_error_log(error)
 
-    # --- Checks ---
+async def check_for_new_year():
     time_since_epoch, year = get_year_status()
 
 
-    if force:
-        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {len(config.timestamps) + 1}')
-        year = len(config.timestamps) + 1
-
-    elif days_since_epoch % 14 != 0:
-        logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (days_since_epoch % 14)}')
-        return
+    if time_since_epoch.days % 14 != 0:
+        logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (time_since_epoch.days % 14)}')
 
     elif year < len(config.timestamps):
         logger.error('Already enough years; was event manually triggered?')
-        return
 
     else:
-        logger.info(f'Happy New Year! Advancing to Year {year} PC')
+        await advance_year(year)
+
+async def advance_year(year):
+    global bot, config
+    guild = bot.get_guild(config.attu_guild)
+
+    logger.info(f'Happy New Year! Advancing to Year {year} PC')
 
     # --- Lore Channel Year Markers ---
 
@@ -208,7 +214,7 @@ async def on_ready():
     logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
     logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
-    check_for_new_year.start()
+    task_year_check.start()
 
 @bot.event
 async def on_message(message):
