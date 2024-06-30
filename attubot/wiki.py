@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import requests
+from requests_toolbelt.utils import dump
 
 from attubot.logging import get_logger
 logger = get_logger(__name__)
@@ -19,6 +20,9 @@ class AttuWiki:
         res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'format': 'json' })
         return res.json()['query']['tokens']['csrftoken']
 
+    def _debug(self, response):
+        data = dump.dump_all(response)
+        logger.debug(data.decode('utf-8'))
 
     def authenticate(self, user, key):
         res = self.session.get(self.api_endpoint, params={ 'action':"query", 'meta': 'tokens', 'type': 'login', 'format': 'json' })
@@ -33,6 +37,7 @@ class AttuWiki:
         }
 
         res = self.session.post(self.api_endpoint, data=data)
+        logger.debug(res.text)
 
     def get_page_contents(self, page_name):
         res = self.session.get(self.api_endpoint, params={ 'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2 , 'format': 'json' })
