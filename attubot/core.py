@@ -119,8 +119,8 @@ async def wiki_block(ctx, user, reason):
 
 # --- Tasks ---
 
-async def check_for_new_year():
 @tasks.loop(time=time(17, 0, tzinfo=ZoneInfo('America/New_York')))
+async def check_for_new_year(force=False):
     global bot, config
     guild = bot.get_guild(config.guild)
 
@@ -131,7 +131,11 @@ async def check_for_new_year():
     days_since_epoch = (date.today() - date.fromtimestamp(config.epoch_time)).days
     year = config.epoch_year + (days_since_epoch // 14)
 
-    if days_since_epoch % 14 != 0:
+    if force:
+        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {len(config.timestamps)}')
+        year = len(config.timestamps) + 1
+
+    elif days_since_epoch % 14 != 0:
         logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (days_since_epoch % 14)}')
         return
 
