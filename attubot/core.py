@@ -91,10 +91,21 @@ async def build_date(ctx):
     await ctx.respond(f'Container Build Time: <t:{int(build_time.timestamp())}:f>')
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
-async def force_year(ctx):
+@discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
+async def admin(ctx, option: str):
+    if option == 'force_year':
+        await ctx.respond('Trying my best to manually trigger task!')
+        await check_for_new_year(force=True)
 
-    await ctx.respond('Trying my best to manually trigger task!')
-    await check_for_new_year()
+    elif option == 'trigger_check':
+        await ctx.respond(f'Next `check_for_new_year()` Task iteration expected on <t:{int(check_for_new_year.next_iteration.timestamp())}:f>')
+
+    elif option == 'date_check':
+        await ctx.respond(f'Current Time is <t:{int(datetime.now().timestamp())}:f>')
+
+    else:
+        await ctx.respond('Failed: Bad Option', ephemeral=True)
+
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
