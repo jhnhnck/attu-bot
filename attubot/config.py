@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.5-pre'
+    config_version = 'v1.5'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
@@ -70,4 +70,18 @@ class Config:
 
     def add_timestamp(self, timestamp):
         self._raw['timestamps'].append(timestamp)
+        self._save()
+
+    def set_epoch(self, time, year: int):
+        self._raw['epoch']['time'] = int(time.timestamp())
+        self._raw['epoch']['year'] = year
+        self._save()
+
+    @property
+    def time_paused(self):
+        return self._raw['epoch']['paused']
+
+    @time_paused.setter
+    def time_paused(self, value: bool):
+        self._raw['epoch']['paused'] = value
         self._save()
