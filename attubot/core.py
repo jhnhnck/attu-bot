@@ -49,12 +49,17 @@ def format_year_line(year):
     else:
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
+def get_year_status():
+    time_since_epoch = datetime.now() - datetime.fromtimestamp(config.epoch_time)
+    year = config.epoch_year + (time_since_epoch.days // 14)
+
+    return time_since_epoch, year
+
 # --- Slash Commands ---
 
 @bot.slash_command(guilds_only=True)
 async def check_year(ctx):
-    days_since_epoch =  (date.today() - date.fromtimestamp(config.epoch_time)).days
-    year = config.epoch_year + (days_since_epoch // 14)
+    time_since_epoch, year = get_year_status()
 
     if days_since_epoch % 14 == 1:
         await ctx.respond(f'{14 - (days_since_epoch % 14)} Day Remaining Until Year {year + 1} PC')
@@ -126,9 +131,8 @@ async def check_for_new_year(force=False):
     logger.debug(f'check_for_new_year() Task triggered on {date.today()}, {datetime.now()}')
 
     # --- Checks ---
+    time_since_epoch, year = get_year_status()
 
-    days_since_epoch = (date.today() - date.fromtimestamp(config.epoch_time)).days
-    year = config.epoch_year + (days_since_epoch // 14)
 
     if force:
         logger.info(f'Weap. Year forced by admin: expected: {year} doing: {len(config.timestamps) + 1}')
