@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from os import getenv
 from datetime import datetime, date, time
-from pytz import timezone
+from zoneinfo import ZoneInfo
 import re
 
 import discord
@@ -108,8 +108,8 @@ async def wiki_block(ctx, user, reason):
 
 # --- Tasks ---
 
-@tasks.loop(time=time(17, 0, tzinfo=timezone('America/New_York')))
 async def check_for_new_year():
+@tasks.loop(time=time(17, 0, tzinfo=ZoneInfo('America/New_York')))
     global bot, config
     guild = bot.get_guild(config.guild)
 
@@ -122,8 +122,7 @@ async def check_for_new_year():
         logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (days_since_epoch % 14)}')
         return
 
-    elif year <= len(config.timestamps):
-        logger.error(f'Already enough years; was event manually triggered?')
+    elif year < len(config.timestamps):
         return
 
     else:
@@ -157,11 +156,12 @@ async def check_for_new_year():
 
     wiki.edit(config.wiki_page, updated_page, f'Bumped to Year {year} PC')
 
-    # --- Make Annoucement ---
+    # --- Make Announcement ---
+
     channel = guild.get_channel(config.announce_channel)
     await channel.send(f'<@&{config.announce_role}> Year {year} PC. (weap)')
 
-    # --- Send Year Links Message
+    # --- Send Year Links Message ---
 
     doom_forum = guild.get_channel(config.doom_forum)
     thread = doom_forum.get_thread(config.year_link_thread)
