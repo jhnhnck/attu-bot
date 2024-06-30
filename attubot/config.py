@@ -58,13 +58,14 @@ class Config:
         self.timestamps = self._raw['timestamps']
 
 
-    def add_timestamp(self, timestamp):
-        logger.info(f'Saving config to "{self.file_name}"')
-
-        self._raw['timestamps'].append(timestamp)
+    def _save(self):
+        logger.info(f'Writing new config to "{self.file_name}"')
 
         with open(self.file_name, 'w') as file:
             file.write(json.dumps(self._raw, indent=4))
-        logger.info(f'Saving config to "{self.file_name}"')
 
         self.load_from_file()
+
+    def add_timestamp(self, timestamp):
+        self._raw['timestamps'].append(timestamp)
+        self._save()
