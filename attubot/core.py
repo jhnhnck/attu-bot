@@ -34,6 +34,7 @@ separators = ["<","=","+","\>","/","&",":","$","\*","%","@", "⁂", "xXx","\\\\"
 flipped_separators = { '<': '>', '\>': '<', '/': '\\\\', '\\\\': '/' }
 
 build_format = '%a %b %d %H:%M:%S %Z %Y'
+trigger_time = time(17, 0, tzinfo=ZoneInfo('America/New_York'))
 
 # --- Utilities ---
 
@@ -117,7 +118,7 @@ async def wiki_block(ctx, user, reason):
 
 # --- Tasks ---
 
-@tasks.loop(time=time(17, 0, tzinfo=ZoneInfo('America/New_York')))
+@tasks.loop(time=trigger_time)
 async def check_for_new_year(force=False):
     global bot, config
     guild = bot.get_guild(config.guild)
