@@ -170,7 +170,7 @@ async def check_for_new_year():
     if config.time_paused:
         logger.info('The passage of time has been paused; skipping task')
 
-    if time_since_epoch.days % 14 != 0:
+    elif time_since_epoch.days % 14 != 0:
         logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (time_since_epoch.days % 14)}')
 
     elif year < len(config.timestamps):
