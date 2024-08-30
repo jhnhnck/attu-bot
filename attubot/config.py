@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from os import getenv, path
+from os import path
 
 import json
 import sys
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.5'
+    config_version = 'v1.5.1'
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
@@ -56,6 +56,7 @@ class Config:
 
         self.epoch_time = self._raw['epoch']['time']
         self.epoch_year = self._raw['epoch']['year']
+        self.epoch_length = self._raw['epoch']['length']
         self.attu_guild = self._raw['guilds']['attu']
         self.jhn_guild = self._raw['guilds']['jhn']
         self.timestamps = self._raw['timestamps']
@@ -75,6 +76,10 @@ class Config:
     def set_epoch(self, time, year: int):
         self._raw['epoch']['time'] = int(time.timestamp())
         self._raw['epoch']['year'] = year
+        self._save()
+
+    def set_epoch_length(self, length: int):
+        self._raw['epoch']['length'] = length
         self._save()
 
     @property
