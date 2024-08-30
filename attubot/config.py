@@ -10,13 +10,14 @@ from os import path
 import json
 import sys
 
+from attubot import __version__
 from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 # --- Config Class ---
 
 class Config:
-    config_version = 'v1.5.1'
+    config_version = __version__
 
     def __init__(self, file_name):
         self.file_name = path.abspath(file_name)
