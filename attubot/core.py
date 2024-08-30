@@ -56,6 +56,12 @@ def get_year_status():
 
     return time_since_epoch, year
 
+def get_next_year():
+    time_since_epoch, _ = get_year_status()
+    new_date = date.today() + timedelta((config.epoch_length - time_since_epoch.days) % config.epoch_length)
+
+    return datetime.combine(new_date, trigger_time)
+
 async def send_to_error_log(error):
     global bot
 
@@ -73,15 +79,16 @@ async def send_to_error_log(error):
 @bot.slash_command(guilds_only=True)
 async def check_year(ctx):
     time_since_epoch, year = get_year_status()
+    next_year = get_next_year()
 
     if config.time_paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
 
     elif time_since_epoch.days % 14 != 0:
-        await ctx.respond(f'Advancing to Year {year} PC <t:{int(datetime.combine(date.today(), trigger_time).timestamp())}:R>')
+        await ctx.respond(f'Advancing to Year {year + 1} PC <t:{int(datetime.combine(next_year, trigger_time).timestamp())}:R>')
 
     else:
-        await ctx.respond(f'Happy New Year! Advancing to Year {year} PC <t:{int(datetime.combine(date.today(), trigger_time).timestamp())}:R>')
+        await ctx.respond(f'Happy New Year! Advancing to Year {year + 1} PC <t:{int(datetime.combine(next_year, trigger_time).timestamp())}:R>')
 
 @bot.slash_command(guilds_only=True)
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
