@@ -16,6 +16,7 @@ import discord
 from discord import Permissions
 from discord.ext import tasks
 
+from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
 logger = get_logger(__name__)
@@ -132,10 +133,44 @@ async def link_year(ctx, channel: discord.TextChannel, year: int):
     # Send message link
     await ctx.respond(f'{year} PC: https://discord.com/channels/{config.attu_guild}/{channel.id}/{config.timestamps[year - 1]}')
 
-@bot.slash_command(guilds_only=True)
-async def build_date(ctx):
-    build_time = datetime.strptime(getenv("BUILD_TIME"), build_format)
-    await ctx.respond(f'Container Build Time: <t:{int(build_time.timestamp())}:f>')
+@bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+@discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
+async def debug(ctx, option: str):
+    global config
+
+    options = ['version', 'year_stats', 'force_error']
+    options.sort()
+
+    if ctx.user.id != config.bot_owner:
+        await ctx.respond('You\'re not my real dad!')
+        return
+
+    if option == 'version':
+        build_time = datetime.strptime(getenv("BUILD_TIME"), build_format)
+
+        await ctx.respond('\n'.join([
+            f'Version: {__version__}',
+            f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
+        ]))
+
+    elif option == 'year_stats':
+        time_since_epoch, year = get_year_status()
+        next_year = get_next_year()
+
+        await ctx.respond('\n'.join([
+            f'Current Year: {year} PC',
+            f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
+            f'Next Year: <t:{int(next_year.timestamp())}:f>',
+            f'Time Since Epoch: {time_since_epoch.days} Days or {time_since_epoch.total_seconds} Seconds',
+            f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
+        ]))
+
+    elif option == 'force_error':
+        await ctx.respond('Forcing an error message')
+        math = 10 / 0
+
+    else:
+        await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
@@ -143,7 +178,7 @@ async def build_date(ctx):
 async def admin(ctx, option: str, number):
     global config
 
-    options = ['debug_year', 'force_error', 'force_year', 'time_dilate', 'time_pause', 'time_resume']
+    options = ['force_error', 'force_year', 'time_dilate', 'time_pause', 'time_resume']
     options.sort()
 
     if ctx.user.id != config.bot_owner:
@@ -157,18 +192,6 @@ async def admin(ctx, option: str, number):
         logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
         await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
         await advance_year(forced_year)
-
-    elif option == 'debug_year':
-        time_since_epoch, year = get_year_status()
-        next_year = get_next_year()
-
-        await ctx.respond('\n'.join([
-            f'Current Year: {year} PC',
-            f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
-            f'Next Year: <t:{int(next_year.timestamp())}:f>',
-            f'Time Since Epoch: {time_since_epoch.days} Days or {time_since_epoch.total_seconds} Seconds',
-            f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
-        ]))
 
     elif option == 'time_pause':
         await ctx.respond('The passage of time has been stopped')
@@ -192,10 +215,6 @@ async def admin(ctx, option: str, number):
         else:
             reset_epoch()
             await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year** with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
-
-    elif option == 'force_error':
-        await ctx.respond('Forcing an error message')
-        math = 10 / 0
 
     else:
         await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
