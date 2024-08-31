@@ -54,6 +54,9 @@ def get_year_status():
     time_since_epoch = datetime.now() - datetime.fromtimestamp(config.epoch_time)
     year = config.epoch_year + (time_since_epoch.days // 14)
 
+    if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+        year -= 1
+
     return time_since_epoch, year
 
 def get_next_year():
