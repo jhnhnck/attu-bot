@@ -12,7 +12,7 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 class AttuWiki:
-    api_endpoint = 'https://wiki.attuproject.org/api.php'
+    api_endpoint = 'https://attuproject.org/api.php'
     session = requests.Session()
     token = ''
 
