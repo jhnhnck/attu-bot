@@ -130,7 +130,7 @@ async def link_year(ctx, channel: discord.TextChannel, year: int):
         return
 
     # Send message link
-    await ctx.respond(f'https://discord.com/channels/{config.attu_guild}/{channel.id}/{config.timestamps[year - 1]}')
+    await ctx.respond(f'{year} PC: https://discord.com/channels/{config.attu_guild}/{channel.id}/{config.timestamps[year - 1]}')
 
 @bot.slash_command(guilds_only=True)
 async def build_date(ctx):
