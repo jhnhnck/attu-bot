@@ -69,6 +69,26 @@ def get_next_year():
 
     return datetime.combine(new_date, trigger_time)
 
+def reset_epoch():
+    time_since_epoch, year = get_year_status()
+    week_offset = 0
+
+    # has the epoch already been reset
+    if config.epoch_year > len(config.timestamps):
+        logger.info('Epoch already been reset; not doing again')
+        return
+
+    # offset for if you immediately resume after pausing
+    if year <= len(config.timestamps):
+        week_offset = (time_since_epoch.days % config.epoch_length) // 7
+
+    # make next week if today is friday already
+    if date.today().weekday() == 4:
+        week_offset += 1
+
+    config.set_epoch(datetime.combine(date.today() + timedelta(((4 - date.today().weekday()) % 7) + (week_offset * 7)), trigger_time), len(config.timestamps) + 1)
+    logger.info(f'New Epoch Set: {config.epoch_year} PC at {config.epoch_time}')
+
 async def send_to_error_log(error):
     global bot
 
@@ -91,7 +111,7 @@ async def check_year(ctx):
     if config.time_paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
 
-    elif time_since_epoch.days % 14 != 0:
+    elif time_since_epoch.days % config.epoch_length != 0:
         await ctx.respond(f'Advancing to Year {year + 1} PC <t:{int(datetime.combine(next_year, trigger_time).timestamp())}:R>')
 
     else:
@@ -119,7 +139,8 @@ async def build_date(ctx):
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
-async def admin(ctx, option: str):
+@discord.commands.option(name='number', required=False, description='Arguments', input_type=int)
+async def admin(ctx, option: str, number):
     global config
 
     if ctx.user.id != config.bot_owner:
@@ -145,10 +166,23 @@ async def admin(ctx, option: str):
         config.time_paused = True
 
     elif option == 'time_resume':
-        config.set_epoch(datetime.combine(date.today() + timedelta((4 - date.today().weekday()) % 7), trigger_time), len(config.timestamps) + 1)
+        reset_epoch()
 
-        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to {config.epoch_year} PC at <t:{config.epoch_time}:f>')
+        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
         config.time_paused = False
+
+    elif option == 'time_dilate':
+        if number is None:
+            await ctx.respond('Failed: Submit dilation amount in number field', ephemeral=True)
+            return
+
+        config.set_epoch_length(number)
+
+        if config.time_paused:
+            await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year**')
+        else:
+            reset_epoch()
+            await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year** with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
 
     elif option == 'force_error':
         await ctx.respond('Forcing an error message')
@@ -184,8 +218,8 @@ async def check_for_new_year():
     if config.time_paused:
         logger.info('The passage of time has been paused; skipping task')
 
-    elif time_since_epoch.days % 14 != 0:
-        logger.info(f'Days Remaining Until Year {year + 1} PC: {14 - (time_since_epoch.days % 14)}')
+    elif time_since_epoch.days % config.epoch_length != 0:
+        logger.info(f'Days Remaining Until Year {year + 1} PC: {config.epoch_length - (time_since_epoch.days % config.epoch_length)}')
 
     elif year < len(config.timestamps):
         logger.error('Already enough years; was event manually triggered?')
