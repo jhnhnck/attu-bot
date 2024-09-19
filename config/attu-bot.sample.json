@@ -1,29 +1,46 @@
 {
-    "config_version": "v1.1",
+    "config_version": "v1.5.1",
     "auth": {
-        "token": "your token here"
+        "token": "TOKEN_GOES_HERE"
     },
     "wiki": {
-        "key": "",
-        "page": "",
-        "user": ""
+        "key": "KEY_GOES_HERE",
+        "page": "PAGE_GOES_HERE",
+        "user": "USERNAME_GOES_HERE"
     },
-    "activity_channel": 1000000000000000000,
-    "announcements": {
-        "channel": 1000000000000000000,
-        "leader_role": 1000000000000000000
+    "channels": {
+        "activity": 1000000000000000000,
+        "announcements": 1000000000000000000,
+        "year_vc": 1000000000000000000,
+        "doom_forum": 1000000000000000000,
+        "year_links": 1000000000000000000,
+        "meta_chat": 1000000000000000000,
+        "lore_channels": [
+            1000000000000000000,
+            1000000000000000000,
+            1000000000000000000,
+            1000000000000000000,
+            1000000000000000000
+        ],
+        "error_log": 1000000000000000000
+    },
+    "roles": {
+        "leaders": 1000000000000000000
     },
     "epoch": {
         "time": 1708120800,
-        "year": 30
+        "year": 30,
+        "paused": false,
+        "length": 14
     },
-    "guild": 1000000000000000000,
-    "lore_channels": [
-        1000000000000000000,
-        1000000000000000000,
-        1000000000000000000,
-        1000000000000000000,
+    "users": {
+        "bot_owner": 1000000000000000000
+    },
+    "guilds": {
+        "attu": 1000000000000000000,
+        "jhn": 1000000000000000000
+    },
+    "timestamps": [
         1000000000000000000
-    ],
-    "year_vc": 1000000000000000000
+    ]
 }
