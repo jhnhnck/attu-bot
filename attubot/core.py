@@ -135,12 +135,20 @@ async def check_year(ctx, year: int):
         await ctx.respond(f'Year {year} PC will start on <t:{int(future_year.timestamp())}:d>')
 
 @bot.slash_command(guilds_only=True)
-@discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int)
-async def link_year(ctx, channel: discord.TextChannel, year: int):
-    if channel.id not in config.lore_channels and channel.id != config.meta_chat_channel:
+@discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
+async def link_year(ctx, year: int, channel: discord.TextChannel):
+    channel_id = 0
+
+    if channel is None:
+        channel_id = config.lore_channels[3]
+
+    elif channel.id not in config.lore_channels and channel.id != config.meta_chat_channel:
         await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
         return
+
+    else:
+        channel_id = channel.id
 
     if year < 1 or year > len(config.timestamps):
         await ctx.respond(f'Failed: Pick a year between 1 and {len(config.timestamps)}.', ephemeral=True)
