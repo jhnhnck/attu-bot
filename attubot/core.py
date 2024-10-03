@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 import re
 import traceback
 from collections import namedtuple
+from types import SimpleNamespace
 
 import discord
 from discord import Permissions
@@ -39,8 +40,6 @@ flipped_separators = { '<': '>', '\>': '<', '/': '\\\\', '\\\\': '/' }
 build_format = '%a %b %d %H:%M:%S %Z %Y'
 trigger_time = time(17, 0, tzinfo=ZoneInfo('America/New_York'))
 
-FlooredTimeDelta = namedtuple('FlooredTimeDelta', 'days total_seconds')
-
 # --- Utilities ---
 
 def format_year_line(year):
@@ -56,7 +55,7 @@ def format_year_line(year):
 
 def get_year_status():
     time_diff_sec = (datetime.now() - datetime.fromtimestamp(config.epoch_time)).total_seconds()
-    time_since_epoch = FlooredTimeDelta(int(time_diff_sec / 86400), time_diff_sec)
+    time_since_epoch = SimpleNamespace(days=int(time_diff_sec / 86400))
     year = config.epoch_year + (time_since_epoch.days // config.epoch_length)
 
     if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
