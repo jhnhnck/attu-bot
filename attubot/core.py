@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import discord
 from discord import Permissions
 from discord.ext import tasks
+from discord.utils import snowflake_time
 
 from attubot import __version__
 from attubot.config import Config
@@ -118,7 +119,7 @@ async def check_year(ctx, year: int):
         return
 
     # original functionality
-    if year is None:
+    if year is None or year == (current_year + 1):
         if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
 
@@ -126,8 +127,23 @@ async def check_year(ctx, year: int):
             await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
 
     # invalid year input
-    elif year <= current_year:
-        await ctx.respond(f'Failed: Pick a year after {current_year} PC.', ephemeral=True)
+    elif year <= 0:
+        await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
+
+    # prior years
+    elif year < current_year:
+        start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
+        end_time = int(snowflake_time(config.timestamps[year]).timestamp())
+        await ctx.respond(f'Year {year} PC lasted for {round((end_time - start_time) / 86400)} days, starting on <t:{start_time}:d> and ending on <t:{end_time}:d>')
+
+    # current year
+    elif year == current_year:
+        start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
+        await ctx.respond(f'Year {year} PC will last for {round((next_year.timestamp() - start_time) / 86400)} days, which started on <t:{start_time}:d> and will end on <t:{int(next_year.timestamp())}:d>')
+
+    # easter egg (far future)
+    elif (config.epoch_length * (year - current_year - 1)) > (365 * 80):
+        await ctx.respond(f'Year {year} PC won\'t matter because we\'ll all be dead; try something sooner maybe', ephemeral=True)
 
     # check future years
     else:
