@@ -202,7 +202,7 @@ async def debug(ctx, option: str):
 async def admin(ctx, option: str, number):
     global config
 
-    options = ['force_error', 'force_year', 'time_dilate', 'time_pause', 'time_resume']
+    options = ['force_year', 'time_dilate', 'time_pause', 'time_resume']
     options.sort()
 
     if ctx.user.id != config.bot_owner:
