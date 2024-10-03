@@ -155,7 +155,7 @@ async def link_year(ctx, year: int, channel: discord.TextChannel):
         return
 
     # Send message link
-    await ctx.respond(f'{year} PC: https://discord.com/channels/{config.attu_guild}/{channel.id}/{config.timestamps[year - 1]}')
+    await ctx.respond(f'{year} PC: https://discord.com/channels/{config.attu_guild}/{channel_id}/{config.timestamps[year - 1]}')
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
