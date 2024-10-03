@@ -185,7 +185,7 @@ async def debug(ctx, option: str):
             f'Current Year: {year} PC',
             f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
             f'Next Year: <t:{int(next_year.timestamp())}:f>',
-            f'Time Since Epoch: {time_since_epoch.days} Days or {time_since_epoch.total_seconds} Seconds',
+            f'Time Since Epoch: {time_since_epoch.days} Days',
             f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
         ]))
 
