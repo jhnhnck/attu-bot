@@ -54,7 +54,7 @@ def format_year_line(year):
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
 def get_year_status():
-    time_diff_sec = (datetime.now() - datetime.fromtimestamp(config.epoch_time)).total_seconds()
+    time_diff_sec = (datetime.combine(date.today(), trigger_time) - datetime.fromtimestamp(config.epoch_time).astimezone()).total_seconds()
     time_since_epoch = SimpleNamespace(days=int(time_diff_sec / 86400))
     year = config.epoch_year + (time_since_epoch.days // config.epoch_length)
 
@@ -65,12 +65,12 @@ def get_year_status():
 
 def get_next_year():
     time_since_epoch, _ = get_year_status()
-    new_date = date.today() + timedelta((config.epoch_length - time_since_epoch.days) % config.epoch_length)
+    new_date = datetime.combine(date.today(), trigger_time) + timedelta((config.epoch_length - time_since_epoch.days) % config.epoch_length)
 
     if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
         new_date += timedelta(days=config.epoch_length)
 
-    return datetime.combine(new_date, trigger_time)
+    return new_date
 
 def reset_epoch():
     time_since_epoch, year = get_year_status()
