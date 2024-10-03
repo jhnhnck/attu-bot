@@ -107,18 +107,32 @@ async def send_to_error_log(error):
 # --- Slash Commands ---
 
 @bot.slash_command(guilds_only=True)
-async def check_year(ctx):
-    time_since_epoch, year = get_year_status()
+@discord.commands.option(name='year', required=False, description='Year Number', input_type=int)
+async def check_year(ctx, year: int):
+    time_since_epoch, current_year = get_year_status()
     next_year = get_next_year()
 
+    # check if time is paused first
     if config.time_paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
+        return
 
-    elif (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
-        await ctx.respond(f'Happy New Year! Advancing to Year {year + 1} PC <t:{int(datetime.combine(next_year, trigger_time).timestamp())}:R>')
+    # original functionality
+    if year is None:
+        if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
 
+        else:
+            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
+
+    # invalid year input
+    elif year <= current_year:
+        await ctx.respond(f'Failed: Pick a year after {current_year} PC.', ephemeral=True)
+
+    # check future years
     else:
-        await ctx.respond(f'Advancing to Year {year + 1} PC <t:{int(datetime.combine(next_year, trigger_time).timestamp())}:R>')
+        future_year = next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))
+        await ctx.respond(f'Year {year} PC will start on <t:{int(future_year.timestamp())}:d>')
 
 @bot.slash_command(guilds_only=True)
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
