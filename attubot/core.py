@@ -56,22 +56,22 @@ def format_year_line(year):
 
 def get_year_status():
     time_diff_sec = (datetime.combine(date.today(), trigger_time) - datetime.fromtimestamp(config.epoch_time).astimezone()).total_seconds()
-    time_since_epoch = SimpleNamespace(days=int(time_diff_sec / 86400))
-    year = config.epoch_year + (time_since_epoch.days // config.epoch_length)
+    elapsed_days = int(time_diff_sec / 86400)
+    year = config.epoch_year + (elapsed_days // config.epoch_length)
 
-    if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+    if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
         year -= 1
 
-    return time_since_epoch, year
+    return elapsed_days, year
 
 def get_next_year():
     if config.time_paused:
         return datetime.fromtimestamp(0).astimezone()
 
-    time_since_epoch, _ = get_year_status()
-    new_date = datetime.combine(date.today(), trigger_time) + timedelta((config.epoch_length - time_since_epoch.days) % config.epoch_length)
+    elapsed_days, _ = get_year_status()
+    new_date = datetime.combine(date.today(), trigger_time) + timedelta((config.epoch_length - elapsed_days) % config.epoch_length)
 
-    if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
+    if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
         new_date += timedelta(days=config.epoch_length)
 
     return new_date
@@ -79,7 +79,7 @@ def get_next_year():
 def get_year_span(year: int):
     result = SimpleNamespace(start_time=0, end_time=0, duration=0)
 
-    time_since_epoch, current_year = get_year_status()
+    _, current_year = get_year_status()
     next_year = get_next_year()
 
     # Invalid Years
@@ -110,7 +110,7 @@ def get_year_span(year: int):
     return result
 
 def reset_epoch():
-    time_since_epoch, year = get_year_status()
+    elapsed_days, year = get_year_status()
     week_offset = 0
 
     # has the epoch already been reset
@@ -120,7 +120,7 @@ def reset_epoch():
 
     # offset for if you immediately resume after pausing
     if year <= len(config.timestamps):
-        week_offset = (time_since_epoch.days % config.epoch_length) // 7
+        week_offset = (elapsed_days % config.epoch_length) // 7
 
     # make next week if today is friday already
     if date.today().weekday() == 4:
@@ -146,7 +146,7 @@ async def send_to_error_log(error):
 @bot.slash_command(guilds_only=True)
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int)
 async def check_year(ctx, year: int):
-    time_since_epoch, current_year = get_year_status()
+    elapsed_days, current_year = get_year_status()
     year_span = get_year_span(current_year if year is None else year)
 
     # invalid year input
@@ -167,7 +167,7 @@ async def check_year(ctx, year: int):
 
     # next year (original functionality)
     elif year == (current_year + 1):
-        if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+        if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
@@ -225,14 +225,14 @@ async def debug(ctx, option: str):
         ]))
 
     elif option == 'year_stats':
-        time_since_epoch, year = get_year_status()
+        elapsed_days, year = get_year_status()
         next_year = get_next_year()
 
         await ctx.respond('\n'.join([
             f'Current Year: {year} PC',
             f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
             f'Next Year: <t:{int(next_year.timestamp())}:f>',
-            f'Time Since Epoch: {time_since_epoch.days} Days',
+            f'Time Since Epoch: {elapsed_days} Days',
             f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
         ]))
 
@@ -312,13 +312,13 @@ async def task_year_check():
         send_to_error_log(error)
 
 async def check_for_new_year():
-    time_since_epoch, year = get_year_status()
+    elapsed_days, year = get_year_status()
 
     if config.time_paused:
         logger.info('The passage of time has been paused; skipping task')
 
-    elif time_since_epoch.days % config.epoch_length != 0:
-        logger.info(f'Days Remaining Until Year {year + 1} PC: {config.epoch_length - (time_since_epoch.days % config.epoch_length)}')
+    elif elapsed_days % config.epoch_length != 0:
+        logger.info(f'Days Remaining Until Year {year + 1} PC: {config.epoch_length - (elapsed_days % config.epoch_length)}')
 
     elif year < len(config.timestamps):
         logger.error('Already enough years; was event manually triggered?')
