@@ -113,21 +113,8 @@ async def check_year(ctx, year: int):
     time_since_epoch, current_year = get_year_status()
     next_year = get_next_year()
 
-    # check if time is paused first
-    if config.time_paused:
-        await ctx.respond('Sorry! New Years is cancelled until further notice')
-        return
-
-    # original functionality
-    if year is None or year == (current_year + 1):
-        if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
-            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
-
-        else:
-            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
-
     # invalid year input
-    elif year <= 0:
+    if year <= 0:
         await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
 
     # prior years
@@ -136,10 +123,22 @@ async def check_year(ctx, year: int):
         end_time = int(snowflake_time(config.timestamps[year]).timestamp())
         await ctx.respond(f'Year {year} PC lasted for {round((end_time - start_time) / 86400)} days, starting on <t:{start_time}:d> and ending on <t:{end_time}:d>')
 
+    # check if time is paused first
+    elif config.time_paused:
+        await ctx.respond('Sorry! New Years is cancelled until further notice')
+
     # current year
     elif year == current_year:
         start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
         await ctx.respond(f'Year {year} PC will last for {round((next_year.timestamp() - start_time) / 86400)} days, which started on <t:{start_time}:d> and will end on <t:{int(next_year.timestamp())}:d>')
+
+    # next year (original functionality)
+    elif year is None or year == (current_year + 1):
+        if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
+
+        else:
+            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
 
     # easter egg (far future)
     elif (config.epoch_length * (year - current_year - 1)) > (365 * 80):
