@@ -65,6 +65,9 @@ def get_year_status():
     return time_since_epoch, year
 
 def get_next_year():
+    if config.time_paused:
+        return None
+
     time_since_epoch, _ = get_year_status()
     new_date = datetime.combine(date.today(), trigger_time) + timedelta((config.epoch_length - time_since_epoch.days) % config.epoch_length)
 
