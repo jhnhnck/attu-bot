@@ -76,6 +76,39 @@ def get_next_year():
 
     return new_date
 
+def get_year_span(year: int):
+    result = SimpleNamespace(start_time=0, end_time=0, duration=0)
+
+    time_since_epoch, current_year = get_year_status()
+    next_year = get_next_year()
+
+    # Invalid Years
+    if year <= 0:
+        logger.error(f'get_year() requested with invalid year: {year}')
+
+    # Past Years
+    elif year < current_year:
+        result.start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
+        result.end_time = int(snowflake_time(config.timestamps[year]).timestamp())
+
+    # Current Year
+    elif year == current_year:
+        result.start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
+        result.end_time = int(next_year.timestamp())
+
+    # Next Year
+    elif year == (current_year + 1):
+        result.start_time = int(next_year.timestamp())
+        result.end_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))).timestamp()) if not config.time_paused else 0
+
+    # Future Years
+    elif not config.time_paused:
+        result.start_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))).timestamp())
+        result.end_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year)))).timestamp())
+
+    result.duration = round((result.end_time - result.start_time) / 86400)
+    return result
+
 def reset_epoch():
     time_since_epoch, year = get_year_status()
     week_offset = 0
@@ -114,7 +147,7 @@ async def send_to_error_log(error):
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int)
 async def check_year(ctx, year: int):
     time_since_epoch, current_year = get_year_status()
-    next_year = get_next_year()
+    year_span = get_year_span(current_year if year is None else year)
 
     # invalid year input
     if year <= 0:
@@ -122,9 +155,7 @@ async def check_year(ctx, year: int):
 
     # prior years
     elif year < current_year:
-        start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
-        end_time = int(snowflake_time(config.timestamps[year]).timestamp())
-        await ctx.respond(f'Year {year} PC lasted for {round((end_time - start_time) / 86400)} days, starting on <t:{start_time}:d> and ending on <t:{end_time}:d>')
+        await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     # check if time is paused first
     elif config.time_paused:
@@ -132,16 +163,15 @@ async def check_year(ctx, year: int):
 
     # current year
     elif year == current_year:
-        start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
-        await ctx.respond(f'Year {year} PC will last for {round((next_year.timestamp() - start_time) / 86400)} days, which started on <t:{start_time}:d> and will end on <t:{int(next_year.timestamp())}:d>')
+        await ctx.respond(f'Year {year} PC will last for {year_span.duration} days, which started on <t:{year_span.start_time}:d> and will end on <t:{year_span.end_time}:d>')
 
     # next year (original functionality)
-    elif year is None or year == (current_year + 1):
+    elif year == (current_year + 1):
         if (time_since_epoch.days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
-            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
+            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
-            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{int(next_year.timestamp())}:R>')
+            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
     # easter egg (far future)
     elif (config.epoch_length * (year - current_year - 1)) > (365 * 80):
@@ -149,8 +179,7 @@ async def check_year(ctx, year: int):
 
     # check future years
     else:
-        future_year = next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))
-        await ctx.respond(f'Year {year} PC will start on <t:{int(future_year.timestamp())}:d>')
+        await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
 @bot.slash_command(guilds_only=True)
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int)
