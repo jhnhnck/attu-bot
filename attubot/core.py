@@ -277,7 +277,7 @@ async def admin(ctx, option: str, number):
 
     elif option == 'time_dilate':
         if number is None:
-            await ctx.respond('Failed: Submit dilation amount in number field', ephemeral=True)
+            await ctx.respond('Failed: Submit dilation amount (in days) in number field', ephemeral=True)
             return
 
         config.set_epoch_length(number)
