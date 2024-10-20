@@ -109,25 +109,31 @@ def get_year_span(year: int):
     result.duration = round((result.end_time - result.start_time) / 86400)
     return result
 
-def reset_epoch():
-    elapsed_days, year = get_year_status()
-    week_offset = 0
+def move_epoch(length: int):
+    elapsed_days, current_year = get_year_status()
+    year_span = get_year_span(current_year)
 
-    # has the epoch already been reset
-    if config.epoch_year > len(config.timestamps):
-        logger.info('Epoch already been reset; not doing again')
-        return
+    # handle picking new year time if paused
+    if config.time_paused:
+        friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
 
-    # offset for if you immediately resume after pausing
-    if year <= len(config.timestamps):
-        week_offset = (elapsed_days % config.epoch_length) // 7
+        # check if already passed trigger time
+        if date.today().weekday() == 4 and datetime.now().time() >= trigger_time:
+            friday += timedelta(days=7)
 
-    # make next week if today is friday already
-    if date.today().weekday() == 4:
-        week_offset += 1
+        config.set_epoch(datetime.combine(friday, trigger_time))
 
-    config.set_epoch(datetime.combine(date.today() + timedelta(((4 - date.today().weekday()) % 7) + (week_offset * 7)), trigger_time), len(config.timestamps) + 1)
-    logger.info(f'New Epoch Set: {config.epoch_year} PC at {config.epoch_time}')
+    # new length longer than current year has lasted, just extend
+    elif length >= (elapsed_days % config.epoch_length):
+        config.set_epoch(year_span.start_time, current_year)
+
+    # wait for current year to complete first
+    else:
+        config.set_epoch(year_span.end_time, current_year + 1)
+
+    config.set_epoch_length(length)
+    logger.info(f'New Epoch Set: {config.epoch_year} PC at {config.epoch_time} with year length of {config.epoch_length}')
+
 
 async def send_to_error_log(error):
     global bot
@@ -270,7 +276,7 @@ async def admin(ctx, option: str, number):
         config.time_paused = True
 
     elif option == 'time_resume':
-        reset_epoch()
+        move_epoch(config.epoch_length)
 
         await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
         config.time_paused = False
@@ -280,12 +286,11 @@ async def admin(ctx, option: str, number):
             await ctx.respond('Failed: Submit dilation amount (in days) in number field', ephemeral=True)
             return
 
-        config.set_epoch_length(number)
-
         if config.time_paused:
+            config.set_epoch_length(number)
             await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year**')
         else:
-            reset_epoch()
+            move_epoch(number)
             await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year** with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
 
     else:

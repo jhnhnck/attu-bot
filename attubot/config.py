@@ -75,7 +75,7 @@ class Config:
         self._save()
 
     def set_epoch(self, time, year: int):
-        self._raw['epoch']['time'] = int(time.timestamp())
+        self._raw['epoch']['time'] = int(time)
         self._raw['epoch']['year'] = year
         self._save()
 
