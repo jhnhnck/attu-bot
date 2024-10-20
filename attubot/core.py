@@ -226,13 +226,13 @@ async def debug(ctx, option: str):
         ]))
 
     elif option == 'year_stats':
-        elapsed_days, year = get_year_status()
-        next_year = get_next_year()
+        elapsed_days, current_year = get_year_status()
+        year_span = get_year_span(current_year)
 
         await ctx.respond('\n'.join([
-            f'Current Year: {year} PC',
+            f'Current Year: {current_year} PC',
+            f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
             f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
-            f'Next Year: <t:{int(next_year.timestamp())}:f>',
             f'Time Since Epoch: {elapsed_days} Days',
             f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
         ]))
