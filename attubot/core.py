@@ -147,7 +147,8 @@ async def send_to_error_log(error):
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int)
 async def check_year(ctx, year: int):
     elapsed_days, current_year = get_year_status()
-    year_span = get_year_span(current_year if year is None else year)
+    year = year if year is not None else (current_year + 1)
+    year_span = get_year_span(year)
 
     # invalid year input
     if year <= 0:
