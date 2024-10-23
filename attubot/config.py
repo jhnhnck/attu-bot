@@ -29,7 +29,7 @@ class Config:
 
         logger.info(f'Loading config from "{self.file_name}"')
 
-        with open(self.file_name, 'r') as file:
+        with open(self.file_name) as file:
             self._raw = json.loads(file.read())
 
         # Unpack raw json

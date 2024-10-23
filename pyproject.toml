@@ -14,6 +14,7 @@ select = [
   "CPY",
   "COM",
   "SIM",
+  "PTH",
 ]
 # select = ["ALL"]
 
