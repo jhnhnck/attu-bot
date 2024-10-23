@@ -1,8 +1,9 @@
-.git
-.env
 .aws
-*.sample.*
-config/
-**/__pycache__/
-vm-setup.sh
+.env
+.git
+.venv
 *.json
+*.sample.*
+**/__pycache__/
+config/
+pyproject.toml
