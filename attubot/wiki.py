@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import requests
+import requests  # noqa: I001
 # from requests_toolbelt.utils import dump
 
 from attubot.logging import get_logger
@@ -25,7 +25,7 @@ class AttuWiki:
     #     logger.debug(data.decode('utf-8'))
 
     def authenticate(self, user, key):
-        res = self.session.get(self.api_endpoint, params={ 'action':"query", 'meta': 'tokens', 'type': 'login', 'format': 'json' })
+        res = self.session.get(self.api_endpoint, params={ 'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json' })
         self.token = res.json()['query']['tokens']['logintoken']
 
         data = {
@@ -33,7 +33,7 @@ class AttuWiki:
             'lgname': user,
             'lgpassword': key,
             'lgtoken': self.token,
-            'format': 'json'
+            'format': 'json',
         }
 
         res = self.session.post(self.api_endpoint, data=data)

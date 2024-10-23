@@ -5,13 +5,12 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from os import getenv
-from datetime import datetime, timedelta, date, time
-from zoneinfo import ZoneInfo
 import re
 import traceback
-from collections import namedtuple
+from datetime import date, datetime, time, timedelta
+from os import getenv
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import discord
 from discord import Permissions
@@ -21,12 +20,11 @@ from discord.utils import snowflake_time
 from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
-logger = get_logger(__name__)
-
 from attubot.wiki import AttuWiki
 
 # --- Initialization ---
 
+logger = get_logger(__name__)
 logger.info('Initializing...')
 
 intents = discord.Intents.default()
@@ -35,8 +33,8 @@ intents.message_content = True
 bot = discord.Bot(intents=intents)
 config = Config(getenv('BOT_CONFIG_FILE'))
 
-separators = ["<","=","+","\>","/","&",":","$","\*","%","@", "⁂", "xXx","\\\\","?","^","\|","\~", '-']
-flipped_separators = { '<': '>', '\>': '<', '/': '\\\\', '\\\\': '/' }
+separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
+flipped_separators = { '<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/' }
 
 build_format = '%a %b %d %H:%M:%S %Z %Y'
 trigger_time = time(17, 0, tzinfo=ZoneInfo(getenv('TZ')))
@@ -182,7 +180,7 @@ async def check_year(ctx, year: int):
 
     # easter egg (far future)
     elif (config.epoch_length * (year - current_year - 1)) > (365 * 80):
-        await ctx.respond(f'Year {year} PC won\'t matter because we\'ll all be dead; try something sooner maybe', ephemeral=True)
+        await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe", ephemeral=True)
 
     # check future years
     else:
@@ -220,11 +218,11 @@ async def debug(ctx, option: str):
     options.sort()
 
     if ctx.user.id != config.bot_owner:
-        await ctx.respond('You\'re not my real dad!')
+        await ctx.respond("You're not my real dad!")
         return
 
     if option == 'version':
-        build_time = datetime.strptime(getenv("BUILD_TIME"), build_format)
+        build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
 
         await ctx.respond('\n'.join([
             f'Version: {__version__}',
@@ -240,12 +238,12 @@ async def debug(ctx, option: str):
             f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
             f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
             f'Time Since Epoch: {elapsed_days} Days',
-            f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>'
+            f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>',
         ]))
 
     elif option == 'force_error':
         await ctx.respond('Forcing an error message')
-        math = 10 / 0
+        math = 10 / 0  # noqa: F841
 
     else:
         await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
@@ -260,7 +258,7 @@ async def admin(ctx, option: str, number):
     options.sort()
 
     if ctx.user.id != config.bot_owner:
-        await ctx.respond('You\'re not my real dad!')
+        await ctx.respond("You're not my real dad!")
         return
 
     if option == 'force_year':

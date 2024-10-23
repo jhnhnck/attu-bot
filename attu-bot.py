@@ -7,8 +7,9 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from os import environ, getenv
+
 from dotenv import load_dotenv
-from os import getenv, environ
 
 load_dotenv()  # take environment variables from .env.
 
@@ -19,7 +20,7 @@ if 'DEBUG' in environ:
 else:
     print('attubot.runner > info. Debug Mode: Disabled')
 
-from attubot import core
+from attubot import core  # noqa: E402
 
 if __name__ == '__main__':
     core.start_bot_loop()
