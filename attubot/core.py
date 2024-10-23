@@ -119,7 +119,7 @@ def move_epoch(length: int):
         if date.today().weekday() == 4 and datetime.now().time() >= trigger_time:
             friday += timedelta(days=7)
 
-        config.set_epoch(datetime.combine(friday, trigger_time))
+        config.set_epoch(datetime.combine(friday, trigger_time), current_year + 1)
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % config.epoch_length):
