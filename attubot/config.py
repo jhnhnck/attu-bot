@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import json
 import sys
-from os import path
+from pathlib import Path
 
 from attubot import __version__
 from attubot.logging import get_logger
@@ -20,16 +20,16 @@ class Config:
     config_version = __version__
 
     def __init__(self, file_name):
-        self.file_name = path.abspath(file_name)
+        self.file_name = Path(file_name).resolve()
 
     def load_from_file(self):
-        if not path.exists(self.file_name):
+        if not Path(self.file_name).exists():
             logger.error('Config file missing!')
             sys.exit(1)
 
         logger.info(f'Loading config from "{self.file_name}"')
 
-        with open(self.file_name) as file:
+        with Path(self.file_name).open() as file:
             self._raw = json.loads(file.read())
 
         # Unpack raw json
@@ -65,7 +65,7 @@ class Config:
     def _save(self):
         logger.info(f'Writing new config to "{self.file_name}"')
 
-        with open(self.file_name, 'w') as file:
+        with Path(self.file_name).open('w') as file:
             file.write(json.dumps(self._raw, indent=4))
 
         self.load_from_file()
