@@ -42,7 +42,6 @@ trigger_time = time(17, 0, tzinfo=ZoneInfo(getenv('TZ')))
 # --- Utilities ---
 
 def format_year_line(year):
-    global separators, escaped_separators, flipped_separators
     sep = separators[year % len(separators)]
 
     if len(sep) > 2:
@@ -134,14 +133,12 @@ def move_epoch(length: int):
 
 
 async def send_to_error_log(error):
-    global bot
-
     guild = bot.get_guild(config.jhn_guild)
     error_log = guild.get_channel(config.error_log_channel)
 
     tb_str = ''.join(traceback.format_tb(error.__traceback__))
 
-    await error_log.send(f'**{str(error)}**\n```\n{tb_str}```')
+    await error_log.send(f'**{error}**\n```\n{tb_str}```')
 
     logger.error(error + '\n' + tb_str)
 
@@ -212,8 +209,6 @@ async def link_year(ctx, year: int, channel: discord.TextChannel):
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
 async def debug(ctx, option: str):
-    global config
-
     options = ['version', 'year_stats', 'force_error']
     options.sort()
 
@@ -252,8 +247,6 @@ async def debug(ctx, option: str):
 @discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
 @discord.commands.option(name='number', required=False, description='Arguments', input_type=int)
 async def admin(ctx, option: str, number):
-    global config
-
     options = ['force_year', 'time_dilate', 'time_pause', 'time_resume']
     options.sort()
 
@@ -332,7 +325,6 @@ async def check_for_new_year():
         await advance_year(year)
 
 async def advance_year(year):
-    global bot, config
     guild = bot.get_guild(config.attu_guild)
 
     logger.info(f'Happy New Year! Advancing to Year {year} PC')
@@ -405,8 +397,6 @@ async def on_message(message):
 # --- Trigger Function ---
 
 def start_bot_loop():
-    global bot, config
-
     config.load_from_file()
 
     logger.info('Starting bot...')
