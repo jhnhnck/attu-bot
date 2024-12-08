@@ -28,6 +28,7 @@ ignore = [
 
 exclude = [".venv", "**/*.wip.py"]
 target-version = "py312"
+line-length = 320
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"

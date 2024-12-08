@@ -34,7 +34,7 @@ bot = discord.Bot(intents=intents)
 config = Config(getenv('BOT_CONFIG_FILE'))
 
 separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
-flipped_separators = { '<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/' }
+flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
 
 build_format = '%a %b %d %H:%M:%S %Z %Y'
 trigger_time = time(17, 0, tzinfo=ZoneInfo(getenv('TZ')))
