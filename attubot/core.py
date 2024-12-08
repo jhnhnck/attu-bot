@@ -52,7 +52,10 @@ def format_year_line(year):
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
 def get_year_status():
-    time_diff_sec = (datetime.combine(date.today(), trigger_time) - datetime.fromtimestamp(config.epoch_time).astimezone()).total_seconds()
+    today = datetime.combine(date.today(), trigger_time)
+    epoch =  datetime.combine(datetime.fromtimestamp(config.epoch_time).astimezone(), trigger_time)
+    time_diff_sec = (today - epoch).total_seconds()
+
     elapsed_days = int(time_diff_sec / 86400)
     year = config.epoch_year + (elapsed_days // config.epoch_length)
 
@@ -122,7 +125,7 @@ def move_epoch(length: int):
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % config.epoch_length):
-        config.set_epoch(year_span.start_time, current_year)
+        config.set_epoch(datetime.combine(year_span.start_time, trigger_time), current_year)
 
     # wait for current year to complete first
     else:
