@@ -143,7 +143,7 @@ async def send_to_error_log(error):
 
     await error_log.send(f'**{error}**\n```\n{tb_str}```')
 
-    logger.error(error + '\n' + tb_str)
+    logger.error(str(error) + '\n' + tb_str)
 
 # --- Slash Commands ---
 
