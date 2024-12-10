@@ -295,7 +295,7 @@ async def admin(ctx, option: str, number):
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 async def wiki_block(ctx, user, reason):
     # TODO: allow sending a link to the user profile instead
-    await ctx.respond(f'Blocking user: {user}')
+    await ctx.respond(f'Blocking user "{user}": {reason}')
 
     wiki = AttuWiki()
     wiki.authenticate(config.wiki_user, config.wiki_key)
