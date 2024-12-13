@@ -37,30 +37,6 @@ class Config:
             logger.info('Incompatible config version!')
             sys.exit(1)
 
-        self.bot_token = self._raw['auth']['token']
-        self.bot_owner = self._raw['users']['bot_owner']
-
-        self.wiki_key = self._raw['wiki']['key']
-        self.wiki_page = self._raw['wiki']['page']
-        self.wiki_user = self._raw['wiki']['user']
-
-        self.activity_channel = self._raw['channels']['activity']
-        self.year_vc = self._raw['channels']['year_vc']
-        self.announce_channel = self._raw['channels']['announcements']
-        self.doom_forum = self._raw['channels']['doom_forum']
-        self.year_link_thread = self._raw['channels']['year_links']
-        self.meta_chat_channel = self._raw['channels']['meta_chat']
-        self.error_log_channel = self._raw['channels']['error_log']
-        self.lore_channels = self._raw['channels']['lore_channels']
-
-        self.announce_role = self._raw['roles']['leaders']
-
-        self.epoch_time = self._raw['epoch']['time']
-        self.epoch_year = self._raw['epoch']['year']
-        self.epoch_length = self._raw['epoch']['length']
-        self.attu_guild = self._raw['guilds']['attu']
-        self.jhn_guild = self._raw['guilds']['jhn']
-        self.timestamps = self._raw['timestamps']
 
     def _save(self):
         logger.info(f'Writing new config to "{self.file_name}"')
@@ -91,3 +67,26 @@ class Config:
     def time_paused(self, value: bool):
         self._raw['epoch']['paused'] = value
         self._save()
+        Config.bot_token = Config._raw['auth']['token']
+        Config.bot_owner = Config._raw['users']['bot_owner']
+
+        Config.wiki_key = Config._raw['wiki']['key']
+        Config.wiki_page = Config._raw['wiki']['page']
+        Config.wiki_user = Config._raw['wiki']['user']
+
+        Config.activity_channel = Config._raw['channels']['activity']
+        Config.year_vc = Config._raw['channels']['year_vc']
+        Config.announce_channel = Config._raw['channels']['announcements']
+        Config.doom_forum = Config._raw['channels']['doom_forum']
+        Config.year_link_thread = Config._raw['channels']['year_links']
+        Config.meta_chat_channel = Config._raw['channels']['meta_chat']
+        Config.error_log_channel = Config._raw['channels']['error_log']
+        Config.lore_channels = Config._raw['channels']['lore_channels']
+
+        Config.announce_role = Config._raw['roles']['leaders']
+
+        Config.epoch_time = Config._raw['epoch']['time']
+        Config.epoch_year = Config._raw['epoch']['year']
+        Config.epoch_length = Config._raw['epoch']['length']
+        Config.attu_guild = Config._raw['guilds']['attu']
+        Config.jhn_guild = Config._raw['guilds']['jhn']
