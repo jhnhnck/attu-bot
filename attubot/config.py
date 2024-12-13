@@ -19,12 +19,12 @@ logger = get_logger(__name__)
 
 class Config:
     config_version = __version__
-    file_name = getenv('BOT_CONFIG_FILE', './attu-bot.json')
+    file_name = None
 
     @staticmethod
-    def init(file_name):
+    def init():
         logger.info('Initalizing...')
-        Config.file_name = Path(file_name).resolve()
+        Config.file_name = Path(getenv('BOT_CONFIG_FILE', './attu-bot.json')).resolve()
         Config._load()
 
     # --- Private Methods ---
