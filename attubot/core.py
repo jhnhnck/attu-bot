@@ -31,7 +31,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 bot = discord.Bot(intents=intents)
-config = Config(getenv('BOT_CONFIG_FILE'))
 
 separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
 flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
@@ -53,26 +52,26 @@ def format_year_line(year):
 
 def get_year_status():
     today = datetime.combine(date.today(), trigger_time)
-    epoch =  datetime.combine(datetime.fromtimestamp(config.epoch_time).astimezone(), trigger_time)
+    epoch =  datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), trigger_time)
     time_diff_sec = (today - epoch).total_seconds()
 
     elapsed_days = int(time_diff_sec / 86400)
-    year = config.epoch_year + (elapsed_days // config.epoch_length)
+    year = Config.epoch_year + (elapsed_days // Config.epoch_length)
 
-    if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < trigger_time:
         year -= 1
 
     return elapsed_days, year
 
 def get_next_year():
-    if config.time_paused:
+    if Config.time_paused:
         return datetime.fromtimestamp(0).astimezone()
 
     elapsed_days, _ = get_year_status()
-    new_date = datetime.combine(date.today(), trigger_time) + timedelta((config.epoch_length - elapsed_days) % config.epoch_length)
+    new_date = datetime.combine(date.today(), trigger_time) + timedelta((Config.epoch_length - elapsed_days) % Config.epoch_length)
 
-    if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
-        new_date += timedelta(days=config.epoch_length)
+    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
+        new_date += timedelta(days=Config.epoch_length)
 
     return new_date
 
@@ -88,23 +87,23 @@ def get_year_span(year: int):
 
     # Past Years
     elif year < current_year:
-        result.start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
-        result.end_time = int(snowflake_time(config.timestamps[year]).timestamp())
+        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
+        result.end_time = int(snowflake_time(Config.timestamps[year]).timestamp())
 
     # Current Year
     elif year == current_year:
-        result.start_time = int(snowflake_time(config.timestamps[year - 1]).timestamp())
+        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
         result.end_time = int(next_year.timestamp())
 
     # Next Year
     elif year == (current_year + 1):
         result.start_time = int(next_year.timestamp())
-        result.end_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))).timestamp()) if not config.time_paused else 0
+        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp()) if not Config.time_paused else 0
 
     # Future Years
-    elif not config.time_paused:
-        result.start_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year - 1)))).timestamp())
-        result.end_time = int((next_year + timedelta(days=(config.epoch_length * (year - current_year)))).timestamp())
+    elif not Config.time_paused:
+        result.start_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp())
+        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year)))).timestamp())
 
     result.duration = round((result.end_time - result.start_time) / 86400)
     return result
@@ -114,30 +113,30 @@ def move_epoch(length: int):
     year_span = get_year_span(current_year)
 
     # handle picking new year time if paused
-    if config.time_paused:
+    if Config.time_paused:
         friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
 
         # check if already passed trigger time
         if date.today().weekday() == 4 and datetime.now().time() >= trigger_time:
             friday += timedelta(days=7)
 
-        config.set_epoch(datetime.combine(friday, trigger_time), current_year + 1)
+        Config.set_epoch(datetime.combine(friday, trigger_time), current_year + 1)
 
     # new length longer than current year has lasted, just extend
-    elif length >= (elapsed_days % config.epoch_length):
-        config.set_epoch(datetime.combine(year_span.start_time, trigger_time), current_year)
+    elif length >= (elapsed_days % Config.epoch_length):
+        Config.set_epoch(datetime.combine(year_span.start_time, trigger_time), current_year)
 
     # wait for current year to complete first
     else:
-        config.set_epoch(year_span.end_time, current_year + 1)
+        Config.set_epoch(year_span.end_time, current_year + 1)
 
-    config.set_epoch_length(length)
-    logger.info(f'New Epoch Set: {config.epoch_year} PC at {config.epoch_time} with year length of {config.epoch_length}')
+    Config.set_epoch_length(length)
+    logger.info(f'New Epoch Set: {Config.epoch_year} PC at {Config.epoch_time} with year length of {Config.epoch_length}')
 
 
 async def send_to_error_log(error):
-    guild = bot.get_guild(config.jhn_guild)
-    error_log = guild.get_channel(config.error_log_channel)
+    guild = bot.get_guild(Config.jhn_guild)
+    error_log = guild.get_channel(Config.error_log_channel)
 
     tb_str = ''.join(traceback.format_tb(error.__traceback__))
 
@@ -163,7 +162,7 @@ async def check_year(ctx, year: int):
         await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     # check if time is paused first
-    elif config.time_paused:
+    elif Config.time_paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
 
     # current year
@@ -172,14 +171,14 @@ async def check_year(ctx, year: int):
 
     # next year (original functionality)
     elif year == (current_year + 1):
-        if (elapsed_days % config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+        if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < trigger_time:
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
             await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
     # easter egg (far future)
-    elif (config.epoch_length * (year - current_year - 1)) > (365 * 80):
+    elif (Config.epoch_length * (year - current_year - 1)) > (365 * 80):
         await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe", ephemeral=True)
 
     # check future years
@@ -193,21 +192,21 @@ async def link_year(ctx, year: int, channel: discord.TextChannel):
     channel_id = 0
 
     if channel is None:
-        channel_id = config.lore_channels[3]
+        channel_id = Config.lore_channels[3]
 
-    elif channel.id not in config.lore_channels and channel.id != config.meta_chat_channel:
+    elif channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
         await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
         return
 
     else:
         channel_id = channel.id
 
-    if year < 1 or year > len(config.timestamps):
-        await ctx.respond(f'Failed: Pick a year between 1 and {len(config.timestamps)}.', ephemeral=True)
+    if year < 1 or year > len(Config.timestamps):
+        await ctx.respond(f'Failed: Pick a year between 1 and {len(Config.timestamps)}.', ephemeral=True)
         return
 
     # Send message link
-    await ctx.respond(f'{year} PC: https://discord.com/channels/{config.attu_guild}/{channel_id}/{config.timestamps[year - 1]}')
+    await ctx.respond(f'{year} PC: https://discord.com/channels/{Config.attu_guild}/{channel_id}/{Config.timestamps[year - 1]}')
 
 @bot.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
 @discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
@@ -215,7 +214,7 @@ async def debug(ctx, option: str):
     options = ['version', 'year_stats', 'force_error']
     options.sort()
 
-    if ctx.user.id != config.bot_owner:
+    if ctx.user.id != Config.bot_owner:
         await ctx.respond("You're not my real dad!")
         return
 
@@ -234,7 +233,7 @@ async def debug(ctx, option: str):
         await ctx.respond('\n'.join([
             f'Current Year: {current_year} PC',
             f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
-            f'Attu Epoch: {config.epoch_year} PC at <t:{config.epoch_time}:f>',
+            f'Attu Epoch: {Config.epoch_year} PC at <t:{Config.epoch_time}:f>',
             f'Time Since Epoch: {elapsed_days} Days',
             f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>',
         ]))
@@ -253,12 +252,12 @@ async def admin(ctx, option: str, number):
     options = ['force_year', 'time_dilate', 'time_pause', 'time_resume']
     options.sort()
 
-    if ctx.user.id != config.bot_owner:
+    if ctx.user.id != Config.bot_owner:
         await ctx.respond("You're not my real dad!")
         return
 
     if option == 'force_year':
-        forced_year = len(config.timestamps) + 1
+        forced_year = len(Config.timestamps) + 1
         _, year = get_year_status()
 
         logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
@@ -267,25 +266,25 @@ async def admin(ctx, option: str, number):
 
     elif option == 'time_pause':
         await ctx.respond('The passage of time has been stopped')
-        config.time_paused = True
+        Config.pause_time()
 
     elif option == 'time_resume':
-        move_epoch(config.epoch_length)
+        move_epoch(Config.epoch_length)
 
-        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
-        config.time_paused = False
+        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
+        Config.resume_time()
 
     elif option == 'time_dilate':
         if number is None:
             await ctx.respond('Failed: Submit dilation amount (in days) in number field', ephemeral=True)
             return
 
-        if config.time_paused:
-            config.set_epoch_length(number)
-            await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year**')
+        if Config.time_paused:
+            Config.set_epoch_length(number)
+            await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year**')
         else:
             move_epoch(number)
-            await ctx.respond(f'The passage of time has been set to **{config.epoch_length} days per year** with Attu epoch moved to **{config.epoch_year} PC** at **<t:{config.epoch_time}:f>**')
+            await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year** with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
 
     else:
         await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
@@ -298,7 +297,7 @@ async def wiki_block(ctx, user, reason):
     await ctx.respond(f'Blocking user "{user}": {reason}')
 
     wiki = AttuWiki()
-    wiki.authenticate(config.wiki_user, config.wiki_key)
+    wiki.authenticate(Config.wiki_user, Config.wiki_key)
     wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- New Year Handling ---
@@ -315,20 +314,20 @@ async def task_year_check():
 async def check_for_new_year():
     elapsed_days, year = get_year_status()
 
-    if config.time_paused:
+    if Config.time_paused:
         logger.info('The passage of time has been paused; skipping task')
 
-    elif elapsed_days % config.epoch_length != 0:
-        logger.info(f'Days Remaining Until Year {year + 1} PC: {config.epoch_length - (elapsed_days % config.epoch_length)}')
+    elif elapsed_days % Config.epoch_length != 0:
+        logger.info(f'Days Remaining Until Year {year + 1} PC: {Config.epoch_length - (elapsed_days % Config.epoch_length)}')
 
-    elif year < len(config.timestamps):
+    elif year < len(Config.timestamps):
         logger.error('Already enough years; was event manually triggered?')
 
     else:
         await advance_year(year)
 
 async def advance_year(year):
-    guild = bot.get_guild(config.attu_guild)
+    guild = bot.get_guild(Config.attu_guild)
 
     logger.info(f'Happy New Year! Advancing to Year {year} PC')
 
@@ -337,38 +336,38 @@ async def advance_year(year):
     year_str = format_year_line(year)
     message_links = []
 
-    for channel_id in config.lore_channels:
+    for channel_id in Config.lore_channels:
         channel = guild.get_channel(channel_id)
         message = await channel.send(year_str)
         message_links.append(message.jump_url)
 
     # Save timestamp to config file
-    config.add_timestamp(message.id)
+    Config.add_timestamp(message.id)
 
     # --- Increase Year VC ---
 
-    year_vc = guild.get_channel(config.year_vc)
+    year_vc = guild.get_channel(Config.year_vc)
     await year_vc.edit(name=f'Current Year: {year} PC')
 
     # --- Edit Wiki ---
 
     wiki = AttuWiki()
-    wiki.authenticate(config.wiki_user, config.wiki_key)
+    wiki.authenticate(Config.wiki_user, Config.wiki_key)
 
-    text = wiki.get_page_contents(config.wiki_page)
+    text = wiki.get_page_contents(Config.wiki_page)
     updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
 
-    wiki.edit(config.wiki_page, updated_page, f'Bumped to Year {year} PC')
+    wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
 
     # --- Make Announcement ---
 
-    channel = guild.get_channel(config.announce_channel)
-    await channel.send(f'<@&{config.announce_role}> Year {year} PC. (weap)')
+    channel = guild.get_channel(Config.announce_channel)
+    await channel.send(f'<@&{Config.announce_role}> Year {year} PC. (weap)')
 
     # --- Send Year Links Message ---
 
-    doom_forum = guild.get_channel(config.doom_forum)
-    thread = doom_forum.get_thread(config.year_link_thread)
+    doom_forum = guild.get_channel(Config.doom_forum)
+    thread = doom_forum.get_thread(Config.year_link_thread)
     await thread.send(year_str + '\n' + '\n'.join(message_links))
 
 # --- Events ---
@@ -384,8 +383,11 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.channel.id == config.activity_channel and message.content.startswith('[DoomBot]'):
-        await message.add_reaction('💖')
+    if message.channel.id == Config.activity_channel and message.content.startswith('[DoomBot]'):
+        if 'blocked' in message.content:
+            await message.add_reaction('<:tieteran_wave:1308636215930654801>')
+        else:
+            await message.add_reaction('💖')
 
 @bot.event
 async def on_application_command_error(ctx, error):
@@ -400,7 +402,7 @@ async def on_message(message):
 # --- Trigger Function ---
 
 def start_bot_loop():
-    config.load_from_file()
+    Config.init()
 
     logger.info('Starting bot...')
-    bot.run(config.bot_token)
+    bot.run(Config.bot_token)

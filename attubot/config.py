@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import json
 import sys
+from os import getenv
 from pathlib import Path
 
 from attubot import __version__
@@ -18,55 +19,33 @@ logger = get_logger(__name__)
 
 class Config:
     config_version = __version__
+    file_name = getenv('BOT_CONFIG_FILE', './attu-bot.json')
 
-    def __init__(self, file_name):
-        self.file_name = Path(file_name).resolve()
+    @staticmethod
+    def init(file_name):
+        logger.info('Initalizing...')
+        Config.file_name = Path(file_name).resolve()
+        Config._load()
 
-    def load_from_file(self):
-        if not Path(self.file_name).exists():
-            logger.error('Config file missing!')
+    # --- Private Methods ---
+
+    @staticmethod
+    def _load():
+        if not Config.file_name.exists():
+            logger.error('config file missing!')
             sys.exit(1)
 
-        logger.info(f'Loading config from "{self.file_name}"')
+        logger.info(f'Loading config from "{Config.file_name}"')
 
-        with Path(self.file_name).open() as file:
-            self._raw = json.loads(file.read())
+        with Config.file_name.open() as file:
+            Config._raw = json.load(file)
 
-        # Unpack raw json
-        if self._raw['config_version'] != self.config_version:
+        # validate config version
+        if Config._raw['config_version'] != Config.config_version:
             logger.info('Incompatible config version!')
             sys.exit(1)
 
-
-    def _save(self):
-        logger.info(f'Writing new config to "{self.file_name}"')
-
-        with Path(self.file_name).open('w') as file:
-            file.write(json.dumps(self._raw, indent=4))
-
-        self.load_from_file()
-
-    def add_timestamp(self, timestamp):
-        self._raw['timestamps'].append(timestamp)
-        self._save()
-
-    def set_epoch(self, time, year: int):
-        self._raw['epoch']['time'] = int(time)
-        self._raw['epoch']['year'] = year
-        self._save()
-
-    def set_epoch_length(self, length: int):
-        self._raw['epoch']['length'] = length
-        self._save()
-
-    @property
-    def time_paused(self):
-        return self._raw['epoch']['paused']
-
-    @time_paused.setter
-    def time_paused(self, value: bool):
-        self._raw['epoch']['paused'] = value
-        self._save()
+        # unpack raw json
         Config.bot_token = Config._raw['auth']['token']
         Config.bot_owner = Config._raw['users']['bot_owner']
 
@@ -90,3 +69,41 @@ class Config:
         Config.epoch_length = Config._raw['epoch']['length']
         Config.attu_guild = Config._raw['guilds']['attu']
         Config.jhn_guild = Config._raw['guilds']['jhn']
+        Config.timestamps = Config._raw['timestamps']
+
+    @staticmethod
+    def _save():
+        logger.info(f'Writing new config to "{Config.file_name}"')
+
+        with Config.file_name.open('w') as file:
+            json.dump(Config._raw, file, indent=4)
+
+        Config._load()
+
+    # --- Public Methods ---
+
+    @staticmethod
+    def add_timestamp(timestamp):
+        Config._raw['timestamps'].append(timestamp)
+        Config._save()
+
+    @staticmethod
+    def set_epoch(time, year: int):
+        Config._raw['epoch']['time'] = int(time)
+        Config._raw['epoch']['year'] = year
+        Config._save()
+
+    @staticmethod
+    def set_epoch_length(length: int):
+        Config._raw['epoch']['length'] = length
+        Config._save()
+
+    @staticmethod
+    def pause_time():
+        Config._raw['epoch']['paused'] = True
+        Config._save()
+
+    @staticmethod
+    def resume_time():
+        Config._raw['epoch']['paused'] = False
+        Config._save()
