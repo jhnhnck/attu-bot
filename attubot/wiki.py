@@ -14,12 +14,11 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 class AttuWiki:
-    api_endpoint = Config.api_endpoint
     session = requests.Session()
     token = ''
 
     def _get_csrf(self):
-        res = self.session.get(Config.api_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
+        res = self.session.get(Config.wiki_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
         return res.json()['query']['tokens']['csrftoken']
 
     # def _debug(self, response):
@@ -28,7 +27,7 @@ class AttuWiki:
 
     # TODO: Make use config instead of passed args
     def authenticate(self, user, key):
-        res = self.session.get(Config.api_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
+        res = self.session.get(Config.wiki_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
         self.token = res.json()['query']['tokens']['logintoken']
 
         data = {
@@ -39,11 +38,11 @@ class AttuWiki:
             'format': 'json',
         }
 
-        res = self.session.post(Config.api_endpoint, data=data)
+        res = self.session.post(Config.wiki_endpoint, data=data)
         logger.debug(res.text)
 
     def get_page_contents(self, page_name):
-        res = self.session.get(Config.api_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json' })
+        res = self.session.get(Config.wiki_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json' })
         return res.json()['parse']['wikitext']
 
     def edit(self, page_name, text, reason):
@@ -60,7 +59,7 @@ class AttuWiki:
             'summary': reason,
         }
 
-        res = self.session.post(Config.api_endpoint, data=data)
+        res = self.session.post(Config.wiki_endpoint, data=data)
         logger.debug(res.text)
 
     def block(self, user, reason):
@@ -80,7 +79,7 @@ class AttuWiki:
         }
 
         # TODO: Retry on Connection Aborted
-        res = self.session.post(Config.api_endpoint, data=data)
+        res = self.session.post(Config.wiki_endpoint, data=data)
         logger.debug(res.text)
 
         return res.json()
