@@ -67,6 +67,8 @@ class Config:
         Config.epoch_time = Config._raw['epoch']['time']
         Config.epoch_year = Config._raw['epoch']['year']
         Config.epoch_length = Config._raw['epoch']['length']
+        Config.time_paused = Config._raw['epoch']['paused']
+
         Config.attu_guild = Config._raw['guilds']['attu']
         Config.jhn_guild = Config._raw['guilds']['jhn']
         Config.timestamps = Config._raw['timestamps']
