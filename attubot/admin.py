@@ -4,6 +4,8 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
+
+import re
 from datetime import datetime
 from os import getenv
 
@@ -120,7 +122,12 @@ async def debug(ctx, option: str):
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 async def wiki_block(ctx, user, reason):
-    # TODO: allow sending a link to the user profile instead
+    # check if link to the user
+    extract = re.search(r'User:(.*)$', user)
+
+    if extract is not None:
+        user = extract[1]
+
     await ctx.respond(f'Blocking user "{user}": {reason}')
 
     wiki = AttuWiki()
