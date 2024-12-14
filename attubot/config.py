@@ -5,12 +5,13 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import json
 import sys
 from datetime import time
 from os import getenv
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+import toml
 
 from attubot import __version__
 from attubot.logging import get_logger
@@ -26,7 +27,7 @@ class Config:
     @staticmethod
     def init():
         logger.info('Initalizing...')
-        Config.file_name = Path(getenv('BOT_CONFIG_FILE', './attu-bot.json')).resolve()
+        Config.file_name = Path(getenv('BOT_CONFIG_FILE', './attu-bot.toml')).resolve()
         Config._load()
 
     # --- Private Methods ---
@@ -34,38 +35,42 @@ class Config:
     @staticmethod
     def _load():
         if not Config.file_name.exists():
-            logger.error('config file missing!')
+            logger.error('Config file missing!')
             sys.exit(1)
 
         logger.info(f'Loading config from "{Config.file_name}"')
 
         with Config.file_name.open() as file:
-            Config._raw = json.load(file)
+            Config._raw = toml.load(file)
 
         # validate config version
         if Config._raw['config_version'] != Config.config_version:
             logger.info('Incompatible config version!')
             sys.exit(1)
 
-        # unpack raw json
-        Config.bot_token = Config._raw['auth']['token']
-        Config.bot_owner = Config._raw['users']['bot_owner']
+        # unpack raw toml
+        Config.bot_token = Config._raw['auth']['bot']['token']
 
-        Config.wiki_key = Config._raw['wiki']['key']
-        Config.wiki_page = Config._raw['wiki']['page']
-        Config.wiki_user = Config._raw['wiki']['user']
-        Config.wiki_endpoint = Config._raw['wiki']['endpoint']
+        Config.wiki_key = Config._raw['auth']['wiki']['key']
+        Config.wiki_page = Config._raw['auth']['wiki']['page']
+        Config.wiki_user = Config._raw['auth']['wiki']['user']
+        Config.wiki_endpoint = Config._raw['auth']['wiki']['endpoint']
 
-        Config.activity_channel = Config._raw['channels']['activity']
-        Config.year_vc = Config._raw['channels']['year_vc']
-        Config.announce_channel = Config._raw['channels']['announcements']
-        Config.doom_forum = Config._raw['channels']['doom_forum']
-        Config.year_link_thread = Config._raw['channels']['year_links']
-        Config.meta_chat_channel = Config._raw['channels']['meta_chat']
-        Config.error_log_channel = Config._raw['channels']['error_log']
-        Config.lore_channels = Config._raw['channels']['lore_channels']
+        Config.bot_owner = Config._raw['discord']['users']['bot_owner']
 
-        Config.announce_role = Config._raw['roles']['leaders']
+        Config.activity_channel = Config._raw['discord']['channels']['activity']
+        Config.year_vc = Config._raw['discord']['channels']['year_vc']
+        Config.announce_channel = Config._raw['discord']['channels']['announcements']
+        Config.doom_forum = Config._raw['discord']['channels']['doom_forum']
+        Config.year_link_thread = Config._raw['discord']['channels']['year_links']
+        Config.meta_chat_channel = Config._raw['discord']['channels']['meta_chat']
+        Config.error_log_channel = Config._raw['discord']['channels']['error_log']
+        Config.lore_channels = Config._raw['discord']['channels']['lore_channels']
+
+        Config.announce_role = Config._raw['discord']['roles']['leaders']
+
+        Config.attu_guild = Config._raw['discord']['guilds']['attu']
+        Config.jhn_guild = Config._raw['discord']['guilds']['jhn']
 
         Config.epoch_time = Config._raw['epoch']['time']
         Config.epoch_year = Config._raw['epoch']['year']
@@ -75,8 +80,6 @@ class Config:
         th = Config._raw['epoch']['rollover_time'].split(':')
         Config.rollover_time = time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
-        Config.attu_guild = Config._raw['guilds']['attu']
-        Config.jhn_guild = Config._raw['guilds']['jhn']
         Config.timestamps = Config._raw['timestamps']
 
     @staticmethod
@@ -84,7 +87,7 @@ class Config:
         logger.info(f'Writing new config to "{Config.file_name}"')
 
         with Config.file_name.open('w') as file:
-            json.dump(Config._raw, file, indent=4)
+            toml.dump(Config._raw, file)
 
         Config._load()
 

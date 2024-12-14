@@ -130,3 +130,7 @@ dmypy.json
 
 # Config files
 attu-bot.json
+attu-bot.toml
+
+# WIP Files
+*.wip.py

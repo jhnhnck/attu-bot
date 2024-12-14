@@ -4,6 +4,7 @@ services:
     restart: always
     command: python -u /app/attu-bot.py
     environment:
-      BOT_CONFIG_FILE: /app/attu-bot.json
+      BOT_CONFIG_FILE: /app/attu-bot.toml
     volumes:
-    - ./attu-bot.json:/app/attu-bot.json
+    - ./attu-bot.toml:/app/attu-bot.toml
+
