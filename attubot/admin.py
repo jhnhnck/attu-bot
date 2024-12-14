@@ -19,56 +19,63 @@ from attubot.wiki import AttuWiki
 
 logger = get_logger(__name__)
 
-# --- Commands ---
+# --- Permissions Check ---
+
+def is_bot_owner(ctx):
+    return ctx.user.id == Config.bot_owner
+
+# --- Admin Command ---
+
+time = discord.SlashCommandGroup('time',
+                                 default_member_permissions=Permissions.all(),
+                                 description='Modify various options controlling the passage of time (Admin only)')
+
+@time.command(guilds_only=True, description='Manually advance to the next year, ignoring all checks')
+@commands.check(is_bot_owner)
+async def advance(ctx):
+    forced_year = len(Config.timestamps) + 1
+    _, year = get_year_status()
+    cog = ctx.bot.get_cog('NewYearEvent')
+
+    logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
+    await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
+    await cog.advance_year(forced_year)
+
+@time.command(guilds_only=True, description='Pause the passage of time')
+@commands.check(is_bot_owner)
+async def pause(ctx):
+    await ctx.respond('The passage of time has been stopped')
+    Config.pause_time()
+
+@time.command(guilds_only=True, description='Resume the passage of time')
+@commands.check(is_bot_owner)
+async def resume(ctx):
+    move_epoch(Config.epoch_length)
+
+    await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
+    Config.resume_time()
+
+@time.command(guilds_only=True, description='Adjust the rate at which time progresses')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
+async def dilate(ctx, days):
+    # catch to keep from trying entering number of weeks
+    if days > 0 and days % 7 != 0:
+        await ctx.respond('Failed: Dilation amount must be divisible by 7', ephemeral=True)
+        return
+
+    if Config.time_paused:
+        Config.set_epoch_length(days)
+        await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year**')
+
+    else:
+        move_epoch(days)
+        await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year** with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
+
+# --- Debug Command ---
 
 @discord.slash_command(guilds_only=True,
                        default_member_permissions=Permissions.all(),
-                       description='Modify various options controlling the passage of time (Admin only)')
-@discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
-@discord.commands.option(name='number', required=False, description='Arguments', input_type=int)
-async def admin(ctx, option: str, number):
-    options = ['force_year', 'time_dilate', 'time_pause', 'time_resume']
-    options.sort()
-
-    if ctx.user.id != Config.bot_owner:
-        await ctx.respond("You're not my real dad!")
-        return
-
-    if option == 'force_year':
-        forced_year = len(Config.timestamps) + 1
-        _, year = get_year_status()
-        cog = ctx.bot.get_cog('NewYearEvent')
-
-        logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
-        await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
-        await cog.advance_year(forced_year)
-
-    elif option == 'time_pause':
-        await ctx.respond('The passage of time has been stopped')
-        Config.pause_time()
-
-    elif option == 'time_resume':
-        move_epoch(Config.epoch_length)
-
-        await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
-        Config.resume_time()
-
-    elif option == 'time_dilate':
-        if number is None:
-            await ctx.respond('Failed: Submit dilation amount (in days) in number field', ephemeral=True)
-            return
-
-        if Config.time_paused:
-            Config.set_epoch_length(number)
-            await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year**')
-        else:
-            move_epoch(number)
-            await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year** with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
-
-    else:
-        await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
-
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(),
                        description='Check the version, retrieve year statistics or force an error (Admin only)')
 @discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
 async def debug(ctx, option: str):
@@ -125,6 +132,6 @@ async def wiki_block(ctx, user, reason):
 def setup(bot):
     logger.info(f'Registered: {__name__}')
 
-    bot.add_application_command(admin)
+    bot.add_application_command(time)
     bot.add_application_command(debug)
     bot.add_application_command(wiki_block)

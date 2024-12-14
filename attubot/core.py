@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import traceback
 
 import discord
+from discord.errors import CheckFailure
 
 from attubot.config import Config
 from attubot.logging import get_logger
@@ -56,7 +57,13 @@ async def on_message(message):
 
 @bot.event
 async def on_application_command_error(ctx, error):
-    await send_to_error_log(error)
+    logger.error(f'Error sent to `on_application_command_error()` vars={vars(ctx)}')
+
+    if isinstance(error, CheckFailure):
+        await ctx.respond("You're not my real dad!")
+    else:
+        await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
+        await send_to_error_log(error)
 
 """
 @bot.event
