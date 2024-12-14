@@ -171,7 +171,7 @@ async def check_year(ctx, year: int):
 
     # next year (original functionality)
     elif year == (current_year + 1):
-        if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < trigger_time:
+        if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < Config.rollover_time:
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
@@ -302,7 +302,7 @@ async def wiki_block(ctx, user, reason):
 
 # --- New Year Handling ---
 
-@tasks.loop(time=trigger_time)
+@tasks.loop(time=Config.rollover_time)
 async def task_year_check():
     logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
 

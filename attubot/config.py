@@ -7,8 +7,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import json
 import sys
+from datetime import time
 from os import getenv
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from attubot import __version__
 from attubot.logging import get_logger
@@ -68,6 +70,9 @@ class Config:
         Config.epoch_year = Config._raw['epoch']['year']
         Config.epoch_length = Config._raw['epoch']['length']
         Config.time_paused = Config._raw['epoch']['paused']
+
+        th = Config._raw['epoch']['rollover_time'].split(':')
+        Config.rollover_time = time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
         Config.attu_guild = Config._raw['guilds']['attu']
         Config.jhn_guild = Config._raw['guilds']['jhn']
