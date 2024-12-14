@@ -76,46 +76,41 @@ async def dilate(ctx, days):
 
 # --- Debug Command ---
 
-@discord.slash_command(guilds_only=True,
-                       default_member_permissions=Permissions.all(),
-                       description='Check the version, retrieve year statistics or force an error (Admin only)')
-@discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
-async def debug(ctx, option: str):
-    options = ['version', 'year_stats', 'force_error']
-    options.sort()
+debug = discord.SlashCommandGroup('debug',
+                                   default_member_permissions=Permissions.all(),
+                                   description='Check the version, retrieve year statistics or force an error (Admin only)')
 
-    if ctx.user.id != Config.bot_owner:
-        await ctx.respond("You're not my real dad!")
-        return
+@debug.command(guilds_only=True, description='Displays the current version and container build time')
+async def version(ctx):
+    build_format = '%a %b %d %H:%M:%S %Z %Y'
+    build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
 
-    if option == 'version':
-        build_format = '%a %b %d %H:%M:%S %Z %Y'
-        build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
+    await ctx.respond('\n'.join([
+        f'Version: {__version__}',
+        f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
+    ]))
 
-        await ctx.respond('\n'.join([
-            f'Version: {__version__}',
-            f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
-        ]))
+@debug.command(guilds_only=True, description='Returns the current state of time tracking calculations')
+async def year_stats(ctx):
+    elapsed_days, current_year = get_year_status()
+    year_span = get_year_span(current_year)
+    cog = ctx.bot.get_cog('NewYearEvent')
 
-    elif option == 'year_stats':
-        elapsed_days, current_year = get_year_status()
-        year_span = get_year_span(current_year)
-        cog = ctx.bot.get_cog('NewYearEvent')
+    await ctx.respond('\n'.join([
+        f'Current Year: {current_year} PC',
+        f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
+        f'Attu Epoch: {Config.epoch_year} PC at <t:{Config.epoch_time}:f>',
+        f'Time Since Epoch: {elapsed_days} Days',
+        f'Next Task Iteration: <t:{int(cog.task_year_check.next_iteration.timestamp())}:f>',
+    ]))
 
-        await ctx.respond('\n'.join([
-            f'Current Year: {current_year} PC',
-            f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
-            f'Attu Epoch: {Config.epoch_year} PC at <t:{Config.epoch_time}:f>',
-            f'Time Since Epoch: {elapsed_days} Days',
-            f'Next Task Iteration: <t:{int(cog.task_year_check.next_iteration.timestamp())}:f>',
-        ]))
+@debug.command(guilds_only=True, description='Causes an internal error to be thrown')
+@commands.check(is_bot_owner)
+async def force_error(ctx):
+    await ctx.respond('Forcing an error message')
+    math = 10 / 0  # noqa: F841
 
-    elif option == 'force_error':
-        await ctx.respond('Forcing an error message')
-        math = 10 / 0  # noqa: F841
-
-    else:
-        await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
+# --- Wiki Commands ---
 
 @discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(),
                        description='Blocks a specified user from the wiki (Admin only)')
