@@ -57,7 +57,7 @@ async def on_message(message):
 
 @bot.before_invoke
 async def on_command(ctx):
-    logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} vars={vars(ctx)}')
+    logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} data={ctx.interaction.data}')
 
 @bot.event
 async def on_application_command_error(ctx, error):
