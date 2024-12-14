@@ -1,0 +1,106 @@
+"""
+AttuBot - Tasks
+Author(s): @jhnhnck <john@jhnhnck.com>
+
+This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+"""
+
+import re
+from datetime import date, datetime
+
+from discord.ext import commands, tasks
+
+from attubot.config import Config
+from attubot.core import send_to_error_log
+from attubot.logging import get_logger
+from attubot.util import format_year_line, get_year_status
+from attubot.wiki import AttuWiki
+
+# --- Initialization ---
+
+logger = get_logger(__name__)
+
+# --- New Year Handling ---
+
+class NewYearEvent(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.task_year_check.start()
+
+    @tasks.loop(time=Config.rollover_time)
+    async def task_year_check(self):
+        logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
+
+        try:
+            await self.check_for_new_year()
+        except Exception as error:
+            send_to_error_log(error)
+
+    @task_year_check.before_loop
+    async def wait_for_ready(self):
+        await self.bot.wait_until_ready()
+
+    async def check_for_new_year(self):
+        elapsed_days, year = get_year_status()
+
+        if Config.time_paused:
+            logger.info('The passage of time has been paused; skipping task')
+
+        elif elapsed_days % Config.epoch_length != 0:
+            logger.info(f'Days Remaining Until Year {year + 1} PC: {Config.epoch_length - (elapsed_days % Config.epoch_length)}')
+
+        elif year < len(Config.timestamps):
+            logger.error('Already enough years; was event manually triggered?')
+
+        else:
+            await self.advance_year(year)
+
+    async def advance_year(self, year):
+        guild = self.bot.get_guild(Config.attu_guild)
+
+        logger.info(f'Happy New Year! Advancing to Year {year} PC')
+
+        # --- Lore Channel Year Markers ---
+
+        year_str = format_year_line(year)
+        message_links = []
+
+        for channel_id in Config.lore_channels:
+            channel = guild.get_channel(channel_id)
+            message = await channel.send(year_str)
+            message_links.append(message.jump_url)
+
+        # Save timestamp to config file
+        Config.add_timestamp(message.id)
+
+        # --- Increase Year VC ---
+
+        year_vc = guild.get_channel(Config.year_vc)
+        await year_vc.edit(name=f'Current Year: {year} PC')
+
+        # --- Edit Wiki ---
+
+        wiki = AttuWiki()
+        wiki.authenticate(Config.wiki_user, Config.wiki_key)
+
+        text = wiki.get_page_contents(Config.wiki_page)
+        updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
+
+        wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
+
+        # --- Make Announcement ---
+
+        channel = guild.get_channel(Config.announce_channel)
+        await channel.send(f'<@&{Config.announce_role}> Year {year} PC. (weap)')
+
+        # --- Send Year Links Message ---
+
+        doom_forum = guild.get_channel(Config.doom_forum)
+        thread = doom_forum.get_thread(Config.year_link_thread)
+        await thread.send(year_str + '\n' + '\n'.join(message_links))
+
+# --- Extension Def ---
+
+def setup(bot):
+    logger.info(f'Registered: {__name__}')
+    bot.add_cog(NewYearEvent(bot))

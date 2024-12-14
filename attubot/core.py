@@ -5,19 +5,17 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import re
 import traceback
-from datetime import date, datetime
+from datetime import datetime
 from os import getenv
 
 import discord
 from discord import Permissions
-from discord.ext import tasks
 
 from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.util import format_year_line, get_year_span, get_year_status, move_epoch
+from attubot.util import get_year_span, get_year_status, move_epoch
 from attubot.wiki import AttuWiki
 
 # --- Initialization ---
@@ -128,13 +126,14 @@ async def debug(ctx, option: str):
     elif option == 'year_stats':
         elapsed_days, current_year = get_year_status()
         year_span = get_year_span(current_year)
+        cog = bot.get_cog('NewYearEvent')
 
         await ctx.respond('\n'.join([
             f'Current Year: {current_year} PC',
             f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
             f'Attu Epoch: {Config.epoch_year} PC at <t:{Config.epoch_time}:f>',
             f'Time Since Epoch: {elapsed_days} Days',
-            f'Next Task Iteration: <t:{int(task_year_check.next_iteration.timestamp())}:f>',
+            f'Next Task Iteration: <t:{int(cog.task_year_check.next_iteration.timestamp())}:f>',
         ]))
 
     elif option == 'force_error':
@@ -158,10 +157,11 @@ async def admin(ctx, option: str, number):
     if option == 'force_year':
         forced_year = len(Config.timestamps) + 1
         _, year = get_year_status()
+        cog = bot.get_cog('NewYearEvent')
 
         logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
         await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
-        await advance_year(forced_year)
+        await cog.advance_year(forced_year)
 
     elif option == 'time_pause':
         await ctx.respond('The passage of time has been stopped')
@@ -199,76 +199,6 @@ async def wiki_block(ctx, user, reason):
     wiki.authenticate(Config.wiki_user, Config.wiki_key)
     wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
-# --- New Year Handling ---
-
-@tasks.loop(time=Config.rollover_time)
-async def task_year_check():
-    logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
-
-    try:
-        await check_for_new_year()
-    except Exception as error:
-        send_to_error_log(error)
-
-async def check_for_new_year():
-    elapsed_days, year = get_year_status()
-
-    if Config.time_paused:
-        logger.info('The passage of time has been paused; skipping task')
-
-    elif elapsed_days % Config.epoch_length != 0:
-        logger.info(f'Days Remaining Until Year {year + 1} PC: {Config.epoch_length - (elapsed_days % Config.epoch_length)}')
-
-    elif year < len(Config.timestamps):
-        logger.error('Already enough years; was event manually triggered?')
-
-    else:
-        await advance_year(year)
-
-async def advance_year(year):
-    guild = bot.get_guild(Config.attu_guild)
-
-    logger.info(f'Happy New Year! Advancing to Year {year} PC')
-
-    # --- Lore Channel Year Markers ---
-
-    year_str = format_year_line(year)
-    message_links = []
-
-    for channel_id in Config.lore_channels:
-        channel = guild.get_channel(channel_id)
-        message = await channel.send(year_str)
-        message_links.append(message.jump_url)
-
-    # Save timestamp to config file
-    Config.add_timestamp(message.id)
-
-    # --- Increase Year VC ---
-
-    year_vc = guild.get_channel(Config.year_vc)
-    await year_vc.edit(name=f'Current Year: {year} PC')
-
-    # --- Edit Wiki ---
-
-    wiki = AttuWiki()
-    wiki.authenticate(Config.wiki_user, Config.wiki_key)
-
-    text = wiki.get_page_contents(Config.wiki_page)
-    updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
-
-    wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
-
-    # --- Make Announcement ---
-
-    channel = guild.get_channel(Config.announce_channel)
-    await channel.send(f'<@&{Config.announce_role}> Year {year} PC. (weap)')
-
-    # --- Send Year Links Message ---
-
-    doom_forum = guild.get_channel(Config.doom_forum)
-    thread = doom_forum.get_thread(Config.year_link_thread)
-    await thread.send(year_str + '\n' + '\n'.join(message_links))
-
 # --- Events ---
 
 @bot.event
@@ -277,8 +207,6 @@ async def on_ready():
 
     logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
     logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
-
-    task_year_check.start()
 
 @bot.event
 async def on_message(message):
@@ -302,6 +230,9 @@ async def on_message(message):
 
 def start_bot_loop():
     Config.init()
+
+    logger.info('Loading extensions...')
+    bot.load_extension('attubot.tasks')
 
     logger.info('Starting bot...')
     bot.run(Config.bot_token)
