@@ -54,6 +54,7 @@ class Config:
         Config.wiki_key = Config._raw['wiki']['key']
         Config.wiki_page = Config._raw['wiki']['page']
         Config.wiki_user = Config._raw['wiki']['user']
+        Config.wiki_endpoint = Config._raw['wiki']['endpoint']
 
         Config.activity_channel = Config._raw['channels']['activity']
         Config.year_vc = Config._raw['channels']['year_vc']
