@@ -7,19 +7,17 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import re
 import traceback
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime
 from os import getenv
-from types import SimpleNamespace
-from zoneinfo import ZoneInfo
 
 import discord
 from discord import Permissions
 from discord.ext import tasks
-from discord.utils import snowflake_time
 
 from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
+from attubot.util import format_year_line, get_year_span, get_year_status, move_epoch
 from attubot.wiki import AttuWiki
 
 # --- Initialization ---
@@ -32,107 +30,9 @@ intents.message_content = True
 
 bot = discord.Bot(intents=intents)
 
-separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
-flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
-
 build_format = '%a %b %d %H:%M:%S %Z %Y'
-trigger_time = time(17, 0, tzinfo=ZoneInfo(getenv('TZ')))
 
-# --- Utilities ---
-
-def format_year_line(year):
-    sep = separators[year % len(separators)]
-
-    if len(sep) > 2:
-        return f'# {sep} Year {year} PC {sep}'
-    if sep in flipped_separators:
-        return f'# {sep * 3} Year {year} PC {flipped_separators[sep] * 3}'
-    else:
-        return f'# {sep * 3} Year {year} PC {sep * 3}'
-
-def get_year_status():
-    today = datetime.combine(date.today(), trigger_time)
-    epoch =  datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), trigger_time)
-    time_diff_sec = (today - epoch).total_seconds()
-
-    elapsed_days = int(time_diff_sec / 86400)
-    year = Config.epoch_year + (elapsed_days // Config.epoch_length)
-
-    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < trigger_time:
-        year -= 1
-
-    return elapsed_days, year
-
-def get_next_year():
-    if Config.time_paused:
-        return datetime.fromtimestamp(0).astimezone()
-
-    elapsed_days, _ = get_year_status()
-    new_date = datetime.combine(date.today(), trigger_time) + timedelta((Config.epoch_length - elapsed_days) % Config.epoch_length)
-
-    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() >= trigger_time:
-        new_date += timedelta(days=Config.epoch_length)
-
-    return new_date
-
-def get_year_span(year: int):
-    result = SimpleNamespace(start_time=0, end_time=0, duration=0)
-
-    _, current_year = get_year_status()
-    next_year = get_next_year()
-
-    # Invalid Years
-    if year <= 0:
-        logger.error(f'get_year() requested with invalid year: {year}')
-
-    # Past Years
-    elif year < current_year:
-        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
-        result.end_time = int(snowflake_time(Config.timestamps[year]).timestamp())
-
-    # Current Year
-    elif year == current_year:
-        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
-        result.end_time = int(next_year.timestamp())
-
-    # Next Year
-    elif year == (current_year + 1):
-        result.start_time = int(next_year.timestamp())
-        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp()) if not Config.time_paused else 0
-
-    # Future Years
-    elif not Config.time_paused:
-        result.start_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp())
-        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year)))).timestamp())
-
-    result.duration = round((result.end_time - result.start_time) / 86400)
-    return result
-
-def move_epoch(length: int):
-    elapsed_days, current_year = get_year_status()
-    year_span = get_year_span(current_year)
-
-    # handle picking new year time if paused
-    if Config.time_paused:
-        friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
-
-        # check if already passed trigger time
-        if date.today().weekday() == 4 and datetime.now().time() >= trigger_time:
-            friday += timedelta(days=7)
-
-        Config.set_epoch(datetime.combine(friday, trigger_time), current_year + 1)
-
-    # new length longer than current year has lasted, just extend
-    elif length >= (elapsed_days % Config.epoch_length):
-        Config.set_epoch(datetime.combine(year_span.start_time, trigger_time), current_year)
-
-    # wait for current year to complete first
-    else:
-        Config.set_epoch(year_span.end_time, current_year + 1)
-
-    Config.set_epoch_length(length)
-    logger.info(f'New Epoch Set: {Config.epoch_year} PC at {Config.epoch_time} with year length of {Config.epoch_length}')
-
+# --- Error Handling ---
 
 async def send_to_error_log(error):
     guild = bot.get_guild(Config.jhn_guild)
