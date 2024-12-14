@@ -26,7 +26,6 @@ class Config:
 
     @staticmethod
     def init():
-        logger.info('Initalizing...')
         Config.file_name = Path(getenv('BOT_CONFIG_FILE', './attu-bot.toml')).resolve()
         Config._load()
 
@@ -95,26 +94,36 @@ class Config:
 
     @staticmethod
     def add_timestamp(timestamp):
+        logger.warn(f'Timestamp appended: new={timestamp}')
+
         Config._raw['timestamps'].append(timestamp)
         Config._save()
 
     @staticmethod
     def set_epoch(time, year: int):
+        logger.warn(f'Epoch changed: old={Config.epoch_time},{Config.epoch_year} new={int(time)},{year}')
+
         Config._raw['epoch']['time'] = int(time)
         Config._raw['epoch']['year'] = year
         Config._save()
 
     @staticmethod
     def set_epoch_length(length: int):
+        logger.warn(f'Epoch length changed: old={Config.epoch_length} new={length}')
+
         Config._raw['epoch']['length'] = length
         Config._save()
 
     @staticmethod
     def pause_time():
+        logger.warn(f'Epoch pause changed: old={Config.time_paused} new=True')
+
         Config._raw['epoch']['paused'] = True
         Config._save()
 
     @staticmethod
     def resume_time():
+        logger.warn(f'Epoch pause changed: old={Config.time_paused} new=False')
+
         Config._raw['epoch']['paused'] = False
         Config._save()
