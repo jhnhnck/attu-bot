@@ -5,13 +5,15 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import requests  # noqa: I001
-# from requests_toolbelt.utils import dump
+import time
+
+import requests
 
 from attubot.config import Config
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
+max_retries = 3
 
 class AttuWiki:
     session = requests.Session()
@@ -22,6 +24,7 @@ class AttuWiki:
         return res.json()['query']['tokens']['csrftoken']
 
     # def _debug(self, response):
+    #     from requests_toolbelt.utils import dump
     #     data = dump.dump_all(response)
     #     logger.debug(data.decode('utf-8'))
 
@@ -78,8 +81,16 @@ class AttuWiki:
             'token': csrf,
         }
 
-        # TODO: Retry on Connection Aborted
-        res = self.session.post(Config.wiki_endpoint, data=data)
-        logger.debug(res.text)
+        # retry a few times in case of connection aborted
+        for attempt in range(max_retries):
+            try:
+                res = self.session.post(Config.wiki_endpoint, data=data)
+                logger.debug(res.text)
 
-        return res.json()
+                return res.json()
+
+            except Exception as error:
+                logger.error(f'block(): Attempt {attempt + 1} failed with error: {error}')
+                time.sleep(3)
+
+        return False
