@@ -21,7 +21,9 @@ logger = get_logger(__name__)
 
 # --- Commands ---
 
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+@discord.slash_command(guilds_only=True,
+                       default_member_permissions=Permissions.all(),
+                       description='Modify various options controlling the passage of time (Admin only)')
 @discord.commands.option(name='option', required=True, description='Admin Option to Run', input_type=str)
 @discord.commands.option(name='number', required=False, description='Arguments', input_type=int)
 async def admin(ctx, option: str, number):
@@ -66,7 +68,8 @@ async def admin(ctx, option: str, number):
     else:
         await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
 
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(),
+                       description='Check the version, retrieve year statistics or force an error (Admin only)')
 @discord.commands.option(name='option', required=True, description='Debug Option to Run', input_type=str)
 async def debug(ctx, option: str):
     options = ['version', 'year_stats', 'force_error']
@@ -105,7 +108,8 @@ async def debug(ctx, option: str):
     else:
         await ctx.respond(f'Failed: Options are {", ".join(options)}', ephemeral=True)
 
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all())
+@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(),
+                       description='Blocks a specified user from the wiki (Admin only)')
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 async def wiki_block(ctx, user, reason):
