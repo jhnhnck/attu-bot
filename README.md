@@ -54,9 +54,14 @@ Use the following commands to interact with the bot:
 
 - **/check_year [year]**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
 - **/link_year <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
+- **/debug \<option>**: Check the version, retrieve statistics for the current year, or force an error for testing and troubleshooting purposes (Admin only)
 - **/wiki_block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
-- **/debug <option>**: Check the version, retrieve statistics for the current year, or force an error for testing and troubleshooting purposes (Admin only)
-- **/admin <option> [number]**: Modify various options controlling the passage of time (Admin only)
+
+- **/time**: Modify various options controlling the passage of time (Admin only)
+  - **/time advance**: Manually advance to the next year, ignoring all checks
+  - **/time pause**: Pause the passage of time
+  - **/time resume**: Resume the passage of time
+  - **/time dilate [days]**: Adjust the rate at which time progresses
 
 ## License
 
