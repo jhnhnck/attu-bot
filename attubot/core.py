@@ -30,8 +30,6 @@ intents.message_content = True
 
 bot = discord.Bot(intents=intents)
 
-build_format = '%a %b %d %H:%M:%S %Z %Y'
-
 # --- Error Handling ---
 
 async def send_to_error_log(error):
@@ -119,6 +117,7 @@ async def debug(ctx, option: str):
         return
 
     if option == 'version':
+        build_format = '%a %b %d %H:%M:%S %Z %Y'
         build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
 
         await ctx.respond('\n'.join([
