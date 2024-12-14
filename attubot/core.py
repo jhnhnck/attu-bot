@@ -55,6 +55,10 @@ async def on_message(message):
         else:
             await message.add_reaction('💖')
 
+@bot.before_invoke
+async def on_command(ctx):
+    logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} vars={vars(ctx)}')
+
 @bot.event
 async def on_application_command_error(ctx, error):
     logger.error(f'Error sent to `on_application_command_error()` vars={vars(ctx)}')
