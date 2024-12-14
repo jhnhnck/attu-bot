@@ -69,21 +69,16 @@ async def on_application_command_error(ctx, error):
         await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
         await send_to_error_log(error)
 
-"""
-@bot.event
-async def on_message(message):
-    logger.info(f'Message from {message.author}: {message.content}')
-"""
 
 # --- Trigger Function ---
 
 def start_bot_loop():
     Config.init()
 
-    logger.info('Loading extensions...')
+    logger.info('Loading Extensions')
     bot.load_extension('attubot.tasks')
     bot.load_extension('attubot.admin')
     bot.load_extension('attubot.commands')
 
-    logger.info('Starting bot...')
+    logger.info('Starting Bot')
     bot.run(Config.bot_token)

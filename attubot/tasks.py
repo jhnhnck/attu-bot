@@ -16,8 +16,6 @@ from attubot.logging import get_logger
 from attubot.util import format_year_line, get_year_status
 from attubot.wiki import AttuWiki
 
-# --- Initialization ---
-
 logger = get_logger(__name__)
 
 # --- New Year Handling ---
@@ -103,4 +101,5 @@ class NewYearEvent(commands.Cog):
 
 def setup(bot):
     logger.info(f'Registered: {__name__}')
+
     bot.add_cog(NewYearEvent(bot))

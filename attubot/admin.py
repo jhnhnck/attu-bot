@@ -28,9 +28,7 @@ def is_bot_owner(ctx):
 
 # --- Admin Command ---
 
-time = discord.SlashCommandGroup('time',
-                                 default_member_permissions=Permissions.all(),
-                                 description='Modify various options controlling the passage of time (Admin only)')
+time = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
 @time.command(guilds_only=True, description='Manually advance to the next year, ignoring all checks')
 @commands.check(is_bot_owner)
@@ -76,9 +74,7 @@ async def dilate(ctx, days):
 
 # --- Debug Command ---
 
-debug = discord.SlashCommandGroup('debug',
-                                   default_member_permissions=Permissions.all(),
-                                   description='Check the version, retrieve year statistics or force an error (Admin only)')
+debug = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
 
 @debug.command(guilds_only=True, description='Displays the current version and container build time')
 async def version(ctx):
@@ -112,8 +108,7 @@ async def force_error(ctx):
 
 # --- Wiki Commands ---
 
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(),
-                       description='Blocks a specified user from the wiki (Admin only)')
+@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(), description='Blocks a specified user from the wiki (Admin only)')
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 async def wiki_block(ctx, user, reason):

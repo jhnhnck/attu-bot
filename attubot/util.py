@@ -34,7 +34,7 @@ def format_year_line(year):
 
 def get_year_status():
     today = datetime.combine(date.today(), Config.rollover_time)
-    epoch =  datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), Config.rollover_time)
+    epoch = datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), Config.rollover_time)
     time_diff_sec = (today - epoch).total_seconds()
 
     elapsed_days = int(time_diff_sec / 86400)

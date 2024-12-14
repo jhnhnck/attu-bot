@@ -42,7 +42,7 @@ class AttuWiki:
         logger.debug(res.text)
 
     def get_page_contents(self, page_name):
-        res = self.session.get(Config.wiki_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json' })
+        res = self.session.get(Config.wiki_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json'})
         return res.json()['parse']['wikitext']
 
     def edit(self, page_name, text, reason):
