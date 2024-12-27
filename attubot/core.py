@@ -49,7 +49,7 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.channel.id == Config.activity_channel and message.content.startswith('[DoomBot]'):
+    if message.channel.id == Config.activity_channel and message.content.startswith(f'[{Config.wiki_user.split('@')[0]}]'):  # TODO: verify correct part of wiki bot username
         if 'blocked' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
