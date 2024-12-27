@@ -6,9 +6,11 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import time
+from platform import python_version
 
 import requests
 
+from attubot import __email__, __title__, __version__
 from attubot.config import Config
 from attubot.logging import get_logger
 
@@ -16,8 +18,12 @@ logger = get_logger(__name__)
 max_retries = 3
 
 class AttuWiki:
-    session = requests.Session()
+    session = None
     token = ''
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers = {'User-Agent': f'{__title__}/{__version__} ({__email__}) Requests/{requests.__version} Python/{python_version()}'}
 
     def _get_csrf(self):
         res = self.session.get(Config.wiki_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})

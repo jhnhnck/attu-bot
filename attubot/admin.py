@@ -82,7 +82,7 @@ async def version(ctx):
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
 
     await ctx.respond('\n'.join([
-        f'Version: {__version__}',
+        f'Version: v{__version__}',
         f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
     ]))
 
