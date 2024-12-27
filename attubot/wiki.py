@@ -15,18 +15,21 @@ from attubot.config import Config
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
-max_retries = 3
 
 class AttuWiki:
     session = None
     token = ''
+    max_retries = 3
 
     def __init__(self):
         self.session = requests.Session()
         self.session.headers = {'User-Agent': f'{__title__}/{__version__} ({__email__}) Requests/{requests.__version} Python/{python_version()}'}
 
+        self.action_endpoint = f'{Config.wiki_endpoint}/api.php'
+        self.rest_endpoint = f'{Config.wiki_endpoint}/rest.php/v1'
+
     def _get_csrf(self):
-        res = self.session.get(Config.wiki_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
+        res = self.session.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
         return res.json()['query']['tokens']['csrftoken']
 
     # def _debug(self, response):
@@ -36,7 +39,7 @@ class AttuWiki:
 
     # TODO: Make use config instead of passed args
     def authenticate(self, user, key):
-        res = self.session.get(Config.wiki_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
+        res = self.session.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
         self.token = res.json()['query']['tokens']['logintoken']
 
         data = {
@@ -47,11 +50,11 @@ class AttuWiki:
             'format': 'json',
         }
 
-        res = self.session.post(Config.wiki_endpoint, data=data)
+        res = self.session.post(self.action_endpoint, data=data)
         logger.debug(res.text)
 
     def get_page_contents(self, page_name):
-        res = self.session.get(Config.wiki_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json'})
+        res = self.session.get(self.action_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json'})
         return res.json()['parse']['wikitext']
 
     def edit(self, page_name, text, reason):
@@ -68,7 +71,7 @@ class AttuWiki:
             'summary': reason,
         }
 
-        res = self.session.post(Config.wiki_endpoint, data=data)
+        res = self.session.post(self.action_endpoint, data=data)
         logger.debug(res.text)
 
     def block(self, user, reason):
@@ -88,9 +91,9 @@ class AttuWiki:
         }
 
         # retry a few times in case of connection aborted
-        for attempt in range(max_retries):
+        for attempt in range(self.max_retries):
             try:
-                res = self.session.post(Config.wiki_endpoint, data=data)
+                res = self.session.post(self.action_endpoint, data=data)
                 logger.debug(res.text)
 
                 return res.json()

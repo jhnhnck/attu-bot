@@ -15,7 +15,7 @@ token = "TOKEN_GOES_HERE"
 key = "KEY_GOES_HERE"
 page = "Example:Home"
 user = "WikiBot@WikiBot"
-endpoint = "https://example.org/api.php"
+endpoint = "https://example.org"
 
 [discord.channels]
 activity = 1000000000000000000
