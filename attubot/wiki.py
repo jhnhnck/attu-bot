@@ -23,7 +23,7 @@ class AttuWiki:
 
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers = {'User-Agent': f'{__title__}/{__version__} ({__email__}) Requests/{requests.__version} Python/{python_version()}'}
+        self.session.headers = {'User-Agent': f'{__title__}/{__version__} ({__email__}) Requests/{requests.__version__} Python/{python_version()}'}
 
         self.action_endpoint = f'{Config.wiki_endpoint}/api.php'
         self.rest_endpoint = f'{Config.wiki_endpoint}/rest.php/v1'
