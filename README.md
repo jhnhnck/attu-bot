@@ -55,6 +55,7 @@ Use the following commands to interact with the bot:
 - **/check_year [year]**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
 - **/link_year <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
 - **/wiki_block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
+- **/lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
 
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug version**: Displays the current version and container build time

@@ -103,3 +103,18 @@ class AttuWiki:
                 time.sleep(3)
 
         return False
+
+    def search(self, query, limit):
+        res = self.session.get(f'{self.rest_endpoint}/search/page', params={'q': query, 'limit': limit})
+        logger.debug(f'Req: "{res.request.url}"')
+        logger.debug(res.text)
+
+        return res.json()['pages'][:limit]  # currently doesn't respect limit so manually truncate here
+
+    def site_info(self):
+        data = {'action': 'query', 'format': 'json', 'meta': 'siteinfo', 'formatversion': '2', 'siprop': 'general'}
+
+        res = self.session.post(self.action_endpoint, data=data)
+        logger.debug(res.text)
+
+        return res.json()['query']['general']

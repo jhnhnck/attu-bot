@@ -12,6 +12,7 @@ import discord
 from attubot.config import Config
 from attubot.logging import get_logger
 from attubot.util import get_year_span, get_year_status
+from attubot.wiki import AttuWiki
 
 logger = get_logger(__name__)
 
@@ -79,6 +80,35 @@ async def link_year(ctx, year: int, channel: discord.TextChannel):
     # Send message link
     await ctx.respond(f'{year} PC: https://discord.com/channels/{Config.attu_guild}/{channel_id}/{Config.timestamps[year - 1]}')
 
+@discord.slash_command(guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
+@discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
+@discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
+async def lookup(ctx, query: str, limit: int):
+    wiki = AttuWiki()
+    pages = wiki.search(query, limit)
+    logger.info(f'{query} {limit}')
+
+    # Handle no results
+    if len(pages) == 0:
+        await ctx.respond('Oops, no results! <:rockball_player:1308977543034048552>')
+        return
+
+    # Get wiki page format
+    site_info = wiki.site_info()
+    fmt = f"{Config.wiki_endpoint}{site_info['articlepath']}"
+
+    # Build response
+    if len(pages) == 1:
+        await ctx.respond(fmt.replace('$1', pages[0]['key']))
+
+    else:
+        msg = [f'## Top Results for "{query}"']
+
+        for page in pages:
+            msg.append(f"1. [{page['title']}](<{fmt.replace('$1', page['key'])}>)")
+
+        await ctx.respond('\n'.join(msg))
+
 # --- Extension Def ---
 
 def setup(bot):
@@ -86,3 +116,4 @@ def setup(bot):
 
     bot.add_application_command(check_year)
     bot.add_application_command(link_year)
+    bot.add_application_command(lookup)
