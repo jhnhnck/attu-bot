@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 # --- Commands
 
 @discord.slash_command(guilds_only=True, description='Prints out information related to a specified year; if not specified, year defaults to the next year')
-@discord.commands.option(name='year', required=False, description='Year Number', input_type=int)
+@discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
 async def check_year(ctx, year: int):
     elapsed_days, current_year = get_year_status()
     year = year if year is not None else (current_year + 1)
@@ -57,7 +57,7 @@ async def check_year(ctx, year: int):
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
 @discord.slash_command(guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int)
+@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def link_year(ctx, year: int, channel: discord.TextChannel):
     channel_id = 0
