@@ -106,7 +106,7 @@ def move_epoch(length: int):
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % Config.epoch_length):
-        Config.set_epoch(datetime.combine(year_span.start_time, Config.rollover_time), current_year)
+        Config.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), Config.rollover_time).timestamp(), current_year)
 
     # wait for current year to complete first
     else:
