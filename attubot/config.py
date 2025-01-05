@@ -68,6 +68,7 @@ class Config:
 
         Config.announce_role = Config._raw['discord']['roles']['leaders']
 
+        Config.authorized_guilds = list(Config._raw['discord']['guilds'].values())
         Config.attu_guild = Config._raw['discord']['guilds']['attu']
         Config.jhn_guild = Config._raw['discord']['guilds']['jhn']
 

@@ -26,6 +26,9 @@ logger = get_logger(__name__)
 def is_bot_owner(ctx):
     return ctx.user.id == Config.bot_owner
 
+def is_authorized_guild(ctx):
+    return ctx.guild.id in Config.authorized_guilds
+
 # --- Admin Command ---
 
 time = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
@@ -111,6 +114,7 @@ async def force_error(ctx):
 @discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(), description='Blocks a specified user from the wiki (Admin only)')
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
+@commands.check(is_authorized_guild)
 async def wiki_block(ctx, user, reason):
     # check if link to the user
     extract = re.search(r'User:(.*)$', user)
