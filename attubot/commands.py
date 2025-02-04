@@ -70,7 +70,7 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
     channel_id = 0
 
     if channel is None:
-        channel_id = Config.lore_channels[3]
+        channel_id = Config.lore_channels[0]
 
     elif channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
         await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
