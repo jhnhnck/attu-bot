@@ -5,8 +5,9 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from datetime import datetime
 import re
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import discord
 from discord import Permissions
@@ -61,6 +62,39 @@ async def year_check(ctx, year: int):
     # check future years
     else:
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
+
+@year_group.command(name='search', guilds_only=True, description='Prints search query for timlining')
+@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
+async def year_search(ctx, year: int):
+    elapsed_days, current_year = get_year_status()
+    year_span = get_year_span(year)
+    guild = ctx.bot.get_guild(Config.attu_guild)
+    msg = []
+
+    # invalid year input
+    if year <= 0:
+        await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
+        return
+
+    elif (Config.epoch_length * (year - current_year - 1)) > (365 * 10):
+        await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
+        return
+
+    # get a list of all the lore channels
+    for channel_id in [*Config.lore_channels, Config.meta_chat_channel]:
+        msg.append(f'in:{guild.get_channel(channel_id).name}')
+
+    tz = ZoneInfo('America/New_York')
+
+    if year_span.start_time > 0:
+        start = datetime.fromtimestamp(year_span.start_time, tz=tz) - timedelta(days=1)
+        msg.append(f'after:{start.strftime("%Y-%m-%d")}')
+
+    if year_span.end_time > 0:
+        end = datetime.fromtimestamp(year_span.end_time, tz=tz) + timedelta(days=1)
+        msg.append(f'before:{end.strftime("%Y-%m-%d")}')
+
+    await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
 
 @year_group.command(name='link', guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
