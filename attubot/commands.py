@@ -57,7 +57,7 @@ async def year_check(ctx, year: int):
 
     # easter egg (far future)
     elif (Config.epoch_length * (year - current_year - 1)) > (365 * 80):
-        await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe", ephemeral=True)
+        await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe")
 
     # check future years
     else:
@@ -107,14 +107,14 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
         channel_id = Config.lore_channels[0]
 
     elif channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
-        await ctx.respond('Failed: Channel is not a lore channel.', ephemeral=True)
+        await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 
     else:
         channel_id = channel.id
 
-    if year < 1 or year > len(Config.timestamps):
-        await ctx.respond(f'Failed: Pick a year between 1 and {len(Config.timestamps)}.', ephemeral=True)
+    if year < 1 or year >= current_year:
+        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
     # Send message link
@@ -130,7 +130,6 @@ wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managin
 async def wiki_lookup(ctx, query: str, limit: int):
     wiki = AttuWiki()
     pages = wiki.search(query, limit)
-    logger.info(f'{query} {limit}')
 
     # Handle no results
     if len(pages) == 0:
