@@ -6,21 +6,26 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import datetime
+import re
 
 import discord
+from discord import Permissions
+from discord.ext import commands
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.util import get_year_span, get_year_status
+from attubot.util import get_year_span, get_year_status, is_authorized_guild
 from attubot.wiki import AttuWiki
 
 logger = get_logger(__name__)
 
-# --- Commands
+# --- Year Commands ---
 
-@discord.slash_command(guilds_only=True, description='Prints out information related to a specified year; if not specified, year defaults to the next year')
+year_group = discord.SlashCommandGroup('year', description='Utlities related to current, past or future years')
+
+@year_group.command(name='check', guilds_only=True, description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
-async def check_year(ctx, year: int):
+async def year_check(ctx, year: int):
     elapsed_days, current_year = get_year_status()
     year = year if year is not None else (current_year + 1)
     year_span = get_year_span(year)
@@ -57,10 +62,12 @@ async def check_year(ctx, year: int):
     else:
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
-@discord.slash_command(guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
+@year_group.command(name='link', guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def link_year(ctx, year: int, channel: discord.TextChannel):
+async def year_link(ctx, year: int, channel: discord.TextChannel):
+    elapsed_days, current_year = get_year_status()
     channel_id = 0
 
     if channel is None:
@@ -81,9 +88,15 @@ async def link_year(ctx, year: int, channel: discord.TextChannel):
     await ctx.respond(f'{year} PC: https://discord.com/channels/{Config.attu_guild}/{channel_id}/{Config.timestamps[year - 1]}')
 
 @discord.slash_command(guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
+# --- Wiki Commands ---
+
+wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
+
+@wiki_group.command(name='lookup', guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
 @discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
 async def lookup(ctx, query: str, limit: int):
+async def wiki_lookup(ctx, query: str, limit: int):
     wiki = AttuWiki()
     pages = wiki.search(query, limit)
     logger.info(f'{query} {limit}')
@@ -109,11 +122,27 @@ async def lookup(ctx, query: str, limit: int):
 
         await ctx.respond('\n'.join(msg))
 
+@discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
+@discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
+@commands.check(is_authorized_guild)
+async def wiki_block(ctx, user, reason):
+    # check if link to the user
+    extract = re.search(r'User:(.*)$', user)
+
+    if extract is not None:
+        user = extract[1]
+
+    await ctx.respond(f'Blocking user [{user}]: {reason}')
+
+    wiki = AttuWiki()
+    wiki.authenticate(Config.wiki_user, Config.wiki_key)
+    wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
+
 # --- Extension Def ---
 
 def setup(bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(check_year)
-    bot.add_application_command(link_year)
-    bot.add_application_command(lookup)
+    bot.add_application_command(year_group)
+    bot.add_application_command(wiki_group)

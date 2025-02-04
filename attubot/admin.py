@@ -5,7 +5,6 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import re
 from datetime import datetime
 from os import getenv
 
@@ -16,26 +15,17 @@ from discord.ext import commands
 from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.util import get_year_span, get_year_status, move_epoch
-from attubot.wiki import AttuWiki
+from attubot.util import get_year_span, get_year_status, is_bot_owner, move_epoch
 
 logger = get_logger(__name__)
 
-# --- Permissions Check ---
-
-def is_bot_owner(ctx):
-    return ctx.user.id == Config.bot_owner
-
-def is_authorized_guild(ctx):
-    return ctx.guild.id in Config.authorized_guilds
-
 # --- Admin Command ---
 
-time = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
+time_group = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
-@time.command(guilds_only=True, description='Manually advance to the next year, ignoring all checks')
+@time_group.command(name='advance', guilds_only=True, description='Manually advance to the next year, ignoring all checks')
 @commands.check(is_bot_owner)
-async def advance(ctx):
+async def time_advance(ctx):
     forced_year = len(Config.timestamps) + 1
     _, year = get_year_status()
     cog = ctx.bot.get_cog('NewYearEvent')
@@ -44,24 +34,24 @@ async def advance(ctx):
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
     await cog.advance_year(forced_year)
 
-@time.command(guilds_only=True, description='Pause the passage of time')
+@time_group.command(name='pause', guilds_only=True, description='Pause the passage of time')
 @commands.check(is_bot_owner)
-async def pause(ctx):
+async def time_pause(ctx):
     await ctx.respond('The passage of time has been stopped')
     Config.pause_time()
 
-@time.command(guilds_only=True, description='Resume the passage of time')
+@time_group.command(name='resume', guilds_only=True, description='Resume the passage of time')
 @commands.check(is_bot_owner)
-async def resume(ctx):
+async def time_resume(ctx):
     move_epoch(Config.epoch_length)
 
     await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
     Config.resume_time()
 
-@time.command(guilds_only=True, description='Adjust the rate at which time progresses')
+@time_group.command(name='dilate', guilds_only=True, description='Adjust the rate at which time progresses')
 @commands.check(is_bot_owner)
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
-async def dilate(ctx, days):
+async def time_dilate(ctx, days):
     # catch to keep from trying entering number of weeks
     if days > 0 and days % 7 != 0:
         await ctx.respond('Failed: Dilation amount must be divisible by 7', ephemeral=True)
@@ -77,10 +67,10 @@ async def dilate(ctx, days):
 
 # --- Debug Command ---
 
-debug = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
+debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
 
-@debug.command(guilds_only=True, description='Displays the current version and container build time')
-async def version(ctx):
+@debug_group.command(name='version', guilds_only=True, description='Displays the current version and container build time')
+async def debug_version(ctx):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
 
@@ -89,8 +79,8 @@ async def version(ctx):
         f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
     ]))
 
-@debug.command(guilds_only=True, description='Returns the current state of time tracking calculations')
-async def year_stats(ctx):
+@debug_group.command(name='year_stats', guilds_only=True, description='Returns the current state of time tracking calculations')
+async def debug_year_stats(ctx):
     elapsed_days, current_year = get_year_status()
     year_span = get_year_span(current_year)
     cog = ctx.bot.get_cog('NewYearEvent')
@@ -103,36 +93,16 @@ async def year_stats(ctx):
         f'Next Task Iteration: <t:{int(cog.task_year_check.next_iteration.timestamp())}:f>',
     ]))
 
-@debug.command(guilds_only=True, description='Causes an internal error to be thrown')
+@debug_group.command(name='force_error', guilds_only=True, description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
-async def force_error(ctx):
+async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
-
-# --- Wiki Commands ---
-
-@discord.slash_command(guilds_only=True, default_member_permissions=Permissions.all(), description='Blocks a specified user from the wiki (Admin only)')
-@discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
-@discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
-@commands.check(is_authorized_guild)
-async def wiki_block(ctx, user, reason):
-    # check if link to the user
-    extract = re.search(r'User:(.*)$', user)
-
-    if extract is not None:
-        user = extract[1]
-
-    await ctx.respond(f'Blocking user "{user}": {reason}')
-
-    wiki = AttuWiki()
-    wiki.authenticate(Config.wiki_user, Config.wiki_key)
-    wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- Extension Def ---
 
 def setup(bot):
     logger.info(f'Registered: {__name__}')
 
-    bot.add_application_command(time)
-    bot.add_application_command(debug)
-    bot.add_application_command(wiki_block)
+    bot.add_application_command(time_group)
+    bot.add_application_command(debug_group)

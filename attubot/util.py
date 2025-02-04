@@ -20,6 +20,14 @@ logger = get_logger(__name__)
 separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
 flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
 
+# --- Permissions Check ---
+
+def is_bot_owner(ctx):
+    return ctx.user.id == Config.bot_owner
+
+def is_authorized_guild(ctx):
+    return ctx.guild.id in Config.authorized_guilds
+
 # --- Utilities ---
 
 def format_year_line(year):
