@@ -65,7 +65,6 @@ async def year_check(ctx, year: int):
 @year_group.command(name='link', guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
-async def link_year(ctx, year: int, channel: discord.TextChannel):
 async def year_link(ctx, year: int, channel: discord.TextChannel):
     elapsed_days, current_year = get_year_status()
     channel_id = 0
@@ -87,7 +86,6 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
     # Send message link
     await ctx.respond(f'{year} PC: https://discord.com/channels/{Config.attu_guild}/{channel_id}/{Config.timestamps[year - 1]}')
 
-@discord.slash_command(guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
 # --- Wiki Commands ---
 
 wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
@@ -95,7 +93,6 @@ wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managin
 @wiki_group.command(name='lookup', guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
 @discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
-async def lookup(ctx, query: str, limit: int):
 async def wiki_lookup(ctx, query: str, limit: int):
     wiki = AttuWiki()
     pages = wiki.search(query, limit)
@@ -122,6 +119,7 @@ async def wiki_lookup(ctx, query: str, limit: int):
 
         await ctx.respond('\n'.join(msg))
 
+@wiki_group.command(name='block', guilds_only=True, default_member_permissions=Permissions.all(), description='Blocks a specified user from the wiki (Admin only)')
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 @commands.check(is_authorized_guild)
@@ -143,6 +141,5 @@ async def wiki_block(ctx, user, reason):
 def setup(bot):
     logger.info(f'Registered: {__name__}')
 
-    bot.add_application_command(check_year)
     bot.add_application_command(year_group)
     bot.add_application_command(wiki_group)
