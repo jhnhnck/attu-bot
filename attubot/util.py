@@ -72,7 +72,7 @@ def get_year_span(year: int):
     next_year = get_next_year()
 
     # Invalid Years
-    if year <= 0:
+    if year <= 0 or year > 500:
         logger.error(f'get_year() requested with invalid year: {year}')
 
     # Past Years
