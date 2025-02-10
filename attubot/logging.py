@@ -3,10 +3,12 @@ AttuBot - Logging wrapper
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+"""  # noqa: A005
 
 import sys
 from os import environ
+
+from termcolor import colored
 
 class Logger:
     class_name = 'attubot.???'
@@ -15,10 +17,10 @@ class Logger:
         self.class_name = class_name
 
     def _stdout(self, level, message):
-        print(f'{self.class_name} > {level}. {message}')
+        print(colored(f'{self.class_name}[{level}]', 'cyan'), message)
 
     def _stderr(self, level, message):
-        print(f'{self.class_name} > {level}. {message}', file=sys.stderr)
+        print(colored(f'{self.class_name}[{level}]', 'light_red'), message, file=sys.stderr)
 
     def trace(self, message):
         if 'DEBUG' in environ:

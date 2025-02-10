@@ -1,4 +1,5 @@
-python-dotenv
 py-cord>=2.4,<3
+python-dotenv
 requests
 toml
+termcolor
