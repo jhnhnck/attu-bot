@@ -81,7 +81,7 @@ async def year_search(ctx, year: int):
         return
 
     # get a list of all the lore channels
-    for channel_id in [*Config.lore_channels, Config.meta_chat_channel]:
+    for channel_id in [*Config.lore_channels, Config.meta_chat_channel, 1001837934590312458, 1175719558032654356]:
         msg.append(f'in:{guild.get_channel(channel_id).name}')
 
     tz = ZoneInfo('America/New_York')
