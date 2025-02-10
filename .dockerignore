@@ -3,9 +3,9 @@
 .git
 .venv
 *.json
+*.sample.*
 *.toml
 **/__pycache__/
-config/
-*.sample.*
-pyproject.toml
 **/*.wip.py
+config/
+pyproject.toml
