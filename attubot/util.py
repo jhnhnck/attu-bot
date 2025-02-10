@@ -88,7 +88,7 @@ def get_year_span(year: int):
     # Next Year
     elif year == (current_year + 1):
         result.start_time = int(next_year.timestamp())
-        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp()) if not Config.time_paused else 0
+        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year)))).timestamp()) if not Config.time_paused else 0
 
     # Future Years
     elif not Config.time_paused:
