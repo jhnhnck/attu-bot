@@ -35,9 +35,9 @@ $ cd attu-bot
 
 2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API key, page and username, channel IDs, role ID for leaders, epoch settings (time, year, paused status, and length), bot owner's user ID, actual server IDs for guilds, and any existing year timestamps (in Discord snowflake format):
 ```bash
-$ cp ./config/attu-bot.sample.json ./attu-bot.json
+$ cp ./config/attu-bot.sample.toml ./attu-bot.toml
 
-$ vim ./attu-bot.json
+$ vim ./attu-bot.toml
 ```
 
 3. Run the following command to build the Docker image and start the bot:
@@ -52,10 +52,13 @@ Once the bot is running, invite it to your Discord server with the link printed 
 
 Use the following commands to interact with the bot:
 
-- **/check_year [year]**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
-- **/link_year <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
-- **/wiki_block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
-- **/lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
+- **/year**:
+  - **/year check [year]**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
+  - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
+
+- **/wiki**:
+  - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
+  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
 
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug version**: Displays the current version and container build time
