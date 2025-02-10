@@ -41,11 +41,20 @@ async def send_to_error_log(error):
 async def on_ready():
     perms = '207952'
 
-    logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
-    logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
+    if not hasattr(on_ready, 'has_run'):
+        on_ready.has_run = False
 
-    logger.info('Pushing commands to Discord')
-    await bot.sync_commands()
+    if not on_ready.has_run:
+        on_ready.has_run = True
+
+        logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
+        logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
+
+        logger.info('Pushing commands to Discord')
+        await bot.sync_commands()
+
+    else:
+        logger.info(f'Reconnected as {bot.user} (ID: {bot.user.id})!')
 
 @bot.event
 async def on_message(message):
