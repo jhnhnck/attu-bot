@@ -44,7 +44,7 @@ class Config:
 
         # validate config version
         if Config._raw['config_version'] != Config.config_version:
-            logger.info('Incompatible config version!')
+            logger.fatal('Incompatible config version!')
             sys.exit(1)
 
         # --- Unpack into Attributes ---
