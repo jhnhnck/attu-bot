@@ -66,7 +66,7 @@ async def year_check(ctx, year: int):
 @year_group.command(name='search', guilds_only=True, description='Prints search query for timlining')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 async def year_search(ctx, year: int):
-    elapsed_days, current_year = get_year_status()
+    _, current_year = get_year_status()
     year_span = get_year_span(year)
     guild = ctx.bot.get_guild(Config.attu_guild)
     msg = []
@@ -100,7 +100,7 @@ async def year_search(ctx, year: int):
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def year_link(ctx, year: int, channel: discord.TextChannel):
-    elapsed_days, current_year = get_year_status()
+    _, current_year = get_year_status()
     channel_id = 0
 
     if channel is None:
