@@ -76,7 +76,7 @@ async def on_application_command_error(ctx, error):
         if ctx.guild.id in Config.authorized_guilds:
             await ctx.respond("You're not my real dad!")
         else:
-            # catch all for if bot gets added to a nother discord guild
+            # catch all for if bot gets added to another discord guild
             await ctx.respond('This feature requires DoomBot(tm) Premium')
     else:
         await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
