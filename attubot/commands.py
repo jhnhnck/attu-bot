@@ -12,10 +12,13 @@ from zoneinfo import ZoneInfo
 import discord
 from discord import Permissions
 from discord.ext import commands
+from discord.utils import snowflake_time
+from tortoise import Tortoise
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.util import get_year_span, get_year_status, is_authorized_guild
+from attubot.markers import YearMarker
+from attubot.util import format_message_link, get_year_span, get_year_status, has_year_marker, is_authorized_guild
 from attubot.wiki import AttuWiki
 
 logger = get_logger(__name__)
@@ -101,24 +104,59 @@ async def year_search(ctx, year: int):
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def year_link(ctx, year: int, channel: discord.TextChannel):
     _, current_year = get_year_status()
-    channel_id = 0
+    marker = None
 
     if channel is None:
-        channel_id = Config.lore_channels[0]
+        guild = ctx.bot.get_guild(Config.attu_guild)
+        channel = guild.get_channel(Config.lore_channels[0])
 
-    elif channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
+    # validate as lore channel
+    if channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
-
-    else:
-        channel_id = channel.id
 
     if year < 1 or year >= current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
+    # Check if its in the db
+    if await YearMarker.exists(channel=channel.id, year=year):
+        logger.debug(f'Hit cache for {year} PC in {channel.id}')
+        marker = await YearMarker.get(channel=channel.id, year=year)
+
+    # Fetch channel 0 for that year (timestamps)
+    else:
+        timestamp = snowflake_time((await YearMarker.get(channel=0, year=year)).message)
+        marker = YearMarker(channel=channel.id, message=0, year=year)
+        logger.debug(f'Searching for {year} PC in {channel.id}')
+        closest = 86400
+
+        # Search Channel History
+        async for message in channel.history(around=timestamp, limit=15):
+            # aim for closet message
+            distance = abs((snowflake_time(message.id) - timestamp).total_seconds())
+
+            if distance < closest:
+                logger.debug(f'Closest found: {message.id} (off by {distance}s)')
+                marker.message = message.id
+                closest = distance
+
+                # skip finding perfect match for meta-chat
+                if channel.id == Config.meta_chat_channel:
+                    break
+
+            # try to find perfect match
+            if message.author.id in Config.users.markers and has_year_marker(year, message.content):
+                logger.debug(f'Exact found: {message.id}')
+                marker.message = message.id
+                marker.exact = True
+                break
+
     # Send message link
-    await ctx.respond(f'{year} PC: https://discord.com/channels/{Config.attu_guild}/{channel_id}/{Config.timestamps[year - 1]}')
+    await ctx.respond(f'{year} PC: {format_message_link(Config.attu_guild, channel.id, marker.message, relative=(not marker.exact))}')
+    await marker.save()
+
+    await Tortoise.close_connections()
 
 # --- Wiki Commands ---
 

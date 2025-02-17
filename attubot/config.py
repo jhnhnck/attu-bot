@@ -9,6 +9,7 @@ import sys
 from datetime import time
 from os import getenv
 from pathlib import Path
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import toml
@@ -59,6 +60,9 @@ class Config:
         Config.wiki_endpoint = Config._raw['auth']['wiki']['endpoint']
 
         # Users
+        Config.users = SimpleNamespace(
+            markers = Config._raw['discord']['users']['markers'],
+        )
 
         # Channels
         Config.activity_channel = Config._raw['discord']['channels']['activity']

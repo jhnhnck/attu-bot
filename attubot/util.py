@@ -124,3 +124,16 @@ def move_epoch(length: int):
 
     Config.set_epoch_length(length)
     logger.info(f'New Epoch Set: {Config.epoch_year} PC at {Config.epoch_time} with year length of {Config.epoch_length}')
+
+# look for {year} or 'pc' or 'year' in message contents
+def has_year_marker(year:int, content: str):
+    content = content.lower()
+
+    if str(year) in content or (year < 10 and str(year - 1) in content):
+        return 'pc' in content or 'year' in content
+    else:
+        return False
+
+# util to make discord message links
+def format_message_link(guild, channel, message, relative=False):
+    return f'https://discord.com/channels/{guild}/{channel}/{message}{' [~]' if relative else ''}'
