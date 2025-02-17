@@ -50,6 +50,9 @@ async def on_ready():
         logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
         logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
+        logger.info('Checking config for updates')
+        Config.on_ready(bot)
+
         logger.info('Pushing commands to Discord')
         await bot.sync_commands()
 
@@ -81,7 +84,6 @@ async def on_application_command_error(ctx, error):
     else:
         await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
         await send_to_error_log(error)
-
 
 # --- Trigger Function ---
 

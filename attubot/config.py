@@ -32,6 +32,14 @@ class Config:
 
         Config._load()
 
+    def on_ready(bot):
+        if bot.user.id not in Config.users.markers:
+            logger.info('Adding bot user to valid year marker authors')
+            Config.users.markers.append(bot.user.id)
+
+        Config.path.chmod(0o660)
+        Config.db_path.chmod(0o660)
+
     # --- Private Methods ---
 
     @staticmethod
