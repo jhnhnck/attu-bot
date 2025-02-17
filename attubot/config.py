@@ -57,7 +57,6 @@ class Config:
         Config.wiki_endpoint = Config._raw['auth']['wiki']['endpoint']
 
         # Users
-        Config.bot_owner = Config._raw['discord']['users']['bot_owner']
 
         Config.activity_channel = Config._raw['discord']['channels']['activity']
         Config.year_vc = Config._raw['discord']['channels']['year_vc']

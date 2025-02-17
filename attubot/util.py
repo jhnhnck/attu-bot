@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
+from discord.ext.commands import Context
 from discord.utils import snowflake_time
 
 from attubot.config import Config
@@ -22,10 +23,10 @@ flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
 
 # --- Permissions Check ---
 
-def is_bot_owner(ctx):
-    return ctx.user.id == Config.bot_owner
+def is_bot_owner(ctx: Context):
+    return ctx.bot.is_owner(ctx.user)
 
-def is_authorized_guild(ctx):
+def is_authorized_guild(ctx: Context):
     return ctx.guild.id in Config.authorized_guilds
 
 # --- Utilities ---
