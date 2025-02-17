@@ -22,24 +22,24 @@ logger = get_logger(__name__)
 
 class Config:
     config_version = __version__
-    file_name = None
+    path = None
 
     @staticmethod
     def init():
-        Config.file_name = Path(getenv('BOT_CONFIG_FILE', './attu-bot.toml')).resolve()
+        Config.path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
         Config._load()
 
     # --- Private Methods ---
 
     @staticmethod
     def _load():
-        if not Config.file_name.exists():
+        if not Config.path.exists():
             logger.error('Config file missing!')
             sys.exit(1)
 
-        logger.info(f'Loading config from "{Config.file_name}"')
+        logger.info(f'Loading config from "{Config.path}"')
 
-        with Config.file_name.open() as file:
+        with Config.path.open() as file:
             Config._raw = toml.load(file)
 
         # validate config version
@@ -47,7 +47,8 @@ class Config:
             logger.info('Incompatible config version!')
             sys.exit(1)
 
-        # unpack raw toml
+        # --- Unpack into Attributes ---
+
         Config.bot_token = Config._raw['auth']['bot']['token']
 
         Config.wiki_key = Config._raw['auth']['wiki']['key']
@@ -55,6 +56,7 @@ class Config:
         Config.wiki_user = Config._raw['auth']['wiki']['user']
         Config.wiki_endpoint = Config._raw['auth']['wiki']['endpoint']
 
+        # Users
         Config.bot_owner = Config._raw['discord']['users']['bot_owner']
 
         Config.activity_channel = Config._raw['discord']['channels']['activity']
@@ -66,12 +68,15 @@ class Config:
         Config.error_log_channel = Config._raw['discord']['channels']['error_log']
         Config.lore_channels = Config._raw['discord']['channels']['lore_channels']
 
+        # Roles
         Config.announce_role = Config._raw['discord']['roles']['leaders']
 
+        # Guilds
         Config.authorized_guilds = list(Config._raw['discord']['guilds'].values())
         Config.attu_guild = Config._raw['discord']['guilds']['attu']
         Config.jhn_guild = Config._raw['discord']['guilds']['jhn']
 
+        # Epoch
         Config.epoch_time = Config._raw['epoch']['time']
         Config.epoch_year = Config._raw['epoch']['year']
         Config.epoch_length = Config._raw['epoch']['length']
@@ -84,9 +89,9 @@ class Config:
 
     @staticmethod
     def _save():
-        logger.info(f'Writing new config to "{Config.file_name}"')
+        logger.info(f'Writing new config to "{Config.path}"')
 
-        with Config.file_name.open('w') as file:
+        with Config.path.open('w') as file:
             toml.dump(Config._raw, file)
 
         Config._load()
