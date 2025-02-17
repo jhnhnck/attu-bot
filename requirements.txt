@@ -3,3 +3,4 @@ python-dotenv
 requests
 toml
 termcolor
+tortoise-orm<2

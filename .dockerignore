@@ -2,6 +2,7 @@
 .env
 .git
 .venv
+*.db
 *.json
 *.sample.*
 *.toml

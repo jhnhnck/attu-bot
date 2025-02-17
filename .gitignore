@@ -134,3 +134,6 @@ attu-bot.toml
 
 # WIP Files
 *.wip.py
+
+# Databases
+*.db

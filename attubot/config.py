@@ -27,6 +27,8 @@ class Config:
     @staticmethod
     def init():
         Config.path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
+        Config.db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
+
         Config._load()
 
     # --- Private Methods ---
@@ -58,6 +60,7 @@ class Config:
 
         # Users
 
+        # Channels
         Config.activity_channel = Config._raw['discord']['channels']['activity']
         Config.year_vc = Config._raw['discord']['channels']['year_vc']
         Config.announce_channel = Config._raw['discord']['channels']['announcements']

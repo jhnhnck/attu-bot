@@ -89,6 +89,7 @@ def start_bot_loop():
     Config.init()
 
     logger.info('Loading Extensions')
+    bot.load_extension('attubot.markers')  # needs to be first for db init step
     bot.load_extension('attubot.tasks')
     bot.load_extension('attubot.admin')
     bot.load_extension('attubot.commands')

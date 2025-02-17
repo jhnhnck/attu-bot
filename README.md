@@ -40,8 +40,14 @@ $ cp ./config/attu-bot.sample.toml ./attu-bot.toml
 $ vim ./attu-bot.toml
 ```
 
-3. Run the following command to build the Docker image and start the bot:
+3. Make a copy of the sample database file or generate a new blank one from scratch (requires sqlite3 package)
+```bash
+$ cp ./config/markers.sample.db ./markers.db
+# OR
+$ sqlite3 ./markers.db "VACUUM;"
+```
 
+4. Run the following command to build the Docker image and start the bot:
 ```bash
 $ docker compose up --build -d
 ```
