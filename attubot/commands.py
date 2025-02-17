@@ -141,9 +141,9 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
                 marker.message = message.id
                 closest = distance
 
-                # skip finding perfect match for meta-chat
-                if channel.id == Config.meta_chat_channel:
-                    break
+            # skip finding perfect match for meta-chat
+            if channel.id == Config.meta_chat_channel:
+                continue
 
             # try to find perfect match
             if message.author.id in Config.users.markers and has_year_marker(year, message.content):
