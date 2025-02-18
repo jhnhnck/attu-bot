@@ -44,7 +44,7 @@ async def markers_add(year:int, timestamp: int, channel: int = 0):
 # --- Extension Def ---
 
 async def _init_db():
-    logger.info('- Starting Databases')
+    logger.info('- Starting databases')
 
     await Tortoise.init(db_url=f'sqlite://{Config.db_path}', modules={'models': [__name__]})
     await Tortoise.generate_schemas(safe=True)
@@ -54,6 +54,8 @@ async def _init_db():
         logger.info('Copying timestamps into marker database')
         for year, timestamp in enumerate(Config.timestamps, start=1):
             await YearMarker.create(channel=0, message=timestamp, year=year)
+
+    logger.info(f'- Loaded [{(await YearMarker.last()).id}] entries')
 
 def setup(bot):
     logger.info(f'Registered: {__name__}')
