@@ -90,6 +90,9 @@ async def on_application_command_error(ctx, error):
         await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
         await send_to_error_log(error)
 
+    # Close any hung connections
+    await Tortoise.close_connections()
+
 # --- Trigger Function ---
 
 def start_bot_loop():
