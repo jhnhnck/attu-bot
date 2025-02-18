@@ -13,7 +13,6 @@ import discord
 from discord import Permissions
 from discord.ext import commands
 from discord.utils import snowflake_time
-from tortoise import Tortoise
 
 from attubot.config import Config
 from attubot.logging import get_logger
@@ -155,8 +154,6 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
     # Send message link
     await ctx.respond(f'{year} PC: {format_message_link(Config.attu_guild, channel.id, marker.message, relative=(not marker.exact))}')
     await marker.save()
-
-    await Tortoise.close_connections()
 
 # --- Wiki Commands ---
 

@@ -9,6 +9,7 @@ import traceback
 
 import discord
 from discord.errors import CheckFailure
+from tortoise import Tortoise
 
 from attubot.config import Config
 from attubot.logging import get_logger
@@ -68,8 +69,12 @@ async def on_message(message):
             await message.add_reaction('💖')
 
 @bot.before_invoke
-async def on_command(ctx):
+async def on_application_command(ctx):
     logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} data={ctx.interaction.data}')
+
+@bot.event
+async def on_application_command_completion(ctx):
+    await Tortoise.close_connections()
 
 @bot.event
 async def on_application_command_error(ctx, error):
@@ -91,7 +96,7 @@ def start_bot_loop():
     Config.init()
 
     logger.info('Loading Extensions')
-    bot.load_extension('attubot.markers')  # needs to be first for db init step
+    bot.load_extension('attubot.markers')  # db init step
     bot.load_extension('attubot.tasks')
     bot.load_extension('attubot.admin')
     bot.load_extension('attubot.commands')
