@@ -99,6 +99,10 @@ async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
 
+# --- Marker Commands ---
+
+marker_group = discord.SlashCommandGroup('marker', description='Utlities related to managing year markers')
+
 # --- Extension Def ---
 
 def setup(bot):
@@ -106,3 +110,4 @@ def setup(bot):
 
     bot.add_application_command(time_group)
     bot.add_application_command(debug_group)
+    bot.add_application_command(marker_group)

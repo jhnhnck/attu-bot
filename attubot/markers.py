@@ -26,8 +26,11 @@ class YearMarker(Model):
     def __str__(self):
         return f'{self.channel}/{self.message}'
 
+# --- Extension Def ---
 
-async def init_db():
+async def _init_db():
+    logger.info('- Starting Databases')
+
     await Tortoise.init(db_url=f'sqlite://{Config.db_path}', modules={'models': [__name__]})
     await Tortoise.generate_schemas(safe=True)
 
@@ -37,18 +40,7 @@ async def init_db():
         for year, timestamp in enumerate(Config.timestamps, start=1):
             await YearMarker.create(channel=0, message=timestamp, year=year)
 
-# --- Marker Commands ---
-
-marker_group = discord.SlashCommandGroup('marker', description='Utlities related to managing year markers')
-
-# --- Extension Def ---
-
 def setup(bot):
     logger.info(f'Registered: {__name__}')
-    bot.add_application_command(marker_group)
 
-    logger.info('Starting Databases')
-    run_async(init_db())
-
-
-
+    run_async(_init_db())
