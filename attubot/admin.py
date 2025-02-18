@@ -7,13 +7,15 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import datetime
 from os import getenv
+from platform import freedesktop_os_release as os_release
+from platform import python_version
 
 import discord
 from discord import Permissions
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot import __version__
+from attubot import __title__, __version__
 from attubot.config import Config
 from attubot.logging import get_logger
 from attubot.markers import YearMarker, markers_count
@@ -75,9 +77,10 @@ debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Perm
 async def debug_version(ctx):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
+    distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
 
     await ctx.respond('\n'.join([
-        f'Version: v{__version__}',
+        f'Version: {__title__}/{__version__} Python/{python_version()} {distro}/{distro_version}',
         f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
     ]))
 

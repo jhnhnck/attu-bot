@@ -57,6 +57,8 @@ class Config:
         if Config._raw['config_version'] != Config.config_version:
             logger.fatal('Incompatible config version!')
             sys.exit(1)
+        else:
+            logger.info(f'Matched version: {__version__}')
 
         # --- Unpack into Attributes ---
 
