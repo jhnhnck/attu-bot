@@ -33,7 +33,7 @@ $ git clone https://github.com/jhnhnck/attu-bot.git
 $ cd attu-bot
 ```
 
-2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API key, page and username, channel IDs, role ID for leaders, epoch settings (time, year, paused status, and length), bot owner's user ID, actual server IDs for guilds, and any existing year timestamps (in Discord snowflake format):
+2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API key, page and username, channel IDs, role ID for leaders, epoch settings (time, year, paused status, and length), bot owner's user ID, actual server IDs for guilds:
 ```bash
 $ cp ./config/attu-bot.sample.toml ./attu-bot.toml
 

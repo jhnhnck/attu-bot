@@ -113,13 +113,6 @@ class Config:
     # --- Public Methods ---
 
     @staticmethod
-    def add_timestamp(timestamp):
-        logger.warn(f'Timestamp appended: new={timestamp}')
-
-        Config._raw['timestamps'].append(timestamp)
-        Config._save()
-
-    @staticmethod
     def set_epoch(time, year: int):
         logger.warn(f'Epoch changed: old={Config.epoch_time},{Config.epoch_year} new={int(time)},{year}')
 
