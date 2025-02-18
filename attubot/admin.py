@@ -16,17 +16,18 @@ from attubot import __version__
 from attubot.config import Config
 from attubot.logging import get_logger
 from attubot.util import get_year_span, get_year_status, is_bot_owner, move_epoch
+from attubot.markers import markers_count
 
 logger = get_logger(__name__)
 
-# --- Admin Command ---
+# --- Admin Commands ---
 
 time_group = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
 @time_group.command(name='advance', guilds_only=True, description='Manually advance to the next year, ignoring all checks')
 @commands.check(is_bot_owner)
 async def time_advance(ctx):
-    forced_year = len(Config.timestamps) + 1
+    forced_year = (await markers_count()) + 1
     _, year = get_year_status()
     cog = ctx.bot.get_cog('NewYearEvent')
 
@@ -43,7 +44,7 @@ async def time_pause(ctx):
 @time_group.command(name='resume', guilds_only=True, description='Resume the passage of time')
 @commands.check(is_bot_owner)
 async def time_resume(ctx):
-    move_epoch(Config.epoch_length)
+    await move_epoch(Config.epoch_length)
 
     await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
     Config.resume_time()
@@ -62,10 +63,10 @@ async def time_dilate(ctx, days):
         await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year**')
 
     else:
-        move_epoch(days)
+        await move_epoch(days)
         await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year** with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
 
-# --- Debug Command ---
+# --- Debug Commands ---
 
 debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
 
@@ -82,7 +83,7 @@ async def debug_version(ctx):
 @debug_group.command(name='year_stats', guilds_only=True, description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx):
     elapsed_days, current_year = get_year_status()
-    year_span = get_year_span(current_year)
+    year_span = await get_year_span(current_year)
     cog = ctx.bot.get_cog('NewYearEvent')
 
     await ctx.respond('\n'.join([

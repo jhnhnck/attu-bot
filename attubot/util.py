@@ -9,10 +9,10 @@ from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
 from discord.ext.commands import Context
-from discord.utils import snowflake_time
 
 from attubot.config import Config
 from attubot.logging import get_logger
+from attubot.markers import markers_get
 
 # --- Initialization ---
 
@@ -66,7 +66,7 @@ def get_next_year():
 
     return new_date
 
-def get_year_span(year: int):
+async def get_year_span(year: int):
     result = SimpleNamespace(start_time=0, end_time=0, duration=0)
 
     _, current_year = get_year_status()
@@ -79,12 +79,12 @@ def get_year_span(year: int):
 
     # Past Years
     elif year < current_year:
-        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
-        result.end_time = int(snowflake_time(Config.timestamps[year]).timestamp())
+        result.start_time = await markers_get(year)
+        result.end_time = await markers_get(year + 1)
 
     # Current Year
     elif year == current_year:
-        result.start_time = int(snowflake_time(Config.timestamps[year - 1]).timestamp())
+        result.start_time = await markers_get(year)
         result.end_time = int(next_year.timestamp())
 
     # Next Year
@@ -100,9 +100,9 @@ def get_year_span(year: int):
     result.duration = round((result.end_time - result.start_time) / 86400)
     return result
 
-def move_epoch(length: int):
+async def move_epoch(length: int):
     elapsed_days, current_year = get_year_status()
-    year_span = get_year_span(current_year)
+    year_span = await get_year_span(current_year)
 
     # handle picking new year time if paused
     if Config.time_paused:

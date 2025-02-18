@@ -17,7 +17,7 @@ from tortoise import Tortoise
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.markers import YearMarker
+from attubot.markers import YearMarker, markers_get
 from attubot.util import format_message_link, get_year_span, get_year_status, has_year_marker, is_authorized_guild
 from attubot.wiki import AttuWiki
 
@@ -32,7 +32,7 @@ year_group = discord.SlashCommandGroup('year', description='Utlities related to 
 async def year_check(ctx, year: int):
     elapsed_days, current_year = get_year_status()
     year = year if year is not None else (current_year + 1)
-    year_span = get_year_span(year)
+    year_span = await get_year_span(year)
 
     # invalid year input
     if year <= 0:
@@ -70,7 +70,7 @@ async def year_check(ctx, year: int):
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 async def year_search(ctx, year: int):
     _, current_year = get_year_status()
-    year_span = get_year_span(year)
+    year_span = await get_year_span(year)
     guild = ctx.bot.get_guild(Config.attu_guild)
     msg = []
 
@@ -124,9 +124,9 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
         logger.debug(f'Hit cache for {year} PC in {channel.id}')
         marker = await YearMarker.get(channel=channel.id, year=year)
 
-    # Fetch channel 0 for that year (timestamps)
+    # Fetch stored marker for that year
     else:
-        timestamp = snowflake_time((await YearMarker.get(channel=0, year=year)).message)
+        timestamp = await markers_get(year)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400
