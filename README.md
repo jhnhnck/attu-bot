@@ -59,8 +59,9 @@ Once the bot is running, invite it to your Discord server with the link printed 
 Use the following commands to interact with the bot:
 
 - **/year**:
-  - **/year check [year]**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
+  - **/year check <year>**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
   - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
+  - **/year search <year>**: Prints search query for timlining
 
 - **/wiki**:
   - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
@@ -75,7 +76,10 @@ Use the following commands to interact with the bot:
   - **/time advance**: Manually advance to the next year, ignoring all checks
   - **/time pause**: Pause the passage of time
   - **/time resume**: Resume the passage of time
-  - **/time dilate [days]**: Adjust the rate at which time progresses
+  - **/time dilate <days>**: Adjust the rate at which time progresses
+
+- **/marker**:
+  - **/marker save <year> <link> [force]**: Updates marker to point to a different message (Admin only)
 
 ## License
 
