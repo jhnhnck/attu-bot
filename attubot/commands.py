@@ -125,7 +125,7 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
 
     # Fetch stored marker for that year
     else:
-        timestamp = await markers_get(year)
+        timestamp = await markers_get(year, date=True)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400

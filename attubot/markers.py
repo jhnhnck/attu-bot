@@ -33,11 +33,15 @@ async def markers_count():
     return await YearMarker.filter(channel=0).count()
 
 # Throws exception on invalid year
-async def markers_get(year:int):
+async def markers_get(year: int, date: bool = False):
     marker = await YearMarker.get(channel=0, year=year)
-    return int(snowflake_time(marker.message).timestamp())
 
-async def markers_add(year:int, timestamp: int, channel: int = 0):
+    if date:
+        return snowflake_time(marker.message)
+    else:
+        return int(snowflake_time(marker.message).timestamp())
+
+async def markers_add(year: int, timestamp: int, channel: int = 0):
     logger.info(f'Marker appended: new={timestamp}')
     await YearMarker.create(channel=channel, year=year, message=timestamp)
 
