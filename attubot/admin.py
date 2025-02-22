@@ -11,7 +11,7 @@ from platform import freedesktop_os_release as os_release
 from platform import python_version
 
 import discord
-from discord import Permissions
+from discord import Permissions, Embed
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -79,10 +79,14 @@ async def debug_version(ctx):
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
     distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
 
-    await ctx.respond('\n'.join([
-        f'Version: {__title__}/{__version__} Python/{python_version()} {distro}/{distro_version}',
-        f'Container Build Time: <t:{int(build_time.timestamp())}:f>',
-    ]))
+    embed = Embed(title='Version Info', color=0xe86348)
+
+    embed.add_field(name='Version', value=f'{__title__} {__version__}', inline=True)
+    embed.add_field(name='Python', value=python_version(), inline=True)
+    embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
+    embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
+
+    await ctx.respond(embed=embed)
 
 @debug_group.command(name='year_stats', guilds_only=True, description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx):
@@ -90,13 +94,15 @@ async def debug_year_stats(ctx):
     year_span = await get_year_span(current_year)
     cog = ctx.bot.get_cog('NewYearEvent')
 
-    await ctx.respond('\n'.join([
-        f'Current Year: {current_year} PC',
-        f'Year Span: <t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)',
-        f'Attu Epoch: {Config.epoch_year} PC at <t:{Config.epoch_time}:f>',
-        f'Time Since Epoch: {elapsed_days} Days',
-        f'Next Task Iteration: <t:{int(cog.task_year_check.next_iteration.timestamp())}:f>',
-    ]))
+    embed = Embed(title='Year Stats', color=0xe86348)
+
+    embed.add_field(name='Current Year', value=f'{current_year} PC', inline=True)
+    embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)
+    embed.add_field(name='Attu Epoch', value=f'<t:{Config.epoch_time}:f>\n({Config.epoch_year} PC)', inline=True)
+    embed.add_field(name='Year Span', value=f'<t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)', inline=False)
+    embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.task_year_check.next_iteration.timestamp())}:f>', inline=False)
+
+    await ctx.respond(embed=embed)
 
 @debug_group.command(name='force_error', guilds_only=True, description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
