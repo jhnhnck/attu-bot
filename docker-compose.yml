@@ -1,5 +1,7 @@
 services:
   core:
+    container_name: attu-bot
+    user: 'doom:doom'
     build: .
     restart: always
     command: python -u /app/attu-bot.py
@@ -11,4 +13,3 @@ services:
     - ./markers.db:/app/markers.db
     logging:
       driver: journald
-
