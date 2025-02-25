@@ -63,6 +63,31 @@ async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
 
+@debug_group.command(name='message', guilds_only=True, description='Print message info')
+@discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
+async def debug_message(ctx, link):
+    if 'discord.com/channels' not in link:
+        await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
+        return
+
+    # unpack url
+    ids = link.split('/')[-3:]
+    guild, channel, target =  int(ids[0]), int(ids[1]), int(ids[2])
+
+    try:
+        guild = ctx.bot.get_guild(guild)
+        channel = guild.get_channel(channel)
+
+        async for message in channel.history(around=snowflake_time(target), limit=15):
+            if message.id == target:
+                await ctx.respond(f'```\n{message}\n```')
+                return
+
+        await ctx.respond("Couldn't find message! <:rockball_player:1308977543034048552>")
+    except Exception as err:
+        await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
+        logger.error(err)
+
 # --- Extension Def ---
 
 def setup(bot):
