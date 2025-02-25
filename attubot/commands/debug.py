@@ -1,0 +1,71 @@
+"""
+AttuBot - Debug Commands
+Author(s): @jhnhnck <john@jhnhnck.com>
+
+This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+"""
+
+from datetime import datetime
+from os import getenv
+from platform import freedesktop_os_release as os_release
+from platform import python_version
+
+import discord
+from discord import Embed, Permissions
+from discord.ext import commands
+from discord.utils import snowflake_time
+
+from attubot import __title__, __version__
+from attubot.config import Config
+from attubot.logging import get_logger
+from attubot.util import get_year_span, get_year_status, is_bot_owner
+
+logger = get_logger(__name__)
+
+# --- Debug Commands ---
+
+debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
+
+@debug_group.command(name='version', guilds_only=True, description='Displays the current version and container build time')
+async def debug_version(ctx):
+    build_format = '%a %b %d %H:%M:%S %Z %Y'
+    build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
+    distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
+
+    embed = Embed(title='Version Info', color=0xe86348)
+
+    embed.add_field(name='Version', value=f'{__title__} {__version__}', inline=True)
+    embed.add_field(name='Python', value=python_version(), inline=True)
+    embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
+    embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
+
+    await ctx.respond(embed=embed)
+
+@debug_group.command(name='year_stats', guilds_only=True, description='Returns the current state of time tracking calculations')
+async def debug_year_stats(ctx):
+    elapsed_days, current_year = get_year_status()
+    year_span = await get_year_span(current_year)
+    cog = ctx.bot.get_cog('NewYearEvent')
+
+    embed = Embed(title='Year Stats', color=0xe86348)
+
+    embed.add_field(name='Current Year', value=f'{current_year} PC', inline=True)
+    embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)
+    embed.add_field(name='Attu Epoch', value=f'<t:{Config.epoch_time}:f>\n({Config.epoch_year} PC)', inline=True)
+    embed.add_field(name='Year Span', value=f'<t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)', inline=False)
+    embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.task_year_check.next_iteration.timestamp())}:f>', inline=False)
+
+    await ctx.respond(embed=embed)
+
+@debug_group.command(name='force_error', guilds_only=True, description='Causes an internal error to be thrown')
+@commands.check(is_bot_owner)
+async def debug_force_error(ctx):
+    await ctx.respond('Forcing an error message')
+    math = 10 / 0  # noqa: F841
+
+# --- Extension Def ---
+
+def setup(bot):
+    logger.info(f'Registered: {__name__}')
+
+    bot.add_application_command(debug_group)

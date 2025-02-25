@@ -101,8 +101,11 @@ def start_bot_loop():
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
     bot.load_extension('attubot.tasks')
-    bot.load_extension('attubot.commands.admin')
-    bot.load_extension('attubot.commands.user')
+    bot.load_extension('attubot.commands.time')
+    bot.load_extension('attubot.commands.debug')
+    bot.load_extension('attubot.commands.marker')
+    bot.load_extension('attubot.commands.year')
+    bot.load_extension('attubot.commands.wiki')
 
     logger.info('Starting Bot')
     bot.run(Config.bot_token)
