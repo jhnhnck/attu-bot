@@ -10,6 +10,7 @@ from datetime import datetime
 import discord
 from discord import MessageType
 from discord.ext import commands
+from discord.utils import snowflake_time
 
 from attubot.logging import get_logger
 from attubot.util import format_message_link, get_year_span, get_year_status, is_bot_owner
@@ -25,6 +26,7 @@ query_group = discord.SlashCommandGroup('query', description="Performs searches 
 @commands.check(is_bot_owner)
 async def query_pins(ctx, channel: discord.TextChannel):
     _, current_year = get_year_status()
+    guild_creation = snowflake_time(ctx.guild.id)
     pins = []
 
     # this might take a bit so send message to not timeout
@@ -34,7 +36,7 @@ async def query_pins(ctx, channel: discord.TextChannel):
     # for year 1 thru current year
     for year in range (1, current_year + 1):
         year_span = await get_year_span(year)
-        start_time = datetime.fromtimestamp(year_span.start_time if year > 1 else 0).astimezone()
+        start_time = datetime.fromtimestamp(year_span.start_time).astimezone() if year > 0 else guild_creation
         end_time = datetime.fromtimestamp(year_span.end_time).astimezone()
 
         # search through each years history
