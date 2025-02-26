@@ -106,6 +106,7 @@ def start_bot_loop():
     bot.load_extension('attubot.commands.marker')
     bot.load_extension('attubot.commands.year')
     bot.load_extension('attubot.commands.wiki')
+    bot.load_extension('attubot.commands.query')
 
     logger.info('Starting Bot')
     bot.run(Config.bot_token)
