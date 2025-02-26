@@ -13,7 +13,7 @@ from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot.logging import get_logger
-from attubot.util import format_message_link, get_year_span, get_year_status, is_bot_owner
+from attubot.util import format_message_link, format_year_line, get_year_span, get_year_status, is_bot_owner
 
 logger = get_logger(__name__)
 
@@ -27,17 +27,17 @@ query_group = discord.SlashCommandGroup('query', description="Performs searches 
 async def query_pins(ctx, channel: discord.TextChannel):
     _, current_year = get_year_status()
     guild_creation = snowflake_time(ctx.guild.id)
-    pins = []
 
     # this might take a bit so send message to not timeout
     logger.info(f'Querying pins in channel {channel.id}')
-    res = await ctx.respond('Searching...')
+    await ctx.respond('## Pins in <#{channel.id}>')
 
     # for year 1 thru current year
     for year in range (1, current_year + 1):
         year_span = await get_year_span(year)
         start_time = datetime.fromtimestamp(year_span.start_time).astimezone() if year > 0 else guild_creation
         end_time = datetime.fromtimestamp(year_span.end_time).astimezone()
+        pins = []
 
         # search through each years history
         async for message in channel.history(after=start_time, before=end_time, limit=None):
@@ -47,7 +47,8 @@ async def query_pins(ctx, channel: discord.TextChannel):
                 logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {link}')
                 pins.append(f'{year} PC: {message.jump_url} -> {link}')
 
-    await res.edit(content=f'## Pins in <#{channel.id}>\n' + '\n'.join(pins))
+        if len(pins) > 0:
+            await ctx.channel.send(f'##{format_year_line(year)}\n' + '\n'.join(pins))
 
 # --- Extension Def ---
 
