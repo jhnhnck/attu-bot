@@ -88,6 +88,30 @@ async def marker_set(ctx, year: int, snowflake: str):
 
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
 
+@marker_group.command(name='clear', guilds_only=True, default_member_permissions=Permissions.all(), description='Updates marker to point to a different message (Admin only)')
+@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
+@discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
+@commands.check(is_authorized_guild)
+async def marker_clear(ctx, year: int, channel: discord.TextChannel):
+    _, current_year = get_year_status()
+
+    if year < 1 or year >= current_year:
+        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        return
+
+    if channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
+        await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
+        return
+
+    marker = await YearMarker.get_or_none(year=year, channel=channel.id)
+
+    if marker is not None:
+        await marker.delete()
+        await ctx.respond(f'Cleared saved marker for {year} PC in <#{channel.id}>')
+
+    else:
+        await ctx.respond('Could not clear marker as it did not exist', ephemeral=True)
+
 # --- Extension Def ---
 
 def setup(bot):
