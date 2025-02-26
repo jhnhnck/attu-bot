@@ -12,7 +12,7 @@ from discord import MessageType
 from discord.ext import commands
 
 from attubot.logging import get_logger
-from attubot.util import get_year_span, get_year_status, is_bot_owner
+from attubot.util import format_message_link, get_year_span, get_year_status, is_bot_owner
 
 logger = get_logger(__name__)
 
@@ -33,20 +33,19 @@ async def query_pins(ctx, channel: discord.TextChannel):
 
     # for year 1 thru current year
     for year in range (1, current_year + 1):
-        logger.info(f'Year {year} PC:')
-        if year != current_year:
-            continue
-
-        year_span = get_year_span(year)
+        year_span = await get_year_span(year)
         start_time = datetime.fromtimestamp(year_span.start_time if year > 1 else 0).astimezone()
         end_time = datetime.fromtimestamp(year_span.end_time).astimezone()
 
+        # search through each years history
         async for message in channel.history(after=start_time, before=end_time, limit=None):
             if message.type == MessageType.pins_add:
-                logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {message.reference}')
-                pins.append(f'{year} PC: {message.reference}')
+                link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id)
 
-    res.edit(content=f'## Pins in <#{channel.id}>\n' + '\n'.join(pins))
+                logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {link}')
+                pins.append(f'{year} PC: {message.jump_url} -> {link}')
+
+    await res.edit(content=f'## Pins in <#{channel.id}>\n' + '\n'.join(pins))
 
 # --- Extension Def ---
 
