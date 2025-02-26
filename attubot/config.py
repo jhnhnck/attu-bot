@@ -101,7 +101,8 @@ class Config:
         th = Config._raw['epoch']['rollover_time'].split(':')
         Config.rollover_time = time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
-        Config.timestamps = Config._raw['timestamps']
+        # Timestamps optional (still present for bootstrapping bot if needed for now)
+        Config.timestamps = Config._raw.get('timestamps', [])
 
     @staticmethod
     def _save():

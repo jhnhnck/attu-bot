@@ -1,5 +1,5 @@
-config_version = "1.7.1"
-timestamps = [1000000000000000000]
+config_version = "1.7.2"
+timestamps = []
 
 [epoch]
 time = 1660510800
