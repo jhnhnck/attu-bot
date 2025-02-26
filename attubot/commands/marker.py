@@ -62,6 +62,32 @@ async def marker_save(ctx, year: int, link: str, force: bool):
     verb = 'Created' if created else 'Updated'
     await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(Config.attu_guild, marker.channel, marker.message)}')
 
+@marker_group.command(name='set', guilds_only=True, default_member_permissions=Permissions.all(), description='Updates marker to point to a different message (Admin only)')
+@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
+@discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=str)
+@commands.check(is_authorized_guild)
+async def marker_set(ctx, year: int, snowflake: str):
+    _, current_year = get_year_status()
+    snowflake = int(snowflake)
+
+    if year < 1 or year >= current_year:
+        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        return
+
+    # Check if close
+    est_marker = await YearMarker.get(year=year, channel=0)
+    old_time = int(snowflake_time(est_marker.message).timestamp())
+    new_time = int(snowflake_time(snowflake).timestamp())
+
+    # Log change
+    logger.info(f'Moving {year} PC start from {est_marker.message} to {snowflake}')
+
+    # Add or update marker
+    est_marker.message = snowflake
+    await est_marker.save()
+
+    await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
+
 # --- Extension Def ---
 
 def setup(bot):
