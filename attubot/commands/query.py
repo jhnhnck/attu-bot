@@ -30,7 +30,7 @@ async def query_pins(ctx, channel: discord.TextChannel):
 
     # this might take a bit so send message to not timeout
     logger.info(f'Querying pins in channel {channel.id}')
-    await ctx.respond('## Pins in <#{channel.id}>')
+    await ctx.respond(f'## Pins in <#{channel.id}>')
 
     # for year 1 thru current year
     for year in range (1, current_year + 1):
@@ -45,7 +45,7 @@ async def query_pins(ctx, channel: discord.TextChannel):
                 link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id)
 
                 logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {link}')
-                pins.append(f'{year} PC: {message.jump_url} -> {link}')
+                pins.append(f'{message.jump_url} -> {link}')
 
         if len(pins) > 0:
             await ctx.channel.send(f'##{format_year_line(year)}\n' + '\n'.join(pins))
