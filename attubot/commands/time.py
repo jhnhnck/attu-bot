@@ -46,8 +46,8 @@ async def time_resume(ctx):
     Config.resume_time()
 
 @time_group.command(name='dilate', guilds_only=True, description='Adjust the rate at which time progresses')
-@commands.check(is_bot_owner)
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
+@commands.check(is_bot_owner)
 async def time_dilate(ctx, days):
     # catch to keep from trying entering number of weeks
     if days > 0 and days % 7 != 0:
