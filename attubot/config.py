@@ -22,28 +22,13 @@ logger = get_logger(__name__)
 # --- Config Class ---
 
 class Config:
+    path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
+    db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     config_version = __version__
-    path = None
+
 
     @staticmethod
     def init():
-        Config.path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
-        Config.db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-
-        Config._load()
-
-    def on_ready(bot):
-        if bot.user.id not in Config.users.markers:
-            logger.info('Adding bot user to valid year marker authors')
-            Config.users.markers.append(bot.user.id)
-
-        Config.path.chmod(0o660)
-        Config.db_path.chmod(0o660)
-
-    # --- Private Methods ---
-
-    @staticmethod
-    def _load():
         if not Config.path.exists():
             logger.error('Config file missing!')
             sys.exit(1)
@@ -103,6 +88,17 @@ class Config:
 
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
+
+    @staticmethod
+    def on_ready(bot):
+        if bot.user.id not in Config.users.markers:
+            logger.info('Adding bot user to valid year marker authors')
+            Config.users.markers.append(bot.user.id)
+
+        Config.path.chmod(0o660)
+        Config.db_path.chmod(0o660)
+
+    # --- Private Methods ---
 
     @staticmethod
     def _save():
