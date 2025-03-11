@@ -13,46 +13,87 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import toml
+from pydantic import BaseModel, ValidationError
 
 from attubot import __version__
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
+# --- Components ---
+
+class WikiAuth(BaseModel):
+    key: str
+    page: str
+    user: str
+    endpoint: str
+
 # --- Config Class ---
 
-class Config:
-    path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
-    db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
+# New Config Rewrite
+class NovaConfig:
     config_version = __version__
 
+    # Dynamic Attributes
+    path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
+    db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
 
     @staticmethod
     def init():
-        if not Config.path.exists():
+        logger.info('Bootstrapping config loading process')
+
+        if not NovaConfig.path.exists():
             logger.error('Config file missing!')
             sys.exit(1)
 
-        logger.info(f'Loading config from "{Config.path}"')
+        logger.info(f'Loading config from "{NovaConfig.path}"')
 
-        with Config.path.open() as file:
-            Config._raw = toml.load(file)
+        with NovaConfig.path.open() as file:
+            NovaConfig._raw = toml.load(file)
 
         # validate config version
-        if Config._raw['config_version'] != Config.config_version:
+        if NovaConfig._raw['config_version'] != NovaConfig.config_version:
             logger.fatal('Incompatible config version!')
             sys.exit(1)
         else:
             logger.info(f'Matched version: {__version__}')
 
+        # Auth
+        NovaConfig.bot_token = NovaConfig._raw['auth']['bot']['token']
+
+        try:
+            NovaConfig.wiki = WikiAuth(
+                key = NovaConfig._raw['auth']['wiki']['key'],
+                page = NovaConfig._raw['auth']['wiki']['page'],
+                user = NovaConfig._raw['auth']['wiki']['user'],
+                endpoint = NovaConfig._raw['auth']['wiki']['endpoint'],
+            )
+
+        except ValidationError as err:
+            for line in err.errors():
+                logger.fatal(f'Validation Failed: {line.type} {line.loc!s} {line.msg}')
+
+            sys.exit(1)
+
+# Old Methods and Layout
+class Config:
+    config_version = NovaConfig.config_version
+    path = NovaConfig.path
+    db_path = NovaConfig.db_path
+
+    @staticmethod
+    def init():
+        NovaConfig.init()  # bootstrap load
+        Config._raw = NovaConfig._raw
+
         # --- Unpack into Attributes ---
 
         Config.bot_token = Config._raw['auth']['bot']['token']
 
-        Config.wiki_key = Config._raw['auth']['wiki']['key']
-        Config.wiki_page = Config._raw['auth']['wiki']['page']
-        Config.wiki_user = Config._raw['auth']['wiki']['user']
-        Config.wiki_endpoint = Config._raw['auth']['wiki']['endpoint']
+        Config.wiki_key = NovaConfig.wiki.key
+        Config.wiki_page = NovaConfig.wiki.page
+        Config.wiki_user = NovaConfig.wiki.user
+        Config.wiki_endpoint = NovaConfig.wiki.endpoint
 
         # Users
         Config.users = SimpleNamespace(

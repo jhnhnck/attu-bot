@@ -1,6 +1,7 @@
 py-cord>=2.4,<3
+pydantic
 python-dotenv
 requests
-toml
 termcolor
+toml
 tortoise-orm<2
