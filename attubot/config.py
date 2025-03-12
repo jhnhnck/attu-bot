@@ -218,17 +218,6 @@ class Config:
         Config.timestamps = Config._raw.get('timestamps', [])
 
     @staticmethod
-    def on_ready(bot):
-        if bot.user.id not in Config.users.markers:
-            logger.info('Adding bot user to valid year marker authors')
-            Config.users.markers.append(bot.user.id)
-
-        Config.path.chmod(0o660)
-        Config.db_path.chmod(0o660)
-
-    # --- Private Methods ---
-
-    @staticmethod
     def _save():
         logger.info(f'Writing new config to "{Config.path}"')
 
