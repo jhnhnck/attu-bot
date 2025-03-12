@@ -14,11 +14,31 @@ from zoneinfo import ZoneInfo
 
 import toml
 from pydantic import BaseModel, ValidationError
+from tortoise import Tortoise, fields
+from tortoise.models import Model
 
 from attubot import __version__
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
+
+# --- Database Model ---
+
+class NovaKey(Model):
+    id = fields.IntField(primary_key=True)
+    guild = fields.IntField(default=0)
+    key = fields.TextField()
+    value = fields.TextField(default='')
+
+    async def pack(self, value):
+        self.value = toml.dumps({'X': value})
+        await self.save()
+
+    def unpack(self):
+        return toml.loads(self.value)['X']
+
+    def __str__(self):
+        return f'{self.guild}/{self.key}={self.unpack()}'
 
 # --- Components ---
 
@@ -39,7 +59,7 @@ class NovaConfig:
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     bot = None  # does that work?
 
-    @staticmethod
+    @staticmethod  # called first upon startup, load config file only
     def on_init():
         logger.info('Bootstrapping config loading process')
 
@@ -76,8 +96,8 @@ class NovaConfig:
 
             sys.exit(1)
 
-    @staticmethod  # called by Bot.on_ready after connect
-    def on_ready(bot):
+    @staticmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
+    async def on_ready(bot):
         NovaConfig.bot = bot
 
         if bot.user.id not in Config.users.markers:
@@ -87,10 +107,34 @@ class NovaConfig:
         NovaConfig.path.chmod(0o660)
         NovaConfig.db_path.chmod(0o660)
 
+        # dump keys with empty values
+        await NovaKey.filter(value='').delete()
+
+        await Tortoise.close_connections()
+
     @staticmethod  # called by markers setup after db is connected
     async def on_load():
-        # TODO; dump keys with empty values
         pass
+
+    # --- Private Methods ---
+
+    @staticmethod
+    async def _get(key: str, guild: int = 0, default = None):
+        key, created = await NovaKey.get_or_create(guild, key=key.lower())
+
+        if created:
+            logger.warn(f'Key Missing [{guild}/{key.lower()}] default={default}')
+            await key.pack(default)
+
+        return key.unpack()
+
+    @staticmethod
+    async def _set(key: str, value, guild: int = 0):
+        key, created = await NovaKey.get_or_create(guild, key=key.lower())
+
+        logger.warn(f'Key Changed [{guild}/{key.lower()}] old={key.unpack()} new={value}')
+        await key.pack(value)
+
 
 # Old Methods and Layout
 class Config:

@@ -9,7 +9,7 @@ from discord.utils import snowflake_time
 from tortoise import Tortoise, fields, run_async
 from tortoise.models import Model
 
-from attubot.config import Config
+from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -46,7 +46,7 @@ class YearMarker(Model):
 async def _init_db():
     logger.info('- Starting databases')
 
-    await Tortoise.init(db_url=f'sqlite://{Config.db_path}', modules={'models': [__name__]})
+    await Tortoise.init(db_url=f'sqlite://{NovaConfig.db_path}', modules={'models': [__name__, 'attubot.config']})
     await Tortoise.generate_schemas(safe=True)
 
     # TODO: Deprecate
