@@ -33,9 +33,10 @@ async def send_to_error_log(error):
     # TODO: this still prints the useless bits
     tb_str = ''.join(traceback.format_exception(error))
 
+    logger.error(str(error) + '\n' + tb_str)
+
     await error_log.send(f'**{error}**\n```\n{tb_str}```')
 
-    logger.error(str(error) + '\n' + tb_str)
 
 # --- Events ---
 
