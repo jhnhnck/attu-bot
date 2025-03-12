@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import sys
+import types
 from datetime import time
 from os import getenv
 from pathlib import Path
@@ -57,7 +58,7 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    bot = None  # does that work?
+    _bot = None
 
     @staticmethod  # called first upon startup, load config file only
     def on_init():
@@ -116,6 +117,36 @@ class NovaConfig:
     async def on_load():
         pass
 
+    # --- Debug ---
+
+    @classmethod
+    def to_dict(cls):
+        def convert_value(value):
+            # Convert SimpleNamespace to dict recursively
+            if isinstance(value, SimpleNamespace | BaseModel):
+                return {k: convert_value(v) for k, v in vars(value).items()}
+            # Convert lists (check if elements are SimpleNamespaces)
+            elif isinstance(value, list):
+                return [convert_value(item) for item in value]
+            # Convert dictionaries (check if values are SimpleNamespaces)
+            elif isinstance(value, dict):
+                return {k: convert_value(v) for k, v in value.items()}
+            else:
+                return value  # Return unchanged
+
+        result = {}
+        for attr_name in vars(cls):
+            # Skip special/method attributes
+            if attr_name.startswith('_'):
+                continue
+            attr_value = getattr(cls, attr_name)
+            # Skip methods/functions
+            if isinstance(attr_value, types.MethodType | types.FunctionType):
+                continue
+            # Convert SimpleNamespace attributes and nested structures
+            result[attr_name] = convert_value(attr_value)
+        return result
+
     # --- Private Methods ---
 
     @staticmethod
@@ -134,7 +165,6 @@ class NovaConfig:
 
         logger.warn(f'Key Changed [{guild}/{key.lower()}] old={key.unpack()} new={value}')
         await key.pack(value)
-
 
 # Old Methods and Layout
 class Config:
@@ -210,6 +240,36 @@ class Config:
             toml.dump(Config._raw, file)
 
         Config._load()
+
+    # --- Debug ---
+
+    @classmethod
+    def to_dict(cls):
+        def convert_value(value):
+            # Convert SimpleNamespace to dict recursively
+            if isinstance(value, SimpleNamespace | BaseModel):
+                return {k: convert_value(v) for k, v in vars(value).items()}
+            # Convert lists (check if elements are SimpleNamespaces)
+            elif isinstance(value, list):
+                return [convert_value(item) for item in value]
+            # Convert dictionaries (check if values are SimpleNamespaces)
+            elif isinstance(value, dict):
+                return {k: convert_value(v) for k, v in value.items()}
+            else:
+                return value  # Return unchanged
+
+        result = {}
+        for attr_name in vars(cls):
+            # Skip special/method attributes
+            if attr_name.startswith('_'):
+                continue
+            attr_value = getattr(cls, attr_name)
+            # Skip methods/functions
+            if isinstance(attr_value, types.MethodType | types.FunctionType):
+                continue
+            # Convert SimpleNamespace attributes and nested structures
+            result[attr_name] = convert_value(attr_value)
+        return result
 
     # --- Public Methods ---
 

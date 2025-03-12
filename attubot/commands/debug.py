@@ -11,12 +11,13 @@ from platform import freedesktop_os_release as os_release
 from platform import python_version
 
 import discord
+import toml
 from discord import Embed, Permissions
 from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot import __title__, __version__
-from attubot.config import Config
+from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 from attubot.util import get_year_span, get_year_status, is_bot_owner
 
@@ -87,6 +88,14 @@ async def debug_message(ctx, link):
     except Exception as err:
         await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
         logger.error(err)
+
+@debug_group.command(name='dump_config', guilds_only=True, description='Prints config to console')
+@commands.check(is_bot_owner)
+async def debug_dump_config(ctx):
+    logger.info('Dumping Config:\n' + toml.dumps(Config.to_dict()))
+    logger.info('Dumping NovaConfig:\n' + toml.dumps(NovaConfig.to_dict()))
+
+    await ctx.respond('Done!')
 
 # --- Extension Def ---
 
