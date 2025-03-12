@@ -56,7 +56,7 @@ async def _init_db():
         for year, timestamp in enumerate(Config.timestamps, start=1):
             await YearMarker.create(channel=0, message=timestamp, year=year)
 
-    logger.info(f'- Loaded [{(await YearMarker.last()).id}] entries')
+    logger.info(f'- Loaded [{await YearMarker.all().count()}] markers')
 
     logger.info('Unpacking additional config values from database')
     await NovaConfig.on_load()
