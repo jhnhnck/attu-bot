@@ -11,7 +11,7 @@ import discord
 from discord.errors import CheckFailure
 from tortoise import Tortoise
 
-from attubot.config import Config
+from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 
 # --- Initialization ---
@@ -53,7 +53,7 @@ async def on_ready():
         logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         logger.info('Checking config for updates')
-        Config.on_ready(bot)
+        NovaConfig.on_ready(bot)
 
         logger.info('Pushing commands to Discord')
         await bot.sync_commands()

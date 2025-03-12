@@ -37,9 +37,10 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
+    bot = None  # does that work?
 
     @staticmethod
-    def init():
+    def on_init():
         logger.info('Bootstrapping config loading process')
 
         if not NovaConfig.path.exists():
@@ -75,6 +76,22 @@ class NovaConfig:
 
             sys.exit(1)
 
+    @staticmethod  # called by Bot.on_ready after connect
+    def on_ready(bot):
+        NovaConfig.bot = bot
+
+        if bot.user.id not in Config.users.markers:
+            logger.info('Adding bot user to valid year marker authors')
+            Config.users.markers.append(bot.user.id)
+
+        NovaConfig.path.chmod(0o660)
+        NovaConfig.db_path.chmod(0o660)
+
+    @staticmethod  # called by markers setup after db is connected
+    async def on_load():
+        # TODO; dump keys with empty values
+        pass
+
 # Old Methods and Layout
 class Config:
     config_version = NovaConfig.config_version
@@ -83,7 +100,7 @@ class Config:
 
     @staticmethod
     def init():
-        NovaConfig.init()  # bootstrap load
+        NovaConfig.on_init()  # bootstrap load
         Config._raw = NovaConfig._raw
 
         # --- Unpack into Attributes ---

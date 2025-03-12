@@ -49,6 +49,7 @@ async def _init_db():
     await Tortoise.init(db_url=f'sqlite://{Config.db_path}', modules={'models': [__name__]})
     await Tortoise.generate_schemas(safe=True)
 
+    # TODO: Deprecate
     # load in the timestamps from the config if they don't exist to channel 0
     if not await YearMarker.exists(channel=0, year=1):
         logger.info('Copying timestamps into marker database')
@@ -56,6 +57,9 @@ async def _init_db():
             await YearMarker.create(channel=0, message=timestamp, year=year)
 
     logger.info(f'- Loaded [{(await YearMarker.last()).id}] entries')
+
+    logger.info('Unpacking additional config values from database')
+    await NovaConfig.on_load()
 
 def setup(bot):
     logger.info(f'Registered: {__name__}')
