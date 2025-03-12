@@ -11,7 +11,7 @@ from discord.ext import commands
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.markers import markers_count
+from attubot.markers import YearMarker
 from attubot.util import get_year_status, is_bot_owner, move_epoch
 
 logger = get_logger(__name__)
@@ -23,7 +23,7 @@ time_group = discord.SlashCommandGroup('time', default_member_permissions=Permis
 @time_group.command(name='advance', guilds_only=True, description='Manually advance to the next year, ignoring all checks')
 @commands.check(is_bot_owner)
 async def time_advance(ctx):
-    forced_year = (await markers_count()) + 1
+    forced_year = (await YearMarker.total()) + 1
     _, year = get_year_status()
     cog = ctx.bot.get_cog('NewYearEvent')
 

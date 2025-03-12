@@ -13,7 +13,7 @@ from discord.ext import commands, tasks
 from attubot.config import Config
 from attubot.core import send_to_error_log
 from attubot.logging import get_logger
-from attubot.markers import markers_add, markers_count
+from attubot.markers import YearMarker
 from attubot.util import format_year_line, get_year_status
 from attubot.wiki import AttuWiki
 
@@ -48,7 +48,7 @@ class NewYearEvent(commands.Cog):
         elif elapsed_days % Config.epoch_length != 0:
             logger.info(f'Days Remaining Until Year {year + 1} PC: {Config.epoch_length - (elapsed_days % Config.epoch_length)}')
 
-        elif year < (await markers_count()):
+        elif year < (await YearMarker.total()):
             logger.error('Already enough years; was event manually triggered?')
 
         else:
@@ -69,10 +69,10 @@ class NewYearEvent(commands.Cog):
             message = await channel.send(year_str)
 
             # Save message ids to markers database
-            await markers_add(year, message.id, channel=channel_id)
+            await YearMarker.mark(year, message.id, channel=channel_id)
 
             if len(message_links) == 0:
-                await markers_add(year, message.id)
+                await YearMarker.mark(year, message.id)
 
             # store links for later
             message_links.append(message.jump_url)

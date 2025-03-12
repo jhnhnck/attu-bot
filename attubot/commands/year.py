@@ -13,7 +13,7 @@ from discord.utils import snowflake_time
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.markers import YearMarker, markers_get
+from attubot.markers import YearMarker
 from attubot.util import format_message_link, get_year_span, get_year_status, has_year_marker
 
 logger = get_logger(__name__)
@@ -121,7 +121,7 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
 
     else:
         # Fetch stored marker for that year
-        timestamp = await markers_get(year, date=True)
+        timestamp = snowflake_time(await YearMarker.get(channel=0, year=year).message)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400

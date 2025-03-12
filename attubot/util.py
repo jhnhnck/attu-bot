@@ -12,7 +12,7 @@ from discord.ext.commands import Context
 
 from attubot.config import Config
 from attubot.logging import get_logger
-from attubot.markers import markers_get
+from attubot.markers import YearMarker
 
 # --- Initialization ---
 
@@ -79,12 +79,12 @@ async def get_year_span(year: int):
 
     # Past Years
     elif year < current_year:
-        result.start_time = await markers_get(year)
-        result.end_time = await markers_get(year + 1)
+        result.start_time = await YearMarker.timestamp(year)
+        result.end_time = await YearMarker.timestamp(year + 1)
 
     # Current Year
     elif year == current_year:
-        result.start_time = await markers_get(year)
+        result.start_time = await YearMarker.timestamp(year)
         result.end_time = int(next_year.timestamp())
 
     # Next Year
