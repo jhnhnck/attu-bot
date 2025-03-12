@@ -35,6 +35,8 @@ async def send_to_error_log(error):
 
     logger.error(str(error) + '\n' + tb_str)
 
+    tb_str = tb_str.split('The above exception')[0]
+
     await error_log.send(f'**{error}**\n```\n{tb_str}```')
 
 
