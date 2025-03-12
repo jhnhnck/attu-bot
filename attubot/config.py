@@ -60,36 +60,31 @@ class NovaConfig:
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     _bot = None
 
-    @staticmethod  # called first upon startup, load config file only
-    def on_init():
+    @classmethod  # called first upon startup, load config file only
+    def on_init(cls):
         logger.info('Bootstrapping config loading process')
 
-        if not NovaConfig.path.exists():
+        if not cls.path.exists():
             logger.error('Config file missing!')
             sys.exit(1)
 
-        logger.info(f'Loading config from "{NovaConfig.path}"')
+        logger.info(f'Loading config from "{cls.path}"')
 
-        with NovaConfig.path.open() as file:
-            NovaConfig._raw = toml.load(file)
+        with cls.path.open() as file:
+            cls._raw = toml.load(file)
 
         # validate config version
-        if NovaConfig._raw['config_version'] != NovaConfig.config_version:
+        if cls._raw['config_version'] != cls.config_version:
             logger.fatal('Incompatible config version!')
             sys.exit(1)
         else:
             logger.info(f'Matched version: {__version__}')
 
         # Auth
-        NovaConfig.bot_token = NovaConfig._raw['auth']['bot']['token']
+        cls.bot_token = cls._raw['auth']['bot']['token']
 
         try:
-            NovaConfig.wiki = WikiAuth(
-                key = NovaConfig._raw['auth']['wiki']['key'],
-                page = NovaConfig._raw['auth']['wiki']['page'],
-                user = NovaConfig._raw['auth']['wiki']['user'],
-                endpoint = NovaConfig._raw['auth']['wiki']['endpoint'],
-            )
+            cls.wiki = WikiAuth(**cls._raw['auth']['wiki'])
 
         except ValidationError as err:
             for line in err.errors():
@@ -97,24 +92,25 @@ class NovaConfig:
 
             sys.exit(1)
 
-    @staticmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
-    async def on_ready(bot):
-        NovaConfig.bot = bot
+    @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
+    async def on_ready(cls, bot):
+        cls._bot = bot
 
         if bot.user.id not in Config.users.markers:
             logger.info('Adding bot user to valid year marker authors')
             Config.users.markers.append(bot.user.id)
 
-        NovaConfig.path.chmod(0o660)
-        NovaConfig.db_path.chmod(0o660)
+        cls.path.chmod(0o660)
+        cls.db_path.chmod(0o660)
 
         # dump keys with empty values
         await NovaKey.filter(value='').delete()
 
         await Tortoise.close_connections()
 
-    @staticmethod  # called by markers setup after db is connected
-    async def on_load():
+    @classmethod  # called by markers setup after db is connected
+    async def on_load(cls):
+        # this also needs to handle data migration now
         pass
 
     # --- Debug ---
