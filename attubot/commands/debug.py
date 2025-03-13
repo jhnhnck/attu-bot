@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 # --- Debug Commands ---
 
-debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Check the version, retrieve year statistics or force an error (Admin only)')
+debug_group = discord.SlashCommandGroup('debug', description='Prints out debug information on current bot functionality')
 
 @debug_group.command(name='version', guilds_only=True, description='Displays the current version and container build time')
 async def debug_version(ctx):
@@ -58,7 +58,7 @@ async def debug_year_stats(ctx):
 
     await ctx.respond(embed=embed)
 
-@debug_group.command(name='force_error', guilds_only=True, description='Causes an internal error to be thrown')
+@debug_group.command(name='force_error', guilds_only=True, default_member_permissions=Permissions.all(), description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
 async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
@@ -89,7 +89,7 @@ async def debug_message(ctx, link):
         await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
         logger.error(err)
 
-@debug_group.command(name='dump_config', guilds_only=True, description='Prints config to console')
+@debug_group.command(name='dump_config', guilds_only=True, default_member_permissions=Permissions.all(), description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx):
     logger.info('Dumping Config:\n' + toml.dumps(Config.to_dict()))

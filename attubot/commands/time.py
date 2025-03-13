@@ -7,12 +7,11 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import discord
 from discord import Permissions
-from discord.ext import commands
 
 from attubot.config import Config
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
-from attubot.util import get_year_status, is_bot_owner, move_epoch
+from attubot.util import get_year_status, move_epoch
 
 logger = get_logger(__name__)
 
@@ -21,7 +20,6 @@ logger = get_logger(__name__)
 time_group = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
 @time_group.command(name='advance', guilds_only=True, description='Manually advance to the next year, ignoring all checks')
-@commands.check(is_bot_owner)
 async def time_advance(ctx):
     forced_year = (await YearMarker.total()) + 1
     _, year = get_year_status()
@@ -32,13 +30,11 @@ async def time_advance(ctx):
     await cog.advance_year(forced_year)
 
 @time_group.command(name='pause', guilds_only=True, description='Pause the passage of time')
-@commands.check(is_bot_owner)
 async def time_pause(ctx):
     await ctx.respond('The passage of time has been stopped')
     Config.pause_time()
 
 @time_group.command(name='resume', guilds_only=True, description='Resume the passage of time')
-@commands.check(is_bot_owner)
 async def time_resume(ctx):
     await move_epoch(Config.epoch_length)
 
@@ -47,7 +43,6 @@ async def time_resume(ctx):
 
 @time_group.command(name='dilate', guilds_only=True, description='Adjust the rate at which time progresses')
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
-@commands.check(is_bot_owner)
 async def time_dilate(ctx, days):
     # catch to keep from trying entering number of weeks
     if days > 0 and days % 7 != 0:
