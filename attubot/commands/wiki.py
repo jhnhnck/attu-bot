@@ -8,7 +8,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import re
 
 import discord
-from discord import Permissions
 from discord.ext import commands
 
 from attubot.config import Config
