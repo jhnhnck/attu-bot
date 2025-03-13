@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 year_group = discord.SlashCommandGroup('year', description='Utlities related to current, past or future years')
 
-@year_group.command(name='check', guilds_only=True, description='Prints out information related to a specified year; if not specified, year defaults to the next year')
+@year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
 async def year_check(ctx, year: int):
     elapsed_days, current_year = get_year_status()
@@ -61,7 +61,7 @@ async def year_check(ctx, year: int):
     else:
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
-@year_group.command(name='search', guilds_only=True, description='Prints search query for timlining')
+@year_group.command(name='search', description='Prints search query for timlining')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 async def year_search(ctx, year: int):
     _, current_year = get_year_status()
@@ -94,7 +94,7 @@ async def year_search(ctx, year: int):
 
     await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
 
-@year_group.command(name='link', guilds_only=True, description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
+@year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def year_link(ctx, year: int, channel: discord.TextChannel):

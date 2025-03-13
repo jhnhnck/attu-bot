@@ -9,6 +9,7 @@ import traceback
 
 import discord
 from discord.errors import CheckFailure
+from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
 from attubot.config import Config, NovaConfig
@@ -90,6 +91,10 @@ async def on_application_command_error(ctx, error):
         else:
             # catch all for if bot gets added to another discord guild
             await ctx.respond('This feature requires DoomBot(tm) Premium')
+
+    elif isinstance(error, MissingPermissions):
+        await ctx.respond('Nice try! <:rockball:1308981475114225694>')
+
     else:
         await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
         await send_to_error_log(error)

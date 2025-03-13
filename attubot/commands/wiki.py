@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
 
-@wiki_group.command(name='lookup', guilds_only=True, description='Search the wiki for relevent pages; defaults to top result')
+@wiki_group.command(name='lookup', description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
 @discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
 async def wiki_lookup(ctx, query: str, limit: int):
@@ -50,9 +50,12 @@ async def wiki_lookup(ctx, query: str, limit: int):
 
         await ctx.respond('\n'.join(msg))
 
-@wiki_group.command(name='block', guilds_only=True, default_member_permissions=Permissions.all(), description='Blocks a specified user from the wiki (Admin only)')
+# --- Wiki Admin Commands ---
+
+@wiki_group.command(name='block', description='Blocks a specified user from the wiki (Admin only)')
 @discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
+@commands.has_permissions(administrator=True)
 @commands.check(is_authorized_guild)
 async def wiki_block(ctx, user, reason):
     # check if link to the user

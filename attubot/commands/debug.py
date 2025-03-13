@@ -25,9 +25,10 @@ logger = get_logger(__name__)
 
 # --- Debug Commands ---
 
-debug_group = discord.SlashCommandGroup('debug', description='Prints out debug information on current bot functionality')
+debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
+# debug_admin_group = debug_group.create_subgroup('admin', description='Like the normal debug commands except scarier (Admin Only)', )
 
-@debug_group.command(name='version', guilds_only=True, description='Displays the current version and container build time')
+@debug_group.command(name='version', description='Displays the current version and container build time')
 async def debug_version(ctx):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
@@ -42,7 +43,7 @@ async def debug_version(ctx):
 
     await ctx.respond(embed=embed)
 
-@debug_group.command(name='year_stats', guilds_only=True, description='Returns the current state of time tracking calculations')
+@debug_group.command(name='year_stats', description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
@@ -58,13 +59,13 @@ async def debug_year_stats(ctx):
 
     await ctx.respond(embed=embed)
 
-@debug_group.command(name='force_error', guilds_only=True, default_member_permissions=Permissions.all(), description='Causes an internal error to be thrown')
+@debug_group.command(name='force_error', description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
 async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
 
-@debug_group.command(name='message', guilds_only=True, description='Print message info')
+@debug_group.command(name='message', description='Print message info')
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
 async def debug_message(ctx, link):
     if 'discord.com/channels' not in link:
@@ -89,7 +90,7 @@ async def debug_message(ctx, link):
         await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
         logger.error(err)
 
-@debug_group.command(name='dump_config', guilds_only=True, default_member_permissions=Permissions.all(), description='Prints config to console')
+@debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx):
     logger.info('Dumping Config:\n' + toml.dumps(Config.to_dict()))

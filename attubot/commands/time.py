@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 time_group = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
-@time_group.command(name='advance', guilds_only=True, description='Manually advance to the next year, ignoring all checks')
+@time_group.command(name='advance', description='Manually advance to the next year, ignoring all checks')
 async def time_advance(ctx):
     forced_year = (await YearMarker.total()) + 1
     _, year = get_year_status()
@@ -29,19 +29,19 @@ async def time_advance(ctx):
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
     await cog.advance_year(forced_year)
 
-@time_group.command(name='pause', guilds_only=True, description='Pause the passage of time')
+@time_group.command(name='pause', description='Pause the passage of time')
 async def time_pause(ctx):
     await ctx.respond('The passage of time has been stopped')
     Config.pause_time()
 
-@time_group.command(name='resume', guilds_only=True, description='Resume the passage of time')
+@time_group.command(name='resume', description='Resume the passage of time')
 async def time_resume(ctx):
     await move_epoch(Config.epoch_length)
 
     await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
     Config.resume_time()
 
-@time_group.command(name='dilate', guilds_only=True, description='Adjust the rate at which time progresses')
+@time_group.command(name='dilate', description='Adjust the rate at which time progresses')
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
 async def time_dilate(ctx, days):
     # catch to keep from trying entering number of weeks
