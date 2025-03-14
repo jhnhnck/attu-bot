@@ -11,10 +11,11 @@ from datetime import time
 from os import getenv
 from pathlib import Path
 from types import SimpleNamespace
+from typing import ClassVar
 from zoneinfo import ZoneInfo
 
 import toml
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
@@ -49,6 +50,29 @@ class WikiAuth(BaseModel):
     user: str
     endpoint: str
 
+class GuildChannels(BaseModel):
+    pass
+
+class GuildEpoch(BaseModel):
+    pass
+
+class GuildRoles(BaseModel):
+    pass
+
+class Guild(BaseModel):
+    channels: GuildChannels
+    epoch: GuildEpoch
+    channels: GuildRoles
+    markers: list[int]
+
+# --- Exceptions ---
+
+class UnauthorizedGuild(Exception):
+    def __init__(self, guild):
+        self.message = f'Guild "{guild}" not in the authorized guilds list'
+        super().__init__(self.message)
+
+
 # --- Config Class ---
 
 # New Config Rewrite
@@ -58,7 +82,8 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    _bot = None
+    _bot: ClassVar = None
+    _guilds: ClassVar[dict[str, Guild]] = {}
 
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
@@ -78,12 +103,13 @@ class NovaConfig:
             logger.fatal('Incompatible config version!')
             sys.exit(1)
         else:
-            logger.info(f'Matched version: {__version__}')
+            logger.info(f'Matched file version: {__version__}')
 
         # --- Unpack into Attributes ---
 
         # Auth
         cls.bot_token = cls._raw['auth']['bot']['token']
+        cls.authorized_guilds = cls._raw['discord']['guilds']['authorized']
 
         try:
             cls.wiki = WikiAuth(**cls._raw['auth']['wiki'])
@@ -112,11 +138,15 @@ class NovaConfig:
 
     @classmethod  # called by markers setup after db is connected
     async def on_load(cls):
-        # this also needs to handle data migration now
-        pass
+        # handle data migration
+        if cls.config_version != (await cls._get('version', default=cls.config_version)):
+            await cls._migrate()
+        else:
+            logger.info(f'Matched table version: {__version__}')
 
     # --- Debug ---
 
+    # TODO: Move this below Pivate Methods
     @classmethod
     def to_dict(cls):
         result = {}
@@ -145,6 +175,15 @@ class NovaConfig:
             result[attr_name] = convert_value(attr_value)
         return result
 
+    # --- Public Methods ---
+
+    @classmethod
+    def guild(cls, guild):
+        if guild in cls.authorized_guilds:
+            return cls._guilds[guild]
+        else:
+            raise UnauthorizedGuild(guild)
+
     # --- Private Methods ---
 
     @staticmethod
@@ -163,6 +202,17 @@ class NovaConfig:
 
         logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
         await key.pack(value)
+
+    @classmethod
+    async def _migrate(cls):
+        version = await cls._get('version')
+
+        logger.info(f'Beginning config table migration from "{version}"')
+
+        # re-check at end of migration
+        if cls.config_version != (await cls._get('version')):
+            logger.fatal(f'Failed to migrate config table! Got to {await cls._get("version")}')
+            sys.exit(1)
 
 # Old Methods and Layout
 class Config:
