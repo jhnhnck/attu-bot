@@ -205,9 +205,11 @@ class NovaConfig:
             config = {}
 
             async for token in NovaToken.filter(guild=guild):
-                config[token.id] = token.unpack()
+                config[str(token.key)] = token.unpack()
 
             cls._guilds[guild] = Guild(**config)
+
+        await Tortoise.close_connections()
 
     # --- Debug ---
 
@@ -232,9 +234,9 @@ class NovaConfig:
         for key, value in vars(cls).items():
             if key == '_guilds':  # custom handling for guilds
                 for idx, guild in cls._guilds.items():
-                    result[f'guild:{idx}'] = convert_value(guild)
+                    result.update({f'{idx}/{key}': convert_value(value) for key, value in vars(guild).items()})
 
-            elif key.startswith('_') or callable(value):
+            elif key.startswith('_') or callable(value) or isinstance(value, classmethod):
                 continue
 
             else:
@@ -268,7 +270,7 @@ class NovaConfig:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
-        await key.pack(value)
+        await token.pack(value)
 
     @classmethod
     async def _migrate(cls):
@@ -397,7 +399,7 @@ class Config:
                 return value
 
         for key, value in vars(cls).items():
-            if key.startswith('_') or callable(value):
+            if key.startswith('_') or callable(value) or isinstance(value, classmethod):
                 continue
 
             result[key] = convert_value(value)
