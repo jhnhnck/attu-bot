@@ -176,7 +176,9 @@ class NovaConfig:
         for idx, guild in cls._guilds.items():
             if bot.user.id not in guild.markers:
                 logger.info(f'Adding bot user to valid year marker authors for {idx}')
+
                 guild.markers.append(NovaConfig._bot.user.id)
+                await cls._set('markers', guild.markers, guild=idx)
 
         cls.path.chmod(0o660)
         cls.db_path.chmod(0o660)
