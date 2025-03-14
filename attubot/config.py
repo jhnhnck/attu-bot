@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 # --- Database Model ---
 
-class NovaKey(Model):
+class NovaToken(Model):
     id = fields.IntField(primary_key=True)
     guild = fields.IntField(default=0)
     key = fields.TextField()
@@ -106,7 +106,7 @@ class NovaConfig:
         cls.db_path.chmod(0o660)
 
         # dump keys with empty values
-        await NovaKey.filter(value='X = 0').delete()
+        await NovaToken.filter(value='X = 0').delete()
 
         await Tortoise.close_connections()
 
@@ -149,19 +149,19 @@ class NovaConfig:
 
     @staticmethod
     async def _get(key: str, guild: int = 0, default = None):
-        key, created = await NovaKey.get_or_create(guild, key=key.lower())
+        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         if created:
             logger.warn(f'Key Missing [{guild}/{key.lower()}] default={default}')
-            await key.pack(default)
+            await token.pack(default)
 
-        return key.unpack()
+        return token.unpack()
 
     @staticmethod
     async def _set(key: str, value, guild: int = 0):
-        key, created = await NovaKey.get_or_create(guild, key=key.lower())
+        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
-        logger.warn(f'Key Changed [{guild}/{key.lower()}] old={key.unpack()} new={value}')
+        logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
         await key.pack(value)
 
 # Old Methods and Layout
