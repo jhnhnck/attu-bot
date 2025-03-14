@@ -80,6 +80,8 @@ class NovaConfig:
         else:
             logger.info(f'Matched version: {__version__}')
 
+        # --- Unpack into Attributes ---
+
         # Auth
         cls.bot_token = cls._raw['auth']['bot']['token']
 
@@ -117,29 +119,29 @@ class NovaConfig:
 
     @classmethod
     def to_dict(cls):
+        result = {}
+
         def convert_value(value):
-            # Convert SimpleNamespace to dict recursively
             if isinstance(value, SimpleNamespace | BaseModel):
                 return {k: convert_value(v) for k, v in vars(value).items()}
-            # Convert lists (check if elements are SimpleNamespaces)
+
             elif isinstance(value, list):
                 return [convert_value(item) for item in value]
-            # Convert dictionaries (check if values are SimpleNamespaces)
+
             elif isinstance(value, dict):
                 return {k: convert_value(v) for k, v in value.items()}
-            else:
-                return value  # Return unchanged
 
-        result = {}
+            else:
+                return value
+
         for attr_name in vars(cls):
-            # Skip special/method attributes
             if attr_name.startswith('_'):
                 continue
+
             attr_value = getattr(cls, attr_name)
-            # Skip methods/functions
             if isinstance(attr_value, types.MethodType | types.FunctionType):
                 continue
-            # Convert SimpleNamespace attributes and nested structures
+
             result[attr_name] = convert_value(attr_value)
         return result
 
@@ -217,6 +219,8 @@ class Config:
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
 
+        Config.to_dict = NovaConfig.to_dict
+
     @staticmethod
     def _save():
         logger.info(f'Writing new config to "{Config.path}"')
@@ -225,36 +229,6 @@ class Config:
             toml.dump(Config._raw, file)
 
         Config._load()
-
-    # --- Debug ---
-
-    @classmethod
-    def to_dict(cls):
-        def convert_value(value):
-            # Convert SimpleNamespace to dict recursively
-            if isinstance(value, SimpleNamespace | BaseModel):
-                return {k: convert_value(v) for k, v in vars(value).items()}
-            # Convert lists (check if elements are SimpleNamespaces)
-            elif isinstance(value, list):
-                return [convert_value(item) for item in value]
-            # Convert dictionaries (check if values are SimpleNamespaces)
-            elif isinstance(value, dict):
-                return {k: convert_value(v) for k, v in value.items()}
-            else:
-                return value  # Return unchanged
-
-        result = {}
-        for attr_name in vars(cls):
-            # Skip special/method attributes
-            if attr_name.startswith('_'):
-                continue
-            attr_value = getattr(cls, attr_name)
-            # Skip methods/functions
-            if isinstance(attr_value, types.MethodType | types.FunctionType):
-                continue
-            # Convert SimpleNamespace attributes and nested structures
-            result[attr_name] = convert_value(attr_value)
-        return result
 
     # --- Public Methods ---
 

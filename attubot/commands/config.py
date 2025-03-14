@@ -26,8 +26,7 @@ async def config_get(ctx, key: str):
 
 @config_group.command(name='set', description='Set the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
-@discord.commands.option(name='value', required=True, description='TOML-formatted Value', input_type=str)
-@commands.check(is_bot_owner)  # This is probably a security hole, so keeping it trusted only for now
+@discord.commands.option(name='value', required=True, description='', input_type=str)
 async def config_set(ctx, key: str, value: str):
     await ctx.respond('Oops. Not Implemented!')
 
