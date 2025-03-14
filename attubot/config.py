@@ -6,7 +6,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import sys
-import types
 from datetime import time
 from os import getenv
 from pathlib import Path
@@ -228,15 +227,17 @@ class NovaConfig:
             else:
                 return value
 
-        for attr_name in vars(cls):
-            if attr_name.startswith('_'):
+        for key, value in vars(cls).items():
+            if key == '_guilds':  # custom handling for guilds
+                for idx, guild in cls._guilds.items():
+                    result[f'guild:{idx}'] = convert_value(guild)
+
+            elif key.startswith('_') or callable(value):
                 continue
 
-            attr_value = getattr(cls, attr_name)
-            if isinstance(attr_value, types.MethodType | types.FunctionType):
-                continue
+            else:
+                result[key] = convert_value(value)
 
-            result[attr_name] = convert_value(attr_value)
         return result
 
     # --- Public Methods ---
@@ -333,8 +334,6 @@ class Config:
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
 
-        Config.to_dict = NovaConfig.to_dict
-
     @staticmethod
     def _save():
         logger.info(f'Writing new config to "{Config.path}"')
@@ -374,3 +373,31 @@ class Config:
 
         Config._raw['epoch']['paused'] = False
         Config._save()
+
+    # --- Debug ---
+
+    # TODO: Move this below Pivate Methods
+    @classmethod
+    def to_dict(cls):
+        result = {}
+
+        def convert_value(value):
+            if isinstance(value, SimpleNamespace | BaseModel):
+                return {k: convert_value(v) for k, v in vars(value).items()}
+
+            elif isinstance(value, list):
+                return [convert_value(item) for item in value]
+
+            elif isinstance(value, dict):
+                return {k: convert_value(v) for k, v in value.items()}
+
+            else:
+                return value
+
+        for key, value in vars(cls).items():
+            if key.startswith('_') or callable(value):
+                continue
+
+            result[key] = convert_value(value)
+
+        return result
