@@ -29,7 +29,7 @@ class NovaKey(Model):
     id = fields.IntField(primary_key=True)
     guild = fields.IntField(default=0)
     key = fields.TextField()
-    value = fields.TextField(default='')
+    value = fields.TextField(default='X = 0')
 
     async def pack(self, value):
         self.value = toml.dumps({'X': value})
@@ -106,7 +106,7 @@ class NovaConfig:
         cls.db_path.chmod(0o660)
 
         # dump keys with empty values
-        await NovaKey.filter(value='').delete()
+        await NovaKey.filter(value='X = 0').delete()
 
         await Tortoise.close_connections()
 
