@@ -51,19 +51,66 @@ class WikiAuth(BaseModel):
     endpoint: str
 
 class GuildChannels(BaseModel):
-    pass
+    activity: int
+    year_vc: int
+    announcements: int
+    year_links: int
+    meta_chat: int
+    lore_channels: list[int]
+
+    @model_validator(mode='before')
+    def setup(data: dict):
+        data['activity'] = data.get('channels.activity', 0)
+        data['year_vc'] = data.get('channels.year_vc', 0)
+        data['announcements'] = data.get('channels.announcements', 0)
+        data['year_links'] = data.get('channels.year_links', 0)
+        data['meta_chat'] = data.get('channels.meta_chat', 0)
+        data['lore_channels'] = data.get('channels.lore_channels', [])
+
+        return data
 
 class GuildEpoch(BaseModel):
-    pass
+    time: int
+    year: int
+    length: int
+    paused: bool
+    rollover_time: str
+
+    @model_validator(mode='before')
+    def setup(data: dict):
+        data['time'] = data.get('epoch.time', 0)
+        data['year'] = data.get('epoch.year', 1)
+        data['length'] = data.get('epoch.length', 14)
+        data['paused'] = data.get('epoch.paused', True)
+        data['rollover_time'] = data.get('epoch.rollover_time', '17:00')
+
+        return data
 
 class GuildRoles(BaseModel):
-    pass
+    announce: int
 
+    @model_validator(mode='before')
+    def setup(data: dict):
+        data['announce'] = data.get('roles.announce', 0)
+
+        return data
+
+# TODO: configured guild command precondition?
 class Guild(BaseModel):
     channels: GuildChannels
     epoch: GuildEpoch
-    channels: GuildRoles
+    roles: GuildRoles
     markers: list[int]
+
+    @model_validator(mode='before')
+    @classmethod
+    def setup(cls, data: dict):
+        data['channels'] = GuildChannels(**data)
+        data['epoch'] = GuildEpoch(**data)
+        data['roles'] = GuildRoles(**data)
+        data['markers'] = data.get('markers', [])
+
+        return data
 
 # --- Exceptions ---
 
@@ -71,7 +118,6 @@ class UnauthorizedGuild(Exception):
     def __init__(self, guild):
         self.message = f'Guild "{guild}" not in the authorized guilds list'
         super().__init__(self.message)
-
 
 # --- Config Class ---
 
@@ -128,6 +174,11 @@ class NovaConfig:
             logger.info('Adding bot user to valid year marker authors')
             Config.users.markers.append(bot.user.id)
 
+        for idx, guild in cls._guilds.items():
+            if bot.user.id not in guild.markers:
+                logger.info(f'Adding bot user to valid year marker authors for {idx}')
+                guild.markers.append(NovaConfig._bot.user.id)
+
         cls.path.chmod(0o660)
         cls.db_path.chmod(0o660)
 
@@ -143,6 +194,19 @@ class NovaConfig:
             await cls._migrate()
         else:
             logger.info(f'Matched table version: {__version__}')
+
+        # global vars
+        cls.error_log: list[int, int] = await cls._get('error_log', default=(0, 0))
+
+        # load guild configs
+        for guild in cls.authorized_guilds:
+            logger.info(f'Loading guild config for {guild}')
+            config = {}
+
+            async for token in NovaToken.filter(guild=guild):
+                config[token.id] = token.unpack()
+
+            cls._guilds[guild] = Guild(**config)
 
     # --- Debug ---
 
