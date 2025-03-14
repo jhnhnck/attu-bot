@@ -12,7 +12,7 @@ from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
-from attubot.config import Config, NovaConfig
+from attubot.config import Config, NovaConfig, UnauthorizedGuild
 from attubot.logging import get_logger
 
 # --- Initialization ---
@@ -83,9 +83,9 @@ async def on_application_command_completion(ctx):
 
 @bot.event
 async def on_application_command_error(ctx, error):
-    logger.error(f'Error sent to `on_application_command_error()` vars={vars(ctx)}')
+    logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
 
-    if isinstance(error, CheckFailure):
+    if isinstance(error, CheckFailure | UnauthorizedGuild):
         if ctx.guild.id in Config.authorized_guilds:
             await ctx.respond("You're not my real dad!")
         else:
