@@ -65,7 +65,7 @@ class NewYearEvent(commands.Cog):
         message_links = []
 
         for channel_id in Config.lore_channels:
-            channel = guild.get_channel(channel_id)
+            channel = guild.get_channel_or_thread(channel_id)
             message = await channel.send(year_str)
 
             # Save message ids to markers database
@@ -79,7 +79,7 @@ class NewYearEvent(commands.Cog):
 
         # --- Increase Year VC ---
 
-        year_vc = guild.get_channel(Config.year_vc)
+        year_vc = guild.get_channel_or_thread(Config.year_vc)
         await year_vc.edit(name=f'Current Year: {year} PC')
 
         # --- Edit Wiki ---
@@ -94,13 +94,12 @@ class NewYearEvent(commands.Cog):
 
         # --- Make Announcement ---
 
-        channel = guild.get_channel(Config.announce_channel)
+        channel = guild.get_channel_or_thread(Config.announce_channel)
         await channel.send(f'<@&{Config.announce_role}> Year {year} PC. (weap)')
 
         # --- Send Year Links Message ---
 
-        doom_forum = guild.get_channel(Config.doom_forum)
-        thread = doom_forum.get_thread(Config.year_link_thread)
+        thread = guild.get_channel_or_thread(Config.year_link_thread)
         await thread.send(year_str + '\n' + '\n'.join(message_links))
 
 # --- Extension Def ---
