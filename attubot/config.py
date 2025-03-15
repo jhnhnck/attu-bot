@@ -100,16 +100,42 @@ class Guild(BaseModel):
     epoch: GuildEpoch
     roles: GuildRoles
     markers: list[int]
+    id: int
 
     @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict):
+    def setup(data: dict):
         data['channels'] = GuildChannels(**data)
         data['epoch'] = GuildEpoch(**data)
         data['roles'] = GuildRoles(**data)
         data['markers'] = data.get('markers', [])
 
         return data
+
+    async def set_epoch(self, time, year: int):
+        logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
+
+        await NovaConfig._set('epoch.time', int(time), guild=self.id)
+        await NovaConfig._set('epoch.year', year, guild=self.id)
+        self.epoch.time = int(time)
+        self.epoch.year = year
+
+    async def set_epoch_length(self, length: int):
+        logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
+
+        await NovaConfig._set('epoch.length', length, guild=self.id)
+        self.epoch.length = length
+
+    async def pause_time(self):
+        logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
+
+        await NovaConfig._set('epoch.paused', True, guild=self.id)
+        self.epoch.paused = True
+
+    async def resume_time(self):
+        logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
+
+        await NovaConfig._set('epoch.paused', True, guild=self.id)
+        self.epoch.paused = True
 
 # --- Exceptions ---
 
