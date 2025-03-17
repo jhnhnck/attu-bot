@@ -20,6 +20,7 @@ from tortoise.models import Model
 
 from attubot import __version__
 from attubot.logging import get_logger
+from attubot.migrations import import_migration
 
 logger = get_logger(__name__)
 
@@ -270,6 +271,7 @@ class NovaConfig:
         version = await cls.get('version')
 
         logger.info(f'Beginning config table migration from "{version}"')
+        import_migration()
 
         # re-check at end of migration
         if cls.config_version != (await cls.get('version')):
