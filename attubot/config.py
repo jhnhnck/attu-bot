@@ -5,8 +5,8 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import datetime
 import sys
-from datetime import time
 from os import getenv
 from pathlib import Path
 from types import SimpleNamespace
@@ -74,7 +74,7 @@ class GuildEpoch(BaseModel):
     year: int
     length: int
     paused: bool
-    rollover_time: str
+    rollover_time: datetime.time
 
     @model_validator(mode='before')
     def setup(data: dict):
@@ -82,16 +82,27 @@ class GuildEpoch(BaseModel):
         data['year'] = data.get('epoch.year', 1)
         data['length'] = data.get('epoch.length', 14)
         data['paused'] = data.get('epoch.paused', True)
-        data['rollover_time'] = data.get('epoch.rollover_time', '17:00')
+
+        th = data.get('epoch.rollover_time', '17:00').split(':')
+        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
         return data
 
 class GuildRoles(BaseModel):
-    announce: int
+    announcements: int
 
     @model_validator(mode='before')
     def setup(data: dict):
-        data['announce'] = data.get('roles.announce', 0)
+        data['announcements'] = data.get('roles.announcements', 0)
+
+        return data
+
+class GuildUsers(BaseModel):
+    markers: list[int]
+
+    @model_validator(mode='before')
+    def setup(data: dict):
+        data['markers'] = data.get('users.markers', [])
 
         return data
 
@@ -100,7 +111,7 @@ class Guild(BaseModel):
     channels: GuildChannels
     epoch: GuildEpoch
     roles: GuildRoles
-    markers: list[int]
+    users: GuildUsers
     id: int
 
     @model_validator(mode='before')
@@ -108,7 +119,7 @@ class Guild(BaseModel):
         data['channels'] = GuildChannels(**data)
         data['epoch'] = GuildEpoch(**data)
         data['roles'] = GuildRoles(**data)
-        data['markers'] = data.get('markers', [])
+        data['users'] = GuildUsers(**data)
 
         return data
 
@@ -201,11 +212,11 @@ class NovaConfig:
             Config.users.markers.append(bot.user.id)
 
         for idx, guild in cls._guilds.items():
-            if bot.user.id not in guild.markers:
+            if bot.user.id not in guild.users.markers:
                 logger.info(f'Adding bot user to valid year marker authors for {idx}')
 
-                guild.markers.append(NovaConfig._bot.user.id)
-                await cls.set('markers', guild.markers, guild=idx)
+                guild.users.markers.append(NovaConfig._bot.user.id)
+                await cls.set('users.markers', guild.users.markers, guild=idx)
 
         cls.path.chmod(0o660)
         cls.db_path.chmod(0o660)
@@ -231,10 +242,17 @@ class NovaConfig:
             logger.info(f'Loading guild config for {guild}')
             config = {}
 
-            async for token in NovaToken.filter(guild=guild):
-                config[str(token.key)] = token.unpack()
+            try:
+                async for token in NovaToken.filter(guild=guild):
+                    config[str(token.key)] = token.unpack()
 
-            cls._guilds[guild] = Guild(**config, id=guild)
+                cls._guilds[guild] = Guild(**config, id=guild)
+
+            except ValidationError as err:
+                for line in err.errors():
+                    logger.fatal(f'Failed to validate {guild}: {line.loc!s} {line.msg}')
+
+                cls._guilds[guild] = None
 
         await Tortoise.close_connections()
 
@@ -361,7 +379,7 @@ class Config:
         Config.time_paused = Config._raw['epoch']['paused']
 
         th = Config._raw['epoch']['rollover_time'].split(':')
-        Config.rollover_time = time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
+        Config.rollover_time = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
