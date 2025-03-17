@@ -20,7 +20,6 @@ from tortoise.models import Model
 
 from attubot import __version__
 from attubot.logging import get_logger
-from attubot.migrations import import_migration
 
 logger = get_logger(__name__)
 
@@ -289,12 +288,21 @@ class NovaConfig:
         version = await cls.get('version')
 
         logger.info(f'Beginning config table migration from "{version}"')
-        import_migration()
+        from attubot.migrations import generic_bump, import_migration
+
+        await generic_bump('1.8.0-pre')
+        await import_migration(version)
 
         # re-check at end of migration
         if cls.config_version != (await cls.get('version')):
             logger.fatal(f'Failed to migrate config table! Got to {await cls.get("version")}')
             sys.exit(1)
+        else:
+            logger.info('Finished applying config table patches')
+
+    @classmethod
+    async def _import(cls):
+        logger.warn('Checking for config value imports (stub)')
 
     # --- Debug ---
 
