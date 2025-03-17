@@ -114,27 +114,27 @@ class Guild(BaseModel):
     async def set_epoch(self, time, year: int):
         logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
 
-        await NovaConfig._set('epoch.time', int(time), guild=self.id)
-        await NovaConfig._set('epoch.year', year, guild=self.id)
+        await NovaConfig.set('epoch.time', int(time), guild=self.id)
+        await NovaConfig.set('epoch.year', year, guild=self.id)
         self.epoch.time = int(time)
         self.epoch.year = year
 
     async def set_epoch_length(self, length: int):
         logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
 
-        await NovaConfig._set('epoch.length', length, guild=self.id)
+        await NovaConfig.set('epoch.length', length, guild=self.id)
         self.epoch.length = length
 
     async def pause_time(self):
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
 
-        await NovaConfig._set('epoch.paused', True, guild=self.id)
+        await NovaConfig.set('epoch.paused', True, guild=self.id)
         self.epoch.paused = True
 
     async def resume_time(self):
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
 
-        await NovaConfig._set('epoch.paused', True, guild=self.id)
+        await NovaConfig.set('epoch.paused', True, guild=self.id)
         self.epoch.paused = True
 
 # --- Exceptions ---
@@ -204,7 +204,7 @@ class NovaConfig:
                 logger.info(f'Adding bot user to valid year marker authors for {idx}')
 
                 guild.markers.append(NovaConfig._bot.user.id)
-                await cls._set('markers', guild.markers, guild=idx)
+                await cls.set('markers', guild.markers, guild=idx)
 
         cls.path.chmod(0o660)
         cls.db_path.chmod(0o660)
@@ -217,13 +217,13 @@ class NovaConfig:
     @classmethod  # called by markers setup after db is connected
     async def on_load(cls):
         # handle data migration
-        if cls.config_version != (await cls._get('version', default=cls.config_version)):
+        if cls.config_version != (await cls.get('version', default=cls.config_version)):
             await cls._migrate()
         else:
             logger.info(f'Matched table version: {__version__}')
 
         # global vars
-        cls.error_log: list[int, int] = await cls._get('error_log', default=(0, 0))
+        cls.error_log: list[int, int] = await cls.get('error_log', default=(0, 0))
 
         # load guild configs
         for guild in cls.authorized_guilds:
@@ -233,9 +233,48 @@ class NovaConfig:
             async for token in NovaToken.filter(guild=guild):
                 config[str(token.key)] = token.unpack()
 
-            cls._guilds[guild] = Guild(**config)
+            cls._guilds[guild] = Guild(**config, id=guild)
 
         await Tortoise.close_connections()
+
+    # --- Public Methods ---
+
+    @classmethod
+    def guild(cls, guild):
+        if guild in cls.authorized_guilds:
+            return cls._guilds[guild]
+        else:
+            raise UnauthorizedGuild(guild)
+
+    @staticmethod
+    async def get(key: str, guild: int = 0, default = None):
+        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
+
+        if created:
+            logger.warn(f'Key Missing [{guild}/{key.lower()}] default={default}')
+            await token.pack(default)
+
+        return token.unpack()
+
+    @staticmethod
+    async def set(key: str, value, guild: int = 0):
+        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
+
+        logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
+        await token.pack(value)
+
+    # --- Private Methods ---
+
+    @classmethod
+    async def _migrate(cls):
+        version = await cls.get('version')
+
+        logger.info(f'Beginning config table migration from "{version}"')
+
+        # re-check at end of migration
+        if cls.config_version != (await cls.get('version')):
+            logger.fatal(f'Failed to migrate config table! Got to {await cls.get("version")}')
+            sys.exit(1)
 
     # --- Debug ---
 
@@ -269,45 +308,6 @@ class NovaConfig:
                 result[key] = convert_value(value)
 
         return result
-
-    # --- Public Methods ---
-
-    @classmethod
-    def guild(cls, guild):
-        if guild in cls.authorized_guilds:
-            return cls._guilds[guild]
-        else:
-            raise UnauthorizedGuild(guild)
-
-    # --- Private Methods ---
-
-    @staticmethod
-    async def _get(key: str, guild: int = 0, default = None):
-        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
-
-        if created:
-            logger.warn(f'Key Missing [{guild}/{key.lower()}] default={default}')
-            await token.pack(default)
-
-        return token.unpack()
-
-    @staticmethod
-    async def _set(key: str, value, guild: int = 0):
-        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
-
-        logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
-        await token.pack(value)
-
-    @classmethod
-    async def _migrate(cls):
-        version = await cls._get('version')
-
-        logger.info(f'Beginning config table migration from "{version}"')
-
-        # re-check at end of migration
-        if cls.config_version != (await cls._get('version')):
-            logger.fatal(f'Failed to migrate config table! Got to {await cls._get("version")}')
-            sys.exit(1)
 
 # Old Methods and Layout
 class Config:
