@@ -197,8 +197,7 @@ class NovaConfig:
 
         except ValidationError as err:
             for line in err.errors():
-                logger.fatal(f'Validation Failed: {line.type} {line.loc!s} {line.msg}')
-
+                logger.fatal(f'Validation Failed: {line.loc!s} {line.msg}')
             sys.exit(1)
 
     @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
@@ -248,7 +247,7 @@ class NovaConfig:
 
             except ValidationError as err:
                 for line in err.errors():
-                    logger.fatal(f'Failed to validate {guild}: {line.loc!s} {line.msg}')
+                    logger.error(f'Failed to validate {guild}: {line.loc!s} {line.msg}')
 
                 cls._guilds[guild] = None
 
@@ -268,7 +267,7 @@ class NovaConfig:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         if created:
-            logger.warn(f'Key Missing [{guild}/{key.lower()}] default={default}')
+            logger.warn(f'Key Not Set [{guild}/{key.lower()}] default={default}')
             await token.pack(default)
 
         return token.unpack()
@@ -277,8 +276,18 @@ class NovaConfig:
     async def set(key: str, value, guild: int = 0):
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
-        logger.warn(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
+        logger.debug(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
         await token.pack(value)
+
+    @staticmethod
+    async def delete(key: str, guild: int = 0):
+        token = await NovaToken.get_or_none(guild=guild, key=key.lower())
+
+        if token is not None:
+            logger.debug(f'Key Removed [{guild}/{key.lower()}] value={token.unpack()}')
+            await token.delete()
+        else:
+            logger.warn(f'Key Not Set [{guild}/{key.lower()}]; Cannot Remove')
 
     # --- Private Methods ---
 
@@ -298,10 +307,6 @@ class NovaConfig:
             sys.exit(1)
         else:
             logger.info('Finished applying config table patches')
-
-    @classmethod
-    async def _import(cls):
-        logger.warn('Checking for config value imports (stub)')
 
     # --- Debug ---
 
