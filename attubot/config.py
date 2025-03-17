@@ -200,6 +200,8 @@ class NovaConfig:
                 logger.fatal(f'Validation Failed: {line.loc!s} {line.msg}')
             sys.exit(1)
 
+        Config.on_init()  # bootstrap old config structure
+
     @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
     async def on_ready(cls, bot):
         cls._bot = bot
@@ -252,6 +254,8 @@ class NovaConfig:
                 cls._guilds[guild] = None
 
         await Tortoise.close_connections()
+
+        Config.on_load()  # bootstrap old config structure
 
     # --- Public Methods ---
 
@@ -346,10 +350,9 @@ class Config:
     path = NovaConfig.path
     db_path = NovaConfig.db_path
 
-    @staticmethod
-    def init():
-        NovaConfig.on_init()  # bootstrap load
-        Config._raw = NovaConfig._raw
+    @classmethod
+    def on_init(cls):
+        cls._raw = NovaConfig._raw
 
         # --- Unpack into Attributes ---
 
@@ -395,6 +398,10 @@ class Config:
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
 
+    @classmethod
+    def on_load(cls):
+        pass
+
     @staticmethod
     def _save():
         logger.info(f'Writing new config to "{Config.path}"')
@@ -402,7 +409,7 @@ class Config:
         with Config.path.open('w') as file:
             toml.dump(Config._raw, file)
 
-        Config._load()
+        NovaConfig.on_init()
 
     # --- Public Methods ---
 

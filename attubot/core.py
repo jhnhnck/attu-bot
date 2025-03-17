@@ -104,7 +104,7 @@ async def on_application_command_error(ctx, error):
 # --- Trigger Function ---
 
 def start_bot_loop():
-    Config.init()
+    NovaConfig.on_init()
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
