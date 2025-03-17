@@ -31,15 +31,14 @@ async def send_to_error_log(error):
     guild = bot.get_guild(Config.jhn_guild)
     error_log = guild.get_channel(Config.error_log_channel)
 
-    # TODO: this still prints the useless bits
     tb_str = ''.join(traceback.format_exception(error))
 
     logger.error(str(error) + '\n' + tb_str)
 
+    # this removes the useless bits
     tb_str = tb_str.split('The above exception')[0]
 
     await error_log.send(f'**{error}**\n```\n{tb_str}```')
-
 
 # --- Events ---
 
