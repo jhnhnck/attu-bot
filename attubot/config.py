@@ -43,6 +43,7 @@ class NovaToken(Model):
 
 # --- Components ---
 
+# Could be in the database, but unneeded currently
 class WikiAuth(BaseModel):
     key: str
     page: str
@@ -187,9 +188,7 @@ class NovaConfig:
         else:
             logger.info(f'Matched file version: {__version__}')
 
-        # --- Unpack into Attributes ---
-
-        # Auth
+        # unpack into attributes
         cls.bot_token = cls._raw['auth']['bot']['token']
         cls.authorized_guilds = cls._raw['discord']['guilds']['authorized']
 
