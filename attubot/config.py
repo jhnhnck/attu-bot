@@ -393,44 +393,13 @@ class Config:
         cls.rollover_time = guild.epoch.rollover_time
 
     @classmethod
-    def _save(cls):
+    def _save(cls):  # NOTE: Unused
         logger.info(f'Writing new config to "{cls.path}"')
 
         with cls.path.open('w') as file:
             toml.dump(cls._raw, file)
 
         NovaConfig.on_init()
-
-    # --- Public Methods ---
-
-    @classmethod  # TODO: point to other methods
-    def set_epoch(cls, time, year: int):
-        logger.warn(f'Epoch changed: old={cls.epoch_time},{cls.epoch_year} new={int(time)},{year}')
-
-        cls._raw['epoch']['time'] = int(time)
-        cls._raw['epoch']['year'] = year
-        cls._save()
-
-    @classmethod
-    def set_epoch_length(cls, length: int):
-        logger.warn(f'Epoch length changed: old={cls.epoch_length} new={length}')
-
-        cls._raw['epoch']['length'] = length
-        cls._save()
-
-    @classmethod
-    def pause_time(cls):
-        logger.warn(f'Epoch pause changed: old={cls.time_paused} new=True')
-
-        cls._raw['epoch']['paused'] = True
-        cls._save()
-
-    @classmethod
-    def resume_time(cls):
-        logger.warn(f'Epoch pause changed: old={cls.time_paused} new=False')
-
-        cls._raw['epoch']['paused'] = False
-        cls._save()
 
     # --- Debug ---
 

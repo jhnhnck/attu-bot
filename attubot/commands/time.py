@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import discord
 from discord import Permissions
 
-from attubot.config import Config
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import get_year_status, move_epoch
@@ -32,30 +32,33 @@ async def time_advance(ctx):
 @time_group.command(name='pause', description='Pause the passage of time')
 async def time_pause(ctx):
     await ctx.respond('The passage of time has been stopped')
-    Config.pause_time()
+    await NovaConfig.guild(ctx.guild.id).pause_time()
 
 @time_group.command(name='resume', description='Resume the passage of time')
 async def time_resume(ctx):
-    await move_epoch(Config.epoch_length)
+    guild = NovaConfig.guild(ctx.guild.id)
+    await move_epoch(guild.epoch.length, guild_id=ctx.guild.id)
 
-    await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
-    Config.resume_time()
+    await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{guild.epoch.year} PC** at **<t:{guild.epoch.time}:f>**')
+    await guild.resume_time()
 
 @time_group.command(name='dilate', description='Adjust the rate at which time progresses')
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
 async def time_dilate(ctx, days):
+    guild = NovaConfig.guild(ctx.guild.id)
+
     # catch to keep from trying entering number of weeks
     if days > 0 and days % 7 != 0:
         await ctx.respond('Failed: Dilation amount must be divisible by 7', ephemeral=True)
         return
 
-    if Config.time_paused:
-        Config.set_epoch_length(days)
-        await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year**')
+    if guild.epoch.paused:
+        await guild.set_year_length(days)
+        await ctx.respond(f'The passage of time has been set to **{guild.epoch.length} days per year**')
 
     else:
-        await move_epoch(days)
-        await ctx.respond(f'The passage of time has been set to **{Config.epoch_length} days per year** with Attu epoch moved to **{Config.epoch_year} PC** at **<t:{Config.epoch_time}:f>**')
+        await move_epoch(days, guild_id=ctx.guild.id)
+        await ctx.respond(f'The passage of time has been set to **{guild.epoch.length} days per year** with Attu epoch moved to **{guild.epoch.year} PC** at **<t:{guild.epoch.time}:f>**')
 
 # --- Extension Def ---
 
