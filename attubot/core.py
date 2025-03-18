@@ -101,10 +101,17 @@ async def on_application_command_error(ctx, error):
     # Close any hung connections
     await Tortoise.close_connections()
 
+@discord.slash_command(name='ping')
+async def command_ping(ctx):
+    await ctx.respond('Pong! <:rockball:1308981475114225694>')
+
 # --- Trigger Function ---
 
 def start_bot_loop():
     NovaConfig.on_init()
+
+    logger.info('Loading Commands')
+    bot.add_application_command(command_ping)
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
