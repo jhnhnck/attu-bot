@@ -62,6 +62,7 @@ async def marker_save(ctx, year: int, link: str, force: bool):
     verb = 'Created' if created else 'Updated'
     await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(Config.attu_guild, marker.channel, marker.message)}')
 
+
 @marker_group.command(name='set', description='Sets marker timestamp for when a specifc year starts')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=str)
@@ -87,6 +88,7 @@ async def marker_set(ctx, year: int, snowflake: str):
     await est_marker.save()
 
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
+
 
 @marker_group.command(name='clear', description='Removes marker for a specific channel and year')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)

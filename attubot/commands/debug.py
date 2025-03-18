@@ -34,7 +34,7 @@ async def debug_version(ctx):
     build_time = datetime.strptime(getenv('BUILD_TIME'), build_format)
     distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
 
-    embed = Embed(title='Version Info', color=0xe86348)
+    embed = Embed(title='Version Info', color=0xE86348)
 
     embed.add_field(name='Version', value=f'{__title__} {__version__}', inline=True)
     embed.add_field(name='Python', value=python_version(), inline=True)
@@ -43,13 +43,14 @@ async def debug_version(ctx):
 
     await ctx.respond(embed=embed)
 
+
 @debug_group.command(name='year_stats', description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
     cog = ctx.bot.get_cog('NewYearEvent')
 
-    embed = Embed(title='Year Stats', color=0xe86348)
+    embed = Embed(title='Year Stats', color=0xE86348)
 
     embed.add_field(name='Current Year', value=f'{current_year} PC', inline=True)
     embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)
@@ -59,11 +60,13 @@ async def debug_year_stats(ctx):
 
     await ctx.respond(embed=embed)
 
+
 @debug_group.command(name='force_error', description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
 async def debug_force_error(ctx):
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
+
 
 @debug_group.command(name='message', description='Print message info')
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
@@ -74,7 +77,7 @@ async def debug_message(ctx, link):
 
     # unpack url
     ids = link.split('/')[-3:]
-    guild, channel, target =  int(ids[0]), int(ids[1]), int(ids[2])
+    guild, channel, target = int(ids[0]), int(ids[1]), int(ids[2])
 
     try:
         guild = ctx.bot.get_guild(guild)
@@ -89,6 +92,7 @@ async def debug_message(ctx, link):
     except Exception as err:
         await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
         logger.error(err)
+
 
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)

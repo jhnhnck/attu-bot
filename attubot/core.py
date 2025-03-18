@@ -64,23 +64,27 @@ async def on_ready():
     else:
         logger.info(f'Reconnected as {bot.user} (ID: {bot.user.id})!')
 
+
 @bot.event
 async def on_message(message):
     channel = NovaConfig.guild(message.guild.id).channels.activity
 
-    if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split('@')[0]}]'):  # TODO: verify correct part of wiki bot username
+    if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username
         if 'blocked' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
             await message.add_reaction('💖')
 
+
 @bot.before_invoke
 async def on_application_command(ctx):
     logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} data={ctx.interaction.data}')
 
+
 @bot.event
 async def on_application_command_completion(ctx):
     await Tortoise.close_connections()
+
 
 @bot.event
 async def on_application_command_error(ctx, error):
@@ -102,6 +106,7 @@ async def on_application_command_error(ctx, error):
 
     # Close any hung connections
     await Tortoise.close_connections()
+
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx):

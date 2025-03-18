@@ -33,7 +33,7 @@ async def query_pins(ctx, channel: discord.TextChannel):
     await ctx.respond(f'## Pins in <#{channel.id}>')
 
     # for year 1 thru current year
-    for year in range (1, current_year + 1):
+    for year in range(1, current_year + 1):
         year_span = await get_year_span(year)
         start_time = datetime.fromtimestamp(year_span.start_time).astimezone() if year > 0 else guild_creation
         end_time = datetime.fromtimestamp(year_span.end_time).astimezone()

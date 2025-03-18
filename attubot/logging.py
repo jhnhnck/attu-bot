@@ -42,5 +42,6 @@ class Logger:
     def fatal(self, message):
         self._stderr('fatal', message)
 
+
 def get_logger(class_name):
     return Logger(class_name)

@@ -61,6 +61,7 @@ async def _init_db():
     logger.info('Unpacking additional config values from database')
     await NovaConfig.on_load()
 
+
 def setup(bot):
     logger.info(f'Registered: {__name__}')
 

@@ -26,6 +26,7 @@ flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
 def is_bot_owner(ctx: Context):
     return ctx.bot.is_owner(ctx.user)
 
+
 def is_authorized_guild(ctx: Context):
     return ctx.guild.id in Config.authorized_guilds
 
@@ -41,6 +42,7 @@ def format_year_line(year):
     else:
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
+
 def get_year_status():
     today = datetime.combine(date.today(), Config.rollover_time)
     epoch = datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), Config.rollover_time)
@@ -54,6 +56,7 @@ def get_year_status():
 
     return elapsed_days, year
 
+
 def get_next_year():
     if Config.time_paused:
         return datetime.fromtimestamp(0).astimezone()
@@ -65,6 +68,7 @@ def get_next_year():
         new_date += timedelta(days=Config.epoch_length)
 
     return new_date
+
 
 async def get_year_span(year: int):
     result = SimpleNamespace(start_time=0, end_time=0, duration=0)
@@ -100,8 +104,9 @@ async def get_year_span(year: int):
     result.duration = round((result.end_time - result.start_time) / 86400)
     return result
 
+
 # TODO: Shouldn't this be on the guild object
-async def move_epoch(length: int, guild_id = NovaConfig.primary_guild):
+async def move_epoch(length: int, guild_id=NovaConfig.primary_guild):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
     guild = NovaConfig.guild(guild_id)
@@ -127,8 +132,9 @@ async def move_epoch(length: int, guild_id = NovaConfig.primary_guild):
     await guild.set_year_length(length)
     logger.info(f'New Epoch Set: {guild.epoch.year} PC at <t:{guild.epoch.time}:f> with year length of {guild.epoch.length}')
 
+
 # look for {year} or 'pc' or 'year' in message contents
-def has_year_marker(year:int, content: str):
+def has_year_marker(year: int, content: str):
     content = content.lower()
 
     if str(year) in content or (year < 10 and str(year - 1) in content):
@@ -136,6 +142,7 @@ def has_year_marker(year:int, content: str):
     else:
         return False
 
+
 # util to make discord message links
 def format_message_link(guild, channel, message, relative=False):
-    return f'https://discord.com/channels/{guild}/{channel}/{message}{' [~]' if relative else ''}'
+    return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'

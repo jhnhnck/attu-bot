@@ -35,7 +35,7 @@ async def wiki_lookup(ctx, query: str, limit: int):
 
     # Get wiki page format
     site_info = wiki.site_info()
-    fmt = f"{Config.wiki_endpoint}{site_info['articlepath']}"
+    fmt = f'{Config.wiki_endpoint}{site_info["articlepath"]}'
 
     # Build response
     if len(pages) == 1:
@@ -45,7 +45,7 @@ async def wiki_lookup(ctx, query: str, limit: int):
         msg = [f'## Top Results for "{query}"']
 
         for page in pages:
-            msg.append(f"1. [{page['title']}](<{fmt.replace('$1', page['key'])}>)")
+            msg.append(f'1. [{page["title"]}](<{fmt.replace("$1", page["key"])}>)')
 
         await ctx.respond('\n'.join(msg))
 

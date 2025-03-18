@@ -29,10 +29,12 @@ async def time_advance(ctx):
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
     await cog.advance_year(forced_year)
 
+
 @time_group.command(name='pause', description='Pause the passage of time')
 async def time_pause(ctx):
     await ctx.respond('The passage of time has been stopped')
     await NovaConfig.guild(ctx.guild.id).pause_time()
+
 
 @time_group.command(name='resume', description='Resume the passage of time')
 async def time_resume(ctx):
@@ -41,6 +43,7 @@ async def time_resume(ctx):
 
     await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{guild.epoch.year} PC** at **<t:{guild.epoch.time}:f>**')
     await guild.resume_time()
+
 
 @time_group.command(name='dilate', description='Adjust the rate at which time progresses')
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
@@ -66,4 +69,3 @@ def setup(bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(time_group)
-

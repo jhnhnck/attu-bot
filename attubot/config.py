@@ -50,6 +50,7 @@ class WikiAuth(BaseModel):
     user: str
     endpoint: str
 
+
 class GuildChannels(BaseModel):
     activity: int
     year_vc: int
@@ -69,8 +70,9 @@ class GuildChannels(BaseModel):
 
         return data
 
+
 class GuildEpoch(BaseModel):
-    time: int
+    time: int  # TODO: Can we unify all stored dates under one class?
     year: int
     length: int
     paused: bool
@@ -88,6 +90,7 @@ class GuildEpoch(BaseModel):
 
         return data
 
+
 class GuildRoles(BaseModel):
     announcements: int
 
@@ -96,6 +99,7 @@ class GuildRoles(BaseModel):
         data['announcements'] = data.get('roles.announcements', 0)
 
         return data
+
 
 class GuildUsers(BaseModel):
     markers: list[int]
@@ -106,7 +110,7 @@ class GuildUsers(BaseModel):
 
         return data
 
-# TODO: configured guild command precondition?
+
 class Guild(BaseModel):
     channels: GuildChannels
     epoch: GuildEpoch
@@ -264,7 +268,7 @@ class NovaConfig:
             raise UnauthorizedGuild(guild)
 
     @staticmethod
-    async def get(key: str, guild: int = 0, default = None):
+    async def get(key: str, guild: int = 0, default=None):
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         if created:
@@ -344,6 +348,7 @@ class NovaConfig:
 
         return result
 
+
 # Old Methods and Layout
 class Config:
     config_version = NovaConfig.config_version
@@ -407,7 +412,6 @@ class Config:
 
     # --- Debug ---
 
-    # TODO: Move this below Pivate Methods
     @classmethod
     def to_dict(cls):
         result = {}
