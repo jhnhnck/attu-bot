@@ -58,28 +58,41 @@ Once the bot is running, invite it to your Discord server with the link printed 
 
 Use the following commands to interact with the bot:
 
-- **/year**:
+### Users
+
+- **/ping**: Simple command to test if the bot is online
+
+- **/year**: Utlities related to current, past or future years
   - **/year check <year>**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
   - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
   - **/year search <year>**: Prints search query for timlining
 
-- **/wiki**:
-  - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
-  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
+### Admin
 
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
+  - **/debug dump_config**: Prints currently loaded config values to console
+  - **/debug force_error**: Causes an internal error to be thrown
+  - **/debug message <link>**: Print information about a specific message (warning: not very user readable)
   - **/debug version**: Displays the current version and container build time
   - **/debug year_stats**: Returns the current state of time tracking calculations
-  - **/debug force_error**: Causes an internal error to be thrown
+
+- **/marker**: Utlities related to managing year markers (Admin Only)
+  - **/marker save <year> <link> [force]**: Updates marker to point to a different message
+  - **/marker set <year> <snowflake>**: Sets marker timestamp for when a specifc year starts (channel=0)
+  - **/marker clear <year> <channel>**: Removes marker for a specific channel and year (will attempt to locate again next time /year link is ran)
+
+- **/query**: Performs searches for specific messages
+  - **/query pins <channel>**: Finds all the "pinned a message" messages in a channel (Resource Intensive)
 
 - **/time**: Modify various options controlling the passage of time (Admin only)
   - **/time advance**: Manually advance to the next year, ignoring all checks
+  - **/time dilate <days>**: Adjust the rate at which time progresses
   - **/time pause**: Pause the passage of time
   - **/time resume**: Resume the passage of time
-  - **/time dilate <days>**: Adjust the rate at which time progresses
 
-- **/marker**:
-  - **/marker save <year> <link> [force]**: Updates marker to point to a different message (Admin only)
+- **/wiki**: Utlities for managing and querying the wiki
+  - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
+  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
 
 ## License
 

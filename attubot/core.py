@@ -103,7 +103,7 @@ async def on_application_command_error(ctx, error):
     # Close any hung connections
     await Tortoise.close_connections()
 
-@discord.slash_command(name='ping')
+@discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
 

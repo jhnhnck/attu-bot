@@ -19,9 +19,9 @@ logger = get_logger(__name__)
 
 # --- Marker Commands ---
 
-marker_group = discord.SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utlities related to managing year markers')
+marker_group = discord.SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utlities related to managing year markers (Admin Only)')
 
-@marker_group.command(name='save', description='Updates marker to point to a different message (Admin only)')
+@marker_group.command(name='save', description='Updates marker to point to a different message')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
 @discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
@@ -62,7 +62,7 @@ async def marker_save(ctx, year: int, link: str, force: bool):
     verb = 'Created' if created else 'Updated'
     await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(Config.attu_guild, marker.channel, marker.message)}')
 
-@marker_group.command(name='set', description='Updates marker to point to a different message (Admin only)')
+@marker_group.command(name='set', description='Sets marker timestamp for when a specifc year starts')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=str)
 @commands.check(is_authorized_guild)
@@ -88,7 +88,7 @@ async def marker_set(ctx, year: int, snowflake: str):
 
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
 
-@marker_group.command(name='clear', description='Updates marker to point to a different message (Admin only)')
+@marker_group.command(name='clear', description='Removes marker for a specific channel and year')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @commands.check(is_authorized_guild)
