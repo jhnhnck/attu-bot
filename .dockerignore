@@ -1,12 +1,15 @@
 .aws
 .env
 .git
-.venv
+.venv/
 *.db
 *.json
 *.sample.*
+*.sql
 *.toml
 **/__pycache__/
 **/*.wip.py
+backup/
 config/
+devel/
 pyproject.toml
