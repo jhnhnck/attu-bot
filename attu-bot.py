@@ -8,8 +8,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import sys
 import time
-from os import environ, getenv
 import traceback
+from os import environ, getenv
 
 from dotenv import load_dotenv
 
