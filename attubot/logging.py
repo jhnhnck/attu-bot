@@ -11,10 +11,10 @@ from os import environ
 from termcolor import colored
 
 class Logger:
-    class_name = 'attubot.???'
+    class_name: str
 
     def __init__(self, class_name):
-        self.class_name = class_name
+        self.class_name = class_name or 'attubot.???'
 
     def _stdout(self, level, message):
         print(colored(f'{self.class_name}[{level}]', 'cyan'), message)
