@@ -33,7 +33,7 @@ async def send_to_error_log(error):
 
     tb_str = ''.join(traceback.format_exception(error))
 
-    logger.error(str(error) + '\n' + tb_str)
+    logger.error(f'{error!s}\n{tb_str}')
 
     # this removes the useless bits
     tb_str = tb_str.split('The above exception')[0]

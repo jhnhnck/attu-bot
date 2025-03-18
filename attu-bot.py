@@ -9,6 +9,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import sys
 import time
 from os import environ, getenv
+import traceback
 
 from dotenv import load_dotenv
 
@@ -30,6 +31,9 @@ try:
     core.start_bot_loop()
 
 except Exception as error:
-    logger.fatal(f'Fatal error encountered; will exit/restart in 60 secs\n{error!s}')
+    tb_str = ''.join(traceback.format_exception(error))
+    logger.error(f'{error!s}\n{tb_str}')
+
+    logger.fatal('Fatal error encountered; will exit/restart in 60 secs')
     time.sleep(60)
     sys.exit(1)
