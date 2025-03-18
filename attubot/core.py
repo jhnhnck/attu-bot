@@ -12,7 +12,7 @@ from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
-from attubot.config import Config, NovaConfig, UnauthorizedGuild
+from attubot.config import NovaConfig, UnauthorizedGuild
 from attubot.logging import get_logger
 
 # --- Initialization ---
@@ -28,8 +28,8 @@ bot = discord.Bot(intents=intents)
 # --- Error Handling ---
 
 async def send_to_error_log(error):
-    guild = bot.get_guild(Config.jhn_guild)
-    error_log = guild.get_channel(Config.error_log_channel)
+    guild = bot.get_guild(NovaConfig.error_log[0])
+    error_log = guild.get_channel(NovaConfig.error_log[1])
 
     tb_str = ''.join(traceback.format_exception(error))
 
@@ -66,7 +66,9 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.channel.id == Config.activity_channel and message.content.startswith(f'[{Config.wiki_user.split('@')[0]}]'):  # TODO: verify correct part of wiki bot username
+    channel = NovaConfig.guild(message.guild.id).channels.activity
+
+    if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split('@')[0]}]'):  # TODO: verify correct part of wiki bot username
         if 'blocked' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
@@ -85,7 +87,7 @@ async def on_application_command_error(ctx, error):
     logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
-        if ctx.guild.id in Config.authorized_guilds:
+        if ctx.guild.id in NovaConfig.authorized_guilds:
             await ctx.respond("You're not my real dad!")
         else:
             # catch all for if bot gets added to another discord guild
@@ -124,4 +126,4 @@ def start_bot_loop():
     bot.load_extension('attubot.commands.query')
 
     logger.info('Starting Bot')
-    bot.run(Config.bot_token)
+    bot.run(NovaConfig.bot_token)
