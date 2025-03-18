@@ -165,7 +165,7 @@ class NovaConfig:
 
         if not cls.path.exists():
             logger.error('Config file missing!')
-            sys.exit(1)
+            sys.exit(1)  # TODO: Throw error instead
 
         logger.info(f'Loading config from "{cls.path}"')
 
@@ -175,7 +175,7 @@ class NovaConfig:
         # validate config version
         if cls._raw['config_version'] != cls.config_version:
             logger.fatal('Incompatible config version!')
-            sys.exit(1)
+            sys.exit(1)  # TODO: Throw error instead
         else:
             logger.info(f'Matched file version: {__version__}')
 
@@ -189,7 +189,7 @@ class NovaConfig:
         except ValidationError as err:
             for line in err.errors():
                 logger.fatal(f'Validation Failed: {line.loc!s} {line.msg}')
-            sys.exit(1)
+            sys.exit(1)  # TODO: Throw error instead
 
         Config.on_init()  # bootstrap old config structure
 
@@ -301,7 +301,7 @@ class NovaConfig:
         # re-check at end of migration
         if cls.config_version != (await cls.get('version')):
             logger.fatal(f'Failed to migrate config table! Got to {await cls.get("version")}')
-            sys.exit(1)
+            sys.exit(1)  # TODO: Throw error instead
         else:
             logger.info('Finished applying config table patches')
 

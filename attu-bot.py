@@ -6,6 +6,8 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import sys
+import time
 from os import environ, getenv
 
 from dotenv import load_dotenv
@@ -24,4 +26,10 @@ if 'DEBUG' in environ:
 else:
     logger.info('Debug Mode: Disabled')
 
-core.start_bot_loop()
+try:
+    core.start_bot_loop()
+
+except Exception as error:
+    logger.fatal(f'Fatal error encountered; will exit/restart in 60 secs\n{error!s}')
+    time.sleep(60)
+    sys.exit(1)
