@@ -151,7 +151,11 @@ class UnauthorizedGuild(Exception):
 
 # New Config Rewrite
 class NovaConfig:
-    config_version = __version__
+    config_version: str = __version__
+    wiki: WikiAuth
+    bot_token: str
+    authorized_guilds: list[int]
+    error_log: list[int, int]
     primary_guild: int
 
     # Dynamic Attributes
@@ -253,7 +257,7 @@ class NovaConfig:
     # --- Public Methods ---
 
     @classmethod
-    def guild(cls, guild):
+    def guild(cls, guild) -> Guild:
         if guild in cls.authorized_guilds:
             return cls._guilds[guild]
         else:
