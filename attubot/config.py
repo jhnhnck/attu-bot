@@ -350,92 +350,87 @@ class Config:
     def on_init(cls):
         cls._raw = NovaConfig._raw
 
-        # --- Unpack into Attributes ---
+        # Global
+        cls.bot_token = NovaConfig.bot_token
+        cls.authorized_guilds = NovaConfig.authorized_guilds
 
-        Config.bot_token = Config._raw['auth']['bot']['token']
-
-        Config.wiki_key = NovaConfig.wiki.key
-        Config.wiki_page = NovaConfig.wiki.page
-        Config.wiki_user = NovaConfig.wiki.user
-        Config.wiki_endpoint = NovaConfig.wiki.endpoint
-
-        # Users
-        Config.users = SimpleNamespace(
-            markers = Config._raw['discord']['users']['markers'],
-        )
-
-        # Channels
-        Config.activity_channel = Config._raw['discord']['channels']['activity']
-        Config.year_vc = Config._raw['discord']['channels']['year_vc']
-        Config.announce_channel = Config._raw['discord']['channels']['announcements']
-        Config.doom_forum = Config._raw['discord']['channels']['doom_forum']
-        Config.year_link_thread = Config._raw['discord']['channels']['year_links']
-        Config.meta_chat_channel = Config._raw['discord']['channels']['meta_chat']
-        Config.error_log_channel = Config._raw['discord']['channels']['error_log']
-        Config.lore_channels = Config._raw['discord']['channels']['lore_channels']
-
-        # Roles
-        Config.announce_role = Config._raw['discord']['roles']['leaders']
+        # Wiki
+        cls.wiki_key = NovaConfig.wiki.key
+        cls.wiki_page = NovaConfig.wiki.page
+        cls.wiki_user = NovaConfig.wiki.user
+        cls.wiki_endpoint = NovaConfig.wiki.endpoint
 
         # Guilds
         cls.attu_guild = NovaConfig.primary_guild
-        Config.jhn_guild = Config._raw['discord']['guilds']['jhn']
-
-        # Epoch
-        Config.epoch_time = Config._raw['epoch']['time']
-        Config.epoch_year = Config._raw['epoch']['year']
-        Config.epoch_length = Config._raw['epoch']['length']
-        Config.time_paused = Config._raw['epoch']['paused']
-
-        th = Config._raw['epoch']['rollover_time'].split(':')
-        Config.rollover_time = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
 
         # Timestamps optional (still present for bootstrapping bot if needed for now)
         Config.timestamps = Config._raw.get('timestamps', [])
 
     @classmethod
     def on_load(cls):
-        pass
+        guild = NovaConfig.guild(cls.attu_guild)
 
-    @staticmethod
-    def _save():
-        logger.info(f'Writing new config to "{Config.path}"')
+        # Users
+        cls.users = guild.users
 
-        with Config.path.open('w') as file:
-            toml.dump(Config._raw, file)
+        # Channels
+        cls.activity_channel = guild.channels.activity
+        cls.year_vc = guild.channels.year_vc
+        cls.announce_channel = guild.channels.announcements
+        cls.year_link_thread = guild.channels.year_links
+        cls.meta_chat_channel = guild.channels.meta_chat
+        cls.lore_channels = guild.channels.lore_channels
+
+        # Roles
+        cls.announce_role = guild.roles.announcements
+
+        # Epoch
+        cls.epoch_time = guild.epoch.time
+        cls.epoch_year = guild.epoch.year
+        cls.epoch_length = guild.epoch.length
+        cls.time_paused = guild.epoch.paused
+
+        cls.rollover_time = guild.epoch.rollover_time
+
+    @classmethod
+    def _save(cls):
+        logger.info(f'Writing new config to "{cls.path}"')
+
+        with cls.path.open('w') as file:
+            toml.dump(cls._raw, file)
 
         NovaConfig.on_init()
 
     # --- Public Methods ---
 
-    @staticmethod
-    def set_epoch(time, year: int):
-        logger.warn(f'Epoch changed: old={Config.epoch_time},{Config.epoch_year} new={int(time)},{year}')
+    @classmethod  # TODO: point to other methods
+    def set_epoch(cls, time, year: int):
+        logger.warn(f'Epoch changed: old={cls.epoch_time},{cls.epoch_year} new={int(time)},{year}')
 
-        Config._raw['epoch']['time'] = int(time)
-        Config._raw['epoch']['year'] = year
-        Config._save()
+        cls._raw['epoch']['time'] = int(time)
+        cls._raw['epoch']['year'] = year
+        cls._save()
 
-    @staticmethod
-    def set_epoch_length(length: int):
-        logger.warn(f'Epoch length changed: old={Config.epoch_length} new={length}')
+    @classmethod
+    def set_epoch_length(cls, length: int):
+        logger.warn(f'Epoch length changed: old={cls.epoch_length} new={length}')
 
-        Config._raw['epoch']['length'] = length
-        Config._save()
+        cls._raw['epoch']['length'] = length
+        cls._save()
 
-    @staticmethod
-    def pause_time():
-        logger.warn(f'Epoch pause changed: old={Config.time_paused} new=True')
+    @classmethod
+    def pause_time(cls):
+        logger.warn(f'Epoch pause changed: old={cls.time_paused} new=True')
 
-        Config._raw['epoch']['paused'] = True
-        Config._save()
+        cls._raw['epoch']['paused'] = True
+        cls._save()
 
-    @staticmethod
-    def resume_time():
-        logger.warn(f'Epoch pause changed: old={Config.time_paused} new=False')
+    @classmethod
+    def resume_time(cls):
+        logger.warn(f'Epoch pause changed: old={cls.time_paused} new=False')
 
-        Config._raw['epoch']['paused'] = False
-        Config._save()
+        cls._raw['epoch']['paused'] = False
+        cls._save()
 
     # --- Debug ---
 
