@@ -125,29 +125,20 @@ class Guild(BaseModel):
 
     async def set_epoch(self, time, year: int):
         logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
+        self.epoch.time = await NovaConfig.set('epoch.year', int(time), guild=self.id)
+        self.epoch.year = await NovaConfig.set('epoch.year', year, guild=self.id)
 
-        await NovaConfig.set('epoch.time', int(time), guild=self.id)
-        await NovaConfig.set('epoch.year', year, guild=self.id)
-        self.epoch.time = int(time)
-        self.epoch.year = year
-
-    async def set_epoch_length(self, length: int):
+    async def set_year_length(self, length: int):
         logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
-
-        await NovaConfig.set('epoch.length', length, guild=self.id)
-        self.epoch.length = length
+        self.epoch.length = await NovaConfig.set('epoch.length', length, guild=self.id)
 
     async def pause_time(self):
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
-
-        await NovaConfig.set('epoch.paused', True, guild=self.id)
-        self.epoch.paused = True
+        self.epoch.paused = await NovaConfig.set('epoch.paused', True, guild=self.id)
 
     async def resume_time(self):
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
-
-        await NovaConfig.set('epoch.paused', True, guild=self.id)
-        self.epoch.paused = True
+        self.epoch.paused = await NovaConfig.set('epoch.paused', False, guild=self.id)
 
 # --- Exceptions ---
 
@@ -282,6 +273,8 @@ class NovaConfig:
 
         logger.debug(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
         await token.pack(value)
+
+        return value  # condenses update methods
 
     @staticmethod
     async def delete(key: str, guild: int = 0):
