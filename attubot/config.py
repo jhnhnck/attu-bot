@@ -152,6 +152,7 @@ class UnauthorizedGuild(Exception):
 # New Config Rewrite
 class NovaConfig:
     config_version = __version__
+    primary_guild: int
 
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
@@ -182,6 +183,7 @@ class NovaConfig:
         # unpack into attributes
         cls.bot_token = cls._raw['auth']['bot']['token']
         cls.authorized_guilds = cls._raw['discord']['guilds']['authorized']
+        cls.primary_guild = cls._raw['discord']['guilds']['primary']
 
         try:
             cls.wiki = WikiAuth(**cls._raw['auth']['wiki'])
@@ -293,13 +295,14 @@ class NovaConfig:
         version = await cls.get('version')
 
         logger.info(f'Beginning config table migration from "{version}"')
-        from attubot.migrations import generic_bump, import_migration
+        from attubot.migrations import migration_table
 
-        await generic_bump('1.8.0-pre')
-        await import_migration(version)
+        for migration in migration_table:
+            await migration(version)
+            version = await cls.get('version')
 
         # re-check at end of migration
-        if cls.config_version != (await cls.get('version')):
+        if cls.config_version != version:
             logger.fatal(f'Failed to migrate config table! Got to {await cls.get("version")}')
             sys.exit(1)  # TODO: Throw error instead
         else:
@@ -375,8 +378,7 @@ class Config:
         Config.announce_role = Config._raw['discord']['roles']['leaders']
 
         # Guilds
-        Config.authorized_guilds = list(Config._raw['discord']['guilds'].values())
-        Config.attu_guild = Config._raw['discord']['guilds']['attu']
+        cls.attu_guild = NovaConfig.primary_guild
         Config.jhn_guild = Config._raw['discord']['guilds']['jhn']
 
         # Epoch

@@ -12,12 +12,12 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-async def generic_bump(version):
+async def _update_version(version: str):
     logger.debug(f'Applied patch for {version}')
     await NovaConfig.set('version', version)
 
 # Version 1.8.0-pre2
-async def import_migration(version):
+async def import_migration(version: str):
     # Bail out if we're past this patch
     if version != '1.8.0-pre':
         logger.debug('Patch for 1.8.0-pre2 already applied')
@@ -50,4 +50,19 @@ async def import_migration(version):
         )
 
     # Bump version
-    await generic_bump('1.8.0-pre2')
+    await _update_version('1.8.0-pre2')
+
+def generic_bump(old: str, new: str):
+    async def migration(version: str):
+        if version == old:
+            await _update_version(new)
+        else:
+            logger.debug(f'Patch for {new} already applied')
+
+    return migration
+
+# All migrations in order
+migration_table = [
+    import_migration,
+    generic_bump(old='1.8.0-pre2', new='1.8.0-pre3'),
+]

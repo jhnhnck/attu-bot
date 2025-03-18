@@ -1,12 +1,5 @@
-config_version = "1.7.2"
+config_version = "1.8.0-pre3"
 timestamps = []
-
-[epoch]
-time = 1660510800
-year = 1
-paused = false
-length = 14
-rollover_time = "17:00"
 
 [auth.bot]
 token = "TOKEN_GOES_HERE"
@@ -17,28 +10,6 @@ page = "Example:Home"
 user = "WikiBot@WikiBot"
 endpoint = "https://example.org"
 
-[discord.channels]
-activity = 1000000000000000000
-announcements = 1000000000000000000
-year_vc = 1000000000000000000
-doom_forum = 1000000000000000000
-year_links = 1000000000000000000
-meta_chat = 1000000000000000000
-lore_channels = [
-  1000000000000000000,
-  1000000000000000000,
-  1000000000000000000,
-  1000000000000000000,
-  1000000000000000000,
-]
-error_log = 1000000000000000000
-
-[discord.roles]
-leaders = 1000000000000000000
-
-[discord.users]
-markers = [1000000000000000000]
-
 [discord.guilds]
-attu = 1000000000000000000
-jhn = 1000000000000000000
+primary = 1000000000000000000
+authorized = [1000000000000000000, 2000000000000000000]
