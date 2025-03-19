@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import datetime
+import re
 import sys
 from os import getenv
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import ClassVar
 from zoneinfo import ZoneInfo
 
 import toml
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import BaseModel, ValidationError, field_validator, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
@@ -40,6 +41,37 @@ class NovaToken(Model):
 
     def __str__(self):
         return f'{self.guild}/{self.key}={self.unpack()}'
+
+
+class ParsedTokenKey(BaseModel):
+    guild: int
+    key: str
+
+    @model_validator(mode='before')
+    def setup(data: dict):
+        raw_key = data.get('key', '').lower()
+        match = re.fullmatch(r'(?:(\d+)(?:/))?([a-z._]+)', raw_key)
+
+        if match is None:
+            raise InvalidTokenKey(raw_key)
+
+        guild, key = match.groups()[0], match.groups()[1]
+
+        if guild is not None:
+            data['guild'] = guild
+
+        data['key'] = key
+
+        return data
+
+    @field_validator('guild', mode='after')
+    def validate_guild(guild: int):
+        if guild != 0 or guild not in NovaConfig.authorized_guilds:
+            raise UnauthorizedGuild(guild)
+
+    # TODO: Implement
+    def authorized(user: int, guild: int):
+        return True
 
 # --- Components ---
 
@@ -151,6 +183,12 @@ class UnauthorizedGuild(Exception):
         self.message = f'Guild "{guild}" not in the authorized guilds list'
         super().__init__(self.message)
 
+
+class InvalidTokenKey(Exception):
+    def __init__(self, key: str):
+        self.message = f'Invalid key "{key}" for selected guild or group'
+        super().__init__(self.message)
+
 # --- Config Class ---
 
 # New Config Rewrite
@@ -161,6 +199,28 @@ class NovaConfig:
     authorized_guilds: list[int]
     error_log: list[int, int]
     primary_guild: int
+
+    # SELECT DISTINCT key FROM novatoken;
+    valid_keys: ClassVar[list[str]] = [
+        '0/error_log',
+        '0/version',
+        'channels.activity',
+        'channels.announcements',
+        'channels.lore_channels',
+        'channels.meta_chat',
+        'channels.year_links',
+        'channels.year_vc',
+        'epoch.length',
+        'epoch.paused',
+        'epoch.rollover_time',
+        'epoch.time',
+        'epoch.year',
+        'roles.announcements',
+        'users.markers',
+    ]
+
+    guild_keys: ClassVar[list[str]] = filter(lambda key: not key.startswith('0/'), valid_keys)
+    global_keys: ClassVar[list[str]] = filter(lambda key: key.startswith('0/'), valid_keys)
 
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
