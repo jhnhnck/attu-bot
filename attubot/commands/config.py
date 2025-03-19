@@ -20,7 +20,7 @@ config_group = discord.SlashCommandGroup('config', default_member_permissions=Pe
 @config_group.command(name='delete', description='Delete a specific key from the config table')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_delete(ctx, key: str):
-    await ctx.respond('Oops. Not Implemented!', ethemeral=True)
+    await ctx.respond('Oops. Not Implemented!', ephemeral=True)
 
 
 @config_group.command(name='get', description='Fetch the value of a configuration')
@@ -57,7 +57,7 @@ async def config_set(ctx, key: str, value: str):
 
 @config_group.command(name='show', description='Show the entire server configuration')
 async def config_show(ctx):
-    await ctx.respond('Oops. Not Implemented!', ethemeral=True)
+    await ctx.respond('Oops. Not Implemented!', ephemeral=True)
 
 # --- Extension Def ---
 
