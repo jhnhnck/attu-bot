@@ -127,12 +127,13 @@ def start_bot_loop():
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
     bot.load_extension('attubot.tasks')
-    bot.load_extension('attubot.commands.time')
+    bot.load_extension('attubot.commands.config')
     bot.load_extension('attubot.commands.debug')
     bot.load_extension('attubot.commands.marker')
-    bot.load_extension('attubot.commands.year')
-    bot.load_extension('attubot.commands.wiki')
     bot.load_extension('attubot.commands.query')
+    bot.load_extension('attubot.commands.time')
+    bot.load_extension('attubot.commands.wiki')
+    bot.load_extension('attubot.commands.year')
 
     logger.info('Starting Bot')
     bot.run(NovaConfig.bot_token)

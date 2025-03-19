@@ -26,7 +26,21 @@ async def config_delete(ctx, key: str):
 @config_group.command(name='get', description='Fetch the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_get(ctx, key: str):
-    await ctx.respond('Oops. Not Implemented!', ethemeral=True)
+    token_ref = NovaConfig.parse_key(ctx.guild.id, key)
+
+    # check if valid token key
+    if token_ref is None:
+        await ctx.respond('Failed: Key is not a valid identifier', ephemeral=True)
+        return
+
+    # check if authorized to view
+    if not token_ref.authorized(ctx.author.id, ctx.guild.id):
+        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        return
+
+    value = await NovaConfig.get(token_ref.key, guild=token_ref.guild)
+
+    await ctx.respond(f'`{token_ref!s}` = `{value!s}`')
 
 
 @config_group.command(name='list', description='List out the available config options')

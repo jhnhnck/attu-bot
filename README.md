@@ -12,7 +12,7 @@ DoomBot was designed for the Attu Project to assist with essential timekeeping f
 
 The bot maintains a timekeeping system that calculates the current year and determines the transition to the next year based on a defined epoch and its length
 
-- The starting point for in-universe time is defined in the configuration file, including the initial year and the length of each year in days
+- The starting point for in-universe time is defined in the configuration, including the initial year and the length of each year in days
 - The current year is calculated by determining the number of days that have passed since the epoch and adding this to the initial year
 - The bot monitors total days passed to accurately handle transitions to the next year based on a defined trigger time
 - A timestamp for each passed year is stored in Discord snowflake format to reference past years and link to specific moments within the lore channels
@@ -33,7 +33,7 @@ $ git clone https://github.com/jhnhnck/attu-bot.git
 $ cd attu-bot
 ```
 
-2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API key, page and username, channel IDs, role ID for leaders, epoch settings (time, year, paused status, and length), bot owner's user ID, actual server IDs for guilds:
+2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API details and authorized guilds:
 ```bash
 $ cp ./config/attu-bot.sample.toml ./attu-bot.toml
 
@@ -69,6 +69,8 @@ Use the following commands to interact with the bot:
 
 ### Admin
 
+- **/config**: Modify various options for bot behavior (Admin only)
+  - **/config get <key>**: Description goes here
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug dump_config**: Prints currently loaded config values to console
   - **/debug force_error**: Causes an internal error to be thrown
@@ -93,6 +95,37 @@ Use the following commands to interact with the bot:
 - **/wiki**: Utlities for managing and querying the wiki
   - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
   - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
+
+## Configuration Keys
+
+### Global
+
+- **0/error_log**: [1000000000000000000, 1000000000000000000]
+
+### Guild Specific
+
+If using the `[Import]` directive within the config file, use the following format: `<guild id>/<key name>`
+
+- Channels:
+  - **channels.activity**: 1000000000000000000
+  - **channels.announcements**: 1000000000000000000
+  - **channels.lore_channels**: [1000000000000000000, 1000000000000000000, 1000000000000000000, 1000000000000000000, 1000000000000000000]
+  - **channels.meta_chat**: 1000000000000000000
+  - **channels.year_links**: 1000000000000000000
+  - **channels.year_vc**: 1000000000000000000
+
+- Epoch:
+  - **epoch.length**: 14
+  - **epoch.paused**: false
+  - **epoch.rollover_time**: "17:00"
+  - **epoch.time**: 1660101177
+  - **epoch.year**: 1
+
+- Roles:
+  - **roles.announcements**: 1000000000000000000
+
+- Users:
+  - **users.markers**: [1000000000000000000, 1000000000000000000]
 
 ## License
 

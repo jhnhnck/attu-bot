@@ -73,7 +73,7 @@ class ParsedTokenKey(BaseModel):
             raise InvalidTokenKey(self.key)
 
     # TODO: Implement
-    def authorized(user: int, guild: int):
+    def authorized(self, user: int, guild: int):
         return True
 
     def __str__(self):
