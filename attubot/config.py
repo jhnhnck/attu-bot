@@ -15,7 +15,7 @@ from typing import ClassVar
 from zoneinfo import ZoneInfo
 
 import toml
-from pydantic import BaseModel, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
@@ -64,14 +64,20 @@ class ParsedTokenKey(BaseModel):
 
         return data
 
-    @field_validator('guild', mode='after')
-    def validate_guild(guild: int):
-        if guild != 0 or guild not in NovaConfig.authorized_guilds:
-            raise UnauthorizedGuild(guild)
+    @model_validator(mode='after')
+    def validate(self):
+        if self.guild != 0 and self.guild not in NovaConfig.authorized_guilds:
+            raise UnauthorizedGuild(self.guild)
+
+        if (self.guild == 0 and self.key not in NovaConfig.global_keys) or (self.guild != 0 and self.key not in NovaConfig.guild_keys):
+            raise InvalidTokenKey(self.key)
 
     # TODO: Implement
     def authorized(user: int, guild: int):
         return True
+
+    def __str__(self):
+        return f'{self.guild}/{self.key}'
 
 # --- Components ---
 
@@ -201,9 +207,7 @@ class NovaConfig:
     primary_guild: int
 
     # SELECT DISTINCT key FROM novatoken;
-    valid_keys: ClassVar[list[str]] = [
-        '0/error_log',
-        '0/version',
+    guild_keys: ClassVar[list[str]] = [
         'channels.activity',
         'channels.announcements',
         'channels.lore_channels',
@@ -219,8 +223,12 @@ class NovaConfig:
         'users.markers',
     ]
 
-    guild_keys: ClassVar[list[str]] = filter(lambda key: not key.startswith('0/'), valid_keys)
-    global_keys: ClassVar[list[str]] = filter(lambda key: key.startswith('0/'), valid_keys)
+    global_keys: ClassVar[list[str]] = [
+        'error_log',
+        'version',
+    ]
+
+    valid_keys: ClassVar[list[str]] = [*guild_keys, *global_keys]
 
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
@@ -319,6 +327,17 @@ class NovaConfig:
         Config.on_load()  # bootstrap old config structure
 
     # --- Public Methods ---
+
+    @classmethod
+    def parse_key(cls, guild: int, key: str) -> ParsedTokenKey | None:
+        try:
+            return ParsedTokenKey(guild=guild, key=key)
+
+        except Exception as err:
+            logger.error(f'Caught exception in parse_key(): {err!s}')
+
+            return None
+
 
     @classmethod
     def guild(cls, guild) -> Guild:
