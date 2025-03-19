@@ -1,5 +1,5 @@
 """
-AttuBot - Logging wrapper
+AttuBot - Logging Utility
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
@@ -11,37 +11,50 @@ from os import environ
 from termcolor import colored
 
 class Logger:
+    """
+    Logger supports the following logging levels: trace, debug, info, warn, error, fatal
+
+    Args:
+      class_name (str): Name of the class or module using the logger
+      debug_mode (bool): Whether debug logging is enabled (set by DEBUG env var)
+
+    Example:
+      ```
+      from attubot.logging import get_logger
+      logger = get_logger(__name__)
+      ````
+    """
+
     class_name: str
 
     def __init__(self, class_name):
         self.class_name = class_name or 'attubot.???'
+        self.debug_mode = 'DEBUG' in environ
+        nop = lambda *a, **k: None  # noqa: E731
 
-    def _stdout(self, level, message):
-        print(colored(f'{self.class_name}[{level}]', 'cyan'), message)
+        self.trace = self._generate('trace', sys.stdout, 'light_green') if self.debug_mode else nop
+        self.debug = self._generate('debug', sys.stdout, 'blue') if self.debug_mode else nop
 
-    def _stderr(self, level, message):
-        print(colored(f'{self.class_name}[{level}]', 'light_red'), message, file=sys.stderr)
+        self.info = self._generate('info', sys.stdout, 'cyan')
+        self.warn = self._generate('warn', sys.stderr, 'light_red')
+        self.error = self._generate('error', sys.stderr, 'light_red')
+        self.fatal = self._generate('fatal', sys.stderr, 'red')
 
-    def trace(self, message):
-        if 'DEBUG' in environ:
-            self._stdout('trace', message)
+    def _generate(self, level, file, color):
+        def printer(*obj: object, sep: str = ' ', end: str = '\n', flush: bool = False) -> None:
+            """
+            Prints formatted log messages with severity and origin indicators, mirrors print builtin interface and behavior
 
-    def debug(self, message):
-        if 'DEBUG' in environ:
-            self._stdout('debug', message)
+            Args:
+              sep (str): string inserted between values, default a space
+              end (str): string appended after the last value, default a newline
+              flush (bool): whether to forcibly flush the stream (idk either)
+            """
+            print(colored(f'{self.class_name}[{level}] ', color), end='', flush=flush, file=file)
+            print(*obj, sep=sep, end=end, flush=flush, file=file)
 
-    def info(self, message):
-        self._stdout('info', message)
-
-    def warn(self, message):
-        self._stderr('warn', message)
-
-    def error(self, message):
-        self._stderr('error', message)
-
-    def fatal(self, message):
-        self._stderr('fatal', message)
+        return printer
 
 
-def get_logger(class_name):
+def get_logger(class_name: str) -> Logger:
     return Logger(class_name)
