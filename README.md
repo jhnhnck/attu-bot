@@ -71,6 +71,7 @@ Use the following commands to interact with the bot:
 
 - **/config**: Modify various options for bot behavior (Admin only)
   - **/config get <key>**: Description goes here
+
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug dump_config**: Prints currently loaded config values to console
   - **/debug force_error**: Causes an internal error to be thrown
