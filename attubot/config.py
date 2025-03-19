@@ -266,7 +266,7 @@ class NovaConfig:
 
         except ValidationError as err:
             for line in err.errors():
-                logger.fatal(f'Validation Failed: {line.loc!s} {line.msg}')
+                logger.error(*[f'Validation failed: {line.loc!s} {line.msg}' for line in err.errors()])
             sys.exit(1)  # TODO: Throw error instead
 
         Config.on_init()  # bootstrap old config structure
@@ -317,8 +317,7 @@ class NovaConfig:
                 cls._guilds[guild] = Guild(**config, id=guild)
 
             except ValidationError as err:
-                for line in err.errors():
-                    logger.error(f'Failed to validate {guild}: {line.loc!s} {line.msg}')
+                logger.error(*[f'Failed to validate {guild}: {line.loc!s} {line.msg}' for line in err.errors()])
 
                 cls._guilds[guild] = None
 
