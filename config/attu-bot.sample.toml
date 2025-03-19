@@ -1,4 +1,4 @@
-config_version = "1.8.0-pre3"
+config_version = "1.8.0-pre4"
 timestamps = []
 
 [auth.bot]

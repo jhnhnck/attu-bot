@@ -37,8 +37,12 @@ async def send_to_error_log(error):
 
     # this removes the useless bits
     tb_str = tb_str.split('The above exception')[0]
+    msg = f'**{error}**\n```\n{tb_str}```'
 
-    await error_log.send(f'**{error}**\n```\n{tb_str}```')
+    if len(msg) > 2000:
+        msg = msg[:1992] + '\n...\n```'
+
+    await error_log.send(msg)
 
 # --- Events ---
 
