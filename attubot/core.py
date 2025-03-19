@@ -71,6 +71,10 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    if message.guild is None:
+        logger.warn(f'Got message {message!s} with blank guild, skipping')
+        return
+
     channel = NovaConfig.guild(message.guild.id).channels.activity
 
     if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username

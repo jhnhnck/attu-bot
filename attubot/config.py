@@ -72,6 +72,8 @@ class ParsedTokenKey(BaseModel):
         if (self.guild == 0 and self.key not in NovaConfig.global_keys) or (self.guild != 0 and self.key not in NovaConfig.guild_keys):
             raise InvalidTokenKey(self.key)
 
+        return self
+
     # TODO: Implement
     def authorized(self, user: int, guild: int):
         return True
