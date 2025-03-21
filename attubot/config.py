@@ -291,32 +291,6 @@ class NovaConfig:
 
         Config.on_init()  # bootstrap old config structure
 
-    @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
-    async def on_ready(cls, bot):
-        cls._bot = bot
-
-        if bot.user.id not in Config.users.markers:
-            logger.info('Adding bot user to valid year marker authors')
-            Config.users.markers.append(bot.user.id)
-
-        for idx, guild in cls._guilds.items():
-            if bot.user.id not in guild.users.markers:
-                logger.info(f'Adding bot user to valid year marker authors for {idx}')
-
-                guild.users.markers.append(NovaConfig._bot.user.id)
-                await cls.set('users.markers', guild.users.markers, guild=idx)
-
-        cls.path.chmod(0o660)
-        cls.db_path.chmod(0o660)
-
-        # dump keys with empty values
-        await NovaToken.filter(value='X = 0').delete()
-
-        if cls.test_mode:
-            logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict()), sep='\n')
-
-        await Tortoise.close_connections()
-
     @classmethod  # called by markers setup after db is connected
     async def on_load(cls):
         # handle data migration
@@ -347,6 +321,32 @@ class NovaConfig:
         await Tortoise.close_connections()
 
         Config.on_load()  # bootstrap old config structure
+
+    @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
+    async def on_ready(cls, bot):
+        cls._bot = bot
+
+        if bot.user.id not in Config.users.markers:
+            logger.info('Adding bot user to valid year marker authors')
+            Config.users.markers.append(bot.user.id)
+
+        for idx, guild in cls._guilds.items():
+            if bot.user.id not in guild.users.markers:
+                logger.info(f'Adding bot user to valid year marker authors for {idx}')
+
+                guild.users.markers.append(bot.user.id)
+                await cls.set('users.markers', guild.users.markers, guild=idx)
+
+        cls.path.chmod(0o660)
+        cls.db_path.chmod(0o660)
+
+        # dump keys with empty values
+        await NovaToken.filter(value='X = 0').delete()
+
+        if cls.test_mode:
+            logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
+
+        await Tortoise.close_connections()
 
     # --- Public Methods ---
 
