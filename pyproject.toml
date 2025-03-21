@@ -24,6 +24,7 @@ select = [
 ignore = [
   "E501", # line-length violations
   "PLR2004",  # magic values
+  "PLE1205",  # logging builtin
 ]
 
 exclude = [".venv", "**/*.wip.py"]
