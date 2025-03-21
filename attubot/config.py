@@ -26,10 +26,20 @@ logger = get_logger(__name__)
 # --- Database Model ---
 
 class NovaToken(Model):
+    """
+    NovaToken - Key-Value Wrapper for Database
+
+    Args:
+      guild (int): snowflake id for discord guild (0 for global)
+      key (str): dot-seperated identifier for value (must be in valid)
+      value (str): TOML-encoded value (to avoid needing to parse values ourselves)
+    """
+
     id = fields.IntField(primary_key=True)
     guild = fields.IntField(default=0)
     key = fields.TextField()
     value = fields.TextField(default='X = 0')
+    # valid_types = []
 
     async def pack(self, value):
         self.value = tomlkit.dumps({'X': value})
@@ -197,6 +207,17 @@ class InvalidTokenKey(Exception):
 
 # New Config Rewrite
 class NovaConfig:
+    """
+    NovaConfig - Redesigned Config Storage System
+
+    design decisions tl;dr
+    - only stored in config file for security reasons or if needed before db init step
+    - split into three loading steps:
+      - on_init: ran first upon start, loads and unpacks config file
+      - on_load: ran after database connect, loads and unpacks NovaToken store
+      - on_ready: ran after all other init steps, maintainance tasks
+    """
+
     config_version: str = __version__
     wiki: WikiAuth
     bot_token: str
