@@ -372,6 +372,10 @@ class NovaConfig:
         else:
             logger.warn(f'Key Not Set [{guild}/{key.lower()}]; Cannot Remove')
 
+    @classmethod
+    def is_owner(cls, user: str):
+        return cls._bot.is_owner(user)
+
     # --- Private Methods ---
 
     @classmethod
