@@ -1,4 +1,4 @@
-py-cord>=2.4,<3
+py-cord[speed]>=2.4,<3
 pydantic
 python-dotenv
 requests
