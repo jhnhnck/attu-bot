@@ -34,7 +34,7 @@ async def config_get(ctx, key: str):
         return
 
     # check if authorized to view
-    if not token_ref.authorized(ctx.author.id, ctx.guild.id):
+    if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='read'):
         await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
         return
 

@@ -74,12 +74,9 @@ class ParsedTokenKey(BaseModel):
 
         return self
 
-    # TODO: Implement
-    def authorized(self, user: int, guild: int):
-        return True
+    def authorized(self, user: int, guild: int, mode: str):  # (Keeping mode level here for future usecases)
+        return (self.guild == 0 and NovaConfig._bot.is_owner(user)) or self.guild == guild
 
-    def __str__(self):
-        return f'{self.guild}/{self.key}'
 
 # --- Components ---
 
