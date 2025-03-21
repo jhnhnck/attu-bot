@@ -3,5 +3,5 @@ pydantic
 python-dotenv
 requests
 termcolor
-toml
+tomlkit
 tortoise-orm<2

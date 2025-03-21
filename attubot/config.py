@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from typing import ClassVar
 from zoneinfo import ZoneInfo
 
-import toml
+import tomlkit
 from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
@@ -33,11 +33,11 @@ class NovaToken(Model):
     value = fields.TextField(default='X = 0')
 
     async def pack(self, value):
-        self.value = toml.dumps({'X': value})
+        self.value = tomlkit.dumps({'X': value})
         await self.save()
 
     def unpack(self):
-        return toml.loads(self.value)['X']
+        return tomlkit.loads(self.value)['X']
 
     def __str__(self):
         return f'{self.guild}/{self.key}={self.unpack()}'
@@ -249,7 +249,7 @@ class NovaConfig:
         logger.info(f'Loading config from "{cls.path}"')
 
         with cls.path.open() as file:
-            cls._raw = toml.load(file)
+            cls._raw = tomlkit.load(file)
 
         # validate config version
         if cls._raw['config_version'] != cls.config_version:
@@ -339,7 +339,6 @@ class NovaConfig:
 
             return None
 
-
     @classmethod
     def guild(cls, guild) -> Guild:
         if guild in cls.authorized_guilds:
@@ -403,7 +402,7 @@ class NovaConfig:
         result = {}
 
         def convert_value(value):
-            if isinstance(value, SimpleNamespace | BaseModel):
+            if isinstance(value, BaseModel):
                 return {k: convert_value(v) for k, v in vars(value).items()}
 
             elif isinstance(value, list):
@@ -411,6 +410,9 @@ class NovaConfig:
 
             elif isinstance(value, dict):
                 return {k: convert_value(v) for k, v in value.items()}
+
+            elif isinstance(value, Path):
+                return str(value)
 
             else:
                 return value
@@ -486,7 +488,7 @@ class Config:
         logger.info(f'Writing new config to "{cls.path}"')
 
         with cls.path.open('w') as file:
-            toml.dump(cls._raw, file)
+            tomlkit.dump(cls._raw, file)
 
         NovaConfig.on_init()
 
@@ -497,7 +499,7 @@ class Config:
         result = {}
 
         def convert_value(value):
-            if isinstance(value, SimpleNamespace | BaseModel):
+            if isinstance(value, BaseModel):
                 return {k: convert_value(v) for k, v in vars(value).items()}
 
             elif isinstance(value, list):

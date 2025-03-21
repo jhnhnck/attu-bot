@@ -11,7 +11,7 @@ from platform import freedesktop_os_release as os_release
 from platform import python_version
 
 import discord
-import toml
+import tomlkit
 from discord import Embed, Permissions
 from discord.ext import commands
 from discord.utils import snowflake_time
@@ -97,8 +97,7 @@ async def debug_message(ctx, link):
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx):
-    logger.info('Dumping Config:\n' + toml.dumps(Config.to_dict()))
-    logger.info('Dumping NovaConfig:\n' + toml.dumps(NovaConfig.to_dict()))
+    logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sep='\n'))
 
     await ctx.respond('Done!')
 
