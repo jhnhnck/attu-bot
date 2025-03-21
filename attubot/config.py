@@ -10,7 +10,6 @@ import re
 import sys
 from os import environ, getenv
 from pathlib import Path
-from types import SimpleNamespace
 from typing import ClassVar
 from zoneinfo import ZoneInfo
 
