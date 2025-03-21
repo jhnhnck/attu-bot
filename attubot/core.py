@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import sys
 import traceback
 
 import discord
@@ -61,6 +62,10 @@ async def on_ready():
 
         logger.info('Checking config for updates')
         await NovaConfig.on_ready(bot)
+
+        if NovaConfig.test_mode:
+            logger.fatal('Reached ready state; exiting...')
+            sys.exit(0)
 
         logger.info('Pushing commands to Discord')
         await bot.sync_commands()

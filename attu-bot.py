@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 AttuBot - Command line entrypoint
 Author(s): @jhnhnck <john@jhnhnck.com>
@@ -34,6 +34,8 @@ except Exception as error:
     tb_str = ''.join(traceback.format_exception(error))
     logger.error(f'{error!s}\n{tb_str}')
 
-    logger.fatal('Fatal error encountered; will exit/restart in 60 secs')
-    time.sleep(60)
+    if 'TEST_MODE' not in environ:
+        logger.fatal('Fatal error encountered; will exit/restart in 60 secs')
+        time.sleep(60)
+
     sys.exit(1)

@@ -1,0 +1,17 @@
+services:
+  core:
+    container_name: attu-bot-testing
+    user: 'doom:doom'
+    build: .
+    restart: no
+    command: bash -c "cp -v /app/tests/* /app/ && time python -u /app/attu-bot.py"
+    environment:
+      ATTU_CONFIG_FILE: /app/attu-bot.toml
+      ATTU_MARKER_DB: /app/markers.db
+      DEBUG: 1
+      TEST_MODE: 1
+    volumes:
+    - ./attu-bot.toml:/app/tests/attu-bot.toml
+    - ./markers.db:/app/tests/markers.db
+    logging:
+      driver: journald

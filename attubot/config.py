@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import datetime
 import re
 import sys
-from os import getenv
+from os import environ, getenv
 from pathlib import Path
 from types import SimpleNamespace
 from typing import ClassVar
@@ -234,6 +234,7 @@ class NovaConfig:
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     _bot: ClassVar = None
     _guilds: ClassVar[dict[str, Guild]] = {}
+    test_mode: bool = 'TEST_MODE' in environ
 
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
@@ -290,6 +291,9 @@ class NovaConfig:
 
         # dump keys with empty values
         await NovaToken.filter(value='X = 0').delete()
+
+        if cls.test_mode:
+            logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict()), sep='\n')
 
         await Tortoise.close_connections()
 
