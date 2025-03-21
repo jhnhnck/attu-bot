@@ -16,7 +16,6 @@ class Logger:
 
     Args:
       class_name (str): Name of the class or module using the logger
-      debug_mode (bool): Whether debug logging is enabled (set by DEBUG env var)
 
     Example:
       ```
