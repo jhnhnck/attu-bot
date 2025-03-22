@@ -65,7 +65,6 @@ async def config_list(ctx):
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 @discord.commands.option(name='value', required=True, description='', input_type=str)
 async def config_set(ctx, key: str, value: str):
-    await ctx.respond('Oops. Not Implemented!', ephemeral=True)
     token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
@@ -84,10 +83,11 @@ async def config_set(ctx, key: str, value: str):
     try:
         token.value = f'X = {value}'
         new_value = token.unpack()
+        await token.save()
 
     except Exception as err:
         await ctx.respond(f"Failed: Couldn't parse value; {err!s}", ephemeral=True)
-        token.pack(old_value)  # restore old value on fail
+        await token.pack(old_value)  # restore old value on fail
         return
 
     if token_ref.guild == 0:
@@ -98,7 +98,7 @@ async def config_set(ctx, key: str, value: str):
 
     else:
         await ctx.respond("Failed: Couldn't validate guild with new value", ephemeral=True)
-        token.pack(old_value)  # restore old value on fail
+        await token.pack(old_value)  # restore old value on fail
 
 
 @config_group.command(name='show', description='Show the entire guild configuration')
@@ -115,7 +115,7 @@ async def config_show(ctx):
             else:
                 msg.append(f'`{key}` = *unset / default*')
 
-        ctx.respond('Current Guild Config:\n' + '\n'.join(msg))
+        await ctx.respond('Current Guild Config:\n' + '\n'.join(msg))
 
 
 @config_group.command(name='validate', description='Check if the current configuration is valid')
