@@ -351,7 +351,7 @@ class NovaConfig:
     # --- Public Methods ---
 
     @classmethod
-    def parse_key(cls, guild: int, key: str) -> ParsedTokenKey | None:
+    def parse_key(cls, key: str, guild: int = 0) -> ParsedTokenKey | None:
         try:
             return ParsedTokenKey(guild=guild, key=key)
 
@@ -420,6 +420,16 @@ class NovaConfig:
         else:
             logger.info('Finished applying config table patches')
 
+
+
+    @classmethod
+    async def load_guild(cls, guild: int) -> bool:
+        config = {}
+        prev_state = cls._guilds.get(guild, None)
+
+        try:
+            logger.info(f'{"Loading" if prev_state is None else "Reloading"} guild config for {guild}')
+            async for token in NovaToken.filter(guild=guild):
     # --- Debug ---
 
     @classmethod

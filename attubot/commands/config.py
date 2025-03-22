@@ -26,7 +26,7 @@ async def config_delete(ctx, key: str):
 @config_group.command(name='get', description='Fetch the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_get(ctx, key: str):
-    token_ref = NovaConfig.parse_key(ctx.guild.id, key)
+    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
     if token_ref is None:
