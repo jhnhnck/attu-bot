@@ -190,6 +190,9 @@ class Guild(BaseModel):
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
         self.epoch.paused = await NovaConfig.set('epoch.paused', False, guild=self.id)
 
+    async def reload(self) -> bool:
+        return await NovaConfig._load_guild(self.id)
+
 # --- Exceptions ---
 
 class UnauthorizedGuild(Exception):
@@ -253,7 +256,7 @@ class NovaConfig:
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     _bot: ClassVar = None
-    _guilds: ClassVar[dict[str, Guild]] = {}
+    _guilds: ClassVar[dict[int, Guild]] = {}
     test_mode: bool = 'TEST_MODE' in environ
 
     @classmethod  # called first upon startup, load config file only
@@ -296,27 +299,16 @@ class NovaConfig:
         # handle data migration
         if cls.config_version != (await cls.get('version', default=cls.config_version)):
             await cls._migrate()
+
         else:
             logger.info(f'Matched table version: {__version__}')
 
-        # global vars
-        cls.error_log: list[int, int] = await cls.get('error_log', default=(0, 0))
+        await cls._import()  # import config overrides from file
+        await cls.load_globals()  # global vars
 
         # load guild configs
         for guild in cls.authorized_guilds:
-            logger.info(f'Loading guild config for {guild}')
-            config = {}
-
-            try:
-                async for token in NovaToken.filter(guild=guild):
-                    config[str(token.key)] = token.unpack()
-
-                cls._guilds[guild] = Guild(**config, id=guild)
-
-            except ValidationError as err:
-                logger.error(*[f'Failed to validate {guild}: {line.loc!s} {line.msg}' for line in err.errors()])
-
-                cls._guilds[guild] = None
+            await cls.load_guild(guild)
 
         await Tortoise.close_connections()
 
@@ -421,6 +413,9 @@ class NovaConfig:
             logger.info('Finished applying config table patches')
 
 
+    @classmethod
+    async def load_globals(cls):
+        cls.error_log: list[int, int] = await cls.get('error_log', default=(0, 0))
 
     @classmethod
     async def load_guild(cls, guild: int) -> bool:
