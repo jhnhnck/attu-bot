@@ -360,14 +360,29 @@ class NovaConfig:
             raise UnauthorizedGuild(guild)
 
     @staticmethod
-    async def get(key: str, guild: int = 0, default=None):
+    async def get(key: str, guild: int = 0, default=0):
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
-        if created:
+        if created and default != 0:
             logger.warn(f'Key Not Set [{guild}/{key.lower()}] default={default}')
             await token.pack(default)
 
-        return token.unpack()
+        elif created:
+            await token.delete()
+            return None
+
+        else:
+            return token.unpack()
+
+    @staticmethod
+    async def get_raw(key: str, guild: int = 0, default=0):
+        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
+
+        if created and default != 0:
+            logger.warn(f'Key Not Set [{guild}/{key.lower()}] default={default}')
+            await token.pack(default)
+
+        return token
 
     @staticmethod
     async def set(key: str, value, guild: int = 0):
@@ -441,6 +456,17 @@ class NovaConfig:
         try:
             logger.info(f'{"Loading" if prev_state is None else "Reloading"} guild config for {guild}')
             async for token in NovaToken.filter(guild=guild):
+                config[str(token.key)] = token.unpack()
+
+            cls._guilds[guild] = Guild(**config, id=guild)
+            return True
+
+        except ValidationError as err:
+            logger.error(*[f'Failed to validate {guild}: {line.loc!s} {line.msg}' for line in err.errors()])
+
+            cls._guilds[guild] = prev_state
+            return False
+
     # --- Debug ---
 
     @classmethod
