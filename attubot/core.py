@@ -77,7 +77,11 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if message.guild is None:
-        logger.warn(f'Got message {message!s} with blank guild, skipping')
+        logger.debug(f'Skipping checks for message from "{message.author.name}" with blank guild')
+        return
+
+    if message.guild.id not in NovaConfig.valid_guilds:
+        logger.debug(f'Skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
         return
 
     channel = NovaConfig.guild(message.guild.id).channels.activity
