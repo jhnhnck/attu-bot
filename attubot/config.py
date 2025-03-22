@@ -470,9 +470,11 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(*[f'Failed to validate {guild}: {line.loc!s} {line.msg}' for line in err.errors()])
+            logger.error(f'Failed to validate {guild}: {err!s}')
 
-            cls._guilds[guild] = prev_state
+            if prev_state is not None:
+                cls._guilds[guild] = prev_state
+
             return False
 
     # --- Debug ---
