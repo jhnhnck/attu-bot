@@ -70,7 +70,11 @@ Use the following commands to interact with the bot:
 ### Admin
 
 - **/config**: Modify various options for bot behavior (Admin only)
-  - **/config get <key>**: Description goes here
+  - **/config delete <key>**: Delete a specific key from the config table
+  - **/config get <key>**: Fetch the value of a configuration
+  - **/config list**: List out the available config options
+  - **/config set <key> <value>**: Set the value of a configuration
+  - **/config show**: Show the entire guild configuration
 
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug dump_config**: Prints currently loaded config values to console

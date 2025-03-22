@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import discord
 from discord import Permissions
 
-from attubot.config import NovaConfig
+from attubot.config import NovaConfig, NovaToken
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -20,7 +20,20 @@ config_group = discord.SlashCommandGroup('config', default_member_permissions=Pe
 @config_group.command(name='delete', description='Delete a specific key from the config table')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_delete(ctx, key: str):
-    await ctx.respond('Oops. Not Implemented!', ephemeral=True)
+    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
+
+    # check if valid token key
+    if token_ref is None:
+        await ctx.respond('Failed: Key is not a valid identifier', ephemeral=True)
+        return
+
+    # check if authorized to view
+    if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='write'):
+        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        return
+
+    await NovaConfig.delete(token_ref.key, guild=token_ref.guild)
+    await ctx.respond(f'Reset `{token_ref!s}` to the default value')
 
 
 @config_group.command(name='get', description='Fetch the value of a configuration')
@@ -53,11 +66,56 @@ async def config_list(ctx):
 @discord.commands.option(name='value', required=True, description='', input_type=str)
 async def config_set(ctx, key: str, value: str):
     await ctx.respond('Oops. Not Implemented!', ephemeral=True)
+    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
+
+    # check if valid token key
+    if token_ref is None:
+        await ctx.respond('Failed: Key is not a valid identifier', ephemeral=True)
+        return
+
+    # check if authorized to view
+    if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='write'):
+        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        return
+
+    token = await NovaConfig.get_raw(token_ref.key, guild=token_ref.guild)
+    old_value = token.unpack()
+
+    try:
+        token.value = f'X = {value}'
+        new_value = token.unpack()
+
+    except Exception as err:
+        await ctx.respond(f"Failed: Couldn't parse value; {err!s}", ephemeral=True)
+        token.pack(old_value)  # restore old value on fail
+        return
+
+    if token_ref.guild == 0:
+        await NovaConfig.load_globals()  # no type checking on this btw
+
+    elif await NovaConfig.load_guild(token_ref.guild):
+        await ctx.respond(f'Changed `{token_ref!s}` from `{old_value!s}` to `{new_value!s}`')
+
+    else:
+        await ctx.respond("Failed: Couldn't validate guild with new value", ephemeral=True)
+        token.pack(old_value)  # restore old value on fail
 
 
-@config_group.command(name='show', description='Show the entire server configuration')
+@config_group.command(name='show', description='Show the entire guild configuration')
 async def config_show(ctx):
-    await ctx.respond('Oops. Not Implemented!', ephemeral=True)
+        config = {}
+        msg = []
+
+        async for token in NovaToken.filter(guild=ctx.guild.id):
+            config[str(token.key)] = token.unpack()
+
+        for key in NovaConfig.guild_keys:
+            if key in config:
+                msg.append(f'`{key}` = `{config[key]!s}`')
+            else:
+                msg.append(f'`{key}` = *unset / default*')
+
+        ctx.respond('Current Guild Config:\n' + '\n'.join(msg))
 
 # --- Extension Def ---
 
