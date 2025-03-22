@@ -97,7 +97,7 @@ async def debug_message(ctx, link):
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx):
-    logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sep='\n'))
+    logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True, sep='\n'))
 
     await ctx.respond('Done!')
 
