@@ -117,6 +117,14 @@ async def config_show(ctx):
 
         ctx.respond('Current Guild Config:\n' + '\n'.join(msg))
 
+
+@config_group.command(name='validate', description='Check if the current configuration is valid')
+async def config_validate(ctx):
+    if ctx.guild.id in NovaConfig.valid_guilds:
+        await ctx.respond('Guild Status: :ballot_box_with_check:')
+    else:
+        await ctx.respond('Guild Status: :no_entry:')
+
 # --- Extension Def ---
 
 def setup(bot):

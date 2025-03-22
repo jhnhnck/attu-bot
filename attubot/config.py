@@ -227,6 +227,7 @@ class NovaConfig:
     wiki: WikiAuth
     bot_token: str
     authorized_guilds: list[int]
+    valid_guilds: ClassVar[list[int]] = []
     error_log: list[int, int]
     primary_guild: int
 
@@ -461,6 +462,11 @@ class NovaConfig:
                 config[str(token.key)] = token.unpack()
 
             cls._guilds[guild] = Guild(**config, id=guild)
+
+            if guild not in cls.valid_guilds:
+                cls.valid_guilds.append(guild)
+
+            logger.info('Validated new guild config')
             return True
 
         except ValidationError as err:
