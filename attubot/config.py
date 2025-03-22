@@ -412,6 +412,22 @@ class NovaConfig:
         else:
             logger.info('Finished applying config table patches')
 
+    @classmethod
+    async def _import(cls):
+        logger.info('Checking for config value imports')
+
+        if 'imports' not in cls._raw.keys():  # noqa: SIM118
+            return
+
+        for key, value in cls._raw['imports'].items():
+            token_key = cls.parse_key(key)
+
+            if token_key is not None:
+                logger.info(f'Importing: {key} = {value}')
+                await cls.set(token_key.key, value, guild=token_key.guild)
+
+            else:
+                logger.warn(f'Skipping import; invalid keypair: {key} = {value}')
 
     @classmethod
     async def load_globals(cls):
