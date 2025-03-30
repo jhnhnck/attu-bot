@@ -33,7 +33,7 @@ class NewYearEvent(commands.Cog):
         try:
             await self.check_for_new_year()
         except Exception as error:
-            send_to_error_log(error)
+            await send_to_error_log(error)
 
     @task_year_check.before_loop
     async def wait_for_ready(self):
