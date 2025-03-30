@@ -9,7 +9,7 @@ from discord.utils import snowflake_time
 from tortoise import Tortoise, fields, run_async
 from tortoise.models import Model
 
-from attubot.config import Config, NovaConfig
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -48,13 +48,6 @@ async def _init_db():
 
     await Tortoise.init(db_url=f'sqlite://{NovaConfig.db_path}', modules={'models': [__name__, 'attubot.config']})
     await Tortoise.generate_schemas(safe=True)
-
-    # TODO: Deprecate
-    # load in the timestamps from the config if they don't exist to channel 0
-    if not await YearMarker.exists(channel=0, year=1):
-        logger.info('Copying timestamps into marker database')
-        for year, timestamp in enumerate(Config.timestamps, start=1):
-            await YearMarker.create(channel=0, message=timestamp, year=year)
 
     logger.info(f'- Loaded [{await YearMarker.all().count()}] markers')
 

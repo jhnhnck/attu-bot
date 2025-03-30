@@ -536,9 +536,6 @@ class Config:
         # Guilds
         cls.attu_guild = NovaConfig.primary_guild
 
-        # Timestamps optional (still present for bootstrapping bot if needed for now)
-        Config.timestamps = Config._raw.get('timestamps', [])
-
     @classmethod
     def on_load(cls):
         guild = NovaConfig.guild(cls.attu_guild)

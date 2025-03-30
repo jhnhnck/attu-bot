@@ -84,4 +84,5 @@ migration_table = [
     import_migration,
     generic_bump(old='1.8.0-pre2', new='1.8.0-pre3'),
     migration_hotfix,
+    generic_bump(old='1.8.0-pre4', new='1.8.0-pre5'),
 ]

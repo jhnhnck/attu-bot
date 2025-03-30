@@ -1,5 +1,4 @@
-config_version = "1.8.0-pre4"
-timestamps = []
+config_version = "1.8.0-pre5"
 
 [auth.bot]
 token = "TOKEN_GOES_HERE"
