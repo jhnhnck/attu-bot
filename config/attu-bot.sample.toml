@@ -12,3 +12,5 @@ endpoint = "https://example.org"
 [discord.guilds]
 primary = 1000000000000000000
 authorized = [1000000000000000000, 2000000000000000000]
+
+[imports]
