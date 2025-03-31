@@ -144,7 +144,7 @@ class GuildEpoch(BaseModel):
         data['paused'] = data.get('epoch.paused', True)
 
         th = data.get('epoch.rollover_time', '17:00').split(':')
-        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ')))
+        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ', 'UTC')))
 
         return data
 
