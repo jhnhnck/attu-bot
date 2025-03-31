@@ -306,8 +306,7 @@ class NovaConfig:
             cls.wiki = WikiAuth(**cls._raw['auth']['wiki'])
 
         except ValidationError as err:
-            for line in err.errors():
-                logger.error(*[f'Validation failed: {line.loc!s} {line.msg}' for line in err.errors()])
+            logger.error(f'Failed to validate wiki auth configuration: {err!s}')
             sys.exit(1)  # TODO: Throw error instead
 
         Config.on_init()  # bootstrap old config structure
