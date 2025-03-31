@@ -206,7 +206,7 @@ class Guild(BaseModel):
         self.epoch.paused = await NovaConfig.set('epoch.paused', False, guild=self.id)
 
     async def reload(self) -> bool:
-        return await NovaConfig._load_guild(self.id)
+        return await NovaConfig.load_guild(self.id)
 
 # --- Exceptions ---
 
