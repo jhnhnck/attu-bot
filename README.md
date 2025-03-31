@@ -67,6 +67,9 @@ Use the following commands to interact with the bot:
   - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
   - **/year search <year>**: Prints search query for timlining
 
+- **/wiki**: Utlities for managing and querying the wiki
+  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
+
 ### Admin
 
 - **/config**: Modify various options for bot behavior (Admin only)
@@ -99,7 +102,6 @@ Use the following commands to interact with the bot:
 
 - **/wiki**: Utlities for managing and querying the wiki
   - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
-  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
 
 ## Configuration Keys
 
