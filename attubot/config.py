@@ -117,7 +117,8 @@ class GuildChannels(BaseModel):
     lore_channels: list[int]
 
     @model_validator(mode='before')
-    def setup(self, data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         data['activity'] = data.get('channels.activity', 0)
         data['year_vc'] = data.get('channels.year_vc', 0)
         data['announcements'] = data.get('channels.announcements', 0)
