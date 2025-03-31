@@ -65,9 +65,9 @@ async def marker_save(ctx, year: int, link: str, force: bool):
 
 @marker_group.command(name='set', description='Sets marker timestamp for when a specifc year starts')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=str)
+@discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=int)
 @commands.check(is_authorized_guild)
-async def marker_set(ctx, year: int, snowflake: str):
+async def marker_set(ctx, year: int, snowflake: int):
     _, current_year = get_year_status()
     snowflake = int(snowflake)
 
