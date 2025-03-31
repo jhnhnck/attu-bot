@@ -10,10 +10,11 @@ import re
 import sys
 from os import environ, getenv
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar, Self, TypedDict, cast
 from zoneinfo import ZoneInfo
 
 import tomlkit
+from discord import Bot
 from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
@@ -41,14 +42,14 @@ class NovaToken(Model):
     value = fields.TextField(default='X = 0')
     # valid_types = []
 
-    async def pack(self, value):
+    async def pack(self, value) -> None:
         self.value = tomlkit.dumps({'X': value})
         await self.save()
 
-    def unpack(self):
+    def unpack(self) -> Any:
         return tomlkit.loads(self.value)['X']
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.guild}/{self.key}={self.unpack()}'
 
 
@@ -57,7 +58,8 @@ class ParsedTokenKey(BaseModel):
     key: str
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         raw_key = data.get('key', '').lower()
         match = re.fullmatch(r'(?:(\d+)(?:/))?([a-z._]+)', raw_key)
 
@@ -74,7 +76,7 @@ class ParsedTokenKey(BaseModel):
         return data
 
     @model_validator(mode='after')
-    def validate(self):
+    def validate(self) -> Self:
         if self.guild != 0 and self.guild not in NovaConfig.authorized_guilds:
             raise UnauthorizedGuild(self.guild)
 
@@ -90,6 +92,13 @@ class ParsedTokenKey(BaseModel):
         return f'{self.guild}/{self.key}'
 
 # --- Components ---
+
+class RawConfig(TypedDict):
+    config_version: str
+    auth: dict[str, Any]
+    discord: dict[str, Any]
+    imports: dict[str, Any] | None
+
 
 # Could be in the database, but unneeded currently
 class WikiAuth(BaseModel):
@@ -108,7 +117,7 @@ class GuildChannels(BaseModel):
     lore_channels: list[int]
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    def setup(self, data: dict):
         data['activity'] = data.get('channels.activity', 0)
         data['year_vc'] = data.get('channels.year_vc', 0)
         data['announcements'] = data.get('channels.announcements', 0)
@@ -127,7 +136,8 @@ class GuildEpoch(BaseModel):
     rollover_time: datetime.time
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         data['time'] = data.get('epoch.time', 0)
         data['year'] = data.get('epoch.year', 1)
         data['length'] = data.get('epoch.length', 14)
@@ -143,7 +153,8 @@ class GuildRoles(BaseModel):
     announcements: int
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         data['announcements'] = data.get('roles.announcements', 0)
 
         return data
@@ -153,7 +164,8 @@ class GuildUsers(BaseModel):
     markers: list[int]
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         data['markers'] = data.get('users.markers', [])
 
         return data
@@ -167,7 +179,8 @@ class Guild(BaseModel):
     id: int
 
     @model_validator(mode='before')
-    def setup(data: dict):
+    @classmethod
+    def setup(cls, data: dict) -> dict:
         data['channels'] = GuildChannels(**data)
         data['epoch'] = GuildEpoch(**data)
         data['roles'] = GuildRoles(**data)
@@ -228,9 +241,11 @@ class NovaConfig:
     bot_token: str
     authorized_guilds: list[int]
     valid_guilds: ClassVar[list[int]] = []
-    error_log: list[int, int]
+    error_log: tuple[int, int]
     primary_guild: int
     owner_ids: ClassVar[list[int]]
+    _bot: Bot
+    _raw: RawConfig
 
     # SELECT DISTINCT key FROM novatoken;
     guild_keys: ClassVar[list[str]] = [
@@ -259,7 +274,6 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    _bot: ClassVar = None
     _guilds: ClassVar[dict[int, Guild]] = {}
     test_mode: bool = 'TEST_MODE' in environ
 
@@ -274,7 +288,7 @@ class NovaConfig:
         logger.info(f'Loading config from "{cls.path}"')
 
         with cls.path.open() as file:
-            cls._raw = tomlkit.load(file)
+            cls._raw = cast(RawConfig, tomlkit.load(file))
 
         # validate config version
         if cls._raw['config_version'] != cls.config_version:
@@ -319,7 +333,7 @@ class NovaConfig:
         Config.on_load()  # bootstrap old config structure
 
     @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
-    async def on_ready(cls, bot):
+    async def on_ready(cls, bot: Bot):
         cls._bot = bot
 
         if bot.user.id not in Config.users.markers:
@@ -371,7 +385,7 @@ class NovaConfig:
             raise UnauthorizedGuild(guild)
 
     @staticmethod
-    async def get(key: str, guild: int = 0, default=0):
+    async def get(key: str, guild: int = 0, default: Any = 0) -> Any:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         if created and default != 0:
@@ -386,7 +400,7 @@ class NovaConfig:
             return token.unpack()
 
     @staticmethod
-    async def get_raw(key: str, guild: int = 0, default=0):
+    async def get_raw(key: str, guild: int = 0, default: Any = 0) -> NovaToken:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         if created and default != 0:
@@ -396,7 +410,7 @@ class NovaConfig:
         return token
 
     @staticmethod
-    async def set(key: str, value, guild: int = 0):
+    async def set(key: str, value: Any, guild: int = 0) -> Any:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
 
         logger.debug(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
@@ -457,7 +471,7 @@ class NovaConfig:
 
     @classmethod
     async def load_globals(cls):
-        cls.error_log: list[int, int] = await cls.get('error_log', default=(0, 0))
+        cls.error_log = tuple(await cls.get('error_log', default=(0, 0)))
 
     @classmethod
     async def load_guild(cls, guild: int) -> bool:
@@ -488,7 +502,7 @@ class NovaConfig:
     # --- Debug ---
 
     @classmethod
-    def to_dict(cls):
+    def to_dict(cls) -> dict[str, Any]:
         result = {}
 
         def convert_value(value):
@@ -582,7 +596,7 @@ class Config:
     # --- Debug ---
 
     @classmethod
-    def to_dict(cls):
+    def to_dict(cls) -> dict[str, Any]:
         result = {}
 
         def convert_value(value):

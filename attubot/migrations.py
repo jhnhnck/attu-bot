@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import asyncio
+from collections.abc import Callable
 
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
@@ -43,7 +43,7 @@ def generic_bump(old: str, new: str):
 
 
 # All migrations in order
-migration_table = [
+migration_table: list[Callable] = [
     generic_bump(old='1.8.0-pre2', new='1.8.0-pre3'),
     migration_hotfix,
     generic_bump(old='1.8.0-pre4', new='1.8.0-pre5'),

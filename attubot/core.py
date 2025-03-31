@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import sys
 import traceback
+from typing import cast
 
 import discord
 from discord.errors import CheckFailure
@@ -130,7 +131,7 @@ async def on_application_command_error(ctx, error):
 
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
-async def command_ping(ctx):
+async def command_ping(ctx: discord.ApplicationContext):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
 
 # --- Trigger Function ---
@@ -139,7 +140,7 @@ def start_bot_loop():
     NovaConfig.on_init()
 
     logger.info('Loading Commands')
-    bot.add_application_command(command_ping)
+    bot.add_application_command(cast(discord.ApplicationCommand, command_ping))
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step

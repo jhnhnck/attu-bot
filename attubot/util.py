@@ -42,7 +42,7 @@ class AttuYear(BaseModel):
 
 # --- Utilities ---
 
-def format_year_line(year):
+def format_year_line(year) -> str:
     sep = separators[year % len(separators)]
 
     if len(sep) > 2:
@@ -53,7 +53,7 @@ def format_year_line(year):
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
 
-def get_year_status():
+def get_year_status() -> tuple[int, int]:
     today = datetime.combine(date.today(), Config.rollover_time)
     epoch = datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), Config.rollover_time)
     time_diff_sec = (today - epoch).total_seconds()
@@ -67,7 +67,7 @@ def get_year_status():
     return elapsed_days, year
 
 
-def get_next_year():
+def get_next_year() -> datetime:
     if Config.time_paused:
         return datetime.fromtimestamp(0).astimezone()
 
@@ -144,7 +144,7 @@ async def move_epoch(length: int, guild_id=NovaConfig.primary_guild):
 
 
 # look for {year} or 'pc' or 'year' in message contents
-def has_year_marker(year: int, content: str):
+def has_year_marker(year: int, content: str) -> bool:
     content = content.lower()
 
     if str(year) in content or (year < 10 and str(year - 1) in content):
@@ -154,5 +154,5 @@ def has_year_marker(year: int, content: str):
 
 
 # util to make discord message links
-def format_message_link(guild, channel, message, relative=False):
+def format_message_link(guild, channel, message, relative=False) -> str:
     return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'
