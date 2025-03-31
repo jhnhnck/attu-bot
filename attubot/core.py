@@ -9,6 +9,7 @@ import sys
 import traceback
 from typing import cast
 
+import aiohttp
 import discord
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
@@ -29,32 +30,54 @@ bot = discord.Bot(intents=intents)
 
 # --- Error Handling ---
 
-async def send_to_error_log(error):
+async def send_to_webhook(error: Exception):
     tb_str = ''.join(traceback.format_exception(error))
 
     logger.error(f'{error!s}\n{tb_str}')
 
     try:
-        guild = bot.get_guild(NovaConfig.error_log[0])
-        error_log = cast(discord.TextChannel, guild.get_channel(NovaConfig.error_log[1]))
-
         # this removes the useless bits
         tb_str = tb_str.split('The above exception')[0]
         msg = f'**{error}**\n```\n{tb_str}```'
 
+        # trim to discord character length
         if len(msg) > 2000:
             msg = msg[:1992] + '\n...\n```'
 
-        await error_log.send(msg)
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(NovaConfig.error_hook, session=session)
+            await webhook.send(msg, username='DoomBot')
 
     except Exception as err:
-        logger.warn(f'Issue logging error to configured channel: {err}')
+        logger.error(f'Issue logging error to configured webhook: {err}')
+
+
+@bot.event
+async def on_application_command_error(ctx, error):
+    logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
+
+    if isinstance(error, CheckFailure | UnauthorizedGuild):
+        if ctx.guild.id in NovaConfig.authorized_guilds:
+            await ctx.respond("You're not my real dad!")
+        else:
+            # catch all for if bot gets added to another discord guild
+            await ctx.respond('This feature requires DoomBot(tm) Premium')
+
+    elif isinstance(error, MissingPermissions):
+        await ctx.respond('Nice try! <:rockball:1308981475114225694>')
+
+    else:
+        await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
+        await send_to_webhook(error)
+
+    # Close any hung connections
+    await Tortoise.close_connections()
 
 # --- Events ---
 
 @bot.event
 async def on_ready():
-    perms = '207952'
+    perms = '292595117136'
 
     if not hasattr(on_ready, 'has_run'):
         on_ready.has_run = False
@@ -105,28 +128,6 @@ async def on_application_command(ctx):
 
 @bot.event
 async def on_application_command_completion(ctx):
-    await Tortoise.close_connections()
-
-
-@bot.event
-async def on_application_command_error(ctx, error):
-    logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
-
-    if isinstance(error, CheckFailure | UnauthorizedGuild):
-        if ctx.guild.id in NovaConfig.authorized_guilds:
-            await ctx.respond("You're not my real dad!")
-        else:
-            # catch all for if bot gets added to another discord guild
-            await ctx.respond('This feature requires DoomBot(tm) Premium')
-
-    elif isinstance(error, MissingPermissions):
-        await ctx.respond('Nice try! <:rockball:1308981475114225694>')
-
-    else:
-        await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
-        await send_to_error_log(error)
-
-    # Close any hung connections
     await Tortoise.close_connections()
 
 

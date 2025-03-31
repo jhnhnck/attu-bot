@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import datetime
 import re
 import sys
+from collections.abc import Callable
 from os import environ, getenv
 from pathlib import Path
 from typing import Any, Self, TypedDict, cast
@@ -243,6 +244,7 @@ class NovaConfig:
     authorized_guilds: list[int]
     valid_guilds: list[int] = []
     error_log: tuple[int, int]
+    error_hook: str
     primary_guild: int
     owner_ids: list[int]
     _bot: Bot
@@ -277,6 +279,7 @@ class NovaConfig:
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     _guilds: dict[int, Guild] = {}
     test_mode: bool = 'TEST_MODE' in environ
+    _ready_hooks: list[Callable] = []
 
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
@@ -359,6 +362,9 @@ class NovaConfig:
 
         elif bot.owner_id is not None:
             cls.owner_ids = [bot.owner_id]
+
+        for hook in cls._ready_hooks:
+            await hook()
 
         if cls.test_mode:
             logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
@@ -472,6 +478,7 @@ class NovaConfig:
     @classmethod
     async def load_globals(cls):
         cls.error_log = tuple(await cls.get('error_log', default=(0, 0)))
+        cls.error_hook = await cls.get('error_hook', default=f'{NovaConfig.wiki.endpoint}/invalid-webhook')
 
     @classmethod
     async def load_guild(cls, guild: int) -> bool:

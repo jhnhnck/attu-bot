@@ -11,7 +11,7 @@ from datetime import date, datetime
 from discord.ext import commands, tasks
 
 from attubot.config import Config
-from attubot.core import send_to_error_log
+from attubot.core import send_to_webhook
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_year_line, get_year_status
@@ -33,7 +33,7 @@ class NewYearEvent(commands.Cog):
         try:
             await self.check_for_new_year()
         except Exception as error:
-            await send_to_error_log(error)
+            await send_to_webhook(error)
 
     @task_year_check.before_loop
     async def wait_for_ready(self):
