@@ -84,7 +84,7 @@ class ParsedTokenKey(BaseModel):
         return self
 
     def authorized(self, user: int, guild: int, mode: str):  # (Keeping mode level here for future usecases)
-        return (self.guild == 0 and NovaConfig._bot.is_owner(user)) or self.guild == guild
+        return (self.guild == 0 and NovaConfig.is_owner(user)) or self.guild == guild
 
     def __str__(self):
         return f'{self.guild}/{self.key}'
@@ -230,6 +230,7 @@ class NovaConfig:
     valid_guilds: ClassVar[list[int]] = []
     error_log: list[int, int]
     primary_guild: int
+    owner_ids: ClassVar[list[int]]
 
     # SELECT DISTINCT key FROM novatoken;
     guild_keys: ClassVar[list[str]] = [
@@ -338,6 +339,13 @@ class NovaConfig:
         # dump keys with empty values
         await NovaToken.filter(value='X = 0').delete()
 
+        # await bot.application_info()
+        if bot.owner_ids is not None:
+            cls.owner_ids = list(bot.owner_ids)
+
+        elif bot.owner_id is not None:
+            cls.owner_ids = [bot.owner_id]
+
         if cls.test_mode:
             logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
 
@@ -407,8 +415,8 @@ class NovaConfig:
             logger.warn(f'Key Not Set [{guild}/{key.lower()}]; Cannot Remove')
 
     @classmethod
-    def is_owner(cls, user: str):
-        return cls._bot.is_owner(user)
+    def is_owner(cls, user: int):
+        return user in cls.owner_ids
 
     # --- Private Methods ---
 

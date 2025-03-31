@@ -7,7 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
+from typing import cast
 
+import discord
 from discord.ext.commands import Context
 
 from attubot.config import Config, NovaConfig
@@ -23,11 +25,12 @@ flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
 
 # --- Permissions Check ---
 
-def is_bot_owner(ctx: Context):
-    return ctx.bot.is_owner(ctx.user)
+def is_bot_owner(ctx: Context) -> bool:
+    user_id = cast(discord.ApplicationContext, ctx).user.id
+    return NovaConfig.is_owner(user_id)
 
 
-def is_authorized_guild(ctx: Context):
+def is_authorized_guild(ctx: Context) -> bool:
     return ctx.guild.id in Config.authorized_guilds
 
 # --- Utilities ---
