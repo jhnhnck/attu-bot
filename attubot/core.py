@@ -29,21 +29,25 @@ bot = discord.Bot(intents=intents)
 # --- Error Handling ---
 
 async def send_to_error_log(error):
-    guild = bot.get_guild(NovaConfig.error_log[0])
-    error_log = guild.get_channel(NovaConfig.error_log[1])
-
     tb_str = ''.join(traceback.format_exception(error))
 
     logger.error(f'{error!s}\n{tb_str}')
 
-    # this removes the useless bits
-    tb_str = tb_str.split('The above exception')[0]
-    msg = f'**{error}**\n```\n{tb_str}```'
+    try:
+        guild = bot.get_guild(NovaConfig.error_log[0])
+        error_log = cast(discord.TextChannel, guild.get_channel(NovaConfig.error_log[1]))
 
-    if len(msg) > 2000:
-        msg = msg[:1992] + '\n...\n```'
+        # this removes the useless bits
+        tb_str = tb_str.split('The above exception')[0]
+        msg = f'**{error}**\n```\n{tb_str}```'
 
-    await error_log.send(msg)
+        if len(msg) > 2000:
+            msg = msg[:1992] + '\n...\n```'
+
+        await error_log.send(msg)
+
+    except Exception as err:
+        logger.warn(f'Issue logging error to configured channel: {err}')
 
 # --- Events ---
 
