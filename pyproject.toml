@@ -25,6 +25,7 @@ ignore = [
   "E501", # line-length violations
   "PLR2004",  # magic values
   "PLE1205",  # logging builtin
+  "RUF012",  # ClassVar decorators
 ]
 
 exclude = [".venv", "**/*.wip.py"]

@@ -10,7 +10,7 @@ import re
 import sys
 from os import environ, getenv
 from pathlib import Path
-from typing import Any, ClassVar, Self, TypedDict, cast
+from typing import Any, Self, TypedDict, cast
 from zoneinfo import ZoneInfo
 
 import tomlkit
@@ -241,15 +241,15 @@ class NovaConfig:
     wiki: WikiAuth
     bot_token: str
     authorized_guilds: list[int]
-    valid_guilds: ClassVar[list[int]] = []
+    valid_guilds: list[int] = []
     error_log: tuple[int, int]
     primary_guild: int
-    owner_ids: ClassVar[list[int]]
+    owner_ids: list[int]
     _bot: Bot
     _raw: RawConfig
 
     # SELECT DISTINCT key FROM novatoken;
-    guild_keys: ClassVar[list[str]] = [
+    guild_keys: list[str] = [
         'channels.activity',
         'channels.announcements',
         'channels.lore_channels',
@@ -265,17 +265,17 @@ class NovaConfig:
         'users.markers',
     ]
 
-    global_keys: ClassVar[list[str]] = [
+    global_keys: list[str] = [
         'error_log',
         'version',
     ]
 
-    valid_keys: ClassVar[list[str]] = [*guild_keys, *global_keys]
+    valid_keys: list[str] = [*guild_keys, *global_keys]
 
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    _guilds: ClassVar[dict[int, Guild]] = {}
+    _guilds: dict[int, Guild] = {}
     test_mode: bool = 'TEST_MODE' in environ
 
     @classmethod  # called first upon startup, load config file only
