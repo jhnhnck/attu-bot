@@ -86,13 +86,14 @@ async def on_ready():
         on_ready.has_run = True
 
         logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
-        logger.info(f'Add to a server:\n\thttps://discordapp.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
+        logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         logger.info('Checking config for updates')
         await NovaConfig.on_ready(bot)
 
         if NovaConfig.test_mode:
             logger.fatal('Reached ready state; exiting...')
+            await bot.close()
             sys.exit(0)
 
         logger.info('Pushing commands to Discord')

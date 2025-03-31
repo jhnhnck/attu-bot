@@ -533,7 +533,7 @@ class NovaConfig:
                 for idx, guild in cls._guilds.items():
                     result.update({f'{idx}/{key}': convert_value(value) for key, value in vars(guild).items()})
 
-            elif key.startswith('_') or callable(value) or isinstance(value, classmethod):
+            elif key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
                 continue
 
             else:
