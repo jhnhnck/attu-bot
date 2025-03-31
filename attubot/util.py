@@ -6,11 +6,11 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import date, datetime, timedelta
-from types import SimpleNamespace
 from typing import cast
 
 import discord
 from discord.ext.commands import Context
+from pydantic import BaseModel
 
 from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
@@ -32,6 +32,13 @@ def is_bot_owner(ctx: Context) -> bool:
 
 def is_authorized_guild(ctx: Context) -> bool:
     return ctx.guild.id in Config.authorized_guilds
+
+# --- Components ---
+
+class AttuYear(BaseModel):
+    start_time: int
+    end_time: int
+    duration: int
 
 # --- Utilities ---
 
@@ -73,8 +80,8 @@ def get_next_year():
     return new_date
 
 
-async def get_year_span(year: int):
-    result = SimpleNamespace(start_time=0, end_time=0, duration=0)
+async def get_year_span(year: int) -> AttuYear:
+    result = AttuYear(start_time=0, end_time=0, duration=0)
 
     _, current_year = get_year_status()
     next_year = get_next_year()
