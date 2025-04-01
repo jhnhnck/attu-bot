@@ -483,6 +483,9 @@ class NovaConfig:
         cls.error_hook = await cls.get('error_hook', default=f'{NovaConfig.wiki.endpoint}/invalid-webhook')
         cls.primary_guild = await cls.get('primary_guild', default=NovaConfig.primary_guild)
 
+        # Reload old Config object
+        Config.on_init()
+
     @classmethod
     async def load_guild(cls, guild: int) -> bool:
         config = {}
@@ -497,6 +500,9 @@ class NovaConfig:
 
             if guild not in cls.valid_guilds:
                 cls.valid_guilds.append(guild)
+
+            # Reload old Config object
+            Config.on_load()
 
             logger.info('Validated new guild config')
             return True
