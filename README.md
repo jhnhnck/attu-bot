@@ -108,6 +108,7 @@ Use the following commands to interact with the bot:
 ### Global
 
 - **0/error_log**: [1000000000000000000, 1000000000000000000]
+- **0/primary_guild**: 1000000000000000000
 
 ### Guild Specific
 

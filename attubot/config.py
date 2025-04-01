@@ -269,6 +269,7 @@ class NovaConfig:
 
     global_keys: list[str] = [
         'error_log',
+        'primary_guild',
         'version',
     ]
 
@@ -304,7 +305,7 @@ class NovaConfig:
         # unpack into attributes
         cls.bot_token = cls._raw['auth']['bot']['token']
         cls.authorized_guilds = cls._raw['discord']['guilds']['authorized']
-        cls.primary_guild = cls._raw['discord']['guilds']['primary']
+        cls.primary_guild = cls._raw['discord']['guilds']['primary']  # TODO: Deprecate
 
         try:
             cls.wiki = WikiAuth(**cls._raw['auth']['wiki'])
@@ -479,6 +480,7 @@ class NovaConfig:
     async def load_globals(cls):
         cls.error_log = tuple(await cls.get('error_log', default=(0, 0)))
         cls.error_hook = await cls.get('error_hook', default=f'{NovaConfig.wiki.endpoint}/invalid-webhook')
+        cls.primary_guild = await cls.get('primary_guild', default=NovaConfig.primary_guild)
 
     @classmethod
     async def load_guild(cls, guild: int) -> bool:

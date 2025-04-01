@@ -95,6 +95,19 @@ async def migration_error_hooks(version: str):
     await _update_version('1.8.0-pre6')
 
 
+# Version 1.8.0-pre7
+async def migration_named_guilds(version: str):
+    # Bail out if we're past this patch
+    if version != '1.8.0-pre6':
+        logger.debug('Patch for 1.8.0-pre7 already applied')
+        return
+
+    NovaConfig.primary_guild = await NovaConfig.set('primary_guild', NovaConfig.primary_guild)
+
+    # Bump version
+    await _update_version('1.8.0-pre7')
+
+
 def generic_bump(old: str, new: str):
     async def migration(version: str):
         if version == old:
@@ -111,4 +124,5 @@ migration_table: list[Callable] = [
     migration_hotfix,
     generic_bump(old='1.8.0-pre4', new='1.8.0-pre5'),
     migration_error_hooks,
+    migration_named_guilds,
 ]
