@@ -29,7 +29,7 @@ async def config_delete(ctx, key: str):
 
     # check if authorized to view
     if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='write'):
-        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
     await NovaConfig.delete(token_ref.key, guild=token_ref.guild)
@@ -48,7 +48,7 @@ async def config_get(ctx, key: str):
 
     # check if authorized to view
     if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='read'):
-        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
     value = await NovaConfig.get(token_ref.key, guild=token_ref.guild)
@@ -74,7 +74,7 @@ async def config_set(ctx, key: str, value: str):
 
     # check if authorized to view
     if not token_ref.authorized(ctx.author.id, ctx.guild.id, mode='write'):
-        await ctx.respond('Failed: You have no permission to access that identifier', ephemeral=True)
+        await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
     token = await NovaConfig.get_raw(token_ref.key, guild=token_ref.guild)
