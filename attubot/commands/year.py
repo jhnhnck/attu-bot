@@ -112,7 +112,7 @@ async def year_link(ctx, year: int, channel: discord.TextChannel):
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 
-    if year < 1 or year >= current_year:
+    if year < 1 or year > current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
