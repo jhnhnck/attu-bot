@@ -269,6 +269,7 @@ class NovaConfig:
 
     global_keys: list[str] = [
         'error_log',
+        'error_hook',
         'primary_guild',
         'version',
     ]
