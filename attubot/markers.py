@@ -44,12 +44,12 @@ class YearMarker(Model):
 # --- Extension Def ---
 
 async def _init_db():
-    logger.info('- Starting databases')
+    logger.info('Connecting to database')
 
     await Tortoise.init(db_url=f'sqlite://{NovaConfig.db_path}', modules={'models': [__name__, 'attubot.config']})
     await Tortoise.generate_schemas(safe=True)
 
-    logger.info(f'- Loaded [{await YearMarker.all().count()}] markers')
+    logger.info(f'Loaded [{await YearMarker.all().count()}] markers')
 
     logger.info('Unpacking additional config values from database')
     await NovaConfig.on_load()

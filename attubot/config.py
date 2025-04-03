@@ -356,6 +356,7 @@ class NovaConfig:
         cls.db_path.chmod(0o660)
 
         # dump keys with empty values
+        logger.debug('Clearing out default config keys')
         await NovaToken.filter(value='X = 0').delete()
 
         # await bot.application_info()
@@ -462,10 +463,10 @@ class NovaConfig:
 
     @classmethod
     async def _import(cls):
-        logger.info('Checking for config value imports')
-
         if 'imports' not in cls._raw.keys():  # noqa: SIM118
             return
+
+        logger.info('Attempting to load imports from config file')
 
         for key, value in cls._raw['imports'].items():
             token_key = cls.parse_key(key)
@@ -503,8 +504,6 @@ class NovaConfig:
 
             # Reload old Config object
             Config.on_load()
-
-            logger.info('Validated new guild config')
             return True
 
         except ValidationError as err:
