@@ -241,7 +241,7 @@ class NovaConfig:
     config_version: str = __version__
     wiki: WikiAuth
     bot_token: str
-    authorized_guilds: list[int]
+    authorized_guilds: set[int]
     valid_guilds: list[int] = []
     error_log: tuple[int, int]
     error_hook: str
@@ -283,7 +283,7 @@ class NovaConfig:
 
         # unpack into attributes
         cls.bot_token = cls._raw['auth']['bot']['token']
-        cls.authorized_guilds = cls._raw['discord']['guilds']['authorized']
+        cls.authorized_guilds = { *cls._raw['discord']['guilds']['authorized'] }
         cls.primary_guild = cls._raw['discord']['guilds']['primary']  # TODO: Deprecate
 
         try:
