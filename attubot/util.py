@@ -31,7 +31,7 @@ def is_bot_owner(ctx: Context) -> bool:
 
 
 def is_authorized_guild(ctx: Context) -> bool:
-    return ctx.guild.id in Config.authorized_guilds
+    return ctx.guild.id in NovaConfig.authorized_guilds
 
 # --- Components ---
 

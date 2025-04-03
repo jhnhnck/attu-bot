@@ -549,7 +549,6 @@ class Config:
 
         # Global
         cls.bot_token = NovaConfig.bot_token
-        cls.authorized_guilds = NovaConfig.authorized_guilds
 
         # Wiki
         cls.wiki_key = NovaConfig.wiki.key
