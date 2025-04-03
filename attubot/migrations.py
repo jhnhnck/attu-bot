@@ -65,21 +65,6 @@ async def error_hook_init():
 
 # --- Migration Steps ---
 
-# Version 1.8.0-pre4
-async def migration_hotfix(version: str):
-    # Bail out if we're past this patch
-    if version != '1.8.0-pre3':
-        logger.debug('Patch for 1.8.0-pre4 already applied')
-        return
-
-    # swap error log guild
-    error_log = await NovaConfig.get('error_log', default=(0, 0))
-    await NovaConfig.set('error_log', (NovaConfig.authorized_guilds[1], error_log[1]))
-
-    # Bump version
-    await _update_version('1.8.0-pre4')
-
-
 # Version 1.8.0-pre6
 async def migration_error_hooks(version: str):
     # Bail out if we're past this patch
@@ -120,8 +105,6 @@ def generic_bump(old: str, new: str):
 
 # All migrations in order
 migration_table: list[Callable] = [
-    generic_bump(old='1.8.0-pre2', new='1.8.0-pre3'),
-    migration_hotfix,
     generic_bump(old='1.8.0-pre4', new='1.8.0-pre5'),
     migration_error_hooks,
     migration_named_guilds,
