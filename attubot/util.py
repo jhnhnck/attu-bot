@@ -156,3 +156,25 @@ def has_year_marker(year: int, content: str) -> bool:
 # util to make discord message links
 def format_message_link(guild, channel, message, relative=False) -> str:
     return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'
+
+
+# create a new error hook
+async def error_hook_refresh(bot: discord.Bot):
+    try:
+        guild = bot.get_guild(NovaConfig.error_log[0])
+        error_log = cast(discord.TextChannel, guild.get_channel(NovaConfig.error_log[1]))
+
+        for old in (await error_log.webhooks()):
+            if old.user == bot.user:
+                logger.warn(f'Deleted old webhook: {old.name}-{old.id}')
+                await old.delete()
+
+        icon = await bot.user.display_avatar.read()
+        hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
+
+        logger.info(f'Created new webhook: {hook.name}-{hook.id}')
+        NovaConfig.error_hook = await NovaConfig.set('error_hook', hook.url)
+
+
+    except Exception as err:
+        logger.error(f'Failed acquiring new webhook for error log: {err}')
