@@ -48,9 +48,11 @@ lines-after-imports = 1
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.pyright]
+[tool.basedpyright]
 pythonPlatform = "Linux"
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 reportOptionalOperand = false
 reportOptionalMemberAccess = false
 reportOptionalSubscript = false
+reportInvalidCast = false
+reportFunctionMemberAccess = false
