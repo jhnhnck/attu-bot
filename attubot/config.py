@@ -43,7 +43,7 @@ class NovaToken(Model):
     value = fields.TextField(default='X = 0')
     # valid_types = []
 
-    async def pack(self, value) -> None:
+    async def pack(self, value: Any) -> None:
         self.value = tomlkit.dumps({'X': value})
         await self.save()
 
@@ -77,7 +77,7 @@ class ParsedTokenKey(BaseModel):
         return data
 
     @model_validator(mode='after')
-    def validate(self) -> Self:
+    def guild_validate(self) -> Self:
         if self.guild != 0 and self.guild not in NovaConfig.authorized_guilds:
             raise UnauthorizedGuild(self.guild)
 
