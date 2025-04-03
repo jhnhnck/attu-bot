@@ -246,7 +246,7 @@ class NovaConfig:
     error_log: tuple[int, int]
     error_hook: str
     primary_guild: int
-    owner_ids: list[int]
+    owner_ids: set[int]
     _bot: Bot
     _raw: RawConfig
 
@@ -346,12 +346,14 @@ class NovaConfig:
         logger.debug('Clearing out default config keys')
         await NovaToken.filter(value='X = 0').delete()
 
-        # await bot.application_info()
-        if bot.owner_ids is not None:
-            cls.owner_ids = list(bot.owner_ids)
+        # manually fetch owner info ourselves bc pycord is weird
+        logger.debug('Fetching bot owner info from Discord')
+        bot_info = await bot.application_info()
 
-        elif bot.owner_id is not None:
-            cls.owner_ids = [bot.owner_id]
+        if bot_info.team:
+            cls.owner_ids = { usr.id for usr in bot_info.team.members }
+        else:
+            cls.owner_ids = { bot_info.owner.id }
 
         for hook in cls._ready_hooks:
             await hook()
