@@ -250,31 +250,9 @@ class NovaConfig:
     _bot: Bot
     _raw: RawConfig
 
-    # SELECT DISTINCT key FROM novatoken;
-    guild_keys: list[str] = [
-        'channels.activity',
-        'channels.announcements',
-        'channels.lore_channels',
-        'channels.meta_chat',
-        'channels.year_links',
-        'channels.year_vc',
-        'epoch.length',
-        'epoch.paused',
-        'epoch.rollover_time',
-        'epoch.time',
-        'epoch.year',
-        'roles.announcements',
-        'users.markers',
-    ]
-
-    global_keys: list[str] = [
-        'error_log',
-        'error_hook',
-        'primary_guild',
-        'version',
-    ]
-
-    valid_keys: list[str] = [*guild_keys, *global_keys]
+    guild_keys: set[str]
+    global_keys: set[str]
+    valid_keys: set[str]
 
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
@@ -325,6 +303,15 @@ class NovaConfig:
 
         else:
             logger.info(f'Matched table version: {__version__}')
+
+        # Populate valid keys lists
+        async def unpack_keys(state: bool) -> set[str]:
+            models = cast(list[NovaToken], await NovaToken.raw(f'SELECT DISTINCT key FROM novatoken WHERE {"guild=0" if state else "guild!=0"}'))  # noqa: S608
+            return { token.key for token in models }
+
+        cls.global_keys = await unpack_keys(True)
+        cls.guild_keys = await unpack_keys(False)
+        cls.valid_keys = { *cls.guild_keys, *cls.global_keys }
 
         await cls._import()  # import config overrides from file
         await cls.load_globals()  # global vars
@@ -524,7 +511,7 @@ class NovaConfig:
             if isinstance(value, BaseModel):
                 return {k: convert_value(v) for k, v in vars(value).items()}
 
-            elif isinstance(value, list):
+            elif isinstance(value, list | set):
                 return [convert_value(item) for item in value]
 
             elif isinstance(value, dict):
