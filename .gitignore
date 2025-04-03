@@ -76,3 +76,5 @@ devel/
 # Databases
 *.db
 *.sql
+
+.vscode/
