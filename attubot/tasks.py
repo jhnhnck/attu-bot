@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import re
 from datetime import date, datetime
 
+from discord import Bot
 from discord.ext import commands, tasks
 
 from attubot.config import Config
@@ -22,6 +23,8 @@ logger = get_logger(__name__)
 # --- New Year Handling ---
 
 class NewYearEvent(commands.Cog):
+    bot: Bot
+
     def __init__(self, bot):
         self.bot = bot
         self.task_year_check.start()
@@ -54,7 +57,7 @@ class NewYearEvent(commands.Cog):
         else:
             await self.advance_year(year)
 
-    async def advance_year(self, year):
+    async def advance_year(self, year: int):
         guild = self.bot.get_guild(Config.attu_guild)
 
         logger.info(f'Happy New Year! Advancing to Year {year} PC')
@@ -104,7 +107,7 @@ class NewYearEvent(commands.Cog):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_cog(NewYearEvent(bot))

@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from discord import Bot
 from discord.utils import snowflake_time
 from tortoise import Tortoise, fields, run_async
 from tortoise.models import Model
@@ -55,7 +56,7 @@ async def _init_db():
     await NovaConfig.on_load()
 
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     run_async(_init_db())

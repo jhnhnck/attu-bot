@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import re
 
 import discord
-from discord import ApplicationContext, SlashCommandGroup
+from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
 from attubot.config import Config
@@ -72,7 +72,7 @@ async def wiki_block(ctx: ApplicationContext, user, reason):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(wiki_group)

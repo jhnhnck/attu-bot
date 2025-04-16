@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import discord
-from discord import ApplicationContext, SlashCommandGroup
+from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.utils import snowflake_time
 
 from attubot.config import Config
@@ -156,7 +156,7 @@ async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextCha
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(year_group)

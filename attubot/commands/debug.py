@@ -13,7 +13,7 @@ from typing import Never, cast
 
 import discord
 import tomlkit
-from discord import ApplicationContext, Embed, Permissions, SlashCommandGroup
+from discord import ApplicationContext, Bot, Embed, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -106,7 +106,7 @@ async def debug_dump_config(ctx: ApplicationContext):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(debug_group)

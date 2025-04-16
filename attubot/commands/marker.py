@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import discord
-from discord import ApplicationContext, Permissions, SlashCommandGroup
+from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -116,7 +116,7 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(marker_group)

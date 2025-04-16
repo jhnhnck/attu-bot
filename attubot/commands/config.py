@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import discord
-from discord import ApplicationContext, Permissions, SlashCommandGroup
+from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 
 from attubot.config import NovaConfig, NovaToken
 from attubot.logging import get_logger
@@ -128,7 +128,7 @@ async def config_validate(ctx: ApplicationContext):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(config_group)

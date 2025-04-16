@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from datetime import datetime
 
 import discord
-from discord import ApplicationContext, MessageType, Permissions, SlashCommandGroup
+from discord import ApplicationContext, Bot, MessageType, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -52,7 +52,7 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(query_group)

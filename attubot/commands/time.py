@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from typing import cast
 
 import discord
-from discord import ApplicationContext, Permissions, SlashCommandGroup
+from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
@@ -68,7 +68,7 @@ async def time_dilate(ctx: ApplicationContext, days):
 
 # --- Extension Def ---
 
-def setup(bot):
+def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_application_command(time_group)
