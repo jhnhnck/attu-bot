@@ -5,25 +5,28 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from typing import cast
+
 import discord
-from discord import Permissions
+from discord import ApplicationContext, Permissions, SlashCommandGroup
 
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
+from attubot.tasks import NewYearEvent
 from attubot.util import get_year_status, move_epoch
 
 logger = get_logger(__name__)
 
 # --- Time Commands ---
 
-time_group = discord.SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
+time_group = SlashCommandGroup('time', default_member_permissions=Permissions.all(), description='Modify various options controlling the passage of time (Admin only)')
 
 @time_group.command(name='advance', description='Manually advance to the next year, ignoring all checks')
-async def time_advance(ctx):
+async def time_advance(ctx: ApplicationContext):
     forced_year = (await YearMarker.total()) + 1
     _, year = get_year_status()
-    cog = ctx.bot.get_cog('NewYearEvent')
+    cog = cast(NewYearEvent, ctx.bot.get_cog('NewYearEvent'))
 
     logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
@@ -31,13 +34,13 @@ async def time_advance(ctx):
 
 
 @time_group.command(name='pause', description='Pause the passage of time')
-async def time_pause(ctx):
+async def time_pause(ctx: ApplicationContext):
     await ctx.respond('The passage of time has been stopped')
     await NovaConfig.guild(ctx.guild.id).pause_time()
 
 
 @time_group.command(name='resume', description='Resume the passage of time')
-async def time_resume(ctx):
+async def time_resume(ctx: ApplicationContext):
     guild = NovaConfig.guild(ctx.guild.id)
     await move_epoch(guild.epoch.length, guild_id=ctx.guild.id)
 
@@ -47,7 +50,7 @@ async def time_resume(ctx):
 
 @time_group.command(name='dilate', description='Adjust the rate at which time progresses')
 @discord.commands.option(name='days', required=True, description='Dilation amount (in days)', input_type=int)
-async def time_dilate(ctx, days):
+async def time_dilate(ctx: ApplicationContext, days):
     guild = NovaConfig.guild(ctx.guild.id)
 
     # catch to keep from trying entering number of weeks

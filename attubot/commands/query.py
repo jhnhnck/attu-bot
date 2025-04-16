@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from datetime import datetime
 
 import discord
-from discord import MessageType, Permissions
+from discord import ApplicationContext, MessageType, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -19,12 +19,12 @@ logger = get_logger(__name__)
 
 # --- Query Commands ---
 
-query_group = discord.SlashCommandGroup('query', default_member_permissions=Permissions.all(), description="Performs searches for specific messages if that's your thing")
+query_group = SlashCommandGroup('query', default_member_permissions=Permissions.all(), description="Performs searches for specific messages if that's your thing")
 
 @query_group.command(name='pins', description='Finds all the "pinned a message" messages in a channel')
 @discord.commands.option(name='channel', required=True, description='Channel', input_type=discord.TextChannel)
 @commands.check(is_bot_owner)
-async def query_pins(ctx, channel: discord.TextChannel):
+async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
     _, current_year = get_year_status()
     guild_creation = snowflake_time(ctx.guild.id)
 

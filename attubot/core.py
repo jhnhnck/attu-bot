@@ -11,6 +11,7 @@ from typing import cast
 
 import aiohttp
 import discord
+from discord import ApplicationContext, Intents, Message, Webhook
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
@@ -23,7 +24,7 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 logger.info('Initializing...')
 
-intents = discord.Intents.default()
+intents = Intents.default()
 intents.message_content = True
 
 bot = discord.Bot(intents=intents)
@@ -45,7 +46,7 @@ async def send_to_webhook(error: Exception):
             msg = msg[:1992] + '\n...\n```'
 
         async with aiohttp.ClientSession() as session:
-            webhook = discord.Webhook.from_url(NovaConfig.error_hook, session=session)
+            webhook = Webhook.from_url(NovaConfig.error_hook, session=session)
             await webhook.send(msg, username='DoomBot')
 
     except Exception as err:
@@ -53,7 +54,7 @@ async def send_to_webhook(error: Exception):
 
 
 @bot.event
-async def on_application_command_error(ctx, error):
+async def on_application_command_error(ctx: ApplicationContext, error: Exception):
     logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
@@ -109,7 +110,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message: Message):
     if message.guild is None:
         logger.debug(f'Skipping checks for message from "{message.author.name}" with blank guild')
         return
@@ -128,17 +129,17 @@ async def on_message(message):
 
 
 @bot.before_invoke
-async def on_application_command(ctx):
+async def on_application_command(ctx: ApplicationContext):
     logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} data={ctx.interaction.data}')
 
 
 @bot.event
-async def on_application_command_completion(ctx):
+async def on_application_command_completion(ctx: ApplicationContext):
     await Tortoise.close_connections()
 
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
-async def command_ping(ctx: discord.ApplicationContext):
+async def command_ping(ctx: ApplicationContext):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
 
 # --- Trigger Function ---

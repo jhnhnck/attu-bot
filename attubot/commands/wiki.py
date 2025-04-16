@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import re
 
 import discord
+from discord import ApplicationContext, SlashCommandGroup
 from discord.ext import commands
 
 from attubot.config import Config
@@ -19,12 +20,12 @@ logger = get_logger(__name__)
 
 # --- Wiki Commands ---
 
-wiki_group = discord.SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
+wiki_group = SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
 
 @wiki_group.command(name='lookup', description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
 @discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
-async def wiki_lookup(ctx, query: str, limit: int):
+async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
     wiki = AttuWiki()
     pages = wiki.search(query, limit)
 
@@ -56,7 +57,7 @@ async def wiki_lookup(ctx, query: str, limit: int):
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 @commands.has_permissions(administrator=True)
 @commands.check(is_authorized_guild)
-async def wiki_block(ctx, user, reason):
+async def wiki_block(ctx: ApplicationContext, user, reason):
     # check if link to the user
     extract = re.search(r'User:(.*)$', user)
 

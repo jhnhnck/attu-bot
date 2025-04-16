@@ -56,3 +56,4 @@ reportOptionalMemberAccess = false
 reportOptionalSubscript = false
 reportInvalidCast = false
 reportFunctionMemberAccess = false
+reportAttributeAccessIssue = false

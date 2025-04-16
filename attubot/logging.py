@@ -26,7 +26,7 @@ class Logger:
 
     class_name: str
 
-    def __init__(self, class_name):
+    def __init__(self, class_name: str):
         self.class_name = class_name or 'attubot.???'
         self.debug_mode = 'DEBUG' in environ
         nop = lambda *a, **k: None  # noqa: E731

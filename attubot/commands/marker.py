@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import discord
-from discord import Permissions
+from discord import ApplicationContext, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -19,14 +19,14 @@ logger = get_logger(__name__)
 
 # --- Marker Commands ---
 
-marker_group = discord.SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utlities related to managing year markers (Admin Only)')
+marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utlities related to managing year markers (Admin Only)')
 
 @marker_group.command(name='save', description='Updates marker to point to a different message')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
 @discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
 @commands.check(is_authorized_guild)
-async def marker_save(ctx, year: int, link: str, force: bool):
+async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
     _, current_year = get_year_status()
 
     if year < 1 or year >= current_year:
@@ -67,7 +67,7 @@ async def marker_save(ctx, year: int, link: str, force: bool):
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=int)
 @commands.check(is_authorized_guild)
-async def marker_set(ctx, year: int, snowflake: int):
+async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     _, current_year = get_year_status()
     snowflake = int(snowflake)
 
@@ -94,7 +94,7 @@ async def marker_set(ctx, year: int, snowflake: int):
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @commands.check(is_authorized_guild)
-async def marker_clear(ctx, year: int, channel: discord.TextChannel):
+async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
     _, current_year = get_year_status()
 
     if year < 1 or year >= current_year:

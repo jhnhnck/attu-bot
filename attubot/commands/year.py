@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import discord
+from discord import ApplicationContext, SlashCommandGroup
 from discord.utils import snowflake_time
 
 from attubot.config import Config
@@ -20,11 +21,11 @@ logger = get_logger(__name__)
 
 # --- Year Commands ---
 
-year_group = discord.SlashCommandGroup('year', description='Utlities related to current, past or future years')
+year_group = SlashCommandGroup('year', description='Utlities related to current, past or future years')
 
 @year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
-async def year_check(ctx, year: int):
+async def year_check(ctx: ApplicationContext, year: int):
     elapsed_days, current_year = get_year_status()
     year = year if year is not None else (current_year + 1)
     year_span = await get_year_span(year)
@@ -64,7 +65,7 @@ async def year_check(ctx, year: int):
 
 @year_group.command(name='search', description='Prints search query for timlining')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-async def year_search(ctx, year: int):
+async def year_search(ctx: ApplicationContext, year: int):
     _, current_year = get_year_status()
     year_span = await get_year_span(year)
     guild = ctx.bot.get_guild(Config.attu_guild)
@@ -99,7 +100,7 @@ async def year_search(ctx, year: int):
 @year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
-async def year_link(ctx, year: int, channel: discord.TextChannel):
+async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
     _, current_year = get_year_status()
     marker = None
 

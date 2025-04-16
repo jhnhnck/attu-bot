@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import discord
-from discord import Permissions
+from discord import ApplicationContext, Permissions, SlashCommandGroup
 
 from attubot.config import NovaConfig, NovaToken
 from attubot.logging import get_logger
@@ -15,11 +15,11 @@ logger = get_logger(__name__)
 
 # --- Config Commands ---
 
-config_group = discord.SlashCommandGroup('config', default_member_permissions=Permissions.all(), description='Modify various options for bot behavior (Admin only)')
+config_group = SlashCommandGroup('config', default_member_permissions=Permissions.all(), description='Modify various options for bot behavior (Admin only)')
 
 @config_group.command(name='delete', description='Delete a specific key from the config table')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
-async def config_delete(ctx, key: str):
+async def config_delete(ctx: ApplicationContext, key: str):
     token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
@@ -38,7 +38,7 @@ async def config_delete(ctx, key: str):
 
 @config_group.command(name='get', description='Fetch the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
-async def config_get(ctx, key: str):
+async def config_get(ctx: ApplicationContext, key: str):
     token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
@@ -57,14 +57,15 @@ async def config_get(ctx, key: str):
 
 
 @config_group.command(name='list', description='List out the available config options')
-async def config_list(ctx):
+async def config_list(ctx: ApplicationContext):
     await ctx.respond('Available Options:\n' + ''.join([f'- {x}\n' for x in NovaConfig.guild_keys]))
 
 
 @config_group.command(name='set', description='Set the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 @discord.commands.option(name='value', required=True, description='', input_type=str)
-async def config_set(ctx, key: str, value: str):
+@discord.commands.option(name='append', required=False, description='', input_type=bool)
+async def config_set(ctx: ApplicationContext, key: str, value: str, append: bool = False):
     token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
@@ -102,7 +103,7 @@ async def config_set(ctx, key: str, value: str):
 
 
 @config_group.command(name='show', description='Show the entire guild configuration')
-async def config_show(ctx):
+async def config_show(ctx: ApplicationContext):
         config = {}
         msg = []
 
@@ -119,7 +120,7 @@ async def config_show(ctx):
 
 
 @config_group.command(name='validate', description='Check if the current configuration is valid')
-async def config_validate(ctx):
+async def config_validate(ctx: ApplicationContext):
     if ctx.guild.id in NovaConfig.valid_guilds:
         await ctx.respond('Guild Status: :ballot_box_with_check:')
     else:

@@ -9,27 +9,29 @@ from datetime import datetime
 from os import getenv
 from platform import freedesktop_os_release as os_release
 from platform import python_version
+from typing import Never, cast
 
 import discord
 import tomlkit
-from discord import Embed, Permissions
+from discord import ApplicationContext, Embed, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot import __title__, __version__
 from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
+from attubot.tasks import NewYearEvent
 from attubot.util import get_year_span, get_year_status, is_bot_owner
 
 logger = get_logger(__name__)
 
 # --- Debug Commands ---
 
-debug_group = discord.SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
+debug_group = SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
 # debug_admin_group = debug_group.create_subgroup('admin', description='Like the normal debug commands except scarier (Admin Only)', )
 
 @debug_group.command(name='version', description='Displays the current version and container build time')
-async def debug_version(ctx):
+async def debug_version(ctx: ApplicationContext):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
     build_time = datetime.strptime(getenv('BUILD_TIME', 'Thu Aug 11 02:23:20 UTC 2022'), build_format)
     distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
@@ -45,10 +47,10 @@ async def debug_version(ctx):
 
 
 @debug_group.command(name='year_stats', description='Returns the current state of time tracking calculations')
-async def debug_year_stats(ctx):
+async def debug_year_stats(ctx: ApplicationContext):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
-    cog = ctx.bot.get_cog('NewYearEvent')
+    cog = cast(NewYearEvent, ctx.bot.get_cog('NewYearEvent'))
 
     embed = Embed(title='Year Stats', color=0xE86348)
 
@@ -63,14 +65,14 @@ async def debug_year_stats(ctx):
 
 @debug_group.command(name='force_error', description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
-async def debug_force_error(ctx):
+async def debug_force_error(ctx: ApplicationContext) -> Never:
     await ctx.respond('Forcing an error message')
     math = 10 / 0  # noqa: F841
 
 
 @debug_group.command(name='message', description='Print message info')
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
-async def debug_message(ctx, link):
+async def debug_message(ctx: ApplicationContext, link):
     if 'discord.com/channels' not in link:
         await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
         return
@@ -81,7 +83,7 @@ async def debug_message(ctx, link):
 
     try:
         guild = ctx.bot.get_guild(guild)
-        channel = guild.get_channel(channel)
+        channel = cast(discord.TextChannel, guild.get_channel_or_thread(channel))  # it doesn't really matter
 
         async for message in channel.history(around=snowflake_time(target), limit=15):
             if message.id == target:
@@ -96,7 +98,7 @@ async def debug_message(ctx, link):
 
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
-async def debug_dump_config(ctx):
+async def debug_dump_config(ctx: ApplicationContext):
     logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
 
     await ctx.respond('Done!')
