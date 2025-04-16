@@ -36,7 +36,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
 
     # Get wiki page format
     site_info = await wiki.site_info()
-    fmt = f'{Config.wiki_endpoint}{site_info["articlepath"]}'
+    fmt = f'{site_info["server"]}{site_info["articlepath"]}'
 
     # Build response
     if len(pages) == 1:
