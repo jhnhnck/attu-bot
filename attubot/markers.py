@@ -5,9 +5,11 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
+
 from discord import Bot
 from discord.utils import snowflake_time
-from tortoise import Tortoise, fields, run_async
+from tortoise import Tortoise, fields
 from tortoise.models import Model
 
 from attubot.config import NovaConfig
@@ -59,4 +61,6 @@ async def _init_db():
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
-    run_async(_init_db())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(_init_db())
+
