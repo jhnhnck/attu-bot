@@ -5,8 +5,9 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 from datetime import date, datetime, timedelta
-from typing import cast
+from typing import Coroutine, cast
 
 import discord
 from discord.ext.commands import Context
@@ -39,6 +40,18 @@ class AttuYear(BaseModel):
     start_time: int
     end_time: int
     duration: int
+
+# --- Async Background Jobs ---
+
+background_tasks: set[asyncio.Task] = set()
+
+# from <https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task>
+def create_task(coro: Coroutine):
+    task = asyncio.create_task(coro)
+
+    background_tasks.add(task)
+
+    task.add_done_callback(background_tasks.discard)
 
 # --- Utilities ---
 
