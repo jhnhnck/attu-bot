@@ -5,10 +5,10 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import time
+import asyncio
 from platform import python_version
 
-import requests
+import httpx
 
 from attubot import __email__, __title__, __version__
 from attubot.config import Config
@@ -17,29 +17,32 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 class AttuWiki:
-    session = None
-    token = ''
-    max_retries = 3
+    client: httpx.AsyncClient
+    token: str = ''
+    max_retries: int = 3
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers = {'User-Agent': f'{__title__}/{__version__} ({__email__}) Requests/{requests.__version__} Python/{python_version()}'}
+        self.client = httpx.AsyncClient(
+            base_url=Config.wiki_endpoint,
+            headers={'User-Agent': f'{__title__}/{__version__} ({__email__}) httpx/{httpx.__version__} Python/{python_version()}'},
+        )
 
-        self.action_endpoint = f'{Config.wiki_endpoint}/api.php'
-        self.rest_endpoint = f'{Config.wiki_endpoint}/rest.php/v1'
+        self.action_endpoint = '/api.php'
+        self.rest_endpoint = '/rest.php/v1'
 
-    def _get_csrf(self):
-        res = self.session.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
+    def __del__(self):
+        logger.debug(f'Closing out httpx session: {self.client}')
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.client.aclose())
+
+    # TODO: convert these into an AuthProvider
+    async def _get_csrf(self) -> str:
+        res = await self.client.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'format': 'json'})
         return res.json()['query']['tokens']['csrftoken']
 
-    # def _debug(self, response):
-    #     from requests_toolbelt.utils import dump
-    #     data = dump.dump_all(response)
-    #     logger.debug(data.decode('utf-8'))
-
-    # TODO: Make use config instead of passed args
-    def authenticate(self, user, key):
-        res = self.session.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
+    async def authenticate(self, user: str, key: str):
+        res = await self.client.get(self.action_endpoint, params={'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'})
         self.token = res.json()['query']['tokens']['logintoken']
 
         data = {
@@ -50,15 +53,15 @@ class AttuWiki:
             'format': 'json',
         }
 
-        res = self.session.post(self.action_endpoint, data=data)
+        res = await self.client.post(self.action_endpoint, data=data)
         logger.debug(res.text)
 
-    def get_page_contents(self, page_name):
-        res = self.session.get(self.action_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json'})
+    async def get_page_contents(self, page_name: str):
+        res = await self.client.get(self.action_endpoint, params={'action': 'parse', 'page': page_name, 'prop': 'wikitext', 'formatversion': 2, 'format': 'json'})
         return res.json()['parse']['wikitext']
 
-    def edit(self, page_name, text, reason):
-        csrf = self._get_csrf()
+    async def edit(self, page_name: str, text: str, reason: str):
+        csrf = await self._get_csrf()
 
         data = {
             'action': 'edit',
@@ -71,11 +74,11 @@ class AttuWiki:
             'summary': reason,
         }
 
-        res = self.session.post(self.action_endpoint, data=data)
+        res = await self.client.post(self.action_endpoint, data=data)
         logger.debug(res.text)
 
-    def block(self, user, reason):
-        csrf = self._get_csrf()
+    async def block(self, user: str, reason: str):
+        csrf = await self._get_csrf()
 
         data = {
             'action': 'block',
@@ -93,28 +96,28 @@ class AttuWiki:
         # retry a few times in case of connection aborted
         for attempt in range(self.max_retries):
             try:
-                res = self.session.post(self.action_endpoint, data=data)
+                res = await self.client.post(self.action_endpoint, data=data)
                 logger.debug(res.text)
 
                 return res.json()
 
             except Exception as error:
                 logger.error(f'block(): Attempt {attempt + 1} failed with error: {error}')
-                time.sleep(3)
+                await asyncio.sleep(3)
 
         return False
 
-    def search(self, query, limit):
-        res = self.session.get(f'{self.rest_endpoint}/search/page', params={'q': query, 'limit': limit})
+    async def search(self, query: str, limit: int):
+        res = await self.client.get(f'{self.rest_endpoint}/search/page', params={'q': query, 'limit': limit})
         logger.debug(f'Req: "{res.request.url}"')
         logger.debug(res.text)
 
         return res.json()['pages'][:limit]  # currently doesn't respect limit so manually truncate here
 
-    def site_info(self):
+    async def site_info(self):
         data = {'action': 'query', 'format': 'json', 'meta': 'siteinfo', 'formatversion': '2', 'siprop': 'general'}
 
-        res = self.session.post(self.action_endpoint, data=data)
+        res = await self.client.post(self.action_endpoint, data=data)
         logger.debug(res.text)
 
         return res.json()['query']['general']

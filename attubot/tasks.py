@@ -88,12 +88,12 @@ class NewYearEvent(commands.Cog):
         # --- Edit Wiki ---
 
         wiki = AttuWiki()
-        wiki.authenticate(Config.wiki_user, Config.wiki_key)
+        await wiki.authenticate(Config.wiki_user, Config.wiki_key)
 
-        text = wiki.get_page_contents(Config.wiki_page)
+        text = await wiki.get_page_contents(Config.wiki_page)
         updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
 
-        wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
+        await wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
 
         # --- Make Announcement ---
 

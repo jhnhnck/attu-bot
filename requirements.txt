@@ -5,3 +5,4 @@ requests
 termcolor
 tomlkit
 tortoise-orm<2
+httpx

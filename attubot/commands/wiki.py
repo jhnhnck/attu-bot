@@ -27,7 +27,7 @@ wiki_group = SlashCommandGroup('wiki', description='Utlities for managing and qu
 @discord.commands.option(name='limit', required=False, description='Max Number of Results', input_type=int, default=1, min_value=1, max_value=10)
 async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
     wiki = AttuWiki()
-    pages = wiki.search(query, limit)
+    pages = await wiki.search(query, limit)
 
     # Handle no results
     if len(pages) == 0:
@@ -35,7 +35,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
         return
 
     # Get wiki page format
-    site_info = wiki.site_info()
+    site_info = await wiki.site_info()
     fmt = f'{Config.wiki_endpoint}{site_info["articlepath"]}'
 
     # Build response
@@ -67,8 +67,8 @@ async def wiki_block(ctx: ApplicationContext, user, reason):
     await ctx.respond(f'Blocking user [{user}]: {reason}')
 
     wiki = AttuWiki()
-    wiki.authenticate(Config.wiki_user, Config.wiki_key)
-    wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
+    await wiki.authenticate(Config.wiki_user, Config.wiki_key)
+    await wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- Extension Def ---
 
