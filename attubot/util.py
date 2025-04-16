@@ -6,8 +6,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+from collections.abc import Coroutine
 from datetime import date, datetime, timedelta
-from typing import Coroutine, cast
+from typing import cast
 
 import discord
 from discord.ext.commands import Context
