@@ -55,7 +55,7 @@ async def send_to_webhook(error: Exception):
 
 @bot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
-    logger.error(f'Error sent to `on_application_command_error()` error={error!s}')
+    logger.error(f'Error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
         if ctx.guild.id in NovaConfig.authorized_guilds:
@@ -68,7 +68,9 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         await ctx.respond('Nice try! <:rockball:1308981475114225694>')
 
     else:
-        await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
+        if ctx.command.name != 'force_error':
+            await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
+
         await send_to_webhook(error)
 
     # Close any hung connections
@@ -92,13 +94,16 @@ async def on_ready():
         try:
             await NovaConfig.on_ready(bot)
 
-        except Exception as err:
-            logger.fatal('Exception caused by config on_ready() event', err)
-            await bot.close()
-            sys.exit(0)
+            # util depends on config being init, can't import later
+            from attubot.util import error_hook_refresh
+            await error_hook_refresh(bot)
 
-        if NovaConfig.test_mode:
-            logger.fatal('Reached ready state; exiting...')
+            if NovaConfig.test_mode:
+                logger.fatal('Reached ready state')
+                raise Exception('(Test Mode)')
+
+        except Exception as err:
+            logger.fatal('Exception caught in on_ready() event; exiting', err)
             await bot.close()
             sys.exit(0)
 

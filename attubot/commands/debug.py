@@ -67,7 +67,8 @@ async def debug_year_stats(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 async def debug_force_error(ctx: ApplicationContext) -> Never:
     await ctx.respond('Forcing an error message')
-    math = 10 / 0  # noqa: F841
+
+    raise Exception(f'Forced error from {ctx.author.name}')
 
 
 @debug_group.command(name='message', description='Print message info')

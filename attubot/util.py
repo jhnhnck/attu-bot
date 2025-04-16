@@ -160,14 +160,26 @@ def format_message_link(guild, channel, message, relative=False) -> str:
 
 # create a new error hook
 async def error_hook_refresh(bot: discord.Bot):
+    if NovaConfig.test_mode:
+        logger.debug('Application in test mode; skipping error hook refresh')
+        return
+
     try:
         guild = bot.get_guild(NovaConfig.error_log[0])
         error_log = cast(discord.TextChannel, guild.get_channel(NovaConfig.error_log[1]))
 
-        for old in (await error_log.webhooks()):
-            if old.user == bot.user:
+        webhooks = await error_log.webhooks()
+        webhook_urls = [hook.url for hook in webhooks]
+
+        # cleanup old urls
+        for old in webhooks:
+            if old.user == bot.user and old.url != NovaConfig.error_hook:
                 logger.warn(f'Deleted old webhook: {old.name}-{old.id}')
                 await old.delete()
+
+        if NovaConfig.error_hook in webhook_urls:
+            logger.debug('Existing error hook found; skipping refresh')
+            return
 
         icon = await bot.user.display_avatar.read()
         hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
