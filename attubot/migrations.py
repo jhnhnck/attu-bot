@@ -48,7 +48,7 @@ async def migration_pre4():
 async def migration_error_hooks():
 
     async def error_hook_init():
-        from attubot.util import error_hook_refresh
+        from attubot.calendar import error_hook_refresh
 
         await error_hook_refresh(NovaConfig._bot)
 

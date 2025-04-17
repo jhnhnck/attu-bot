@@ -10,11 +10,11 @@ from typing import cast
 import discord
 from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 
+from attubot.calendar import get_year_status, move_epoch
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.tasks import NewYearEvent
-from attubot.util import get_year_status, move_epoch
 
 logger = get_logger(__name__)
 

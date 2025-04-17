@@ -18,10 +18,11 @@ from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot import __title__, __version__
+from attubot.calendar import get_year_span, get_year_status
 from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 from attubot.tasks import NewYearEvent
-from attubot.util import get_year_span, get_year_status, is_bot_owner
+from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
 

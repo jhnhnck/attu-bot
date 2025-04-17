@@ -12,8 +12,9 @@ from discord import ApplicationContext, Bot, MessageType, Permissions, SlashComm
 from discord.ext import commands
 from discord.utils import snowflake_time
 
+from attubot.calendar import format_year_line, get_year_span, get_year_status
 from attubot.logging import get_logger
-from attubot.util import format_message_link, format_year_line, get_year_span, get_year_status, is_bot_owner
+from attubot.util import format_message_link, is_bot_owner
 
 logger = get_logger(__name__)
 
@@ -42,7 +43,7 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
         # search through each years history
         async for message in channel.history(after=start_time, before=end_time, limit=None):
             if message.type == MessageType.pins_add:
-                link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id)
+                link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id or 0)
 
                 logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {link}')
                 pins.append(f'{message.jump_url} -> {link}')

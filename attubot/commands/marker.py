@@ -10,10 +10,11 @@ from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
+from attubot.calendar import get_year_status
 from attubot.config import Config
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
-from attubot.util import format_message_link, get_year_status, is_authorized_guild
+from attubot.util import format_message_link, is_authorized_guild
 
 logger = get_logger(__name__)
 
