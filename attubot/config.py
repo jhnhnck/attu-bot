@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 import datetime
 import re
 import sys
@@ -261,6 +262,12 @@ class NovaConfig:
     test_mode: bool = 'TEST_MODE' in environ
     _ready_hooks: list[Callable] = []
 
+    _events = {
+        'init': asyncio.Event(),
+        'load': asyncio.Event(),
+        'ready': asyncio.Event(),
+    }
+
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
         logger.info('Bootstrapping config loading process')
@@ -295,6 +302,8 @@ class NovaConfig:
 
         Config.on_init()  # bootstrap old config structure
 
+        cls._get_event('init').set()
+
     @classmethod  # called by markers setup after db is connected
     async def on_load(cls):
         # handle data migration
@@ -323,6 +332,8 @@ class NovaConfig:
         await Tortoise.close_connections()
 
         Config.on_load()  # bootstrap old config structure
+
+        cls._get_event('load').set()
 
     @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
     async def on_ready(cls, bot: Bot):
@@ -360,6 +371,8 @@ class NovaConfig:
 
         if cls.test_mode:
             logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
+
+        cls._get_event('ready').set()
 
         await Tortoise.close_connections()
 
@@ -502,6 +515,27 @@ class NovaConfig:
                 cls._guilds[guild] = prev_state
 
             return False
+
+    # --- Config Events ---
+
+    @classmethod
+    def _get_event(cls, key: str) -> asyncio.Event:
+        if key in cls._events:
+            return cls._events[key]
+        else:
+            raise ValueError(f'invalid config event: {key}')
+
+    @classmethod
+    async def wait_for_init(cls) -> None:
+        await cls._get_event('init').wait()
+
+    @classmethod
+    async def wait_for_load(cls) -> None:
+        await cls._get_event('load').wait()
+
+    @classmethod
+    async def wait_for_ready(cls) -> None:
+        await cls._get_event('ready').wait()
 
     # --- Debug ---
 
