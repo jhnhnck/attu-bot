@@ -260,7 +260,6 @@ class NovaConfig:
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
     _guilds: dict[int, Guild] = {}
     test_mode: bool = 'TEST_MODE' in environ
-    _ready_hooks: list[Callable] = []
 
     _events = {
         'init': asyncio.Event(),
@@ -363,9 +362,6 @@ class NovaConfig:
             cls.owner_ids = { usr.id for usr in bot_info.team.members }
         else:
             cls.owner_ids = { bot_info.owner.id }
-
-        for hook in cls._ready_hooks:
-            await hook()
 
         if cls.test_mode:
             logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')

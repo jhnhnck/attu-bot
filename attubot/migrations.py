@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
+from attubot.util import create_task
 
 logger = get_logger(__name__)
 
@@ -48,13 +49,14 @@ async def migration_pre4():
 async def migration_error_hooks():
 
     async def error_hook_init():
-        from attubot.calendar import error_hook_refresh
+        from attubot.tasks import error_hook_refresh
 
+        await NovaConfig.wait_for_ready()
         await error_hook_refresh(NovaConfig._bot)
 
     # Add ready hook to grab webhook
-    logger.debug(f'Adding ready hook: {error_hook_init!s}')
-    NovaConfig._ready_hooks.append(error_hook_init)
+    create_task(error_hook_init())
+    logger.debug(f'Created future task for {error_hook_init!s}')
 
 
 # Version 1.8.0-pre7
