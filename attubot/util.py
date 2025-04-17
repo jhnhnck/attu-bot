@@ -130,7 +130,7 @@ async def get_year_span(year: int) -> AttuYear:
 
 
 # TODO: Shouldn't this be on the guild object
-async def move_epoch(length: int, guild_id=NovaConfig.primary_guild):
+async def move_epoch(length: int, guild_id: int = NovaConfig.primary_guild):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
     guild = NovaConfig.guild(guild_id)
@@ -168,7 +168,7 @@ def has_year_marker(year: int, content: str) -> bool:
 
 
 # util to make discord message links
-def format_message_link(guild, channel, message, relative=False) -> str:
+def format_message_link(guild: int, channel: int, message: int, relative: bool = False) -> str:
     return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'
 
 
