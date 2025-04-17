@@ -329,8 +329,6 @@ class NovaConfig:
         for guild in cls.authorized_guilds:
             await cls.load_guild(guild)
 
-        await Tortoise.close_connections()
-
         Config.on_load()  # bootstrap old config structure
 
         cls._get_event('load').set()
@@ -389,7 +387,7 @@ class NovaConfig:
             return None
 
     @classmethod
-    def guild(cls, guild) -> Guild:
+    def guild(cls, guild: int) -> Guild:
         if guild in cls.authorized_guilds:
             return cls._guilds[guild]
         else:
@@ -504,8 +502,10 @@ class NovaConfig:
             if guild not in cls.valid_guilds:
                 cls.valid_guilds.append(guild)
 
-            # Reload old Config object
-            Config.on_load()
+            # Reload old Config if primary
+            if guild == cls.primary_guild:
+                Config.on_load()
+
             return True
 
         except ValidationError as err:

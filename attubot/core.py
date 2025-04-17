@@ -95,7 +95,7 @@ async def on_ready():
             await NovaConfig.on_ready(bot)
 
             # util depends on config being init, can't import later
-            from attubot.util import error_hook_refresh
+            from attubot.tasks import error_hook_refresh
             await error_hook_refresh(bot)
 
             if NovaConfig.test_mode:
@@ -135,7 +135,7 @@ async def on_message(message: Message):
 
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
-    logger.info(f'Command executed: user={ctx.user.global_name} command={ctx.command} channel={ctx.channel.name} data={ctx.interaction.data}')
+    logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
 
 @bot.event
