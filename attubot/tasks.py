@@ -14,9 +14,9 @@ from discord.ext import commands, tasks
 
 from attubot.calendar import format_year_line, get_year_status
 from attubot.config import Config, NovaConfig
-from attubot.core import send_to_webhook
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
+from attubot.util import create_task, webhook_logging
 from attubot.wiki import AttuWiki
 
 logger = get_logger(__name__)
@@ -33,16 +33,13 @@ class NewYearEvent(commands.Cog):
     @tasks.loop(time=Config.rollover_time)
     async def task_year_check(self):
         logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
-
-        try:
-            await self.check_for_new_year()
-        except Exception as error:
-            await send_to_webhook(error)
+        await self.check_for_new_year()
 
     @task_year_check.before_loop
     async def wait_for_ready(self):
         await self.bot.wait_until_ready()
 
+    @webhook_logging(scope=logger)
     async def check_for_new_year(self):
         elapsed_days, year = get_year_status()
 

@@ -6,13 +6,13 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
-from collections.abc import Coroutine
-from typing import cast
+from collections.abc import Callable, Coroutine
+from typing import Any, cast
 
 import discord
 from discord.ext.commands import Context
 
-from attubot.logging import get_logger
+from attubot.logging import Logger, get_logger
 
 # --- Initialization ---
 
@@ -43,6 +43,20 @@ def create_task(coro: Coroutine):
     background_tasks.add(task)
 
     task.add_done_callback(background_tasks.discard)
+
+# --- Decorators ---
+
+def webhook_logging(scope: Logger) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        async def wrapper(*args, **kwargs) -> Any:
+            try:
+                return await func(*args, **kwargs)
+
+            except Exception as error:
+                await scope.send_to_webhook(error)
+
+        return wrapper
+    return decorator
 
 # --- Formatting ---
 

@@ -5,13 +5,12 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 import sys
-import traceback
 from typing import cast
 
-import aiohttp
 import discord
-from discord import ApplicationContext, Intents, Message, Webhook
+from discord import ApplicationCommand, ApplicationContext, Intents, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
@@ -31,28 +30,6 @@ bot = discord.Bot(intents=intents)
 
 # --- Error Handling ---
 
-async def send_to_webhook(error: Exception):
-    tb_str = ''.join(traceback.format_exception(error))
-
-    logger.error(f'{error!s}\n{tb_str}')
-
-    try:
-        # this removes the useless bits
-        tb_str = tb_str.split('The above exception')[0]
-        msg = f'**{error}**\n```\n{tb_str}```'
-
-        # trim to discord character length
-        if len(msg) > 2000:
-            msg = msg[:1992] + '\n...\n```'
-
-        async with aiohttp.ClientSession() as session:
-            webhook = Webhook.from_url(NovaConfig.error_hook, session=session)
-            await webhook.send(msg, username='DoomBot')
-
-    except Exception as err:
-        logger.error(f'Issue logging error to configured webhook: {err}')
-
-
 @bot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
     logger.error(f'Error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
@@ -71,7 +48,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         if ctx.command.name != 'force_error':
             await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
 
-        await send_to_webhook(error)
+        await logger.send_to_webhook(error)
 
     # Close any hung connections
     await Tortoise.close_connections()
@@ -104,8 +81,12 @@ async def on_ready():
 
         except Exception as err:
             logger.fatal('Exception caught in on_ready() event; exiting', err)
-            await bot.close()
-            sys.exit(0)
+
+            if str(err) != '(Test Mode)':
+                await logger.send_to_webhook(err)
+
+            await asyncio.gather(Tortoise.close_connections(), bot.close())
+            sys.exit(1)
 
         logger.info('Pushing commands to Discord')
         await bot.sync_commands()
@@ -153,7 +134,7 @@ def start_bot_loop():
     NovaConfig.on_init()
 
     logger.info('Loading Commands')
-    bot.add_application_command(cast(discord.ApplicationCommand, command_ping))
+    bot.add_application_command(cast(ApplicationCommand, command_ping))
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
