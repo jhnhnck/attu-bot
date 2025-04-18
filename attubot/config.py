@@ -9,7 +9,6 @@ import asyncio
 import datetime
 import re
 import sys
-from collections.abc import Callable
 from os import environ, getenv
 from pathlib import Path
 from typing import Any, Self, TypedDict, cast
@@ -174,7 +173,7 @@ class GuildUsers(BaseModel):
         return data
 
 
-class Guild(BaseModel):
+class GuildConfig(BaseModel):
     channels: GuildChannels
     epoch: GuildEpoch
     roles: GuildRoles
@@ -258,7 +257,7 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    _guilds: dict[int, Guild] = {}
+    guilds: dict[int, GuildConfig] = {}
     test_mode: bool = 'TEST_MODE' in environ
 
     _events = {
@@ -340,7 +339,7 @@ class NovaConfig:
             logger.info('Adding bot user to valid year marker authors')
             Config.users.markers.append(bot.user.id)
 
-        for idx, guild in cls._guilds.items():
+        for idx, guild in cls.guilds.items():
             if bot.user.id not in guild.users.markers:
                 logger.info(f'Adding bot user to valid year marker authors for {idx}')
 
@@ -383,9 +382,9 @@ class NovaConfig:
             return None
 
     @classmethod
-    def guild(cls, guild: int) -> Guild:
+    def guild(cls, guild: int) -> GuildConfig:
         if guild in cls.authorized_guilds:
-            return cls._guilds[guild]
+            return cls.guilds[guild]
         else:
             raise UnauthorizedGuild(guild)
 
@@ -486,14 +485,14 @@ class NovaConfig:
     @classmethod
     async def load_guild(cls, guild: int) -> bool:
         config = {}
-        prev_state = cls._guilds.get(guild, None)
+        prev_state = cls.guilds.get(guild, None)
 
         try:
             logger.info(f'{"Loading" if prev_state is None else "Reloading"} guild config for {guild}')
             async for token in NovaToken.filter(guild=guild):
                 config[str(token.key)] = token.unpack()
 
-            cls._guilds[guild] = Guild(**config, id=guild)
+            cls.guilds[guild] = GuildConfig(**config, id=guild)
 
             if guild not in cls.valid_guilds:
                 cls.valid_guilds.append(guild)
@@ -508,7 +507,7 @@ class NovaConfig:
             logger.error(f'Failed to validate {guild}: {err!s}')
 
             if prev_state is not None:
-                cls._guilds[guild] = prev_state
+                cls.guilds[guild] = prev_state
 
             return False
 
@@ -556,8 +555,8 @@ class NovaConfig:
                 return value
 
         for key, value in vars(cls).items():
-            if key == '_guilds':  # custom handling for guilds
-                for idx, guild in cls._guilds.items():
+            if key == 'guilds':  # custom handling for guilds
+                for idx, guild in cls.guilds.items():
                     result.update({f'{idx}/{key}': convert_value(value) for key, value in vars(guild).items()})
 
             elif key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
