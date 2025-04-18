@@ -6,14 +6,14 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import re
-from datetime import date, datetime
-from typing import cast
+from datetime import date, datetime, time
+from typing import Never, cast
 
 from discord import Bot, TextChannel
 from discord.ext import commands, tasks
 
 from attubot.calendar import format_year_line, get_year_status
-from attubot.config import Config, NovaConfig
+from attubot.config import Config, GuildConfig, NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import create_task, webhook_logging
@@ -23,6 +23,61 @@ logger = get_logger(__name__)
 
 # --- New Year Handling ---
 
+"""
+Rewrite to support multiple guilds
+"""
+class NovaYearEvent(commands.Cog):
+    bot: Bot
+
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self.guild_event_dispatch.start()
+
+    @tasks.loop(minutes=30)  # gets updated in before_loop, but we have to pass it *something*
+    async def guild_event_dispatch(self):
+        logger.debug(f'Task "guild_event_dispatch" triggered on {date.today()}, {datetime.now()}')
+
+        for guild in NovaConfig.guilds.values():
+            logger.trace(self.guild_event_dispatch.next_iteration.timetz(), guild.epoch.rollover_time)
+            if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
+                create_task(self.guild_event(guild))
+
+    @guild_event_dispatch.before_loop
+    async def wait_for_ready(self):
+        await NovaConfig.wait_for_load()
+
+        # Update the loop interval to match loaded guilds
+        create_task(self.update_loop_loop())
+
+        await self.bot.wait_until_ready()
+
+        logger.warn('Task "guild_event_dispatch" ready for init')
+
+    @webhook_logging(scope=logger)
+    async def update_loop_loop(self) -> Never:
+        while True:
+            logger.debug('Scheduling task "guild_event_dispatch" at rollover times')
+            times: list[time] = []
+
+            for guild in NovaConfig.guilds.values():
+                if not guild.epoch.paused:
+                    times.append(guild.epoch.rollover_time)
+
+            self.guild_event_dispatch.change_interval(time=times)
+
+            logger.warn(f'Next "guild_event_dispatch" trigger set for {self.guild_event_dispatch.next_iteration}')
+
+            # sleep until next event time
+            await NovaConfig.wait_for_reload()
+
+    @webhook_logging(scope=logger)
+    async def guild_event(self, guild: GuildConfig):
+        logger.info(f'Proccessing guild event for "{guild.id}"')
+
+
+"""
+Old Cog
+"""
 class NewYearEvent(commands.Cog):
     bot: Bot
 
@@ -141,4 +196,8 @@ async def error_hook_refresh(bot: Bot):
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
-    bot.add_cog(NewYearEvent(bot))
+    if not NovaConfig.test_mode:
+        bot.add_cog(NewYearEvent(bot))
+
+    else:
+        bot.add_cog(NovaYearEvent(bot))
