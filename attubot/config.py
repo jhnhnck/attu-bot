@@ -11,7 +11,7 @@ import re
 import sys
 from os import environ, getenv
 from pathlib import Path
-from typing import Any, Self, TypedDict, cast
+from typing import Any, Literal, Self, TypedDict, cast
 from zoneinfo import ZoneInfo
 
 import tomlkit
@@ -264,7 +264,10 @@ class NovaConfig:
         'init': asyncio.Event(),
         'load': asyncio.Event(),
         'ready': asyncio.Event(),
+        'reload': asyncio.Event(),
     }
+
+    # --- Event Calls ---
 
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
@@ -482,6 +485,10 @@ class NovaConfig:
         # Reload old Config object
         Config.on_init()
 
+        # trigger event if this is a reload
+        if cls._get_event('load').is_set():
+            cls._get_event('reload').set()
+
     @classmethod
     async def load_guild(cls, guild: int) -> bool:
         config = {}
@@ -500,6 +507,10 @@ class NovaConfig:
             # Reload old Config if primary
             if guild == cls.primary_guild:
                 Config.on_load()
+
+            # trigger event if this is a reload
+            if cls._get_event('load').is_set():
+                cls._get_event('reload').set()
 
             return True
 
@@ -521,16 +532,26 @@ class NovaConfig:
             raise ValueError(f'invalid config event: {key}')
 
     @classmethod
-    async def wait_for_init(cls) -> None:
-        await cls._get_event('init').wait()
+    async def wait_for_init(cls) -> Literal[True]:
+        return await cls._get_event('init').wait()
 
     @classmethod
-    async def wait_for_load(cls) -> None:
-        await cls._get_event('load').wait()
+    async def wait_for_load(cls) -> Literal[True]:
+        return await cls._get_event('load').wait()
 
     @classmethod
-    async def wait_for_ready(cls) -> None:
-        await cls._get_event('ready').wait()
+    async def wait_for_ready(cls) -> Literal[True]:
+        return await cls._get_event('ready').wait()
+
+    @classmethod
+    async def wait_for_reload(cls) -> Literal[True]:
+        reload = cls._get_event('reload')
+
+        if reload.is_set():
+            logger.debug('Caught new wait - reseting reload event')
+            reload.clear()
+
+        return await reload.wait()
 
     # --- Debug ---
 
