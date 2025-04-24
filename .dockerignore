@@ -9,7 +9,7 @@
 *.toml
 **/__pycache__/
 **/*.wip.py
-backup/
+backups/
 config/
 devel/
 pyproject.toml
