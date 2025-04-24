@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel
 
-from attubot.config import Config, NovaConfig
+from attubot.config import GuildEpoch, NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 
@@ -40,34 +40,39 @@ def format_year_line(year) -> str:
         return f'# {sep * 3} Year {year} PC {sep * 3}'
 
 
-def get_year_status() -> tuple[int, int]:
-    today = datetime.combine(date.today(), Config.rollover_time)
-    epoch = datetime.combine(datetime.fromtimestamp(Config.epoch_time).astimezone(), Config.rollover_time)
-    time_diff_sec = (today - epoch).total_seconds()
+def get_year_status(guild: int | None = None) -> tuple[int, int]:
+    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
+
+    today = datetime.combine(date.today(), epoch.rollover_time)
+    epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.rollover_time)
+    time_diff_sec = (today - epoch_time).total_seconds()
 
     elapsed_days = int(time_diff_sec / 86400)
-    year = Config.epoch_year + (elapsed_days // Config.epoch_length)
+    year = epoch.year + (elapsed_days // epoch.length)
 
-    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < Config.rollover_time:
+    if (elapsed_days % epoch.length) == 0 and datetime.now().time() < epoch.rollover_time:
         year -= 1
 
     return elapsed_days, year
 
 
-def get_next_year() -> datetime:
-    if Config.time_paused:
+def get_next_year(guild: int | None = None) -> datetime:
+    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
+
+    if epoch.paused:
         return datetime.fromtimestamp(0).astimezone()
 
-    elapsed_days, _ = get_year_status()
-    new_date = datetime.combine(date.today(), Config.rollover_time) + timedelta((Config.epoch_length - elapsed_days) % Config.epoch_length)
+    elapsed_days, _ = get_year_status(guild)
+    new_date = datetime.combine(date.today(), epoch.rollover_time) + timedelta((epoch.length - elapsed_days) % epoch.length)
 
-    if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() >= Config.rollover_time:
-        new_date += timedelta(days=Config.epoch_length)
+    if (elapsed_days % epoch.length) == 0 and datetime.now().time() >= epoch.rollover_time:
+        new_date += timedelta(days=epoch.length)
 
     return new_date
 
 
-async def get_year_span(year: int) -> AttuYear:
+async def get_year_span(year: int, guild: int | None = None) -> AttuYear:
+    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
     result = AttuYear(start_time=0, end_time=0, duration=0)
 
     _, current_year = get_year_status()
@@ -91,12 +96,12 @@ async def get_year_span(year: int) -> AttuYear:
     # Next Year
     elif year == (current_year + 1):
         result.start_time = int(next_year.timestamp())
-        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year)))).timestamp()) if not Config.time_paused else 0
+        result.end_time = int((next_year + timedelta(days=(epoch.length * (year - current_year)))).timestamp()) if not epoch.paused else 0
 
     # Future Years
-    elif not Config.time_paused:
-        result.start_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year - 1)))).timestamp())
-        result.end_time = int((next_year + timedelta(days=(Config.epoch_length * (year - current_year)))).timestamp())
+    elif not epoch.paused:
+        result.start_time = int((next_year + timedelta(days=(epoch.length * (year - current_year - 1)))).timestamp())
+        result.end_time = int((next_year + timedelta(days=(epoch.length * (year - current_year)))).timestamp())
 
     result.duration = round((result.end_time - result.start_time) / 86400)
     return result

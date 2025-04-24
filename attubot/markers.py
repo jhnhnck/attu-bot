@@ -27,16 +27,22 @@ class YearMarker(Model):
     exact = fields.BooleanField(default=False)
     wiki_page = fields.BooleanField(default=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.channel}/{self.message}'
 
     @staticmethod
-    async def total():
-        return await YearMarker.filter(channel=0).count()
+    async def total(guild: int | None = None) -> int:
+        if guild is None:
+            guild = NovaConfig.primary_guild
+
+        return await YearMarker.filter(channel=guild).count()
 
     @staticmethod  # Throws exception on invalid year
-    async def timestamp(year: int):
-        marker = await YearMarker.get(channel=0, year=year)
+    async def timestamp(year: int, guild: int | None = None) -> int:
+        if guild is None:
+            guild = NovaConfig.primary_guild
+
+        marker = await YearMarker.get(channel=guild, year=year)
         return int(snowflake_time(marker.message).timestamp())
 
     @staticmethod

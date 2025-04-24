@@ -391,6 +391,10 @@ class NovaConfig:
         else:
             raise UnauthorizedGuild(guild)
 
+    @classmethod
+    def primary(cls) -> GuildConfig:
+        return cls.guild(cls.primary_guild)
+
     @staticmethod
     async def get(key: str, guild: int = 0, default: Any = 0) -> Any:
         token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())

@@ -63,3 +63,19 @@ async def migration_error_hooks():
 @migration(old='1.8.0-pre6', new='1.8.0-pre7')
 async def migration_named_guilds():
     NovaConfig.primary_guild = await NovaConfig.set('primary_guild', NovaConfig.primary_guild)
+
+
+# Version 1.8.0-pre8
+@migration(old='1.8.0-pre7', new='1.8.0-pre8')
+async def migration_markers_move():
+
+    async def migrate_guild_markers():
+        from attubot.markers import YearMarker
+
+        await NovaConfig.wait_for_ready()
+        await YearMarker.raw(f'UPDATE yearmarker SET channel = {NovaConfig.primary_guild} WHERE channel = 0;')  # noqa: S608
+        logger.debug(f'Updated markers from 0 -> {NovaConfig.primary_guild}')
+
+    # Create a task so this executes after ready
+    create_task(migrate_guild_markers())
+    logger.debug(f'Created future task for {migrate_guild_markers!s}')
