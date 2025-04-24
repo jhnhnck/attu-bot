@@ -146,7 +146,7 @@ class GuildEpoch(BaseModel):
         data['paused'] = data.get('epoch.paused', True)
 
         th = data.get('epoch.rollover_time', '17:00').split(':')
-        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=ZoneInfo(getenv('TZ', 'UTC')))
+        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=NovaConfig.timezone)
 
         return data
 
@@ -257,6 +257,7 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
+    timezone = ZoneInfo(getenv('TZ', 'UTC')
     guilds: dict[int, GuildConfig] = {}
     test_mode: bool = 'TEST_MODE' in environ
 

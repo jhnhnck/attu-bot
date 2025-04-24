@@ -6,14 +6,13 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_span, get_year_status, has_year_marker
-from attubot.config import Config
+from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
@@ -85,14 +84,12 @@ async def year_search(ctx: ApplicationContext, year: int):
     for channel_id in [*Config.lore_channels, Config.meta_chat_channel, 1001837934590312458, 1175719558032654356]:
         msg.append(f'in:{guild.get_channel(channel_id).name}')
 
-    tz = ZoneInfo('America/New_York')
-
     if year_span.start_time > 0:
-        start = datetime.fromtimestamp(year_span.start_time, tz=tz) - timedelta(days=1)
+        start = datetime.fromtimestamp(year_span.start_time, tz=NovaConfig.timezone) - timedelta(days=1)
         msg.append(f'after:{start.strftime("%Y-%m-%d")}')
 
     if year_span.end_time > 0:
-        end = datetime.fromtimestamp(year_span.end_time, tz=tz) + timedelta(days=1)
+        end = datetime.fromtimestamp(year_span.end_time, tz=NovaConfig.timezone) + timedelta(days=1)
         msg.append(f'before:{end.strftime("%Y-%m-%d")}')
 
     await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
