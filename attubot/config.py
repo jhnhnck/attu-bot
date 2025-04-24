@@ -257,7 +257,7 @@ class NovaConfig:
     # Dynamic Attributes
     path = Path(getenv('ATTU_CONFIG_FILE', './attu-bot.toml')).resolve()
     db_path = Path(getenv('ATTU_MARKER_DB', './markers.db')).resolve()
-    timezone = ZoneInfo(getenv('TZ', 'UTC')
+    timezone = ZoneInfo(getenv('TZ', 'UTC'))
     guilds: dict[int, GuildConfig] = {}
     test_mode: bool = 'TEST_MODE' in environ
 
