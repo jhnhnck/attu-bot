@@ -31,7 +31,7 @@ class NovaYearEvent(commands.Cog):
 
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.guild_event_dispatch.start()
+        self.task = self.guild_event_dispatch.start()
 
     @tasks.loop(minutes=30)  # gets updated in before_loop, but we have to pass it *something*
     async def guild_event_dispatch(self):
@@ -56,7 +56,7 @@ class NovaYearEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def update_loop_loop(self) -> Never:
         while True:
-            logger.debug('Scheduling task "guild_event_dispatch" at rollover times')
+            logger.info('Scheduling task "guild_event_dispatch" at rollover times')
             times: list[time] = []
 
             for guild in NovaConfig.guilds.values():
@@ -64,8 +64,6 @@ class NovaYearEvent(commands.Cog):
                     times.append(guild.epoch.rollover_time)
 
             self.guild_event_dispatch.change_interval(time=times)
-
-            logger.warn(f'Next "guild_event_dispatch" trigger set for {self.guild_event_dispatch.next_iteration}')
 
             # sleep until next event time
             await NovaConfig.wait_for_reload()
@@ -81,9 +79,10 @@ Old Cog
 class NewYearEvent(commands.Cog):
     bot: Bot
 
-    def __init__(self, bot):
+    def __init__(self, bot, guild: int | None = None):
         self.bot = bot
-        self.task_year_check.start()
+        self.task = self.task_year_check.start()
+        self.guild = guild or NovaConfig.primary_guild
 
     @tasks.loop(time=Config.rollover_time)
     async def task_year_check(self):
@@ -97,12 +96,13 @@ class NewYearEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def check_for_new_year(self):
         elapsed_days, year = get_year_status()
+        epoch = NovaConfig.guild(self.guild).epoch
 
-        if Config.time_paused:
+        if epoch.paused:
             logger.info('The passage of time has been paused; skipping task')
 
-        elif elapsed_days % Config.epoch_length != 0:
-            logger.info(f'Days Remaining Until Year {year + 1} PC: {Config.epoch_length - (elapsed_days % Config.epoch_length)}')
+        elif elapsed_days % epoch.length != 0:
+            logger.info(f'Days Remaining Until Year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)}')
 
         elif year < (await YearMarker.total()):
             logger.error('Already enough years; was event manually triggered?')
@@ -111,7 +111,9 @@ class NewYearEvent(commands.Cog):
             await self.advance_year(year)
 
     async def advance_year(self, year: int):
-        guild = self.bot.get_guild(Config.attu_guild)
+        guild = self.bot.get_guild(self.guild)
+        channels = NovaConfig.guild(self.guild).channels
+        roles = NovaConfig.guild(self.guild).roles
 
         logger.info(f'Happy New Year! Advancing to Year {year} PC')
 
@@ -120,7 +122,7 @@ class NewYearEvent(commands.Cog):
         year_str = format_year_line(year)
         message_links = []
 
-        for channel_id in Config.lore_channels:
+        for channel_id in channels.lore_channels:
             channel = guild.get_channel_or_thread(channel_id)
             message = await channel.send(year_str)
 
@@ -135,27 +137,27 @@ class NewYearEvent(commands.Cog):
 
         # --- Increase Year VC ---
 
-        year_vc = guild.get_channel_or_thread(Config.year_vc)
+        year_vc = guild.get_channel_or_thread(channels.year_vc)
         await year_vc.edit(name=f'Current Year: {year} PC')
 
         # --- Edit Wiki ---
 
         wiki = AttuWiki()
-        await wiki.authenticate(Config.wiki_user, Config.wiki_key)
+        await wiki.authenticate(NovaConfig.wiki.user, NovaConfig.wiki.key)
 
-        text = await wiki.get_page_contents(Config.wiki_page)
+        text = await wiki.get_page_contents(page_name=NovaConfig.wiki.page)
         updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
 
-        await wiki.edit(Config.wiki_page, updated_page, f'Bumped to Year {year} PC')
+        await wiki.edit(NovaConfig.wiki.page, updated_page, f'Bumped to Year {year} PC')
 
         # --- Make Announcement ---
 
-        channel = guild.get_channel_or_thread(Config.announce_channel)
-        await channel.send(f'<@&{Config.announce_role}> Year {year} PC. (weap)')
+        channel = guild.get_channel_or_thread(channels.announcements)
+        await channel.send(f'<@&{roles.announcements}> Year {year} PC. (weap)')
 
         # --- Send Year Links Message ---
 
-        thread = guild.get_channel_or_thread(Config.year_link_thread)
+        thread = guild.get_channel_or_thread(channels.year_links)
         await thread.send(year_str + '\n' + '\n'.join(message_links))
 
 # --- Webhook Task ---
