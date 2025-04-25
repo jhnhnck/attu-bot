@@ -91,7 +91,7 @@ class NovaYearEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def advance_year(self, cfg: GuildConfig, year: int):
         logger.info(f'[{cfg!s}] Happy New Year! Advancing to Year {year} PC')
-        guild = self.bot.get_guild(self.guild)
+        guild = self.bot.get_guild(cfg.id)
 
         # --- Lore Channel Year Markers ---
 
