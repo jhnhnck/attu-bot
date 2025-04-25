@@ -43,7 +43,7 @@ async def time_pause(ctx: ApplicationContext):
 @time_group.command(name='resume', description='Resume the passage of time')
 async def time_resume(ctx: ApplicationContext):
     guild = NovaConfig.guild(ctx.guild.id)
-    await move_epoch(guild.epoch.length, guild_id=ctx.guild.id)
+    await move_epoch(guild.epoch.length, guild=ctx.guild.id)
 
     await ctx.respond(f'The passage of time has been resumed with Attu epoch moved to **{guild.epoch.year} PC** at **<t:{guild.epoch.time}:f>**')
     await guild.resume_time()
@@ -64,7 +64,7 @@ async def time_dilate(ctx: ApplicationContext, days):
         await ctx.respond(f'The passage of time has been set to **{guild.epoch.length} days per year**')
 
     else:
-        await move_epoch(days, guild_id=ctx.guild.id)
+        await move_epoch(days, guild=ctx.guild.id)
         await ctx.respond(f'The passage of time has been set to **{guild.epoch.length} days per year** with Attu epoch moved to **{guild.epoch.year} PC** at **<t:{guild.epoch.time}:f>**')
 
 # --- Extension Def ---
