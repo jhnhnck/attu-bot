@@ -21,7 +21,7 @@ from attubot import __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
 from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
-from attubot.tasks import NewYearEvent
+from attubot.tasks import NovaYearEvent
 from attubot.util import get_task_count, is_bot_owner
 
 logger = get_logger(__name__)
@@ -51,7 +51,7 @@ async def debug_version(ctx: ApplicationContext):
 async def debug_year_stats(ctx: ApplicationContext):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
-    cog = cast(NewYearEvent, ctx.bot.get_cog('NewYearEvent'))
+    cog: NovaYearEvent = cast(NovaYearEvent, ctx.bot.get_cog('NovaYearEvent'))
 
     embed = Embed(title='Year Stats', color=0xE86348)
 
@@ -59,7 +59,7 @@ async def debug_year_stats(ctx: ApplicationContext):
     embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)
     embed.add_field(name='Attu Epoch', value=f'<t:{Config.epoch_time}:f>\n({Config.epoch_year} PC)', inline=True)
     embed.add_field(name='Year Span', value=f'<t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)', inline=False)
-    embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.task_year_check.next_iteration.timestamp())}:f>', inline=False)
+    embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.guild_event_dispatch.next_iteration.timestamp())}:f>', inline=False)
     embed.add_field(name='Total Running Jobs', value=str(get_task_count()), inline=False)
 
     await ctx.respond(embed=embed)

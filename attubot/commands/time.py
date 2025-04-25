@@ -14,7 +14,7 @@ from attubot.calendar import get_year_status, move_epoch
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
-from attubot.tasks import NewYearEvent
+from attubot.tasks import NovaYearEvent
 
 logger = get_logger(__name__)
 
@@ -25,12 +25,13 @@ time_group = SlashCommandGroup('time', default_member_permissions=Permissions.al
 @time_group.command(name='advance', description='Manually advance to the next year, ignoring all checks')
 async def time_advance(ctx: ApplicationContext):
     forced_year = (await YearMarker.total()) + 1
-    _, year = get_year_status()
-    cog = cast(NewYearEvent, ctx.bot.get_cog('NewYearEvent'))
+    _, year = get_year_status(ctx.guild.id)
+    cog: NovaYearEvent = cast(NovaYearEvent, ctx.bot.get_cog('NovaYearEvent'))
+    cfg = NovaConfig.guild(ctx.guild.id)
 
     logger.info(f'Weap. Year forced by admin: expected: {year} doing: {forced_year}')
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
-    await cog.advance_year(forced_year)
+    await cog.advance_year(cfg, forced_year)
 
 
 @time_group.command(name='pause', description='Pause the passage of time')

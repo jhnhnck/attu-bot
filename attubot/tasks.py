@@ -13,7 +13,7 @@ from discord import Bot, TextChannel
 from discord.ext import commands, tasks
 
 from attubot.calendar import format_year_line, get_year_status
-from attubot.config import Config, GuildConfig, NovaConfig
+from attubot.config import GuildConfig, NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import create_task, webhook_logging
@@ -38,10 +38,13 @@ class NovaYearEvent(commands.Cog):
         logger.debug(f'Task "guild_event_dispatch" triggered on {date.today()}, {datetime.now()}')
 
         for guild in NovaConfig.guilds.values():
-            logger.trace(self.guild_event_dispatch.next_iteration.timetz(), guild.epoch.rollover_time)
-            if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
-                create_task(self.guild_event(guild))
+            if guild.id not in NovaConfig.valid_guilds:
+                continue
 
+            if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
+                create_task(self.guild_event_check(guild))
+
+    # starts update_loop_loop task after config loads; then holds the task start until the bot starts
     @guild_event_dispatch.before_loop
     async def wait_for_ready(self):
         await NovaConfig.wait_for_load()
@@ -51,8 +54,7 @@ class NovaYearEvent(commands.Cog):
 
         await self.bot.wait_until_ready()
 
-        logger.warn('Task "guild_event_dispatch" ready for init')
-
+    # task keeps the event intervals in sync with the guild config
     @webhook_logging(scope=logger)
     async def update_loop_loop(self) -> Never:
         while True:
@@ -69,60 +71,34 @@ class NovaYearEvent(commands.Cog):
             await NovaConfig.wait_for_reload()
 
     @webhook_logging(scope=logger)
-    async def guild_event(self, guild: GuildConfig):
-        logger.info(f'Proccessing guild event for "{guild.id}"')
-
-
-"""
-Old Cog
-"""
-class NewYearEvent(commands.Cog):
-    bot: Bot
-
-    def __init__(self, bot, guild: int | None = None):
-        self.bot = bot
-        self.task = self.task_year_check.start()
-        self.guild = guild or NovaConfig.primary_guild
-
-    @tasks.loop(time=Config.rollover_time)
-    async def task_year_check(self):
-        logger.debug(f'task_year_check() Task triggered on {date.today()}, {datetime.now()}')
-        await self.check_for_new_year()
-
-    @task_year_check.before_loop
-    async def wait_for_ready(self):
-        await self.bot.wait_until_ready()
-
-    @webhook_logging(scope=logger)
-    async def check_for_new_year(self):
-        elapsed_days, year = get_year_status()
-        epoch = NovaConfig.guild(self.guild).epoch
+    async def guild_event_check(self, guild: GuildConfig):
+        elapsed_days, year = get_year_status(guild.id)
+        epoch = guild.epoch
 
         if epoch.paused:
-            logger.info('The passage of time has been paused; skipping task')
+            logger.info(f'[{guild!s}] Skipping task - time paused')
 
         elif elapsed_days % epoch.length != 0:
-            logger.info(f'Days Remaining Until Year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)}')
+            logger.info(f'[{guild!s}] Year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)} days away')
 
-        elif year < (await YearMarker.total()):
-            logger.error('Already enough years; was event manually triggered?')
+        elif year < (await YearMarker.total(guild.id)):
+            logger.error(f'[{guild!s}] Already enough years; was event manually triggered?')
 
         else:
-            await self.advance_year(year)
+            logger.info(f'[{guild!s}] Proccessing guild event')
+            await self.advance_year(guild, year)
 
-    async def advance_year(self, year: int):
+    @webhook_logging(scope=logger)
+    async def advance_year(self, cfg: GuildConfig, year: int):
+        logger.info(f'[{cfg!s}] Happy New Year! Advancing to Year {year} PC')
         guild = self.bot.get_guild(self.guild)
-        channels = NovaConfig.guild(self.guild).channels
-        roles = NovaConfig.guild(self.guild).roles
-
-        logger.info(f'Happy New Year! Advancing to Year {year} PC')
 
         # --- Lore Channel Year Markers ---
 
         year_str = format_year_line(year)
         message_links = []
 
-        for channel_id in channels.lore_channels:
+        for channel_id in cfg.channels.lore_channels:
             channel = guild.get_channel_or_thread(channel_id)
             message = await channel.send(year_str)
 
@@ -130,14 +106,14 @@ class NewYearEvent(commands.Cog):
             await YearMarker.mark(year, message.id, channel=channel_id)
 
             if len(message_links) == 0:
-                await YearMarker.mark(year, message.id)
+                await YearMarker.mark(year, message.id, channel=cfg.id)
 
             # store links for later
             message_links.append(message.jump_url)
 
         # --- Increase Year VC ---
 
-        year_vc = guild.get_channel_or_thread(channels.year_vc)
+        year_vc = guild.get_channel_or_thread(cfg.channels.year_vc)
         await year_vc.edit(name=f'Current Year: {year} PC')
 
         # --- Edit Wiki ---
@@ -152,16 +128,17 @@ class NewYearEvent(commands.Cog):
 
         # --- Make Announcement ---
 
-        channel = guild.get_channel_or_thread(channels.announcements)
-        await channel.send(f'<@&{roles.announcements}> Year {year} PC. (weap)')
+        channel = guild.get_channel_or_thread(cfg.channels.announcements)
+        await channel.send(f'<@&{cfg.roles.announcements}> Year {year} PC. (weap)')
 
         # --- Send Year Links Message ---
 
-        thread = guild.get_channel_or_thread(channels.year_links)
+        thread = guild.get_channel_or_thread(cfg.channels.year_links)
         await thread.send(year_str + '\n' + '\n'.join(message_links))
 
 # --- Webhook Task ---
 
+@webhook_logging(scope=logger)
 async def error_hook_refresh(bot: Bot):
     if NovaConfig.test_mode:
         logger.debug('Application in test mode; skipping error hook refresh')
@@ -198,8 +175,4 @@ async def error_hook_refresh(bot: Bot):
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
-    if not NovaConfig.test_mode:
-        bot.add_cog(NewYearEvent(bot))
-
-    else:
-        bot.add_cog(NovaYearEvent(bot))
+    bot.add_cog(NovaYearEvent(bot))

@@ -46,8 +46,11 @@ class YearMarker(Model):
         return int(snowflake_time(marker.message).timestamp())
 
     @staticmethod
-    async def mark(year: int, timestamp: int, channel: int = 0):
-        logger.info(f'Marker appended: new={timestamp}')
+    async def mark(year: int, timestamp: int, channel: int | None = None):
+        if channel is None:
+            channel = NovaConfig.primary_guild
+
+        logger.info(f'Marker appended: channel={channel} new={timestamp}')
         await YearMarker.create(channel=channel, year=year, message=timestamp)
 
 # --- Extension Def ---
