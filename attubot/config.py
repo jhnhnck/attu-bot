@@ -11,7 +11,7 @@ import re
 import sys
 from os import environ, getenv
 from pathlib import Path
-from typing import Any, Literal, Self, TypedDict, cast
+from typing import Any, Literal, Self, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
 import tomlkit
@@ -50,6 +50,7 @@ class NovaToken(Model):
     def unpack(self) -> Any:
         return tomlkit.loads(self.value)['X']
 
+    @override
     def __str__(self) -> str:
         return f'{self.guild}/{self.key}={self.unpack()}'
 
@@ -89,7 +90,8 @@ class ParsedTokenKey(BaseModel):
     def authorized(self, user: int, guild: int, mode: str):  # (Keeping mode level here for future usecases)
         return (self.guild == 0 and NovaConfig.is_owner(user)) or self.guild == guild
 
-    def __str__(self):
+    @override
+    def __str__(self) -> str:
         return f'{self.guild}/{self.key}'
 
 # --- Components ---

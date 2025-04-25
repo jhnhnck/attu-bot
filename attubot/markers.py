@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+from typing import override
 
 from discord import Bot
 from discord.utils import snowflake_time
@@ -27,6 +28,7 @@ class YearMarker(Model):
     exact = fields.BooleanField(default=False)
     wiki_page = fields.BooleanField(default=False)
 
+    @override
     def __str__(self) -> str:
         return f'{self.channel}/{self.message}'
 
