@@ -44,6 +44,10 @@ def create_task(coro: Coroutine):
 
     task.add_done_callback(background_tasks.discard)
 
+
+def get_task_count() -> int:
+    return len(background_tasks)
+
 # --- Decorators ---
 
 def webhook_logging(scope: Logger) -> Callable:
