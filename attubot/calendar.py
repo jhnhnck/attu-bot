@@ -108,31 +108,31 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYear:
 
 
 # TODO: Shouldn't this be on the guild object
-async def move_epoch(length: int, guild_id: int = NovaConfig.primary_guild):
+async def move_epoch(length: int, guild: int | None = None):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
-    guild = NovaConfig.guild(guild_id)
+    cfg = NovaConfig.primary() if guild is None else NovaConfig.guild(guild)
 
     # handle picking new year time if paused
-    if guild.epoch.paused:
+    if cfg.epoch.paused:
         friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
 
         # check if already passed trigger time
-        if date.today().weekday() == 4 and datetime.now().time() >= guild.epoch.rollover_time:
+        if date.today().weekday() == 4 and datetime.now().time() >= cfg.epoch.rollover_time:
             friday += timedelta(days=7)
 
-        await guild.set_epoch(datetime.combine(friday, guild.epoch.rollover_time), current_year + 1)
+        await cfg.set_epoch(datetime.combine(friday, cfg.epoch.rollover_time), current_year + 1)
 
     # new length longer than current year has lasted, just extend
-    elif length >= (elapsed_days % guild.epoch.length):
-        await guild.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), guild.epoch.rollover_time).timestamp(), current_year)
+    elif length >= (elapsed_days % cfg.epoch.length):
+        await cfg.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.rollover_time).timestamp(), current_year)
 
     # wait for current year to complete first
     else:
-        await guild.set_epoch(year_span.end_time, current_year + 1)
+        await cfg.set_epoch(year_span.end_time, current_year + 1)
 
-    await guild.set_year_length(length)
-    logger.info(f'New Epoch Set: {guild.epoch.year} PC at <t:{guild.epoch.time}:f> with year length of {guild.epoch.length}')
+    await cfg.set_year_length(length)
+    logger.info(f'[{cfg!s}] New Epoch Set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f> with year length of {cfg.epoch.length}')
 
 
 # look for {year} or 'pc' or 'year' in message contents
