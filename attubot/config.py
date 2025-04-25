@@ -181,6 +181,7 @@ class GuildConfig(BaseModel):
     roles: GuildRoles
     users: GuildUsers
     id: int
+    _display_name: str | None = None
 
     @model_validator(mode='before')
     @classmethod
@@ -211,6 +212,10 @@ class GuildConfig(BaseModel):
 
     async def reload(self) -> bool:
         return await NovaConfig.load_guild(self.id)
+
+    @override
+    def __str__(self) -> str:
+        return str(self.id) if self._display_name is None else self._display_name
 
 # --- Exceptions ---
 
@@ -360,7 +365,7 @@ class NovaConfig:
         await NovaToken.filter(value='X = 0').delete()
 
         # manually fetch owner info ourselves bc pycord is weird
-        logger.debug('Fetching bot owner info from Discord')
+        logger.debug('Fetching bot owner info')
         bot_info = await bot.application_info()
 
         if bot_info.team:
@@ -370,6 +375,13 @@ class NovaConfig:
 
         if cls.test_mode:
             logger.debug('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
+
+        # load guild names from discord and store in config object
+        logger.debug('Fetching guild names')
+
+        for idx, cfg in cls.guilds.items():
+            guild = await cls._bot.fetch_guild(idx)
+            cfg._display_name = guild.name or None
 
         cls._get_event('ready').set()
 
