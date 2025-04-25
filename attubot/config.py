@@ -588,7 +588,7 @@ class NovaConfig:
             elif isinstance(value, dict):
                 return {k: convert_value(v) for k, v in value.items()}
 
-            elif isinstance(value, Path):
+            elif isinstance(value, Path | ZoneInfo):
                 return str(value)
 
             else:
