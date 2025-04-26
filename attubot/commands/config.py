@@ -64,8 +64,8 @@ async def config_list(ctx: ApplicationContext):
 @config_group.command(name='set', description='Set the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 @discord.commands.option(name='value', required=True, description='', input_type=str)
-@discord.commands.option(name='append', required=False, description='', input_type=bool)
-async def config_set(ctx: ApplicationContext, key: str, value: str, append: bool = False):
+# @discord.commands.option(name='append', required=False, description='', input_type=bool) - append: bool = False
+async def config_set(ctx: ApplicationContext, key: str, value: str):
     token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
