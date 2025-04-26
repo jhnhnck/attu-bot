@@ -17,9 +17,6 @@ from attubot.markers import YearMarker
 
 logger = get_logger(__name__)
 
-separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
-flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
-
 # --- Components ---
 
 class AttuYear(BaseModel):
@@ -30,6 +27,8 @@ class AttuYear(BaseModel):
 # --- Utilities ---
 
 def format_year_line(year) -> str:
+    separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
+    flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
     sep = separators[year % len(separators)]
 
     if len(sep) > 2:
