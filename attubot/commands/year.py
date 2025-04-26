@@ -11,7 +11,7 @@ import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.utils import snowflake_time
 
-from attubot.calendar import get_year_span, get_year_status, has_year_marker
+from attubot.calendar import get_year_span, get_year_status
 from attubot.config import Config, NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
@@ -126,6 +126,11 @@ async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextCha
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400
+
+        # look for {year} or 'pc' or 'year' in message contents
+        def has_year_marker(year: int, content: str) -> bool:
+            content = content.lower()
+            return ((str(year) in content) or (year < 10 and str(year - 1) in content)) and (('pc' in content) or ('year' in content))
 
         # Search Channel History
         async for message in channel.history(around=timestamp, limit=15):

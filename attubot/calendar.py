@@ -133,13 +133,3 @@ async def move_epoch(length: int, guild: int | None = None):
 
     await cfg.set_year_length(length)
     logger.info(f'[{cfg!s}] New Epoch Set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f> with year length of {cfg.epoch.length}')
-
-
-# look for {year} or 'pc' or 'year' in message contents
-def has_year_marker(year: int, content: str) -> bool:
-    content = content.lower()
-
-    if str(year) in content or (year < 10 and str(year - 1) in content):
-        return 'pc' in content or 'year' in content
-    else:
-        return False
