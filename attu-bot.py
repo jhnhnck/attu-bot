@@ -13,12 +13,11 @@ from os import environ, getenv
 
 from dotenv import load_dotenv
 
-from attubot import core
-from attubot.logging import get_logger
+load_dotenv()  # take environment variables from .env
+
+from attubot.logging import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
-
-load_dotenv()  # take environment variables from .env
 
 logger.info(f'Container Build Time: {getenv("BUILD_TIME")}')
 
@@ -28,6 +27,8 @@ else:
     logger.info('Debug Mode: Disabled')
 
 try:
+    from attubot import core
+
     core.start_bot_loop()
 
 except Exception as error:
