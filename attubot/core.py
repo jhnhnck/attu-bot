@@ -7,16 +7,18 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import sys
+from random import randrange
 from typing import cast
 
 import discord
-from discord import ApplicationCommand, ApplicationContext, Intents, Message
+from discord import ApplicationCommand, ApplicationContext, Intents, Message, TextChannel
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
 from attubot.config import NovaConfig, UnauthorizedGuild
 from attubot.logging import get_logger
+from attubot.util import create_task
 
 # --- Initialization ---
 
@@ -128,6 +130,24 @@ async def on_application_command_completion(ctx: ApplicationContext):
 async def command_ping(ctx: ApplicationContext):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
 
+
+@discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
+async def command_pong(ctx: ApplicationContext):
+    async def wait_random():
+        sleep_time = 30 * randrange(25, 240)  # noqa: S311
+
+        logger.info(f'Pong task sleeping for {sleep_time} seconds')
+        await asyncio.sleep(sleep_time)
+
+        await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+
+    if NovaConfig.is_owner(ctx.author.id):
+        await ctx.respond(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+
+    else:
+        await ctx.respond('Ping! <:rockball:1308981475114225694>')
+        create_task(wait_random())
+
 # --- Trigger Function ---
 
 def start_bot_loop():
@@ -135,6 +155,7 @@ def start_bot_loop():
 
     logger.info('Loading Commands')
     bot.add_application_command(cast(ApplicationCommand, command_ping))
+    bot.add_application_command(cast(ApplicationCommand, command_pong))
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
