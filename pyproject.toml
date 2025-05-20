@@ -28,7 +28,7 @@ ignore = [
   "RUF012",  # ClassVar decorators
 ]
 
-exclude = [".venv", "**/*.wip.py"]
+exclude = [".venv/**/*.py", "**/*.wip.py", "devel/*"]
 target-version = "py312"
 line-length = 320
 
