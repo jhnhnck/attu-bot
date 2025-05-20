@@ -62,12 +62,12 @@ Use the following commands to interact with the bot:
 
 - **/ping**: Simple command to test if the bot is online
 
-- **/year**: Utlities related to current, past or future years
+- **/year**: Utilities related to current, past or future years
   - **/year check <year>**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
   - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
   - **/year search <year>**: Prints search query for timlining
 
-- **/wiki**: Utlities for managing and querying the wiki
+- **/wiki**: Utilities for managing and querying the wiki
   - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
 
 ### Admin
@@ -86,7 +86,7 @@ Use the following commands to interact with the bot:
   - **/debug version**: Displays the current version and container build time
   - **/debug year_stats**: Returns the current state of time tracking calculations
 
-- **/marker**: Utlities related to managing year markers (Admin Only)
+- **/marker**: Utilities related to managing year markers (Admin Only)
   - **/marker save <year> <link> [force]**: Updates marker to point to a different message
   - **/marker set <year> <snowflake>**: Sets marker timestamp for when a specifc year starts (channel=0)
   - **/marker clear <year> <channel>**: Removes marker for a specific channel and year (will attempt to locate again next time /year link is ran)
@@ -100,7 +100,7 @@ Use the following commands to interact with the bot:
   - **/time pause**: Pause the passage of time
   - **/time resume**: Resume the passage of time
 
-- **/wiki**: Utlities for managing and querying the wiki
+- **/wiki**: Utilities for managing and querying the wiki
   - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
 
 ## Configuration Keys

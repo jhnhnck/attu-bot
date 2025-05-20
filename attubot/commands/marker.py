@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 # --- Marker Commands ---
 
-marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utlities related to managing year markers (Admin Only)')
+marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utilities related to managing year markers (Admin Only)')
 
 @marker_group.command(name='save', description='Updates marker to point to a different message')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)

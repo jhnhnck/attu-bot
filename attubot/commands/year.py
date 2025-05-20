@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 
 # --- Year Commands ---
 
-year_group = SlashCommandGroup('year', description='Utlities related to current, past or future years')
+year_group = SlashCommandGroup('year', description='Utilities related to current, past or future years')
 
 @year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)

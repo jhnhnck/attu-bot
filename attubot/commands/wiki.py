@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 # --- Wiki Commands ---
 
-wiki_group = SlashCommandGroup('wiki', description='Utlities for managing and querying the wiki')
+wiki_group = SlashCommandGroup('wiki', description='Utilities for managing and querying the wiki')
 
 @wiki_group.command(name='lookup', description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
