@@ -73,8 +73,10 @@ async def migration_markers_move():
         from attubot.markers import YearMarker
 
         await NovaConfig.wait_for_ready()
-        await YearMarker.raw(f'UPDATE yearmarker SET channel = {NovaConfig.primary_guild} WHERE channel = 0;')  # noqa: S608
-        logger.debug(f'Updated markers from 0 -> {NovaConfig.primary_guild}')
+
+        logger.debug(f'Updating markers from 0 -> {NovaConfig.primary_guild}')
+        primary_guild = int(NovaConfig.primary_guild)
+        await YearMarker.raw(f'UPDATE yearmarker SET channel = {primary_guild} WHERE channel = 0;')  # noqa: S608
 
     # Create a task so this executes after ready
     create_task(migrate_guild_markers())
