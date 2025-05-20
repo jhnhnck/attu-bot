@@ -195,7 +195,7 @@ class GuildConfig(BaseModel):
 
     async def set_epoch(self, time, year: int):
         logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
-        self.epoch.time = await NovaConfig.set('epoch.year', int(time), guild=self.id)
+        self.epoch.time = await NovaConfig.set('epoch.time', int(time), guild=self.id)
         self.epoch.year = await NovaConfig.set('epoch.year', year, guild=self.id)
 
     async def set_year_length(self, length: int):

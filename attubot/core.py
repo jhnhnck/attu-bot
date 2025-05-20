@@ -11,7 +11,7 @@ from random import randrange
 from typing import cast
 
 import discord
-from discord import ApplicationCommand, ApplicationContext, Intents, Message, TextChannel
+from discord import ApplicationCommand, ApplicationContext, Intents, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise

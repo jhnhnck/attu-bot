@@ -74,6 +74,7 @@ class NovaYearEvent(commands.Cog):
     async def guild_event_check(self, guild: GuildConfig):
         elapsed_days, year = get_year_status(guild.id)
         epoch = guild.epoch
+        marker_count = await YearMarker.total(guild.id)
 
         if epoch.paused:
             logger.info(f'[{guild!s}] Skipping task - time paused')
@@ -81,7 +82,7 @@ class NovaYearEvent(commands.Cog):
         elif elapsed_days % epoch.length != 0:
             logger.info(f'[{guild!s}] Year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)} days away')
 
-        elif year < (await YearMarker.total(guild.id)):
+        elif year < marker_count:
             logger.error(f'[{guild!s}] Already enough years; was event manually triggered?')
 
         else:
