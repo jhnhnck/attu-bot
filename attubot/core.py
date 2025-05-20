@@ -110,7 +110,7 @@ async def on_message(message: Message):
     channel = NovaConfig.guild(message.guild.id).channels.activity
 
     if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username
-        if 'blocked' in message.content:
+        if 'blocked' in message.content or 'registered' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
             await message.add_reaction('💖')
