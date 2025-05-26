@@ -20,7 +20,7 @@ async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
         '-',
         '-c']
 
-    logger.info('Executing: $ resvg', ' '.join(arguments))
+    logger.debug('Executing: $ resvg', ' '.join(arguments))
 
     process = await asyncio.create_subprocess_exec(
         'resvg', *arguments,
