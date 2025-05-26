@@ -67,6 +67,9 @@ class NovaYearEvent(commands.Cog):
                 if not guild.epoch.paused:
                     times.append(guild.epoch.rollover_time)
 
+            # idk if I need to do this but its probably better this way
+            times.sort()
+
             self.guild_event_dispatch.change_interval(time=times)
 
             # sleep until next event time
