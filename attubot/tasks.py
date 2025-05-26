@@ -188,7 +188,7 @@ class LogoUpdateEvent(commands.Cog):
         self.bot = bot
         self.task = self.update_logo.start()
 
-    @tasks.loop(time=time(hour=11, minute=30, tzinfo=NovaConfig.timezone))
+    @tasks.loop(time=time(hour=8, minute=0, tzinfo=NovaConfig.timezone))
     async def update_logo(self):
         logger.debug(f'Task "update_logo" triggered on {date.today()}, {datetime.now()}')
         await self.perform_update()
@@ -210,7 +210,7 @@ class LogoUpdateEvent(commands.Cog):
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # edit guild and bot with new logos
-        guild = self.bot.get_guild(572148465870700544)
+        guild = self.bot.get_guild(NovaConfig.primary_guild)
         await guild.edit(icon=guild_icon, reason='crazy? I was crazy once')
         await self.bot.user.edit(avatar=bot_avatar)
 
