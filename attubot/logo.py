@@ -6,14 +6,13 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
-from io import BufferedIOBase, BytesIO
 
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-async def svg_to_png(svg_data: str, height: int, width: int) -> BufferedIOBase:
+async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
     arguments = [
         '--height', str(height),
         '--width', str(width),
@@ -36,7 +35,7 @@ async def svg_to_png(svg_data: str, height: int, width: int) -> BufferedIOBase:
         error_message = stderr.decode()
         raise RuntimeError(f'resvg failed with error:\n{error_message}')
 
-    return BytesIO(stdout)
+    return stdout
 
 
 def generate_svg(rotation: float, foreground: str, background: str) -> str:
@@ -77,6 +76,6 @@ def generate_svg(rotation: float, foreground: str, background: str) -> str:
     </svg>""".strip()
 
 
-async def generate_png(rotation: float, foreground: str, background: str, height: int = 500, width: int = 500) -> BufferedIOBase:
+async def generate_png(rotation: float, background: str, foreground: str = '#000000', height: int = 500, width: int = 500) -> bytes:
     svg = generate_svg(rotation, foreground, background)
     return await svg_to_png(svg, height, width)
