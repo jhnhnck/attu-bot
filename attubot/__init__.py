@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 __title__ = 'AttuBot'
 __author__ = 'jhnhnck'
 __license__ = 'Apache License, Version 2.0'
-__copyright__ = 'Copyright 2023-2025 @jhnhnck'
+__copyright__ = 'Copyright 2025 John Hancock, The Attu Project'
 __version__ = '1.8.0-pre8'
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'

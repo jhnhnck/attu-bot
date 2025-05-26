@@ -138,4 +138,6 @@ If using the `[Import]` directive within the config file, use the following form
 
 ## License
 
+Copyright (c) 2025 John Hancock, The Attu Project
+
 This project is licensed under the Apache License, Version 2.0; See [LICENSE](LICENSE) for full text
