@@ -134,7 +134,7 @@ async def command_ping(ctx: ApplicationContext):
 @discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
 async def command_pong(ctx: ApplicationContext):
     async def wait_random():
-        sleep_time = 30 * randrange(25, 240)  # noqa: S311
+        sleep_time = 30 * randrange(25, 240)
 
         logger.info(f'Pong task sleeping for {sleep_time} seconds')
         await asyncio.sleep(sleep_time)
