@@ -93,6 +93,7 @@ async def config_set(ctx: ApplicationContext, key: str, value: str):
 
     if token_ref.guild == 0:
         await NovaConfig.load_globals()  # no type checking on this btw
+        await ctx.respond(f'Changed `{token_ref!s}` from `{old_value!s}` to `{new_value!s}`')
 
     elif await NovaConfig.load_guild(token_ref.guild):
         await ctx.respond(f'Changed `{token_ref!s}` from `{old_value!s}` to `{new_value!s}`')
