@@ -103,6 +103,27 @@ class RawConfig(TypedDict):
     imports: dict[str, Any] | None
 
 
+class NovaGlobals(BaseModel):
+    pass
+
+
+class BotTheme(BaseModel):
+    rotation: float
+    max_rate: float
+    bot_color: str
+    guild_color: str
+
+    @model_validator(mode='before')
+    @classmethod
+    def setup(cls, data: dict) -> dict:
+        data['rotation'] = data.get('theme.rotation', 0.0)
+        data['max_rate'] = data.get('theme.max_rate', 0.5)
+        data['bot_color'] = data.get('theme.bot_color', '#ff0000')
+        data['guild_color'] = data.get('theme.guild_color', '#ffffff')
+
+        return data
+
+
 # Could be in the database, but unneeded currently
 class WikiAuth(BaseModel):
     key: str
@@ -247,6 +268,7 @@ class NovaConfig:
 
     config_version: str = __version__
     wiki: WikiAuth
+    theme: BotTheme
     bot_token: str
     authorized_guilds: set[int]
     valid_guilds: list[int] = []
@@ -333,6 +355,7 @@ class NovaConfig:
 
         await cls._import()  # import config overrides from file
         await cls.load_globals()  # global vars
+        await cls.load_theme()
 
         # load guild configs
         for guild in cls.authorized_guilds:
@@ -538,6 +561,29 @@ class NovaConfig:
 
             if prev_state is not None:
                 cls.guilds[guild] = prev_state
+
+            return False
+
+    @classmethod
+    async def load_theme(cls) -> bool:
+        config = {}
+        prev_state = cls.theme if hasattr(cls, 'theme') else None
+
+        try:
+            logger.info(f'{"Loading" if prev_state is None else "Reloading"} theme config')
+            async for token in NovaToken.filter(guild=0):
+                if token.key.startswith('theme.'):
+                    config[str(token.key)] = token.unpack()
+
+            cls.theme = BotTheme(**config)
+
+            return True
+
+        except ValidationError as err:
+            logger.error(f'Failed to validate theme: {err!s}')
+
+            if prev_state is not None:
+                cls.theme = prev_state
 
             return False
 
