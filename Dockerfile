@@ -1,4 +1,4 @@
-FROM python:3.12-bookworm
+FROM python:3.13-bookworm
 ENV TZ="America/New_York"
 ENV FORCE_COLOR=1
 

@@ -1,8 +1,8 @@
-py-cord[speed]>=2.4,<3
+httpx
+py-cord[speed] @ git+https://github.com/Pycord-Development/pycord.git
 pydantic
 python-dotenv
 requests
 termcolor
 tomlkit
 tortoise-orm<2
-httpx
