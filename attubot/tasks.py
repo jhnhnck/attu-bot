@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import re
 from datetime import date, datetime, time
+from random import random
 from typing import Never, cast
 
 from discord import Bot, TextChannel
@@ -15,6 +16,7 @@ from discord.ext import commands, tasks
 from attubot.calendar import format_year_line, get_year_status
 from attubot.config import GuildConfig, NovaConfig
 from attubot.logging import get_logger
+from attubot.logo import generate_png
 from attubot.markers import YearMarker
 from attubot.util import create_task, webhook_logging
 from attubot.wiki import AttuWiki
@@ -171,9 +173,51 @@ async def error_hook_refresh(bot: Bot):
     except Exception as err:
         logger.error(f'Failed acquiring new webhook for error log: {err}')
 
+# --- Logo Update Task ---
+
+"""
+Daily task to keep the logo in sync with theme settings
+"""
+class LogoUpdateEvent(commands.Cog):
+    bot: Bot
+
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self.task = self.update_logo.start()
+
+    @tasks.loop(time=time(hour=11, minute=30, tzinfo=NovaConfig.timezone))
+    async def update_logo(self):
+        logger.debug(f'Task "update_logo" triggered on {date.today()}, {datetime.now()}')
+        await self.perform_update()
+
+    @update_logo.before_loop
+    async def wait_for_ready(self):
+        await NovaConfig.wait_for_load()
+        await self.bot.wait_until_ready()
+
+    @webhook_logging(scope=logger)
+    async def perform_update(self):
+        theme = NovaConfig.theme
+
+        new_rotation = (random() * theme.max_rate) + theme.rotation
+        logger.info(f'Changing icon rotation from {theme.rotation} to {new_rotation}')
+
+        # generate new icons
+        bot_avatar = await generate_png(new_rotation, theme.bot_color)
+        guild_icon = await generate_png(new_rotation, theme.guild_color)
+
+        # edit guild and bot with new logos
+        guild = self.bot.get_guild(572148465870700544)
+        await guild.edit(icon=guild_icon, reason='crazy? I was crazy once')
+        await self.bot.user.edit(avatar=bot_avatar)
+
+        # store new rotation in config
+        await NovaConfig.set('theme.rotation', new_rotation)
+
 # --- Extension Def ---
 
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
     bot.add_cog(NovaYearEvent(bot))
+    bot.add_cog(LogoUpdateEvent(bot))
