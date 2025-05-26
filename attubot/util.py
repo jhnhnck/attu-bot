@@ -46,7 +46,12 @@ def create_task(coro: Coroutine):
 
 
 def get_task_count() -> int:
-    return len(background_tasks)
+    from attubot.config import NovaConfig
+
+    if NovaConfig._bot is not None:
+        return len(background_tasks) + len(NovaConfig._bot.cogs)
+    else:
+        return len(background_tasks)
 
 # --- Decorators ---
 
