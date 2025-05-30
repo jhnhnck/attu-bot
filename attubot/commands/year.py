@@ -6,9 +6,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import datetime, timedelta
+from typing import cast
 
 import discord
-from discord import ApplicationContext, Bot, SlashCommandGroup
+from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_span, get_year_status
@@ -98,13 +99,13 @@ async def year_search(ctx: ApplicationContext, year: int):
 @year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
-async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
+async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextChannel | None):
     _, current_year = get_year_status()
     marker = None
 
     if channel is None:
         guild = ctx.bot.get_guild(Config.attu_guild)
-        channel = guild.get_channel(Config.lore_channels[0])
+        channel = cast(TextChannel, guild.get_channel(Config.lore_channels[0]))
 
     # validate as lore channel
     if channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
@@ -122,7 +123,7 @@ async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextCha
 
     else:
         # Fetch stored marker for that year
-        timestamp = snowflake_time((await YearMarker.get(channel=0, year=year)).message)
+        timestamp = snowflake_time((await YearMarker.get(channel=ctx.guild.id, year=year)).message)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400
