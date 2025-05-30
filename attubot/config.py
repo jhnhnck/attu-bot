@@ -365,7 +365,7 @@ class NovaConfig:
 
         cls._get_event('load').set()
 
-    @classmethod  # called by Bot.on_ready after connect, low priority maintainence tasks
+    @classmethod  # called by Bot.on_ready after connect, low priority maintenance tasks
     async def on_ready(cls, bot: Bot):
         cls._bot = bot
 
@@ -493,6 +493,9 @@ class NovaConfig:
         for migration in migration_table:
             await migration(version)
             version = await cls.get('version')
+
+            if cls.config_version == version:
+                break
 
         # re-check at end of migration
         if cls.config_version != version:
