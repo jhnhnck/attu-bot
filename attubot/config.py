@@ -577,6 +577,10 @@ class NovaConfig:
 
             cls.theme = BotTheme(**config)
 
+            # trigger event if this is a reload
+            if cls._get_event('load').is_set():
+                cls._get_event('reload').set()
+
             return True
 
         except ValidationError as err:

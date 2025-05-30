@@ -216,6 +216,7 @@ class LogoUpdateEvent(commands.Cog):
 
         # store new rotation in config
         await NovaConfig.set('theme.rotation', new_rotation)
+        await NovaConfig.load_theme()
 
 # --- Extension Def ---
 
