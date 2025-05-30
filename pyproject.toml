@@ -29,8 +29,8 @@ ignore = [
   "S311",     # random not for crypto
 ]
 
-exclude = [".venv/**/*.py", "**/*.wip.py", "devel/*"]
-target-version = "py312"
+exclude = [".venv/", "*.wip.py", "devel/"]
+target-version = "py313"
 line-length = 320
 
 [tool.ruff.lint.flake8-quotes]
@@ -58,3 +58,5 @@ reportOptionalSubscript = false
 reportInvalidCast = false
 reportFunctionMemberAccess = false
 reportAttributeAccessIssue = false
+exclude = [".venv/", "*.wip.py", "devel/"]
+
