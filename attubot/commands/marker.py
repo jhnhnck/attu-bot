@@ -11,7 +11,7 @@ from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_status
-from attubot.config import Config
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link, is_authorized_guild
@@ -28,7 +28,8 @@ marker_group = SlashCommandGroup('marker', default_member_permissions=Permission
 @discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
-    _, current_year = get_year_status()
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild=guild_config.id)
 
     if year < 1 or year >= current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
@@ -42,7 +43,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     ids = link.split('/')[-3:]
     channel, message = int(ids[1]), int(ids[2])
 
-    if channel not in Config.lore_channels and channel != Config.meta_chat_channel:
+    if channel not in guild_config.channels.lore_channels:
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 
@@ -61,7 +62,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     await marker.save()
 
     verb = 'Created' if created else 'Updated'
-    await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(Config.attu_guild, marker.channel, marker.message)}')
+    await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(guild_config.id, marker.channel, marker.message)}')
 
 
 @marker_group.command(name='set', description='Sets marker timestamp for when a specifc year starts')
@@ -69,7 +70,8 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
 @discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=int)
 @commands.check(is_authorized_guild)
 async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
-    _, current_year = get_year_status()
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild=guild_config.id)
     snowflake = int(snowflake)
 
     if year < 1 or year >= current_year:
@@ -96,13 +98,14 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @commands.check(is_authorized_guild)
 async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
-    _, current_year = get_year_status()
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild=guild_config.id)
 
     if year < 1 or year >= current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
-    if channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
+    if channel.id not in guild_config.channels.lore_channels:
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 

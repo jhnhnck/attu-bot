@@ -10,10 +10,11 @@ from typing import cast
 
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
+from discord.enums import ChannelType
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_span, get_year_status
-from attubot.config import Config, NovaConfig
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
@@ -27,9 +28,10 @@ year_group = SlashCommandGroup('year', description='Utilities related to current
 @year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
 async def year_check(ctx: ApplicationContext, year: int):
-    elapsed_days, current_year = get_year_status()
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year = year if year is not None else (current_year + 1)
-    year_span = await get_year_span(year)
+    year_span = await get_year_span(year, guild=guild_config.id)
 
     # invalid year input
     if year <= 0:
@@ -40,7 +42,7 @@ async def year_check(ctx: ApplicationContext, year: int):
         await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     # check if time is paused first
-    elif Config.time_paused:
+    elif guild_config.epoch.paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
 
     # current year
@@ -49,14 +51,14 @@ async def year_check(ctx: ApplicationContext, year: int):
 
     # next year (original functionality)
     elif year == (current_year + 1):
-        if (elapsed_days % Config.epoch_length) == 0 and datetime.now().time() < Config.rollover_time:
+        if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.rollover_time:
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
             await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
     # easter egg (far future)
-    elif (Config.epoch_length * (year - current_year - 1)) > (365 * 80):
+    elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 80):
         await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe")
 
     # check future years
@@ -67,9 +69,9 @@ async def year_check(ctx: ApplicationContext, year: int):
 @year_group.command(name='search', description='Prints search query for timlining')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 async def year_search(ctx: ApplicationContext, year: int):
-    _, current_year = get_year_status()
-    year_span = await get_year_span(year)
-    guild = ctx.bot.get_guild(Config.attu_guild)
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild_config.id)
+    year_span = await get_year_span(year, guild=guild_config.id)
     msg = []
 
     # invalid year input
@@ -77,13 +79,16 @@ async def year_search(ctx: ApplicationContext, year: int):
         await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
         return
 
-    elif (Config.epoch_length * (year - current_year - 1)) > (365 * 10):
+    elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
         await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
         return
 
+    # TODO: Migrate this to a config value instead of hardcoding
+    canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+
     # get a list of all the lore channels
-    for channel_id in [*Config.lore_channels, Config.meta_chat_channel, 1001837934590312458, 1175719558032654356]:
-        msg.append(f'in:{guild.get_channel(channel_id).name}')
+    for channel_id in canon_channels:
+        msg.append(f'in:{ctx.guild.get_channel(channel_id).name}')
 
     if year_span.start_time > 0:
         start = datetime.fromtimestamp(year_span.start_time, tz=NovaConfig.timezone) - timedelta(days=1)
@@ -100,16 +105,24 @@ async def year_search(ctx: ApplicationContext, year: int):
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
 async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextChannel | None):
-    _, current_year = get_year_status()
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild=guild_config.id)
     marker = None
 
+    # TODO: Migrate this to a config value instead of hardcoding
+    canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+
     if channel is None:
-        guild = ctx.bot.get_guild(Config.attu_guild)
-        channel = cast(TextChannel, guild.get_channel(Config.lore_channels[0]))
+        channel = cast(TextChannel, ctx.guild.get_channel(canon_channels[0]))
 
     # validate as lore channel
-    if channel.id not in Config.lore_channels and channel.id != Config.meta_chat_channel:
+    if channel.id not in canon_channels:
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
+        return
+
+    # Skip if its a not a text channel (so we can be unspecific about canon_channels)
+    if channel.type != ChannelType.text:
+        await ctx.respond('Failed: Command does not work on forum channels', ephemeral=True)
         return
 
     if year < 1 or year > current_year:
@@ -144,18 +157,25 @@ async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextCha
                 closest = distance
 
             # skip finding perfect match for meta-chat
-            if channel.id == Config.meta_chat_channel:
+            if channel.id not in guild_config.channels.lore_channels:
                 continue
 
             # try to find perfect match
-            if message.author.id in Config.users.markers and has_year_marker(year, message.content):
+            if message.author.id in guild_config.users.markers and has_year_marker(year, message.content):
                 logger.debug(f'Exact found: {message.id}')
                 marker.message = message.id
                 marker.exact = True
                 break
 
     # Send message link
-    await ctx.respond(f'{year} PC: {format_message_link(Config.attu_guild, channel.id, marker.message, relative=(not marker.exact))}')
+    link = format_message_link(
+        guild=guild_config.id,
+        channel=channel.id,
+        message=marker.message,
+        relative=(not marker.exact),
+    )
+
+    await ctx.respond(f'{year} PC: {link}')
     await marker.save()
 
 # --- Extension Def ---

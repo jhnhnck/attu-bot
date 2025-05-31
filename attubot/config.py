@@ -331,8 +331,6 @@ class NovaConfig:
             logger.error(f'Failed to validate wiki auth configuration: {err!s}')
             sys.exit(1)  # TODO: Throw error instead
 
-        Config.on_init()  # bootstrap old config structure
-
         cls._get_event('init').set()
 
     @classmethod  # called by markers setup after db is connected
@@ -361,17 +359,11 @@ class NovaConfig:
         for guild in cls.authorized_guilds:
             await cls.load_guild(guild)
 
-        Config.on_load()  # bootstrap old config structure
-
         cls._get_event('load').set()
 
     @classmethod  # called by Bot.on_ready after connect, low priority maintenance tasks
     async def on_ready(cls, bot: Bot):
         cls._bot = bot
-
-        if bot.user.id not in Config.users.markers:
-            logger.info('Adding bot user to valid year marker authors')
-            Config.users.markers.append(bot.user.id)
 
         for idx, guild in cls.guilds.items():
             if bot.user.id not in guild.users.markers:
@@ -527,9 +519,6 @@ class NovaConfig:
         cls.error_hook = await cls.get('error_hook', default=f'{NovaConfig.wiki.endpoint}/invalid-webhook')
         cls.primary_guild = await cls.get('primary_guild', default=NovaConfig.primary_guild)
 
-        # Reload old Config object
-        Config.on_init()
-
         # trigger event if this is a reload
         if cls._get_event('load').is_set():
             cls._get_event('reload').set()
@@ -548,10 +537,6 @@ class NovaConfig:
 
             if guild not in cls.valid_guilds:
                 cls.valid_guilds.append(guild)
-
-            # Reload old Config if primary
-            if guild == cls.primary_guild:
-                Config.on_load()
 
             # trigger event if this is a reload
             if cls._get_event('load').is_set():
@@ -654,93 +639,7 @@ class NovaConfig:
 
             elif key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
                 continue
-
             else:
                 result[key] = convert_value(value)
-
-        return result
-
-
-# Old Methods and Layout
-class Config:
-    config_version = NovaConfig.config_version
-    path = NovaConfig.path
-    db_path = NovaConfig.db_path
-
-    @classmethod
-    def on_init(cls):
-        cls._raw = NovaConfig._raw
-
-        # Global
-        cls.bot_token = NovaConfig.bot_token
-
-        # Wiki
-        cls.wiki_key = NovaConfig.wiki.key
-        cls.wiki_page = NovaConfig.wiki.page
-        cls.wiki_user = NovaConfig.wiki.user
-        cls.wiki_endpoint = NovaConfig.wiki.endpoint
-
-        # Guilds
-        cls.attu_guild = NovaConfig.primary_guild
-
-    @classmethod
-    def on_load(cls):
-        guild = NovaConfig.guild(cls.attu_guild)
-
-        # Users
-        cls.users = guild.users
-
-        # Channels
-        cls.activity_channel = guild.channels.activity
-        cls.year_vc = guild.channels.year_vc
-        cls.announce_channel = guild.channels.announcements
-        cls.year_link_thread = guild.channels.year_links
-        cls.meta_chat_channel = guild.channels.meta_chat
-        cls.lore_channels = guild.channels.lore_channels
-
-        # Roles
-        cls.announce_role = guild.roles.announcements
-
-        # Epoch
-        cls.epoch_time = guild.epoch.time
-        cls.epoch_year = guild.epoch.year
-        cls.epoch_length = guild.epoch.length
-        cls.time_paused = guild.epoch.paused
-
-        cls.rollover_time = guild.epoch.rollover_time
-
-    @classmethod
-    def _save(cls):  # NOTE: Unused
-        logger.info(f'Writing new config to "{cls.path}"')
-
-        with cls.path.open('w') as file:
-            tomlkit.dump(cls._raw, file)
-
-        NovaConfig.on_init()
-
-    # --- Debug ---
-
-    @classmethod
-    def to_dict(cls) -> dict[str, Any]:
-        result = {}
-
-        def convert_value(value):
-            if isinstance(value, BaseModel):
-                return {k: convert_value(v) for k, v in vars(value).items()}
-
-            elif isinstance(value, list):
-                return [convert_value(item) for item in value]
-
-            elif isinstance(value, dict):
-                return {k: convert_value(v) for k, v in value.items()}
-
-            else:
-                return value
-
-        for key, value in vars(cls).items():
-            if key.startswith('_') or callable(value) or isinstance(value, classmethod):
-                continue
-
-            result[key] = convert_value(value)
 
         return result

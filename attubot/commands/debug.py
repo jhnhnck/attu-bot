@@ -19,7 +19,7 @@ from discord.utils import snowflake_time
 
 from attubot import __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
-from attubot.config import Config, NovaConfig
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.tasks import NovaYearEvent
 from attubot.util import get_task_count, is_bot_owner
@@ -49,15 +49,16 @@ async def debug_version(ctx: ApplicationContext):
 
 @debug_group.command(name='year_stats', description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx: ApplicationContext):
-    elapsed_days, current_year = get_year_status()
-    year_span = await get_year_span(current_year)
+    guild_config = NovaConfig.guild(ctx.guild.id)
+    elapsed_days, current_year = get_year_status(guild=guild_config.id)
+    year_span = await get_year_span(current_year, guild=guild_config.id)
     cog: NovaYearEvent = cast(NovaYearEvent, ctx.bot.get_cog('NovaYearEvent'))
 
     embed = Embed(title='Year Stats', color=0xE86348)
 
     embed.add_field(name='Current Year', value=f'{current_year} PC', inline=True)
     embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)
-    embed.add_field(name='Attu Epoch', value=f'<t:{Config.epoch_time}:f>\n({Config.epoch_year} PC)', inline=True)
+    embed.add_field(name='Attu Epoch', value=f'<t:{guild_config.epoch.time}:f>\n({guild_config.epoch.year} PC)', inline=True)
     embed.add_field(name='Year Span', value=f'<t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)', inline=False)
     embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.guild_event_dispatch.next_iteration.timestamp())}:f>', inline=False)
     embed.add_field(name='Total Running Jobs', value=str(get_task_count()), inline=False)

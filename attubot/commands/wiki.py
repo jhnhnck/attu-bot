@@ -11,7 +11,7 @@ import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
-from attubot.config import Config
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.util import is_authorized_guild
 from attubot.wiki import AttuWiki
@@ -57,7 +57,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
 @discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
 @commands.has_permissions(administrator=True)
 @commands.check(is_authorized_guild)
-async def wiki_block(ctx: ApplicationContext, user, reason):
+async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
     # check if link to the user
     extract = re.search(r'User:(.*)$', user)
 
@@ -67,7 +67,7 @@ async def wiki_block(ctx: ApplicationContext, user, reason):
     await ctx.respond(f'Blocking user [{user}]: {reason}')
 
     wiki = AttuWiki()
-    await wiki.authenticate(Config.wiki_user, Config.wiki_key)
+    await wiki.authenticate(NovaConfig.wiki.user, NovaConfig.wiki.key)
     await wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- Extension Def ---

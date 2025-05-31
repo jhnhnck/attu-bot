@@ -11,7 +11,7 @@ from platform import python_version
 import httpx
 
 from attubot import __email__, __title__, __version__
-from attubot.config import Config
+from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.util import create_task
 
@@ -24,7 +24,7 @@ class AttuWiki:
 
     def __init__(self):
         self.client = httpx.AsyncClient(
-            base_url=Config.wiki_endpoint,
+            base_url=NovaConfig.wiki.endpoint,
             headers={'User-Agent': f'{__title__}/{__version__} ({__email__}) httpx/{httpx.__version__} Python/{python_version()}'},
         )
 
