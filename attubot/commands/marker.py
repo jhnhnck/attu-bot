@@ -116,7 +116,7 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
         await ctx.respond(f'Cleared saved marker for {year} PC in <#{channel.id}>')
 
     else:
-        await ctx.respond('Could not clear marker as it did not exist', ephemeral=True)
+        await ctx.respond('Failed: Could not clear marker as it did not exist', ephemeral=True)
 
 # --- Extension Def ---
 

@@ -43,6 +43,7 @@ async def debug_version(ctx: ApplicationContext):
     embed.add_field(name='Python', value=python_version(), inline=True)
     embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
     embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
+    embed.add_field(name='Total Running Jobs', value=str(get_task_count()), inline=False)
 
     await ctx.respond(embed=embed)
 
@@ -61,7 +62,6 @@ async def debug_year_stats(ctx: ApplicationContext):
     embed.add_field(name='Attu Epoch', value=f'<t:{guild_config.epoch.time}:f>\n({guild_config.epoch.year} PC)', inline=True)
     embed.add_field(name='Year Span', value=f'<t:{year_span.start_time}:f> to <t:{year_span.end_time}:f> ({year_span.duration} days)', inline=False)
     embed.add_field(name='Next Task Iteration', value=f'<t:{int(cog.guild_event_dispatch.next_iteration.timestamp())}:f>', inline=False)
-    embed.add_field(name='Total Running Jobs', value=str(get_task_count()), inline=False)
 
     await ctx.respond(embed=embed)
 
@@ -75,6 +75,7 @@ async def debug_force_error(ctx: ApplicationContext) -> Never:
 
 
 @debug_group.command(name='message', description='Print message info')
+@commands.check(is_bot_owner)
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
 async def debug_message(ctx: ApplicationContext, link):
     if 'discord.com/channels' not in link:
