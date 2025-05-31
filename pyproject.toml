@@ -1,4 +1,9 @@
 [tool.ruff]
+exclude = [".venv/", "*.wip.py", "devel/"]
+target-version = "py313"
+line-length = 320
+
+[tool.ruff.lint]
 select = [
   # "E4",
   # "E7",
@@ -12,15 +17,14 @@ select = [
   "ASYNC",
   "S",
   "A",
-  "CPY",
   "COM",
   "SIM",
   "PTH",
   "PL",
   "RUF"
 ]
-# select = ["ALL"]
 
+# select = ["ALL"]
 ignore = [
   "E501",     # line-length violations
   "PLR2004",  # magic values
@@ -28,10 +32,6 @@ ignore = [
   "RUF012",   # ClassVar decorators
   "S311",     # random not for crypto
 ]
-
-exclude = [".venv/", "*.wip.py", "devel/"]
-target-version = "py313"
-line-length = 320
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
