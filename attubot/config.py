@@ -8,7 +8,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import asyncio
 import datetime
 import re
-import sys
 from os import environ, getenv
 from pathlib import Path
 from typing import Any, Literal, Self, TypedDict, cast, override
@@ -240,6 +239,12 @@ class GuildConfig(BaseModel):
 
 # --- Exceptions ---
 
+class ConfigLoadError(Exception):
+    def __init__(self, reason: str):
+        self.message = f'Unable to load config: {reason}'
+        super().__init__(self.message)
+
+
 class UnauthorizedGuild(Exception):
     def __init__(self, guild):
         self.message = f'Guild "{guild}" not in the authorized guilds list'
@@ -305,7 +310,7 @@ class NovaConfig:
 
         if not cls.path.exists():
             logger.error('Config file missing!')
-            sys.exit(1)  # TODO: Throw error instead
+            raise ConfigLoadError('missing config file')
 
         logger.info(f'Loading config from "{cls.path}"')
 
@@ -315,7 +320,7 @@ class NovaConfig:
         # validate config version
         if cls._raw['config_version'] != cls.config_version:
             logger.fatal('Incompatible config version!')
-            sys.exit(1)  # TODO: Throw error instead
+            raise ConfigLoadError('incompatible config file version')
         else:
             logger.info(f'Matched file version: {__version__}')
 
@@ -329,7 +334,7 @@ class NovaConfig:
 
         except ValidationError as err:
             logger.error(f'Failed to validate wiki auth configuration: {err!s}')
-            sys.exit(1)  # TODO: Throw error instead
+            raise ConfigLoadError('invalid wiki auth configuration')
 
         cls._get_event('init').set()
 
@@ -492,7 +497,7 @@ class NovaConfig:
         # re-check at end of migration
         if cls.config_version != version:
             logger.fatal(f'Failed to migrate config table! Got to {await cls.get("version")}')
-            sys.exit(1)  # TODO: Throw error instead
+            raise ConfigLoadError(f'failed to migrate past {cls.get("dt_version")}')
         else:
             logger.info('Finished applying config table patches')
 
