@@ -1,4 +1,4 @@
-config_version = "1.8.0-pre7"
+config_version = "1.8.0"
 
 [auth.bot]
 token = "TOKEN_GOES_HERE"

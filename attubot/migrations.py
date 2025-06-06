@@ -83,10 +83,16 @@ async def migration_markers_move():
     logger.debug(f'Created future task for {migrate_guild_markers!s}')
 
 
-# Version 1.8.0-pre8
+# Version 1.8.0-pre9
 @migration(old='1.8.0-pre8', new='1.8.0-pre9')
 async def migration_themes():
     await NovaConfig.set('theme.rotation', 0.0)
     await NovaConfig.set('theme.max_rate', 0.5)
     await NovaConfig.set('theme.bot_color', '#ff7f50')
     await NovaConfig.set('theme.guild_color', '#ffffff')
+
+
+# Version 1.8.0
+@migration(old='1.8.0-pre9', new='1.8.0')
+async def migration_full_release():
+    pass
