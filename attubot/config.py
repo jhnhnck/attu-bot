@@ -640,7 +640,8 @@ class NovaConfig:
         for key, value in vars(cls).items():
             if key == 'guilds':  # custom handling for guilds
                 for idx, guild in cls.guilds.items():
-                    result.update({f'{idx}/{key}': convert_value(value) for key, value in vars(guild).items()})
+                    squashed = { key: convert_value(value) for key, value in vars(guild).items() }
+                    result.update({f'guild:{guild!s}': squashed})
 
             elif key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
                 continue
