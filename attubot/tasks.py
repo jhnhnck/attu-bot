@@ -209,9 +209,22 @@ class LogoUpdateEvent(commands.Cog):
         bot_avatar = await generate_png(new_rotation, theme.bot_color)
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
+        # Reasons
+        reasons_list = [
+            'crazy? I was crazy once.',
+            'they locked me in a room',
+            'a rubber room.',
+            'a rubber room with rats.',
+            'and rats make me crazy.',
+        ]
+
+        # select which one to use
+        elapsed_days, _ = get_year_status()
+        ridx: int = (elapsed_days + 2) % len(reasons_list)
+
         # edit guild and bot with new logos
         guild = self.bot.get_guild(NovaConfig.primary_guild)
-        await guild.edit(icon=guild_icon, reason='crazy? I was crazy once')
+        await guild.edit(icon=guild_icon, reason=reasons_list[ridx])
         await self.bot.user.edit(avatar=bot_avatar)
 
         # store new rotation in config
