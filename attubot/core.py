@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import sys
+from pathlib import Path
 from random import randrange
 from typing import cast
 
@@ -152,6 +153,15 @@ async def command_pong(ctx: ApplicationContext):
 
 def start_bot_loop():
     NovaConfig.on_init()
+
+    def dep_check(path: str):
+        dep = Path(path)
+
+        if not dep.exists() and dep.is_file():
+            raise Exception(f'missing dependency: {path}')
+
+    logger.info('Checking Dependencies')
+    dep_check('/usr/local/bin/resvg')
 
     logger.info('Loading Commands')
     bot.add_application_command(cast(ApplicationCommand, command_ping))
