@@ -9,12 +9,12 @@ services:
       ATTU_CONFIG_FILE: /app/attu-bot.toml
       ATTU_MARKER_DB: /app/markers.db
     volumes:
-    - ./attu-bot.toml:/app/attu-bot.toml
-    - ./markers.db:/app/markers.db
+      - ./attu-bot.toml:/app/attu-bot.toml
+      - ./markers.db:/app/markers.db
     logging:
       driver: journald
     networks:
-    - attu
+      - attu
 
 networks:
   attu:

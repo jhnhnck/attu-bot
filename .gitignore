@@ -79,3 +79,8 @@ devel/
 
 .vscode/
 backups
+
+# Undocumented extensions
+attubot/ext/
+vendor/
+requirements.ext.txt
