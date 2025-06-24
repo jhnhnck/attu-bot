@@ -54,7 +54,7 @@ class Logger:
 
         return printer
 
-    async def send_to_webhook(self, error: Exception):
+    async def send_to_webhook(self, error: Exception, location: str = ''):
         import traceback
 
         tb_str = ''.join(traceback.format_exception(error))
@@ -66,18 +66,20 @@ class Logger:
             from discord import Webhook
 
             from attubot.config import NovaConfig
-
-            # this removes the useless bits
-            tb_str = tb_str.split('The above exception')[0]
-            msg = f'**{error}**\n```\n{tb_str}```'
-
-            # trim to discord character length
-            if len(msg) > 2000:
-                msg = msg[:1992] + '\n...\n```'
+            from attubot.util import break_at_newline
 
             async with aiohttp.ClientSession() as session:
                 webhook = Webhook.from_url(NovaConfig.error_hook, session=session)
-                await webhook.send(msg, username='DoomBot')
+                await webhook.send(f'**{error}**\n', username='DoomBot')
+
+                # this removes the useless bits and trims the number of lines to fit
+                padding = len('``````')
+                tb_str = break_at_newline(tb_str.split('The above exception')[0], 2000 - padding)
+
+                await webhook.send(f'```{tb_str}```', username='DoomBot')
+
+                end_msg = location if len(location) > 0 else f'(location not set; called from {self.class_name})'
+                await webhook.send(end_msg, username='DoomBot')
 
         except Exception as err:
             self.error(f'Issue logging error to configured webhook: {err}')

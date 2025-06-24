@@ -72,3 +72,21 @@ def webhook_logging(scope: Logger) -> Callable:
 # util to make discord message links
 def format_message_link(guild: int, channel: int, message: int, relative: bool = False) -> str:
     return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'
+
+
+# for trimming to discord character length
+def break_at_newline(text: str, maximum: int, end='\n...\n') -> str:
+    if len(text) > maximum:
+        lines = text[:(maximum + len(end))].split('\n')
+        lines.pop()  # remove mangled last line
+        result = ''
+
+        for line in lines:
+            holding = f'f{result}\n{line}'
+
+            if len(holding) + len(end) > maximum:
+                return result + end
+
+            result += '\n' + line
+
+    return text
