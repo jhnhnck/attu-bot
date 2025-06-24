@@ -88,7 +88,7 @@ Use the following commands to interact with the bot:
 
 - **/marker**: Utilities related to managing year markers (Admin Only)
   - **/marker save <year> <link> [force]**: Updates marker to point to a different message
-  - **/marker set <year> <snowflake>**: Sets marker timestamp for when a specifc year starts (channel=0)
+  - **/marker set <year> <snowflake>**: Sets marker timestamp for when a specifc year starts (channel=guild)
   - **/marker clear <year> <channel>**: Removes marker for a specific channel and year (will attempt to locate again next time /year link is ran)
 
 - **/query**: Performs searches for specific messages

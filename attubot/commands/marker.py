@@ -11,7 +11,7 @@ from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_status
-from attubot.config import NovaConfig
+from attubot.config import NovaConfig, UnauthorizedGuild
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link, is_authorized_guild
@@ -28,8 +28,16 @@ marker_group = SlashCommandGroup('marker', default_member_permissions=Permission
 @discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
-    guild_config = NovaConfig.guild(ctx.guild.id)
-    _, current_year = get_year_status(guild=guild_config.id)
+    ids = link.split('/')[-3:]
+    guild, channel, message = int(ids[0]), int(ids[1]), int(ids[2])  # unpack string into components
+
+    try:
+        guild_config = NovaConfig.guild(guild)
+        _, current_year = get_year_status(guild=guild_config.id)
+
+    except UnauthorizedGuild:
+        await ctx.respond('Failed: Guild not in the authorized guilds list', ephemeral=True)
+        return
 
     if year < 1 or year >= current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
@@ -39,16 +47,12 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
         return
 
-    # unpack url
-    ids = link.split('/')[-3:]
-    channel, message = int(ids[1]), int(ids[2])
-
     if channel not in guild_config.channels.lore_channels:
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 
     # Check if close
-    est_marker = await YearMarker.get(year=year, channel=0)
+    est_marker = await YearMarker.get(year=year, channel=guild_config.id)
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
     if time_diff > 600 and not force:
@@ -79,7 +83,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
         return
 
     # Check if close
-    est_marker = await YearMarker.get(year=year, channel=0)
+    est_marker = await YearMarker.get(year=year, channel=guild_config.id)
     old_time = int(snowflake_time(est_marker.message).timestamp())
     new_time = int(snowflake_time(snowflake).timestamp())
 
