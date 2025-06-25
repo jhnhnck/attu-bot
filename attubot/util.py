@@ -75,18 +75,18 @@ def format_message_link(guild: int, channel: int, message: int, relative: bool =
 
 
 # for trimming to discord character length
-def break_at_newline(text: str, maximum: int, end='\n...\n') -> str:
+def break_at_newline(text: str, maximum: int, end: str = '...\n') -> str:
     if len(text) > maximum:
         lines = text[:(maximum + len(end))].split('\n')
-        lines.pop()  # remove mangled last line
+        _ = lines.pop()  # remove mangled last line
         result = ''
 
         for line in lines:
-            holding = f'f{result}\n{line}'
+            holding = f'f{result}{line}\n'
 
             if len(holding) + len(end) > maximum:
                 return result + end
 
-            result += '\n' + line
+            result += line + '\n'
 
     return text
