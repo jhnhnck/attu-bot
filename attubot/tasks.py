@@ -211,16 +211,19 @@ class LogoUpdateEvent(commands.Cog):
 
         # Reasons
         reasons_list = [
-            'crazy? I was crazy once.',
+            'crazy? I was crazy once',
             'they locked me in a room',
-            'a rubber room.',
-            'a rubber room with rats.',
-            'and rats make me crazy.',
+            'a rubber room',
+            'a rubber room with rats',
+            'and rats make me crazy',
         ]
+
+        # logically makes less sense, but funnier
+        reasons_list.reverse()
 
         # select which one to use
         elapsed_days, _ = get_year_status()
-        ridx: int = (elapsed_days + 2) % len(reasons_list)
+        ridx: int = elapsed_days % len(reasons_list)
 
         # edit guild and bot with new logos
         guild = self.bot.get_guild(NovaConfig.primary_guild)
