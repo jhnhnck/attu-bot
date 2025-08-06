@@ -4,12 +4,15 @@
 .venv**
 *.db
 *.json
+*.keytab
 *.sample.*
 *.sql
 *.toml
 **/__pycache__/
 **/*.wip.py
+.ruff_cache/
+assets/
 backups/
 config/
-devel/
+wip/
 pyproject.toml

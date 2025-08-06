@@ -4,13 +4,13 @@ services:
     user: 'doom:doom'
     build: .
     restart: always
-    command: python -u /app/attu-bot.py
+    command: python -u attu-bot.py
     environment:
-      ATTU_CONFIG_FILE: /app/attu-bot.toml
-      ATTU_MARKER_DB: /app/markers.db
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_MARKER_DB: /home/doom/assets/markers.db
+      # DEBUG: 1
     volumes:
-      - ./attu-bot.toml:/app/attu-bot.toml
-      - ./markers.db:/app/markers.db
+      - ./assets/:/home/doom/assets
     logging:
       driver: journald
     networks:

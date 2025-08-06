@@ -35,16 +35,16 @@ $ cd attu-bot
 
 2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API details and authorized guilds:
 ```bash
-$ cp ./config/attu-bot.sample.toml ./attu-bot.toml
+$ cp ./config/attu-bot.sample.toml ./assets/attu-bot.toml
 
-$ vim ./attu-bot.toml
+$ vim ./assets/attu-bot.toml
 ```
 
 3. Make a copy of the sample database file or generate a new blank one from scratch (requires sqlite3 package)
 ```bash
-$ cp ./config/markers.sample.db ./markers.db
+$ cp ./config/markers.sample.db ./assets/markers.db
 # OR
-$ sqlite3 ./markers.db "VACUUM;"
+$ sqlite3 ./assets/markers.db "VACUUM;"
 ```
 
 4. Run the following command to build the Docker image and start the bot:

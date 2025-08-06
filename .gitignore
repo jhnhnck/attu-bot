@@ -65,13 +65,16 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# ruff
+.ruff_cache/
+
 # Config files
 attu-bot.json
 attu-bot.toml
 
 # WIP Files
 *.wip.py
-devel/
+wip/
 
 # Databases
 *.db
@@ -79,8 +82,8 @@ devel/
 
 .vscode/
 backups
+assets/
 
 # Undocumented extensions
 attubot/ext/
 vendor/
-requirements.ext.txt
