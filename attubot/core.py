@@ -51,7 +51,16 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         if ctx.command.name != 'force_error':
             await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
 
-        await logger.send_to_webhook(error)
+        if hasattr(ctx.response, 'jump_url'):
+            link = ctx.response.jump_url
+        elif hasattr(ctx.channel, 'jump_url'):
+            link = ctx.channel.jump_url
+        elif hasattr(ctx.guild, 'jump_url'):
+            link = ctx.guild.jump_url
+        else:
+            link = '`fuck idk man`'
+
+        await logger.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
 
     # Close any hung connections
     await Tortoise.close_connections()
