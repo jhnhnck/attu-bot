@@ -11,7 +11,6 @@ from pydantic import BaseModel
 
 from attubot.config import GuildEpoch, NovaConfig
 from attubot.logging import get_logger
-from attubot.markers import YearMarker
 
 # --- Initialization ---
 
@@ -71,6 +70,8 @@ def get_next_year(guild: int | None = None) -> datetime:
 
 
 async def get_year_span(year: int, guild: int | None = None) -> AttuYear:
+    from attubot.markers import YearMarker
+
     epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
     result = AttuYear(start_time=0, end_time=0, duration=0)
 
