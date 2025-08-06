@@ -31,22 +31,29 @@ async def wiki_lookup(ctx: ApplicationContext, query: str, limit: int):
 
     # Handle no results
     if len(pages) == 0:
-        await ctx.respond('Oops, no results! <:rockball_player:1308977543034048552>')
+        await ctx.respond(f'**Oops, no results for __{query}__!** <:rockball_player:1308977543034048552>')
         return
 
     # Get wiki page format
     site_info = await wiki.site_info()
-    fmt = f'{site_info["server"]}{site_info["articlepath"]}'
+
+    def site_link(title: str, key: str, embed: bool = True) -> str:
+        link = f'{ site_info["server"] }{ site_info["articlepath"] }'.replace('$1', key)
+        return f'[{title}](<{link}>)' if not embed else f'[{title}]({link})'
+
+    logger.debug(*pages)
 
     # Build response
     if len(pages) == 1:
-        await ctx.respond(fmt.replace('$1', pages[0]['key']))
+        title, key = pages[0]['title'], pages[0]['key']
+        await ctx.respond(f'**Result for __{query}__:** {site_link(title, key)}')
 
     else:
-        msg = [f'## Top Results for "{query}"']
+        msg = [f'**Results for __{query}__:**']
 
         for page in pages:
-            msg.append(f'1. [{page["title"]}](<{fmt.replace("$1", page["key"])}>)')
+            title, key = page['title'], page['key']
+            msg.append(f'1. { site_link(title, key, embed=False) }')
 
         await ctx.respond('\n'.join(msg))
 
