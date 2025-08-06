@@ -202,7 +202,7 @@ class LogoUpdateEvent(commands.Cog):
     async def perform_update(self):
         theme = NovaConfig.theme
 
-        new_rotation = (random() * theme.max_rate) + theme.rotation
+        new_rotation = theme.rotation + (random() * theme.max_rate)
         logger.info(f'Changing icon rotation from {theme.rotation} to {new_rotation}')
 
         # generate new icons
@@ -210,25 +210,37 @@ class LogoUpdateEvent(commands.Cog):
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # Reasons
+        reasons_count = 5
         reasons_list = [
             'crazy? I was crazy once',
             'they locked me in a room',
             'a rubber room',
             'a rubber room with rats',
             'and rats make me crazy',
-        ]
+        ] * 2  # lazy wrap
 
         # logically makes less sense, but funnier
         reasons_list.reverse()
 
         # select which one to use
         elapsed_days, _ = get_year_status()
-        ridx: int = elapsed_days % len(reasons_list)
+        ridx: int = (elapsed_days * 2) % reasons_count
 
         # edit guild and bot with new logos
         guild = self.bot.get_guild(NovaConfig.primary_guild)
         await guild.edit(icon=guild_icon, reason=reasons_list[ridx])
         await self.bot.user.edit(avatar=bot_avatar)
+
+        # update the emoji too. why not?
+        emoji_name = guild.name.replace(' ', '_').lower()
+
+        for emoji in guild.emojis:
+            if emoji_name in emoji.name:
+                logger.info(f'Clearing old emoji "{emoji.name}"')
+                await emoji.delete()
+                break
+
+        await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason=reasons_list[ridx + 1])
 
         # store new rotation in config
         await NovaConfig.set('theme.rotation', new_rotation)
