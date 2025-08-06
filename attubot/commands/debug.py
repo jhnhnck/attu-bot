@@ -69,7 +69,8 @@ async def debug_year_stats(ctx: ApplicationContext):
 @debug_group.command(name='force_error', description='Causes an internal error to be thrown')
 @commands.check(is_bot_owner)
 async def debug_force_error(ctx: ApplicationContext) -> Never:
-    await ctx.respond('Forcing an error message')
+    # https://giphy.com/gifs/click-button-8-bit-mx4B7Wui0EL23gwGdq Credit: @OlgaKhatkovskaya
+    await ctx.respond('https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeWpmdGI4YzBudjM0Zm1kN3Q2emZtcGMyaHlyc2J3dWozYXJ6ZzhzYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/mx4B7Wui0EL23gwGdq/giphy.gif')
 
     raise Exception(f'Forced error from {ctx.author.name}')
 
