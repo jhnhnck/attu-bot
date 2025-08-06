@@ -32,28 +32,28 @@ class YearMarker(Model):
     def __str__(self) -> str:
         return f'{self.channel}/{self.message}'
 
-    @staticmethod
-    async def total(guild: int | None = None) -> int:
+    @classmethod
+    async def total(cls, guild: int | None = None) -> int:
         if guild is None:
             guild = NovaConfig.primary_guild
 
-        return await YearMarker.filter(channel=guild).count()
+        return await cls.filter(channel=guild).count()
 
-    @staticmethod  # Throws exception on invalid year
-    async def timestamp(year: int, guild: int | None = None) -> int:
+    @classmethod  # Throws exception on invalid year
+    async def timestamp(cls, year: int, guild: int | None = None) -> int:
         if guild is None:
             guild = NovaConfig.primary_guild
 
-        marker = await YearMarker.get(channel=guild, year=year)
+        marker = await cls.get(channel=guild, year=year)
         return int(snowflake_time(marker.message).timestamp())
 
-    @staticmethod
-    async def mark(year: int, timestamp: int, channel: int | None = None):
+    @classmethod
+    async def mark(cls, year: int, timestamp: int, channel: int | None = None):
         if channel is None:
             channel = NovaConfig.primary_guild
 
         logger.info(f'Marker appended: channel={channel} new={timestamp}')
-        await YearMarker.create(channel=channel, year=year, message=timestamp)
+        await cls.create(channel=channel, year=year, message=timestamp)
 
 # --- Extension Def ---
 
