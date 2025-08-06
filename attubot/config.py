@@ -306,7 +306,7 @@ class NovaConfig:
 
     @classmethod  # called first upon startup, load config file only
     def on_init(cls):
-        logger.info('Bootstrapping config loading process')
+        logger.info('Starting initial config loading stage')
 
         if not cls.path.exists():
             logger.error('Config file missing!')
@@ -340,6 +340,8 @@ class NovaConfig:
 
     @classmethod  # called by markers setup after db is connected
     async def on_load(cls):
+        logger.info('Starting post-connect config loading stage')
+
         # handle data migration
         if cls.config_version != (await cls.get('version', default=cls.config_version)):
             await cls._migrate()
@@ -368,6 +370,7 @@ class NovaConfig:
 
     @classmethod  # called by Bot.on_ready after connect, low priority maintenance tasks
     async def on_ready(cls, bot: Bot):
+        logger.info('Starting post-ready config loading stage')
         cls._bot = bot
 
         for idx, guild in cls.guilds.items():
