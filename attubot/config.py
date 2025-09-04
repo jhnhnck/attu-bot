@@ -488,7 +488,7 @@ class NovaConfig:
         version = await cls.get('version')
 
         logger.info(f'Beginning config table migration from "{version}"')
-        from attubot.migrations import migration_table
+        from attubot.migrations import migration_table  # noqa: PLC0415
 
         for migration in migration_table:
             await migration(version)

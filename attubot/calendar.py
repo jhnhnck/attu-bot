@@ -70,7 +70,7 @@ def get_next_year(guild: int | None = None) -> datetime:
 
 
 async def get_year_span(year: int, guild: int | None = None) -> AttuYear:
-    from attubot.markers import YearMarker
+    from attubot.markers import YearMarker  # noqa: PLC0415
 
     epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
     result = AttuYear(start_time=0, end_time=0, duration=0)
