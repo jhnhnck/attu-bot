@@ -4,6 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
+#ruff: noqa: PLC0415
 
 import asyncio
 import sys
@@ -158,6 +159,22 @@ async def command_pong(ctx: ApplicationContext):
         await ctx.respond('Ping! <:rockball:1308981475114225694>')
         create_task(wait_random())
 
+
+@discord.slash_command(name='test', description='Simple command to test with')
+async def command_test(ctx: ApplicationContext):
+    if not NovaConfig.is_owner(ctx.author.id):
+        await ctx.respond('Do I know you?', ephemeral=True)
+        return
+
+    try:
+        pass
+
+    except Exception as err:
+        await logger.send_to_webhook(err)
+
+        await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
+        return
+
 # --- Trigger Function ---
 
 def start_bot_loop():
@@ -175,6 +192,7 @@ def start_bot_loop():
     logger.info('Loading Commands')
     bot.add_application_command(cast(ApplicationCommand, command_ping))
     bot.add_application_command(cast(ApplicationCommand, command_pong))
+    # bot.add_application_command(cast(ApplicationCommand, command_test))
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
