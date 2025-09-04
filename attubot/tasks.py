@@ -6,14 +6,14 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import re
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from random import random
 from typing import Never, cast
 
 from discord import Bot, TextChannel
 from discord.ext import commands, tasks
 
-from attubot.calendar import format_year_line, get_year_status
+from attubot.calendar import format_year_line, get_year_span, get_year_status
 from attubot.config import GuildConfig, NovaConfig
 from attubot.logging import get_logger
 from attubot.logo import generate_png
@@ -188,7 +188,8 @@ class LogoUpdateEvent(commands.Cog):
         self.bot = bot
         self.task = self.update_logo.start()
 
-    @tasks.loop(time=time(hour=8, minute=0, tzinfo=NovaConfig.timezone))
+    # @tasks.loop(time=time(hour=8, minute=0, tzinfo=NovaConfig.timezone))
+    @tasks.loop(minutes=56)
     async def update_logo(self):
         logger.debug(f'Task "update_logo" triggered on {date.today()}, {datetime.now()}')
         await self.perform_update()
@@ -201,34 +202,27 @@ class LogoUpdateEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def perform_update(self):
         theme = NovaConfig.theme
+        epoch = NovaConfig.primary().epoch
 
-        new_rotation = theme.rotation + (random() * theme.max_rate)
+        # calculate new rotation
+        if not epoch.paused:
+            _, current_year = get_year_status()
+            year_span = await get_year_span(current_year)
+            elapsed_minutes = (datetime.now().astimezone() - datetime.fromtimestamp(year_span.start_time).astimezone()).total_seconds() // 60
+            new_rotation = round(elapsed_minutes / (year_span.duration * 1440) * 360, 2)
+
+        else:
+            new_rotation = theme.rotation + (random() * theme.max_rate)
+
         logger.info(f'Changing icon rotation from {theme.rotation} to {new_rotation}')
 
         # generate new icons
         bot_avatar = await generate_png(new_rotation, theme.bot_color)
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
-        # Reasons
-        reasons_count = 5
-        reasons_list = [
-            'crazy? I was crazy once',
-            'they locked me in a room',
-            'a rubber room',
-            'a rubber room with rats',
-            'and rats make me crazy',
-        ] * 2  # lazy wrap
-
-        # logically makes less sense, but funnier
-        reasons_list.reverse()
-
-        # select which one to use
-        elapsed_days, _ = get_year_status()
-        ridx: int = (elapsed_days * 2) % reasons_count
-
         # edit guild and bot with new logos
         guild = self.bot.get_guild(NovaConfig.primary_guild)
-        await guild.edit(icon=guild_icon, reason=reasons_list[ridx])
+        await guild.edit(icon=guild_icon, reason='logo update task')
         await self.bot.user.edit(avatar=bot_avatar)
 
         # update the emoji too. why not?
@@ -236,14 +230,14 @@ class LogoUpdateEvent(commands.Cog):
 
         for emoji in guild.emojis:
             if emoji_name in emoji.name:
-                logger.info(f'Clearing old emoji "{emoji.name}"')
+                logger.debug(f'Clearing old emoji "{emoji.name}"')
                 await emoji.delete()
                 break
 
-        await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason=reasons_list[ridx + 1])
+        await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
 
         # store new rotation in config
-        await NovaConfig.set('theme.rotation', new_rotation)
+        await NovaConfig.set('theme.rotation', new_rotation % 360)
         await NovaConfig.load_theme()
 
 # --- Extension Def ---

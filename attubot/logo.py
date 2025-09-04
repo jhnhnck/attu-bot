@@ -37,7 +37,7 @@ async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
 
     return stdout
 
-
+# this is rotated by -45deg initially
 def generate_svg(rotation: float, foreground: str, background: str) -> str:
     return f"""<?xml version="1.0" encoding="utf-8"?>
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"

@@ -21,7 +21,7 @@ from attubot import __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
-from attubot.tasks import NovaYearEvent
+from attubot.tasks import LogoUpdateEvent, NovaYearEvent
 from attubot.util import get_task_count, is_bot_owner
 
 logger = get_logger(__name__)
@@ -108,6 +108,16 @@ async def debug_dump_config(ctx: ApplicationContext):
     logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
 
     await ctx.respond('Done!')
+
+
+@debug_group.command(name='logo_refresh', description='Causes the logo update task to be ran manually')
+@commands.check(is_bot_owner)
+async def debug_logo_refresh(ctx: ApplicationContext):
+    logger.info('Weap. Logo update forced by admin')
+    cog: LogoUpdateEvent = cast(LogoUpdateEvent, ctx.bot.get_cog('LogoUpdateEvent'))
+
+    await cog.perform_update()
+    await ctx.respond(':attu_project:')
 
 # --- Extension Def ---
 
