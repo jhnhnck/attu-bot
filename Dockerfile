@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/var/lib/apt \
     set -eux; \
     apt update; \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash -; \
-    apt install -y nsolid neovim curl # krb5-config krb5-user;
+    apt install -y nsolid neovim curl sqlite3 # krb5-config krb5-user;
 
 # install resvg
 COPY --from=builder /usr/local/cargo/bin/resvg /usr/local/bin/resvg
