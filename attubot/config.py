@@ -237,6 +237,19 @@ class GuildConfig(BaseModel):
     def __str__(self) -> str:
         return str(self.id) if self._display_name is None else self._display_name
 
+class GuildConfigExport(GuildConfig):
+    name: str
+
+class NovaConfigRepr(TypedDict):
+    config_version: str
+    path: str
+    db_path: str
+    timezone: str
+    error_log: tuple[int, int]
+    primary_guild: int
+    guilds: list[GuildConfigExport]
+    wiki: WikiAuth
+
 # --- Exceptions ---
 
 class ConfigLoadError(Exception):
@@ -621,7 +634,7 @@ class NovaConfig:
     # --- Debug ---
 
     @classmethod
-    def to_dict(cls) -> dict[str, Any]:
+    def to_dict(cls, banned_keys = []) -> NovaConfigRepr:
         result = {}
 
         def convert_value(value):
@@ -642,13 +655,23 @@ class NovaConfig:
 
         for key, value in vars(cls).items():
             if key == 'guilds':  # custom handling for guilds
-                for idx, guild in cls.guilds.items():
-                    squashed = { key: convert_value(value) for key, value in vars(guild).items() }
-                    result.update({f'guild:{guild!s}': squashed})
+                guilds = []
 
-            elif key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
+                for idx, guild in cls.guilds.items():
+                    guilds.append({**{ 'name': str(guild) }, **{ key: convert_value(value) for key, value in vars(guild).items() }})
+
+                result[key] = guilds
+
+            elif key in banned_keys or key.startswith('_') or callable(value) or isinstance(value, classmethod) or value is None:
                 continue
+
             else:
                 result[key] = convert_value(value)
 
-        return result
+        return cast(NovaConfigRepr, result)
+
+
+    @classmethod
+    def to_repr(cls)-> NovaConfigRepr:
+        banned_keys = ['bot_token', 'global_keys', 'guild_keys', 'valid_keys', 'test_mode', 'authorized_guilds', 'valid_guilds']
+        return cls.to_dict(banned_keys=banned_keys)
