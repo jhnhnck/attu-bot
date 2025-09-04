@@ -167,7 +167,7 @@ async def error_hook_refresh(bot: Bot):
             logger.debug('Existing error hook found; skipping refresh')
             return
 
-        icon = await bot.user.display_avatar.read()
+        icon = await generate_png(45, '#ff4941')
         hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
 
         logger.info(f'Created new webhook: {hook.name}-{hook.id}')
