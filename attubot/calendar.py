@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 # --- Components ---
 
-class AttuYear(BaseModel):
+class AttuYearSpan(BaseModel):
     start_time: int
     end_time: int
     duration: int
@@ -69,11 +69,11 @@ def get_next_year(guild: int | None = None) -> datetime:
     return new_date
 
 
-async def get_year_span(year: int, guild: int | None = None) -> AttuYear:
+async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     from attubot.markers import YearMarker  # noqa: PLC0415
 
     epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
-    result = AttuYear(start_time=0, end_time=0, duration=0)
+    result = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
     _, current_year = get_year_status()
     next_year = get_next_year()
