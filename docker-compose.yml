@@ -1,22 +1,23 @@
+---
+networks:
+  attu_dev:
+    external: true
+    name: attu_dev
 services:
   core:
-    container_name: attu-bot-prod
-    user: 'doom:doom'
     build: .
-    restart: always
     command: python -u attu-bot.py
+    container_name: attu-bot-prod
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
       ATTU_MARKER_DB: /home/doom/assets/markers.db
-      # DEBUG: 1
-    volumes:
-      - ./assets/:/home/doom/assets
     logging:
       driver: journald
     networks:
-      - attu
+      - attu_dev
 
 networks:
-  attu:
-    external: true
-    name: attu_unified
+    restart: always
+    user: doom:doom
+    volumes:
+      - ./assets/:/home/doom/assets
