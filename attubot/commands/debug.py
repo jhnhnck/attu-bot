@@ -116,8 +116,8 @@ async def debug_logo_refresh(ctx: ApplicationContext):
     logger.info('Weap. Logo update forced by admin')
     cog: LogoUpdateEvent = cast(LogoUpdateEvent, ctx.bot.get_cog('LogoUpdateEvent'))
 
+    await ctx.respond('Refreshing!')
     await cog.perform_update()
-    await ctx.respond(':attu_project:')
 
 # --- Extension Def ---
 
