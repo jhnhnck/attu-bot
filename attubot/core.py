@@ -136,6 +136,7 @@ async def on_application_command(ctx: ApplicationContext):
 async def on_application_command_completion(ctx: ApplicationContext):
     await Tortoise.close_connections()
 
+# --- Commands ---
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx: ApplicationContext):
@@ -157,7 +158,7 @@ async def command_pong(ctx: ApplicationContext):
 
     else:
         await ctx.respond('Ping! <:rockball:1308981475114225694>')
-        create_task(wait_random())
+        create_task(wait_random(), f'PongTask[{ctx.author.name}]')
 
 
 @discord.slash_command(name='test', description='Simple command to test with')

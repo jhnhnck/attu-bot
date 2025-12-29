@@ -56,7 +56,7 @@ async def migration_error_hooks():
         await error_hook_refresh(NovaConfig._bot)
 
     # Add ready hook to grab webhook
-    create_task(error_hook_init())
+    create_task(error_hook_init(), 'MigrationEvent[error-hook-init]')
     logger.debug(f'Created future task for {error_hook_init!s}')
 
 
@@ -80,7 +80,7 @@ async def migration_markers_move():
         await YearMarker.raw(f'UPDATE yearmarker SET channel = {primary_guild} WHERE channel = 0;')  # noqa: S608
 
     # Create a task so this executes after ready
-    create_task(migrate_guild_markers())
+    create_task(migrate_guild_markers(), 'MigrationEvent[guild-markers]')
     logger.debug(f'Created future task for {migrate_guild_markers!s}')
 
 

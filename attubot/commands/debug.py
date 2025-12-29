@@ -22,7 +22,7 @@ from attubot.calendar import get_year_span, get_year_status
 from attubot.config import NovaConfig
 from attubot.logging import get_logger
 from attubot.tasks import LogoUpdateEvent, NovaYearEvent
-from attubot.util import get_task_count, is_bot_owner
+from attubot.util import get_task_count, get_task_names, is_bot_owner
 
 logger = get_logger(__name__)
 
@@ -44,6 +44,14 @@ async def debug_version(ctx: ApplicationContext):
     embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
     embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
     embed.add_field(name='Total Running Jobs', value=str(get_task_count()), inline=False)
+
+    await ctx.respond(embed=embed)
+
+
+@debug_group.command(name='tasks', description='Displays the currently running tasks')
+async def debug_tasks(ctx: ApplicationContext):
+    task_names = get_task_names()
+    embed = Embed(title='Tasks', description=', '.join(task_names), color=0xE86348)
 
     await ctx.respond(embed=embed)
 

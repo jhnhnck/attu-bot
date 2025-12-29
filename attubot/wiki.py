@@ -34,7 +34,7 @@ class AttuWiki:
     def __del__(self):
         logger.debug(f'Closing out httpx session: {self.client}')
 
-        create_task(self.client.aclose())
+        create_task(self.client.aclose(), 'HttpxClientClose')
 
     # TODO: convert these into an AuthProvider
     async def _get_csrf(self) -> str:

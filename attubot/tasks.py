@@ -44,7 +44,7 @@ class NovaYearEvent(commands.Cog):
                 continue
 
             if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
-                create_task(self.guild_event_check(guild))
+                create_task(self.guild_event_check(guild), f'NovaYearEvent[{guild!s}]')
 
     # starts update_loop_loop task after config loads; then holds the task start until the bot starts
     @guild_event_dispatch.before_loop
@@ -52,7 +52,7 @@ class NovaYearEvent(commands.Cog):
         await NovaConfig.wait_for_load()
 
         # Update the loop interval to match loaded guilds
-        create_task(self.update_loop_loop())
+        create_task(self.update_loop_loop(), 'NovaYearEvent[scheduler]')
 
         await self.bot.wait_until_ready()
 
@@ -60,7 +60,7 @@ class NovaYearEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def update_loop_loop(self) -> Never:
         while True:
-            logger.info('Scheduling task "guild_event_dispatch" at rollover times')
+            logger.info('Adjusting "NovaYearEvent" to correct rollover times')
             times: list[time] = []
 
             for guild in NovaConfig.guilds.values():

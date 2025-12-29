@@ -9,6 +9,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import asyncio
 from collections.abc import Callable, Coroutine
 from typing import Any, cast
+from uuid import uuid4
 
 import discord
 from discord.ext.commands import Context
@@ -37,9 +38,14 @@ def is_authorized_guild(ctx: Context) -> bool:
 
 background_tasks: set[asyncio.Task] = set()
 
+# TODO: can we name these?
 # from <https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task>
-def create_task(coro: Coroutine):
-    task = asyncio.create_task(coro)
+def create_task(coro: Coroutine, name: str | None = None):
+    if not name:
+        name = 'Task[' + uuid4().hex[:16] + ']'
+
+    logger.info(f'Starting task: {name}')
+    task = asyncio.create_task(coro, name=name)
 
     background_tasks.add(task)
 
@@ -53,6 +59,20 @@ def get_task_count() -> int:
         return len(background_tasks) + len(NovaConfig._bot.cogs)
     else:
         return len(background_tasks)
+
+
+def get_task_names() -> list[str]:
+    from attubot.config import NovaConfig
+    names: list[str] = []
+
+    for task in background_tasks:
+        names.append(task.get_name())
+
+    if NovaConfig._bot is not None:
+        for name, _ in NovaConfig._bot.cogs.items():
+            names.append(name)
+
+    return names
 
 # --- Decorators ---
 
