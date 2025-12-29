@@ -4,11 +4,11 @@ services:
     user: 'doom:doom'
     build: .
     restart: no
-    command: bash -c "cp -Rv ./test-assets ./assets && time python -u attu-bot.py"
+    command: bash -c "cp -Rv ./initial-assets ./assets && time python -u attu-bot.py"
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
       ATTU_MARKER_DB: /home/doom/assets/markers.db
       DEBUG: 1
       TEST_MODE: 1
     volumes:
-      - ./assets/:/home/doom/test-assets:ro
+      - ./assets/:/home/doom/initial-assets:ro

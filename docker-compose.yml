@@ -1,8 +1,4 @@
 ---
-networks:
-  attu_dev:
-    external: true
-    name: attu_dev
 services:
   core:
     build: .
@@ -13,10 +9,6 @@ services:
       ATTU_MARKER_DB: /home/doom/assets/markers.db
     logging:
       driver: journald
-    networks:
-      - attu_dev
-
-networks:
     restart: always
     user: doom:doom
     volumes:
