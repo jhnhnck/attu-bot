@@ -32,6 +32,7 @@ class Logger:
         self.debug_mode = 'DEBUG' in environ
         nop = lambda *a, **k: None  # noqa: E731
 
+        self.alert = self._generate('alert', sys.stdout, 'yellow') if self.debug_mode else nop
         self.trace = self._generate('trace', sys.stdout, 'light_green') if self.debug_mode else nop
         self.debug = self._generate('debug', sys.stdout, 'blue') if self.debug_mode else nop
 

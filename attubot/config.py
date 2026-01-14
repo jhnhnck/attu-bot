@@ -20,6 +20,7 @@ from tortoise import Tortoise, fields
 from tortoise.models import Model
 
 from attubot import __version__
+from attubot.jobs import JobWorker
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -287,6 +288,7 @@ class NovaConfig:
     config_version: str = __version__
     wiki: WikiAuth
     theme: BotTheme
+    job_worker: JobWorker
     bot_token: str
     authorized_guilds: set[int]
     valid_guilds: list[int] = []
@@ -348,6 +350,9 @@ class NovaConfig:
         except ValidationError as err:
             logger.error(f'Failed to validate wiki auth configuration: {err!s}')
             raise ConfigLoadError('invalid wiki auth configuration')
+
+        # initialize job worker
+        cls.job_worker = JobWorker()
 
         cls._get_event('init').set()
 

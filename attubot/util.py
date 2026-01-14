@@ -6,10 +6,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 #ruff: noqa: PLC0415
 
-import asyncio
 from collections.abc import Callable, Coroutine
 from typing import Any, cast
-from uuid import uuid4
 
 import discord
 from discord.ext.commands import Context
@@ -36,43 +34,23 @@ def is_authorized_guild(ctx: Context) -> bool:
 
 # --- Async Background Jobs ---
 
-background_tasks: set[asyncio.Task] = set()
-
-# TODO: can we name these?
 # from <https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task>
 def create_task(coro: Coroutine, name: str | None = None):
-    if not name:
-        name = 'Task[' + uuid4().hex[:16] + ']'
-
-    logger.info(f'Starting task: {name}')
-    task = asyncio.create_task(coro, name=name)
-
-    background_tasks.add(task)
-
-    task.add_done_callback(background_tasks.discard)
+    logger.alert(f'Deprecated call to "{__name__}.create_task()"; use "NovaConfig.job_worker.create_task(...)" instead')
+    from attubot.config import NovaConfig
+    NovaConfig.job_worker.add_job(coro, name, priority=True)
 
 
 def get_task_count() -> int:
+    logger.alert(f'Deprecated call to "{__name__}.get_task_count()"; use "NovaConfig.job_worker.count" instead')
     from attubot.config import NovaConfig
-
-    if NovaConfig._bot is not None:
-        return len(background_tasks) + len(NovaConfig._bot.cogs)
-    else:
-        return len(background_tasks)
+    return NovaConfig.job_worker.count
 
 
 def get_task_names() -> list[str]:
+    logger.alert(f'Deprecated call to "{__name__}.get_task_names()"; use "NovaConfig.job_worker.running_tasks" instead')
     from attubot.config import NovaConfig
-    names: list[str] = []
-
-    for task in background_tasks:
-        names.append(task.get_name())
-
-    if NovaConfig._bot is not None:
-        for name, _ in NovaConfig._bot.cogs.items():
-            names.append(name)
-
-    return names
+    return NovaConfig.job_worker.running_tasks
 
 # --- Decorators ---
 
