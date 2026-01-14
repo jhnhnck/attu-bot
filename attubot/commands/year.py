@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import datetime, timedelta
+import re
 from typing import cast
 
 import discord
@@ -101,50 +102,40 @@ async def year_search(ctx: ApplicationContext, year: int):
     await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
 
 
-@year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=discord.TextChannel)
-async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextChannel | None):
-    guild_config = NovaConfig.guild(ctx.guild.id)
-    _, current_year = get_year_status(guild=guild_config.id)
+async def find_marker_link(year: int, channel: TextChannel) -> str:
+    cfg = NovaConfig.guild(channel.guild.id)
     marker = None
 
-    # TODO: Migrate this to a config value instead of hardcoding
-    canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+    # look for {year} or 'pc' or 'year' in message contents
+    def has_year_marker(year: int, content: str) -> bool:
+        content = content.lower().partition('\n')[0]
 
-    if channel is None:
-        channel = cast(TextChannel, ctx.guild.get_channel(canon_channels[0]))
-
-    # validate as lore channel
-    if channel.id not in canon_channels:
-        await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
-        return
-
-    # Skip if its a not a text channel (so we can be unspecific about canon_channels)
-    if channel.type != ChannelType.text:
-        await ctx.respond('Failed: Command does not work on forum channels', ephemeral=True)
-        return
-
-    if year < 1 or year > current_year:
-        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
-        return
+        if re.search(rf'\b{year}\b', content) or (year < 10 and re.search(rf'\b{year - 1}\b', content)):
+            return 'pc' in content or 'year' in content
+        else:
+            return False
 
     # Check if its in the db
     if await YearMarker.exists(channel=channel.id, year=year):
         logger.debug(f'Hit cache for {year} PC in {channel.id}')
         marker = await YearMarker.get(channel=channel.id, year=year)
 
+        # fix exactness; TODO: remove this eventually
+        if marker.channel in cfg.channels.lore_channels: # and not marker.exact:
+            try:
+                message = await channel.fetch_message(marker.message)
+                logger.debug(f'Fixing exactness on {marker.channel}/{marker.message}')
+                marker.exact = has_year_marker(year, message.content)
+                await marker.save()
+            except discord.NotFound:
+                pass
+
     else:
         # Fetch stored marker for that year
-        timestamp = snowflake_time((await YearMarker.get(channel=ctx.guild.id, year=year)).message)
+        timestamp = snowflake_time((await YearMarker.get(channel=cfg.id, year=year)).message)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = 86400
-
-        # look for {year} or 'pc' or 'year' in message contents
-        def has_year_marker(year: int, content: str) -> bool:
-            content = content.lower()
-            return ((str(year) in content) or (year < 10 and str(year - 1) in content)) and (('pc' in content) or ('year' in content))
 
         # Search Channel History
         async for message in channel.history(around=timestamp, limit=15):
@@ -157,26 +148,55 @@ async def year_link(ctx: ApplicationContext, year: int, channel: discord.TextCha
                 closest = distance
 
             # skip finding perfect match for meta-chat
-            if channel.id not in guild_config.channels.lore_channels:
+            if channel.id not in cfg.channels.lore_channels:
                 continue
 
             # try to find perfect match
-            if message.author.id in guild_config.users.markers and has_year_marker(year, message.content):
+            if message.author.id in cfg.users.markers and has_year_marker(year, message.content):
                 logger.debug(f'Exact found: {message.id}')
                 marker.message = message.id
                 marker.exact = True
                 break
 
+        # were at our best guess, save here
+        await marker.save()
+
     # Send message link
-    link = format_message_link(
-        guild=guild_config.id,
+    return format_message_link(
+        guild=cfg.id,
         channel=channel.id,
         message=marker.message,
         relative=(not marker.exact),
     )
 
-    await ctx.respond(f'{year} PC: {link}')
-    await marker.save()
+@year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
+@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
+@discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=TextChannel)
+async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | None):
+    cfg = NovaConfig.guild(ctx.guild.id)
+    _, current_year = get_year_status(guild=cfg.id)
+
+    # TODO: Migrate this to a config value instead of hardcoding
+    canon_channels = [*cfg.channels.lore_channels, cfg.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+
+    if channel is None:
+        channel = cast(TextChannel, ctx.guild.get_channel_or_thread(canon_channels[0]))
+
+    # validate arguments
+    if year < 1 or year > current_year:
+        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+
+    # Skip if its a not a text channel (so we can be unspecific about canon_channels)
+    elif channel.type != ChannelType.text:
+        await ctx.respond(f'Failed: Command does not work on whatever {channel.mention} is', ephemeral=True)
+
+    # validate as lore channel
+    elif channel.id not in canon_channels:
+        await ctx.respond('Failed: This command only works on lore channels', ephemeral=True)
+
+    else:
+        link = await find_marker_link(year, channel)
+        await ctx.respond(f'{year} PC: {link}')
 
 # --- Extension Def ---
 
