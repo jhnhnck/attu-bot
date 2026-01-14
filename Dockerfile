@@ -1,6 +1,6 @@
 # builder for svg converter
 FROM rust:bookworm AS builder
-RUN cargo install --version ^0.45 resvg
+RUN cargo install --version ^0.46 resvg
 
 # doom-bot container
 FROM python:3.13-bookworm
