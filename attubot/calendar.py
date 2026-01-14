@@ -25,17 +25,18 @@ class AttuYearSpan(BaseModel):
 
 # --- Utilities ---
 
-def format_year_line(year) -> str:
+def format_year_line(year: int, level: int = 1) -> str:
     separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
     flipped_separators = {'<': '>', r'\>': '<', '/': '\\\\', '\\\\': '/'}
     sep = separators[year % len(separators)]
+    level = level % 7
 
     if len(sep) > 2:
-        return f'# {sep} Year {year} PC {sep}'
+        return f'{"#" * level} {sep} Year {year} PC {sep}'
     if sep in flipped_separators:
-        return f'# {sep * 3} Year {year} PC {flipped_separators[sep] * 3}'
+        return f'{"#" * level} {sep * 3} Year {year} PC {flipped_separators[sep] * 3}'
     else:
-        return f'# {sep * 3} Year {year} PC {sep * 3}'
+        return f'{"#" * level} {sep * 3} Year {year} PC {sep * 3}'
 
 
 def get_year_status(guild: int | None = None) -> tuple[int, int]:
