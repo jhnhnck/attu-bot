@@ -31,6 +31,7 @@ ignore = [
   "PLE1205",  # logging builtin
   "RUF012",   # ClassVar decorators
   "S311",     # random not for crypto
+  "PLC0415"   # imports at top of file
 ]
 
 [tool.ruff.lint.flake8-quotes]
