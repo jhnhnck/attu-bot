@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import re
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 from random import random
 from typing import Never, cast
 
@@ -15,6 +15,7 @@ from discord.ext import commands, tasks
 
 from attubot.calendar import format_year_line, get_year_span, get_year_status
 from attubot.config import GuildConfig, NovaConfig
+from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
 from attubot.logo import generate_png
 from attubot.markers import YearMarker
@@ -137,10 +138,8 @@ class NovaYearEvent(commands.Cog):
         channel = guild.get_channel_or_thread(cfg.channels.announcements)
         await channel.send(f'<@&{cfg.roles.announcements}> Year {year} PC. (weap)')
 
-        # --- Send Year Links Message ---
-
-        thread = guild.get_channel_or_thread(cfg.channels.year_links)
-        await thread.send(year_str + '\n' + '\n'.join(message_links))
+        # update year links thread
+        NovaConfig.job_worker.add_job(job_construct_year_links(guild.id), 'Job[construct_year_links]')
 
 # --- Webhook Task ---
 

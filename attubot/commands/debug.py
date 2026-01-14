@@ -20,6 +20,7 @@ from discord.utils import snowflake_time
 from attubot import __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
 from attubot.config import NovaConfig
+from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
 from attubot.tasks import LogoUpdateEvent, NovaYearEvent
 from attubot.util import get_task_count, get_task_names, is_bot_owner
@@ -126,6 +127,15 @@ async def debug_logo_refresh(ctx: ApplicationContext):
 
     await ctx.respond('Refreshing!')
     await cog.perform_update()
+
+@debug_group.command(name='check_year_links', description='Causes the construct_year_links job to be ran manually')
+@commands.check(is_bot_owner)
+async def debug_check_year_links(ctx: ApplicationContext):
+    logger.info('Weap. Year links update forced by admin')
+    cfg = NovaConfig.guild(ctx.guild.id)
+
+    await ctx.respond(f'Starting worker on <#{cfg.channels.year_links}>')
+    NovaConfig.job_worker.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
 # --- Extension Def ---
 
