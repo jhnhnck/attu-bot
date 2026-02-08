@@ -19,7 +19,7 @@ from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
-from attubot import __version__
+from attubot import __schema__
 from attubot.jobs import JobWorker
 from attubot.logging import get_logger
 
@@ -285,7 +285,7 @@ class NovaConfig:
       - on_ready: ran after all other init steps, maintainance tasks
     """
 
-    config_version: str = __version__
+    config_version: str = __schema__
     wiki: WikiAuth
     theme: BotTheme
     job_worker: JobWorker
@@ -337,7 +337,7 @@ class NovaConfig:
             logger.fatal('Incompatible config version!')
             raise ConfigLoadError('incompatible config file version')
         else:
-            logger.info(f'Matched file version: {__version__}')
+            logger.info(f'Matched file version: {__schema__}')
 
         # unpack into attributes
         cls.bot_token = cls._raw['auth']['bot']['token']
@@ -365,7 +365,7 @@ class NovaConfig:
             await cls._migrate()
 
         else:
-            logger.info(f'Matched table version: {__version__}')
+            logger.info(f'Matched table version: {__schema__}')
 
         # Populate valid keys lists
         async def unpack_keys(state: bool) -> set[str]:

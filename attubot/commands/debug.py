@@ -17,7 +17,7 @@ from discord import ApplicationContext, Bot, Embed, Permissions, SlashCommandGro
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot import __title__, __version__
+from attubot import __schema__, __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
 from attubot.config import NovaConfig
 from attubot.jobs import job_construct_year_links
@@ -40,7 +40,7 @@ async def debug_version(ctx: ApplicationContext):
 
     embed = Embed(title='Version Info', color=0xE86348)
 
-    embed.add_field(name='Version', value=f'{__title__} {__version__}', inline=True)
+    embed.add_field(name='Version', value=f'{__title__} {__version__} ({__schema__})', inline=True)
     embed.add_field(name='Python', value=python_version(), inline=True)
     embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
     embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
