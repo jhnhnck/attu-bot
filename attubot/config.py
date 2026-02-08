@@ -283,7 +283,7 @@ class NovaConfig:
         # Version check and load system config
         system_config = await self.config_repo.get_system()
         if system_config:
-            logger.info(f'Matched schema version: {system_config.version}')
+            logger.info(f'Current schema version: {system_config.version}')
         else:
             logger.warn('No system config found - creating defaults')
             from attubot.models import SystemConfigDocument
@@ -294,6 +294,20 @@ class NovaConfig:
                 primary_guild=self.primary_guild,
             )
             await self.config_repo.save_system(system_config)
+
+        # Run migrations if needed
+        if system_config.version != self.config_version:
+            logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
+            logger.info('Running migrations...')
+
+            from attubot.migrations import migration_table
+
+            for migration in migration_table:
+                await migration(system_config.version)
+
+            # Reload system config after migrations
+            system_config = await self.config_repo.get_system()
+            logger.info(f'Migration complete: now at version {system_config.version}')
 
         # Extract system config values (eliminates redundant query)
         self.error_log = tuple(system_config.error_log)
