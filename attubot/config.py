@@ -59,6 +59,15 @@ class NovaToken(Model):
 
 
 class ParsedTokenKey(BaseModel):
+    """
+    ParsedTokenKey - Validates and parses token key strings into components
+
+    Accepts keys in the format "[guild/]key" where guild is optional.
+
+    Args:
+      guild (int): guild id (0 for global scope)
+      key (str): configuration key name (lowercase with dots/underscores)
+    """
     guild: int
     key: str
 
@@ -118,7 +127,8 @@ class BotTheme(BaseModel):
         return data
 
 
-# Could be in the database, but unneeded currently
+# Wiki Credentials Container
+# NOTE: API Keys stored in .toml file
 class WikiAuth(BaseModel):
     key: str
     page: str
@@ -180,7 +190,7 @@ class GuildRoles(BaseModel):
 
 
 class GuildUsers(BaseModel):
-    markers: list[int]
+    markers: list[int]  # user IDs authorized to create year markers
 
     @model_validator(mode='before')
     @classmethod
@@ -209,19 +219,23 @@ class GuildConfig(BaseModel):
         return data
 
     async def set_epoch(self, time, year: int):
+        # Updates epoch start time and year number, persisting to database
         logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
         self.epoch.time = await _config.set('epoch.time', int(time), guild=self.id)
         self.epoch.year = await _config.set('epoch.year', year, guild=self.id)
 
     async def set_year_length(self, length: int):
+        # Updates the duration of each in-game year, persisting to database
         logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
         self.epoch.length = await _config.set('epoch.length', length, guild=self.id)
 
     async def pause_time(self):
+        # Freezes time progression, persisting to database
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
         self.epoch.paused = await _config.set('epoch.paused', True, guild=self.id)
 
     async def resume_time(self):
+        # Resumes time progression, persisting to database
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
         self.epoch.paused = await _config.set('epoch.paused', False, guild=self.id)
 
@@ -236,6 +250,7 @@ class GuildConfig(BaseModel):
 class GuildConfigExport(GuildConfig):
     name: str
 
+# Type definition for NovaConfig serialization
 class NovaConfigRepr(TypedDict):
     config_version: str
     path: str
@@ -248,18 +263,21 @@ class NovaConfigRepr(TypedDict):
 
 # --- Exceptions ---
 
+# Raised when configuration loading fails
 class ConfigLoadError(Exception):
     def __init__(self, reason: str):
         self.message = f'Unable to load config: {reason}'
         super().__init__(self.message)
 
 
+# Raised when accessing a non-authorized guild
 class UnauthorizedGuild(Exception):
     def __init__(self, guild):
         self.message = f'Guild "{guild}" not in the authorized guilds list'
         super().__init__(self.message)
 
 
+# Raised when accessing an invalid config key
 class InvalidTokenKey(Exception):
     def __init__(self, key: str):
         self.message = f'Invalid key "{key}" for selected guild or group'
