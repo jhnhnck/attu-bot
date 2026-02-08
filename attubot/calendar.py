@@ -43,14 +43,14 @@ def format_year_line(year: int, level: int = 1) -> str:
 def get_year_status(guild: int | None = None) -> tuple[int, int]:
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
 
-    today = datetime.combine(date.today(), epoch.rollover_time)
-    epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.rollover_time)
+    today = datetime.combine(date.today(), epoch.get_rollover_time())
+    epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.get_rollover_time())
     time_diff_sec = (today - epoch_time).total_seconds()
 
     elapsed_days = int(time_diff_sec / 86400)
     year = epoch.year + (elapsed_days // epoch.length)
 
-    if (elapsed_days % epoch.length) == 0 and datetime.now().time() < epoch.rollover_time:
+    if (elapsed_days % epoch.length) == 0 and datetime.now().time() < epoch.get_rollover_time():
         year -= 1
 
     return elapsed_days, year
@@ -63,16 +63,16 @@ def get_next_year(guild: int | None = None) -> datetime:
         return datetime.fromtimestamp(0).astimezone()
 
     elapsed_days, _ = get_year_status(guild)
-    new_date = datetime.combine(date.today(), epoch.rollover_time) + timedelta((epoch.length - elapsed_days) % epoch.length)
+    new_date = datetime.combine(date.today(), epoch.get_rollover_time()) + timedelta((epoch.length - elapsed_days) % epoch.length)
 
-    if (elapsed_days % epoch.length) == 0 and datetime.now().time() >= epoch.rollover_time:
+    if (elapsed_days % epoch.length) == 0 and datetime.now().time() >= epoch.get_rollover_time():
         new_date += timedelta(days=epoch.length)
 
     return new_date
 
 
 async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
-    from attubot.markers import YearMarker  # noqa: PLC0415
+    from attubot.markers import YearMarker
 
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
     result = AttuYearSpan(start_time=0, end_time=0, duration=0)
@@ -120,14 +120,14 @@ async def move_epoch(length: int, guild: int | None = None):
         friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
 
         # check if already passed trigger time
-        if date.today().weekday() == 4 and datetime.now().time() >= cfg.epoch.rollover_time:
+        if date.today().weekday() == 4 and datetime.now().time() >= cfg.epoch.get_rollover_time():
             friday += timedelta(days=7)
 
-        await cfg.set_epoch(datetime.combine(friday, cfg.epoch.rollover_time), current_year + 1)
+        await cfg.set_epoch(datetime.combine(friday, cfg.epoch.get_rollover_time()), current_year + 1)
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % cfg.epoch.length):
-        await cfg.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.rollover_time).timestamp(), current_year)
+        await cfg.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.get_rollover_time()).timestamp(), current_year)
 
     # wait for current year to complete first
     else:

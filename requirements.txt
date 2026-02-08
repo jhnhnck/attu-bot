@@ -2,6 +2,6 @@ httpx
 py-cord[speed]<3
 pydantic
 python-dotenv
+pymongo>=4.6.0
 termcolor
 tomlkit
-tortoise-orm<2

@@ -5,8 +5,8 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 from typing import cast
 
 import discord
@@ -14,8 +14,8 @@ from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
 from discord.enums import ChannelType
 from discord.utils import snowflake_time
 
-from attubot.calendar import get_year_span, get_year_status
 from attubot import config
+from attubot.calendar import get_year_span, get_year_status
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
@@ -52,7 +52,7 @@ async def year_check(ctx: ApplicationContext, year: int):
 
     # next year (original functionality)
     elif year == (current_year + 1):
-        if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.rollover_time:
+        if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.get_rollover_time():
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:

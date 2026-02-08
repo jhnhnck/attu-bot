@@ -7,7 +7,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import datetime
-import re
 from os import environ, getenv
 from pathlib import Path
 from typing import Any, Literal, TypedDict, cast, override
@@ -15,85 +14,16 @@ from zoneinfo import ZoneInfo
 
 import tomlkit
 from pydantic import BaseModel, ValidationError, model_validator
-from tortoise import Tortoise, fields
-from tortoise.models import Model
 
 from attubot import __schema__
 from attubot.jobs import JobWorker
 from attubot.logging import get_logger
+from attubot.repositories import ConfigRepository
 
 logger = get_logger(__name__)
 
 # config object double for this file to avoid import loop
 _config: 'NovaConfig'
-
-# --- Database Model ---
-
-class NovaToken(Model):
-    """
-    NovaToken - Key-Value Wrapper for Database
-
-    Args:
-      guild (int): snowflake id for discord guild (0 for global)
-      key (str): dot-seperated identifier for value (must be in valid)
-      value (str): TOML-encoded value (to avoid needing to parse values ourselves)
-    """
-
-    id = fields.IntField(primary_key=True)
-    guild = fields.IntField(default=0)
-    key = fields.TextField()
-    value = fields.TextField(default='X = 0')
-    # valid_types = []
-
-    async def pack(self, value: Any) -> None:
-        self.value = tomlkit.dumps({'X': value})
-        await self.save()
-
-    def unpack(self) -> Any:
-        return tomlkit.loads(self.value)['X']
-
-    @override
-    def __str__(self) -> str:
-        return f'{self.guild}/{self.key}={self.unpack()}'
-
-
-class ParsedTokenKey(BaseModel):
-    """
-    ParsedTokenKey - Validates and parses token key strings into components
-
-    Accepts keys in the format "[guild/]key" where guild is optional.
-
-    Args:
-      guild (int): guild id (0 for global scope)
-      key (str): configuration key name (lowercase with dots/underscores)
-    """
-    guild: int
-    key: str
-
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        raw_key = data.get('key', '').lower()
-        match = re.fullmatch(r'(?:(\d+)(?:/))?([a-z._]+)', raw_key)
-
-        if match is None:
-            raise InvalidTokenKey(raw_key)
-
-        guild, key = match.groups()[0], match.groups()[1]
-
-        if guild is not None:
-            data['guild'] = guild
-
-        data['key'] = key
-
-        return data
-
-    def authorized(self, user: int, guild: int, mode: str):  # (Keeping mode level here for future usecases)
-        return (self.guild == 0 and _config.is_owner(user)) or self.guild == guild
-
-    @override
-    def __str__(self) -> str:
-        return f'{self.guild}/{self.key}'
 
 # --- Components ---
 
@@ -110,20 +40,14 @@ class NovaGlobals(BaseModel):
 
 
 class BotTheme(BaseModel):
-    rotation: float
-    max_rate: float
-    bot_color: str
-    guild_color: str
+    rotation: float = 0.0
+    max_rate: float = 0.5
+    bot_color: str = '#ff0000'
+    guild_color: str = '#ffffff'
 
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        data['rotation'] = data.get('theme.rotation', 0.0)
-        data['max_rate'] = data.get('theme.max_rate', 0.5)
-        data['bot_color'] = data.get('theme.bot_color', '#ff0000')
-        data['guild_color'] = data.get('theme.guild_color', '#ffffff')
-
-        return data
+    async def save(self):
+        """Save theme to MongoDB"""
+        await _config.config_repo.save_theme(self)
 
 
 # Wiki Credentials Container
@@ -136,107 +60,87 @@ class WikiAuth(BaseModel):
 
 
 class GuildChannels(BaseModel):
-    activity: int
-    year_vc: int
-    announcements: int
-    year_links: int
-    meta_chat: int
-    lore_channels: list[int]
-
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        data['activity'] = data.get('channels.activity', 0)
-        data['year_vc'] = data.get('channels.year_vc', 0)
-        data['announcements'] = data.get('channels.announcements', 0)
-        data['year_links'] = data.get('channels.year_links', 0)
-        data['meta_chat'] = data.get('channels.meta_chat', 0)
-        data['lore_channels'] = data.get('channels.lore_channels', [])
-
-        return data
+    activity: int = 0
+    year_vc: int = 0
+    announcements: int = 0
+    year_links: int = 0
+    meta_chat: int = 0
+    lore_channels: list[int] = []
 
 
 class GuildEpoch(BaseModel):
-    time: int  # TODO: Can we unify all stored dates under one class?
-    year: int
-    length: int
-    paused: bool
-    rollover_time: datetime.time
+    time: int = 0  # TODO: Can we unify all stored dates under one class?
+    year: int = 1
+    length: int = 14
+    paused: bool = True
+    rollover_minutes: int = 1020  # Minutes since midnight (17:00 = 17*60 = 1020)
 
     @model_validator(mode='before')
     @classmethod
     def setup(cls, data: dict) -> dict:
-        data['time'] = data.get('epoch.time', 0)
-        data['year'] = data.get('epoch.year', 1)
-        data['length'] = data.get('epoch.length', 14)
-        data['paused'] = data.get('epoch.paused', True)
-
-        th = data.get('epoch.rollover_time', '17:00').split(':')
-        data['rollover_time'] = datetime.time(int(th[0]), int(th[1]), tzinfo=_config.timezone)
+        # Handle legacy rollover_time string format
+        if 'rollover_time' in data and isinstance(data['rollover_time'], str):
+            h, m = data['rollover_time'].split(':')
+            data['rollover_minutes'] = int(h) * 60 + int(m)
+            del data['rollover_time']
+        elif 'rollover_minutes' not in data:
+            # Default rollover time: 17:00
+            data['rollover_minutes'] = 1020
 
         return data
+
+    def get_rollover_time(self) -> datetime.time:
+        """Get rollover time as datetime.time object with timezone"""
+        hours = self.rollover_minutes // 60
+        minutes = self.rollover_minutes % 60
+        return datetime.time(hours, minutes, tzinfo=_config.timezone)
 
 
 class GuildRoles(BaseModel):
-    announcements: int  # notification role for year changes
-
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        data['announcements'] = data.get('roles.announcements', 0)
-
-        return data
+    announcements: int = 0  # notification role for year changes
 
 
 class GuildUsers(BaseModel):
-    markers: list[int]  # user IDs authorized to create year markers
-
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        data['markers'] = data.get('users.markers', [])
-
-        return data
+    markers: list[int] = []  # user IDs authorized to create year markers
 
 
 class GuildConfig(BaseModel):
+    id: int
     channels: GuildChannels
     epoch: GuildEpoch
     roles: GuildRoles
     users: GuildUsers
-    id: int
     _display_name: str | None = None
 
-    @model_validator(mode='before')
-    @classmethod
-    def setup(cls, data: dict) -> dict:
-        data['channels'] = GuildChannels(**data)
-        data['epoch'] = GuildEpoch(**data)
-        data['roles'] = GuildRoles(**data)
-        data['users'] = GuildUsers(**data)
-
-        return data
+    async def save(self):
+        """Save entire guild config to MongoDB"""
+        await _config.config_repo.save_guild(self)
 
     async def set_epoch(self, time, year: int):
         # Updates epoch start time and year number, persisting to database
         logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
-        self.epoch.time = await _config.set('epoch.time', int(time), guild=self.id)
-        self.epoch.year = await _config.set('epoch.year', year, guild=self.id)
+        self.epoch.time = int(time)
+        self.epoch.year = year
+        await _config.config_repo.update_guild_field(self.id, 'epoch.time', int(time))
+        await _config.config_repo.update_guild_field(self.id, 'epoch.year', year)
 
     async def set_year_length(self, length: int):
         # Updates the duration of each in-game year, persisting to database
         logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
-        self.epoch.length = await _config.set('epoch.length', length, guild=self.id)
+        self.epoch.length = length
+        await _config.config_repo.update_guild_field(self.id, 'epoch.length', length)
 
     async def pause_time(self):
         # Freezes time progression, persisting to database
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
-        self.epoch.paused = await _config.set('epoch.paused', True, guild=self.id)
+        self.epoch.paused = True
+        await _config.config_repo.update_guild_field(self.id, 'epoch.paused', True)
 
     async def resume_time(self):
         # Resumes time progression, persisting to database
         logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
-        self.epoch.paused = await _config.set('epoch.paused', False, guild=self.id)
+        self.epoch.paused = False
+        await _config.config_repo.update_guild_field(self.id, 'epoch.paused', False)
 
     async def reload(self) -> bool:
         # Reloads this guild's configuration from the database
@@ -253,7 +157,6 @@ class GuildConfigExport(GuildConfig):
 class NovaConfigRepr(TypedDict):
     config_version: str
     path: str
-    db_path: str
     timezone: str
     error_log: tuple[int, int]
     primary_guild: int
@@ -276,11 +179,6 @@ class UnauthorizedGuild(Exception):
         super().__init__(self.message)
 
 
-# Raised when accessing an invalid config key
-class InvalidTokenKey(Exception):
-    def __init__(self, key: str):
-        self.message = f'Invalid key "{key}" for selected guild or group'
-        super().__init__(self.message)
 
 # --- Config Class ---
 
@@ -293,7 +191,7 @@ class NovaConfig:
     - only stored in config file for security reasons or if needed before db init step
     - split into three loading steps:
       - on_init: ran first upon start, loads and unpacks config file
-      - on_load: ran after database connect, loads and unpacks NovaToken store
+      - on_load: ran after database connect, loads data from MongoDB
       - on_ready: ran after all other init steps, maintainance tasks
     """
 
@@ -316,14 +214,11 @@ class NovaConfig:
         self.owner_ids: set[int] = set()
         self._raw: RawConfig = None
 
-        # Key tracking
-        self.guild_keys: set[str] = set()
-        self.global_keys: set[str] = set()
-        self.valid_keys: set[str] = set()
+        # MongoDB repositories
+        self.config_repo: ConfigRepository = None
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './assets/attu-bot.toml')).resolve()
-        self.db_path = Path(getenv('ATTU_MARKER_DB', './assets/markers.db')).resolve()
         self.timezone = ZoneInfo(getenv('TZ', 'UTC'))
         self.guilds: dict[int, GuildConfig] = {}
         self.test_mode: bool = 'TEST_MODE' in environ
@@ -377,27 +272,33 @@ class NovaConfig:
     async def on_load(self):  # called by markers setup after db is connected
         logger.info('Starting post-connect config loading stage')
 
-        # handle data migration
-        if self.config_version != (await self.get('version', default=self.config_version)):
-            await self._migrate()
+        # Initialize MongoDB and repositories
+        from attubot import db
+        from attubot.repositories import ConfigRepository
 
+        await db.connect()
+        self.config_repo = ConfigRepository(db.get_db())
+        await self.config_repo.init_indexes()
+
+        # Version check
+        system_config = await self.config_repo.get_system()
+        if system_config:
+            logger.info(f'Matched schema version: {system_config.version}')
         else:
-            logger.info(f'Matched table version: {__schema__}')
+            logger.warn('No system config found - creating defaults')
+            from attubot.models import SystemConfigDocument
+            await self.config_repo.save_system(SystemConfigDocument(
+                version=self.config_version,
+                error_log=[0, 0],
+                error_hook=f'{self.wiki.endpoint}/invalid-webhook',
+                primary_guild=self.primary_guild,
+            ))
 
-        # Populate valid keys lists
-        async def unpack_keys(state: bool) -> set[str]:
-            models = cast(list[NovaToken], await NovaToken.raw(f'SELECT DISTINCT key FROM novatoken WHERE {"guild=0" if state else "guild!=0"}'))  # noqa: S608
-            return { token.key for token in models }
-
-        self.global_keys = await unpack_keys(True)
-        self.guild_keys = await unpack_keys(False)
-        self.valid_keys = { *self.guild_keys, *self.global_keys }
-
-        await self._import()  # import config overrides from file
-        await self.load_globals()  # global vars
+        # Load configurations
+        await self.load_globals()
         await self.load_theme()
 
-        # load guild configs
+        # Load guild configs
         for guild in self.authorized_guilds:
             await self.load_guild(guild)
 
@@ -412,14 +313,9 @@ class NovaConfig:
                 logger.info(f'Adding bot user to valid year marker authors for {idx}')
 
                 guild.users.markers.append(bot.user.id)
-                await self.set('users.markers', guild.users.markers, guild=idx)
+                await self.config_repo.update_guild_field(idx, 'users.markers', guild.users.markers)
 
         self.path.chmod(0o660)
-        self.db_path.chmod(0o660)
-
-        # dump keys with empty values
-        logger.debug('Clearing out default config keys')
-        await NovaToken.filter(value='X = 0').delete()
 
         # manually fetch owner info ourselves bc pycord is weird
         logger.debug('Fetching bot owner info')
@@ -442,27 +338,7 @@ class NovaConfig:
 
         self._get_event('ready').set()
 
-        await Tortoise.close_connections()
-
     # --- Public Methods ---
-
-    def parse_key(self, key: str, guild: int = 0) -> ParsedTokenKey | None:
-        try:
-            parsed = ParsedTokenKey(guild=guild, key=key)
-
-            # Validate guild authorization and key existence
-            if parsed.guild != 0 and parsed.guild not in self.authorized_guilds:
-                raise UnauthorizedGuild(parsed.guild)
-
-            if (parsed.guild == 0 and parsed.key not in self.global_keys) or (parsed.guild != 0 and parsed.key not in self.guild_keys):
-                raise InvalidTokenKey(parsed.key)
-
-            return parsed
-
-        except Exception as err:
-            logger.error(f'Caught exception in parse_key(): {err!s}')
-
-            return None
 
     def guild(self, guild: int) -> GuildConfig:
         if guild in self.authorized_guilds:
@@ -473,106 +349,50 @@ class NovaConfig:
     def primary(self) -> GuildConfig:
         return self.guild(self.primary_guild)
 
-    async def get(self, key: str, guild: int = 0, default: Any = 0) -> Any:
-        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
-
-        if created and default != 0:
-            logger.warn(f'Key Not Set [{guild}/{key.lower()}] default={default}')
-            await token.pack(default)
-
-        elif created:
-            await token.delete()
-            return None
-
-        else:
-            return token.unpack()
-
-    async def get_raw(self, key: str, guild: int = 0, default: Any = 0) -> NovaToken:
-        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
-
-        if created and default != 0:
-            logger.warn(f'Key Not Set [{guild}/{key.lower()}] default={default}')
-            await token.pack(default)
-
-        return token
-
-    async def set(self, key: str, value: Any, guild: int = 0) -> Any:
-        token, created = await NovaToken.get_or_create(guild=guild, key=key.lower())
-
-        logger.debug(f'Key {"Created" if created else "Changed"} [{guild}/{key.lower()}] old={token.unpack()} new={value}')
-        await token.pack(value)
-
-        return value  # condenses update methods
-
-    async def delete(self, key: str, guild: int = 0):
-        token = await NovaToken.get_or_none(guild=guild, key=key.lower())
-
-        if token is not None:
-            logger.debug(f'Key Removed [{guild}/{key.lower()}] value={token.unpack()}')
-            await token.delete()
-        else:
-            logger.warn(f'Key Not Set [{guild}/{key.lower()}]; Cannot Remove')
-
     def is_owner(self, user: int):
         return user in self.owner_ids
 
     # --- Private Methods ---
 
-    async def _migrate(self):
-        version = await self.get('version')
-
-        logger.info(f'Beginning config table migration from "{version}"')
-        from attubot.migrations import migration_table
-
-        for migration in migration_table:
-            await migration(version)
-            version = await self.get('version')
-
-            if self.config_version == version:
-                break
-
-        # re-check at end of migration
-        if self.config_version != version:
-            logger.fatal(f'Failed to migrate config table! Got to {await self.get("version")}')
-            raise ConfigLoadError(f'failed to migrate past {self.get("dt_version")}')
-        else:
-            logger.info('Finished applying config table patches')
-
-    async def _import(self):
-        if 'imports' not in self._raw.keys():  # noqa: SIM118
-            return
-
-        logger.info('Attempting to load imports from config file')
-
-        for key, value in self._raw['imports'].items():
-            token_key = self.parse_key(key)
-
-            if token_key is not None:
-                logger.info(f'Importing: {key} = {value}')
-                await self.set(token_key.key, value, guild=token_key.guild)
-
-            else:
-                logger.warn(f'Skipping import; invalid keypair: {key} = {value}')
-
     async def load_globals(self):
-        self.error_log = tuple(await self.get('error_log', default=(0, 0)))
-        self.error_hook = await self.get('error_hook', default=f'{self.wiki.endpoint}/invalid-webhook')
-        self.primary_guild = await self.get('primary_guild', default=self.primary_guild)
+        system = await self.config_repo.get_system()
+        if system:
+            self.error_log = tuple(system.error_log)
+            self.error_hook = system.error_hook
+            self.primary_guild = system.primary_guild
 
         # trigger event if this is a reload
         if self._get_event('load').is_set():
             self._get_event('reload').set()
 
     async def load_guild(self, guild: int) -> bool:
-        config = {}
         prev_state = self.guilds.get(guild, None)
 
         try:
             logger.info(f'{"Loading" if prev_state is None else "Reloading"} guild config for {guild}')
-            async for token in NovaToken.filter(guild=guild):
-                config[str(token.key)] = token.unpack()
 
-            self.guilds[guild] = GuildConfig(**config, id=guild)
+            doc = await self.config_repo.get_guild(guild)
+            if not doc:
+                logger.warn(f'No config found for guild {guild}, using defaults')
+                # Create default config
+                default_config = GuildConfig(
+                    id=guild,
+                    channels=GuildChannels(),
+                    epoch=GuildEpoch(),
+                    roles=GuildRoles(),
+                    users=GuildUsers(),
+                )
+                await self.config_repo.save_guild(default_config)
+                self.guilds[guild] = default_config
+            else:
+                # Convert document to runtime GuildConfig
+                self.guilds[guild] = GuildConfig(
+                    id=guild,
+                    channels=GuildChannels(**doc.channels),
+                    epoch=GuildEpoch(**doc.epoch),
+                    roles=GuildRoles(**doc.roles),
+                    users=GuildUsers(**doc.users),
+                )
 
             if guild not in self.valid_guilds:
                 self.valid_guilds.append(guild)
@@ -592,16 +412,28 @@ class NovaConfig:
             return False
 
     async def load_theme(self) -> bool:
-        config = {}
         prev_state = self.theme
 
         try:
             logger.info(f'{"Loading" if prev_state is None else "Reloading"} theme config')
-            async for token in NovaToken.filter(guild=0):
-                if token.key.startswith('theme.'):
-                    config[str(token.key)] = token.unpack()
 
-            self.theme = BotTheme(**config)
+            doc = await self.config_repo.get_theme()
+            if doc:
+                self.theme = BotTheme(
+                    rotation=doc.rotation,
+                    max_rate=doc.max_rate,
+                    bot_color=doc.bot_color,
+                    guild_color=doc.guild_color,
+                )
+            else:
+                # Create defaults
+                self.theme = BotTheme(
+                    rotation=0.0,
+                    max_rate=0.5,
+                    bot_color='#ff0000',
+                    guild_color='#ffffff',
+                )
+                await self.config_repo.save_theme(self.theme)
 
             # trigger event if this is a reload
             if self._get_event('load').is_set():

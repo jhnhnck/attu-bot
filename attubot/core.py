@@ -15,7 +15,6 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
-from tortoise import Tortoise
 
 from attubot import bot, config
 from attubot.config import UnauthorizedGuild
@@ -55,9 +54,6 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
 
         await logger.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
 
-    # Close any hung connections
-    await Tortoise.close_connections()
-
 # --- Events ---
 
 @bot.event
@@ -90,7 +86,11 @@ async def on_ready():
             if str(err) != '(Test Mode)':
                 await logger.send_to_webhook(err)
 
-            await asyncio.gather(Tortoise.close_connections(), bot.close())
+            # Close database connections
+            from attubot import db
+            if db.client:
+                await db.client.close()
+            await bot.close()
             sys.exit(1)
 
         logger.info('Pushing commands to Discord')
@@ -122,11 +122,6 @@ async def on_message(message: Message):
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
     logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
-
-
-@bot.event
-async def on_application_command_completion(ctx: ApplicationContext):
-    await Tortoise.close_connections()
 
 # --- Commands ---
 
@@ -191,7 +186,7 @@ def start_bot_loop():
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
     bot.load_extension('attubot.tasks')
-    bot.load_extension('attubot.commands.config')
+    # bot.load_extension('attubot.commands.config')
     bot.load_extension('attubot.commands.debug')
     bot.load_extension('attubot.commands.marker')
     bot.load_extension('attubot.commands.query')

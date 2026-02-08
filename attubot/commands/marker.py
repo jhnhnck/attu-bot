@@ -10,8 +10,8 @@ from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot.calendar import get_year_status
 from attubot import config
+from attubot.calendar import get_year_status
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
@@ -53,7 +53,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         return
 
     # Check if close
-    est_marker = await YearMarker.get(year=year, channel=guild_config.id)
+    est_marker = await YearMarker.get(channel=guild_config.id, year=year)
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
     if time_diff > 600 and not force:
@@ -61,10 +61,8 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         return
 
     # Add or update marker
-    marker, created = await YearMarker.get_or_create(year=year, channel=channel, defaults={'message': message})
-    marker.message = message
-    marker.exact = True
-    await marker.save()
+    marker, created = await YearMarker.get_or_create(channel=channel, year=year, message=message)
+    await marker.update(message=message, exact=True)
 
     verb = 'Created' if created else 'Updated'
     await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(guild_config.id, marker.channel, marker.message)}')
@@ -83,17 +81,16 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
-    # Check if close
-    est_marker = await YearMarker.get(year=year, channel=guild_config.id)
+    # Get existing marker
+    est_marker = await YearMarker.get(channel=guild_config.id, year=year)
     old_time = int(snowflake_time(est_marker.message).timestamp())
     new_time = int(snowflake_time(snowflake).timestamp())
 
     # Log change
     logger.info(f'Moving {year} PC start from {est_marker.message} to {snowflake}')
 
-    # Add or update marker
-    est_marker.message = snowflake
-    await est_marker.save()
+    # Update marker
+    await est_marker.update(message=snowflake)
 
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
 
@@ -114,7 +111,7 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
         await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
         return
 
-    marker = await YearMarker.get_or_none(year=year, channel=channel.id)
+    marker = await YearMarker.get(channel=channel.id, year=year)
 
     if marker is not None:
         await marker.delete()

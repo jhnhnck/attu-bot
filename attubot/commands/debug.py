@@ -17,9 +17,8 @@ from discord import ApplicationContext, Bot, Embed, Permissions, SlashCommandGro
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot import __schema__, __title__, __version__
+from attubot import __schema__, __title__, __version__, config
 from attubot.calendar import get_year_span, get_year_status
-from attubot import config
 from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
 from attubot.tasks import LogoUpdateEvent, NovaYearEvent

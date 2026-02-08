@@ -6,10 +6,25 @@ services:
     container_name: attu-bot-prod
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
-      ATTU_MARKER_DB: /home/doom/assets/markers.db
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DATABASE: doombot
     logging:
       driver: journald
     restart: always
     user: doom:doom
     volumes:
       - ./assets/:/home/doom/assets
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:8
+    container_name: attu-bot-mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: doombot
+
+volumes:
+  mongo_data:

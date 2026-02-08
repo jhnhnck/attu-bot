@@ -42,7 +42,7 @@ class NovaYearEvent(commands.Cog):
             if guild.id not in config.valid_guilds:
                 continue
 
-            if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
+            if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.get_rollover_time():
                 create_task(self.guild_event_check(guild), f'NovaYearEvent[{guild!s}]')
 
     # starts update_loop_loop task after config loads; then holds the task start until the bot starts
@@ -64,7 +64,7 @@ class NovaYearEvent(commands.Cog):
 
             for guild in config.guilds.values():
                 if not guild.epoch.paused:
-                    times.append(guild.epoch.rollover_time)
+                    times.append(guild.epoch.get_rollover_time())
 
             # idk if I need to do this but its probably better this way
             times.sort()
@@ -168,7 +168,8 @@ async def error_hook_refresh():
         hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
 
         logger.info(f'Created new webhook: {hook.name}-{hook.id}')
-        config.error_hook = await config.set('error_hook', hook.url)
+        config.error_hook = hook.url
+        await config.config_repo.update_system_field('error_hook', hook.url)
 
     except Exception as err:
         logger.error(f'Failed acquiring new webhook for error log: {err}')
@@ -231,8 +232,8 @@ class LogoUpdateEvent(commands.Cog):
         await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
 
         # store new rotation in config
-        await config.set('theme.rotation', new_rotation % 360)
-        await config.load_theme()
+        config.theme.rotation = new_rotation % 360
+        await config.theme.save()
 
 # --- Extension Def ---
 

@@ -27,11 +27,12 @@ select = [
 # select = ["ALL"]
 ignore = [
   "E501",     # line-length violations
-  "PLR2004",  # magic values
+  "PLC0415",  # imports at top of file
   "PLE1205",  # logging builtin
+  "PLR2004",  # magic values
   "RUF012",   # ClassVar decorators
   "S311",     # random not for crypto
-  "PLC0415"   # imports at top of file
+  "UP037"     # forward typedefs
 ]
 
 [tool.ruff.lint.flake8-quotes]

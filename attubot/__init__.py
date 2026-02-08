@@ -20,6 +20,7 @@ import discord
 from discord import Intents
 
 from attubot.config import NovaConfig
+from attubot.db import MongoStorage
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -35,3 +36,7 @@ bot = discord.Bot(intents=intents)
 # Create config instance
 logger.debug('Creating config instance')
 config = NovaConfig()
+
+# Create database instance
+logger.debug('Creating database instance')
+db = MongoStorage()
