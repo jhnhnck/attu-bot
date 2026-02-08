@@ -10,8 +10,7 @@ from platform import python_version
 
 import httpx
 
-from attubot import __email__, __title__, __version__
-from attubot import config
+from attubot import __email__, __title__, __version__, config
 from attubot.logging import get_logger
 from attubot.util import create_task
 
