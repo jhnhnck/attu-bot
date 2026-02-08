@@ -19,7 +19,7 @@ from discord.utils import snowflake_time
 
 from attubot import __schema__, __title__, __version__
 from attubot.calendar import get_year_span, get_year_status
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
 from attubot.tasks import LogoUpdateEvent, NovaYearEvent
@@ -59,7 +59,7 @@ async def debug_tasks(ctx: ApplicationContext):
 
 @debug_group.command(name='year_stats', description='Returns the current state of time tracking calculations')
 async def debug_year_stats(ctx: ApplicationContext):
-    guild_config = NovaConfig.guild(ctx.guild.id)
+    guild_config = config.guild(ctx.guild.id)
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year_span = await get_year_span(current_year, guild=guild_config.id)
     cog: NovaYearEvent = cast(NovaYearEvent, ctx.bot.get_cog('NovaYearEvent'))
@@ -114,7 +114,7 @@ async def debug_message(ctx: ApplicationContext, link):
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx: ApplicationContext):
-    logger.info('Dumping NovaConfig:', tomlkit.dumps(NovaConfig.to_dict(), sort_keys=True), sep='\n')
+    logger.info('Dumping NovaConfig:', tomlkit.dumps(config.to_dict(), sort_keys=True), sep='\n')
 
     await ctx.respond('Done!')
 
@@ -132,10 +132,10 @@ async def debug_logo_refresh(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 async def debug_check_year_links(ctx: ApplicationContext):
     logger.info('Weap. Year links update forced by admin')
-    cfg = NovaConfig.guild(ctx.guild.id)
+    cfg = config.guild(ctx.guild.id)
 
     await ctx.respond(f'Starting worker on <#{cfg.channels.year_links}>')
-    NovaConfig.job_worker.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
+    config.job_worker.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
 # --- Extension Def ---
 

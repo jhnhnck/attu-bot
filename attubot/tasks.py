@@ -14,7 +14,8 @@ from discord import Bot, TextChannel
 from discord.ext import commands, tasks
 
 from attubot.calendar import format_year_line, get_year_span, get_year_status
-from attubot.config import GuildConfig, NovaConfig
+from attubot import config
+from attubot.config import GuildConfig
 from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
 from attubot.logo import generate_png
@@ -40,8 +41,8 @@ class NovaYearEvent(commands.Cog):
     async def guild_event_dispatch(self):
         logger.debug(f'Task "guild_event_dispatch" triggered on {date.today()}, {datetime.now()}')
 
-        for guild in NovaConfig.guilds.values():
-            if guild.id not in NovaConfig.valid_guilds:
+        for guild in config.guilds.values():
+            if guild.id not in config.valid_guilds:
                 continue
 
             if self.guild_event_dispatch.next_iteration.timetz() == guild.epoch.rollover_time:
@@ -50,7 +51,7 @@ class NovaYearEvent(commands.Cog):
     # starts update_loop_loop task after config loads; then holds the task start until the bot starts
     @guild_event_dispatch.before_loop
     async def wait_for_ready(self):
-        await NovaConfig.wait_for_load()
+        await config.wait_for_load()
 
         # Update the loop interval to match loaded guilds
         create_task(self.update_loop_loop(), 'NovaYearEvent[scheduler]')
@@ -64,7 +65,7 @@ class NovaYearEvent(commands.Cog):
             logger.info('Adjusting "NovaYearEvent" to correct rollover times')
             times: list[time] = []
 
-            for guild in NovaConfig.guilds.values():
+            for guild in config.guilds.values():
                 if not guild.epoch.paused:
                     times.append(guild.epoch.rollover_time)
 
@@ -74,7 +75,7 @@ class NovaYearEvent(commands.Cog):
             self.guild_event_dispatch.change_interval(time=times)
 
             # sleep until next event time
-            await NovaConfig.wait_for_reload()
+            await config.wait_for_reload()
 
     @webhook_logging(scope=logger)
     async def guild_event_check(self, guild: GuildConfig):
@@ -126,12 +127,12 @@ class NovaYearEvent(commands.Cog):
         # --- Edit Wiki ---
 
         wiki = AttuWiki()
-        await wiki.authenticate(NovaConfig.wiki.user, NovaConfig.wiki.key)
+        await wiki.authenticate(config.wiki.user, config.wiki.key)
 
-        text = await wiki.get_page_contents(page_name=NovaConfig.wiki.page)
+        text = await wiki.get_page_contents(page_name=config.wiki.page)
         updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
 
-        await wiki.edit(NovaConfig.wiki.page, updated_page, f'Bumped to Year {year} PC')
+        await wiki.edit(config.wiki.page, updated_page, f'Bumped to Year {year} PC')
 
         # --- Make Announcement ---
 
@@ -139,30 +140,30 @@ class NovaYearEvent(commands.Cog):
         await channel.send(f'<@&{cfg.roles.announcements}> Year {year} PC. (weap)')
 
         # update year links thread
-        NovaConfig.job_worker.add_job(job_construct_year_links(guild.id), 'Job[construct_year_links]')
+        config.job_worker.add_job(job_construct_year_links(guild.id), 'Job[construct_year_links]')
 
 # --- Webhook Task ---
 
 @webhook_logging(scope=logger)
 async def error_hook_refresh(bot: Bot):
-    if NovaConfig.test_mode:
+    if config.test_mode:
         logger.debug('Application in test mode; skipping error hook refresh')
         return
 
     try:
-        guild = bot.get_guild(NovaConfig.error_log[0])
-        error_log = cast(TextChannel, guild.get_channel(NovaConfig.error_log[1]))
+        guild = bot.get_guild(config.error_log[0])
+        error_log = cast(TextChannel, guild.get_channel(config.error_log[1]))
 
         webhooks = await error_log.webhooks()
         webhook_urls = [hook.url for hook in webhooks]
 
         # cleanup old urls
         for old in webhooks:
-            if old.user == bot.user and old.url != NovaConfig.error_hook:
+            if old.user == bot.user and old.url != config.error_hook:
                 logger.warn(f'Deleted old webhook: {old.name}-{old.id}')
                 await old.delete()
 
-        if NovaConfig.error_hook in webhook_urls:
+        if config.error_hook in webhook_urls:
             logger.debug('Existing error hook found; skipping refresh')
             return
 
@@ -170,7 +171,7 @@ async def error_hook_refresh(bot: Bot):
         hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
 
         logger.info(f'Created new webhook: {hook.name}-{hook.id}')
-        NovaConfig.error_hook = await NovaConfig.set('error_hook', hook.url)
+        config.error_hook = await config.set('error_hook', hook.url)
 
     except Exception as err:
         logger.error(f'Failed acquiring new webhook for error log: {err}')
@@ -187,7 +188,7 @@ class LogoUpdateEvent(commands.Cog):
         self.bot = bot
         self.task = self.update_logo.start()
 
-    # @tasks.loop(time=time(hour=8, minute=0, tzinfo=NovaConfig.timezone))
+    # @tasks.loop(time=time(hour=8, minute=0, tzinfo=config.timezone))
     @tasks.loop(minutes=56)
     async def update_logo(self):
         logger.debug(f'Task "update_logo" triggered on {date.today()}, {datetime.now()}')
@@ -195,13 +196,13 @@ class LogoUpdateEvent(commands.Cog):
 
     @update_logo.before_loop
     async def wait_for_ready(self):
-        await NovaConfig.wait_for_load()
+        await config.wait_for_load()
         await self.bot.wait_until_ready()
 
     @webhook_logging(scope=logger)
     async def perform_update(self):
-        theme = NovaConfig.theme
-        epoch = NovaConfig.primary().epoch
+        theme = config.theme
+        epoch = config.primary().epoch
 
         # calculate new rotation
         if not epoch.paused:
@@ -220,7 +221,7 @@ class LogoUpdateEvent(commands.Cog):
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # edit guild and bot with new logos
-        guild = self.bot.get_guild(NovaConfig.primary_guild)
+        guild = self.bot.get_guild(config.primary_guild)
         await guild.edit(icon=guild_icon, reason='logo update task')
         await self.bot.user.edit(avatar=bot_avatar)
 
@@ -236,8 +237,8 @@ class LogoUpdateEvent(commands.Cog):
         await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
 
         # store new rotation in config
-        await NovaConfig.set('theme.rotation', new_rotation % 360)
-        await NovaConfig.load_theme()
+        await config.set('theme.rotation', new_rotation % 360)
+        await config.load_theme()
 
 # --- Extension Def ---
 

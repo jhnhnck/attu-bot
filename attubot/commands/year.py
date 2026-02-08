@@ -15,7 +15,7 @@ from discord.enums import ChannelType
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_span, get_year_status
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
@@ -29,7 +29,7 @@ year_group = SlashCommandGroup('year', description='Utilities related to current
 @year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
 async def year_check(ctx: ApplicationContext, year: int):
-    guild_config = NovaConfig.guild(ctx.guild.id)
+    guild_config = config.guild(ctx.guild.id)
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year = year if year is not None else (current_year + 1)
     year_span = await get_year_span(year, guild=guild_config.id)
@@ -70,7 +70,7 @@ async def year_check(ctx: ApplicationContext, year: int):
 @year_group.command(name='search', description='Prints search query for timlining')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 async def year_search(ctx: ApplicationContext, year: int):
-    guild_config = NovaConfig.guild(ctx.guild.id)
+    guild_config = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild_config.id)
     year_span = await get_year_span(year, guild=guild_config.id)
     msg = []
@@ -92,18 +92,18 @@ async def year_search(ctx: ApplicationContext, year: int):
         msg.append(f'in:{ctx.guild.get_channel(channel_id).name}')
 
     if year_span.start_time > 0:
-        start = datetime.fromtimestamp(year_span.start_time, tz=NovaConfig.timezone) - timedelta(days=1)
+        start = datetime.fromtimestamp(year_span.start_time, tz=config.timezone) - timedelta(days=1)
         msg.append(f'after:{start.strftime("%Y-%m-%d")}')
 
     if year_span.end_time > 0:
-        end = datetime.fromtimestamp(year_span.end_time, tz=NovaConfig.timezone) + timedelta(days=1)
+        end = datetime.fromtimestamp(year_span.end_time, tz=config.timezone) + timedelta(days=1)
         msg.append(f'before:{end.strftime("%Y-%m-%d")}')
 
     await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
 
 
 async def find_marker_link(year: int, channel: TextChannel) -> str:
-    cfg = NovaConfig.guild(channel.guild.id)
+    cfg = config.guild(channel.guild.id)
     marker = None
 
     # look for {year} or 'pc' or 'year' in message contents
@@ -173,7 +173,7 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=TextChannel)
 async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | None):
-    cfg = NovaConfig.guild(ctx.guild.id)
+    cfg = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild=cfg.id)
 
     # TODO: Migrate this to a config value instead of hardcoding

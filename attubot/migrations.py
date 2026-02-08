@@ -4,11 +4,10 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
-#ruff: noqa: PLC0415
 
 from collections.abc import Callable
 
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 from attubot.util import create_task
 
@@ -31,7 +30,7 @@ def migration(old: str, new: str) -> Callable:
 
             # Bump version
             logger.debug(f'Applied patch for {new}')
-            await NovaConfig.set('version', new)
+            await config.set('version', new)
 
         migration_table.append(wrapper)
         return wrapper
@@ -52,8 +51,8 @@ async def migration_error_hooks():
     async def error_hook_init():
         from attubot.tasks import error_hook_refresh
 
-        await NovaConfig.wait_for_ready()
-        await error_hook_refresh(NovaConfig._bot)
+        await config.wait_for_ready()
+        await error_hook_refresh(config._bot)
 
     # Add ready hook to grab webhook
     create_task(error_hook_init(), 'MigrationEvent[error-hook-init]')
@@ -63,7 +62,7 @@ async def migration_error_hooks():
 # Version 1.8.0-pre7
 @migration(old='1.8.0-pre6', new='1.8.0-pre7')
 async def migration_named_guilds():
-    NovaConfig.primary_guild = await NovaConfig.set('primary_guild', NovaConfig.primary_guild)
+    config.primary_guild = await config.set('primary_guild', config.primary_guild)
 
 
 # Version 1.8.0-pre8
@@ -73,10 +72,10 @@ async def migration_markers_move():
     async def migrate_guild_markers():
         from attubot.markers import YearMarker
 
-        await NovaConfig.wait_for_ready()
+        await config.wait_for_ready()
 
-        logger.debug(f'Updating markers from 0 -> {NovaConfig.primary_guild}')
-        primary_guild = int(NovaConfig.primary_guild)
+        logger.debug(f'Updating markers from 0 -> {config.primary_guild}')
+        primary_guild = int(config.primary_guild)
         await YearMarker.raw(f'UPDATE yearmarker SET channel = {primary_guild} WHERE channel = 0;')  # noqa: S608
 
     # Create a task so this executes after ready
@@ -87,10 +86,10 @@ async def migration_markers_move():
 # Version 1.8.0-pre9
 @migration(old='1.8.0-pre8', new='1.8.0-pre9')
 async def migration_themes():
-    await NovaConfig.set('theme.rotation', 0.0)
-    await NovaConfig.set('theme.max_rate', 0.5)
-    await NovaConfig.set('theme.bot_color', '#ff7f50')
-    await NovaConfig.set('theme.guild_color', '#ffffff')
+    await config.set('theme.rotation', 0.0)
+    await config.set('theme.max_rate', 0.5)
+    await config.set('theme.bot_color', '#ff7f50')
+    await config.set('theme.guild_color', '#ffffff')
 
 
 # Version 1.8.0

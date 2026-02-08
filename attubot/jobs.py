@@ -49,23 +49,23 @@ class JobWorker:
 
     @property
     def count(self) -> int:
-        from attubot.config import NovaConfig  # noqa: PLC0415
+        from attubot import config
 
-        if NovaConfig._bot is not None:
-            return len(self.storage) + len(NovaConfig._bot.cogs)
+        if config._bot is not None:
+            return len(self.storage) + len(config._bot.cogs)
         else:
             return len(self.storage)
 
     @property
     def running_tasks(self) -> list[str]:
-        from attubot.config import NovaConfig  # noqa: PLC0415
+        from attubot import config
         names: list[str] = []
 
         for task in self.storage:
             names.append(task.get_name())
 
-        if NovaConfig._bot is not None:
-            for name, _ in NovaConfig._bot.cogs.items():
+        if config._bot is not None:
+            for name, _ in config._bot.cogs.items():
                 names.append(name)
 
         return names
@@ -81,12 +81,12 @@ async def job_compress_year_markers():
 
 
 async def job_construct_year_links(guild_id: int):
+    from attubot import config
     from attubot.calendar import format_year_line, get_year_span, get_year_status
     from attubot.commands.year import find_marker_link
-    from attubot.config import NovaConfig
 
-    cfg = NovaConfig.guild(guild_id)
-    guild = NovaConfig._bot.get_guild(cfg.id)
+    cfg = config.guild(guild_id)
+    guild = config._bot.get_guild(cfg.id)
     lore_channels: list[TextChannel] = []
     _, current_year = get_year_status(guild=cfg.id)
 
@@ -122,7 +122,7 @@ async def job_construct_year_links(guild_id: int):
 
     year_idx = 1
     async for message in thread.history(limit=None, oldest_first=True):
-        if message.author.id != NovaConfig._bot.user.id:
+        if message.author.id != config._bot.user.id:
             await message.add_reaction('<:rockball:1308981475114225694>')
             continue
 

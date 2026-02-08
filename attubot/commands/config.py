@@ -8,7 +8,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import discord
 from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 
-from attubot.config import NovaConfig, NovaToken
+from attubot import config
+from attubot.config import NovaToken
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -20,7 +21,7 @@ config_group = SlashCommandGroup('config', default_member_permissions=Permission
 @config_group.command(name='delete', description='Delete a specific key from the config table')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_delete(ctx: ApplicationContext, key: str):
-    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
+    token_ref = config.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
     if token_ref is None:
@@ -32,14 +33,14 @@ async def config_delete(ctx: ApplicationContext, key: str):
         await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
-    await NovaConfig.delete(token_ref.key, guild=token_ref.guild)
+    await config.delete(token_ref.key, guild=token_ref.guild)
     await ctx.respond(f'Reset `{token_ref!s}` to the default value')
 
 
 @config_group.command(name='get', description='Fetch the value of a configuration')
 @discord.commands.option(name='key', required=True, description='Config identifier', input_type=str)
 async def config_get(ctx: ApplicationContext, key: str):
-    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
+    token_ref = config.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
     if token_ref is None:
@@ -51,14 +52,14 @@ async def config_get(ctx: ApplicationContext, key: str):
         await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
-    value = await NovaConfig.get(token_ref.key, guild=token_ref.guild)
+    value = await config.get(token_ref.key, guild=token_ref.guild)
 
     await ctx.respond(f'`{token_ref!s}` = `{value!s}`')
 
 
 @config_group.command(name='list', description='List out the available config options')
 async def config_list(ctx: ApplicationContext):
-    await ctx.respond('Available Options:\n' + ''.join([f'- {x}\n' for x in NovaConfig.guild_keys]))
+    await ctx.respond('Available Options:\n' + ''.join([f'- {x}\n' for x in config.guild_keys]))
 
 
 @config_group.command(name='set', description='Set the value of a configuration')
@@ -66,7 +67,7 @@ async def config_list(ctx: ApplicationContext):
 @discord.commands.option(name='value', required=True, description='', input_type=str)
 # @discord.commands.option(name='append', required=False, description='', input_type=bool) - append: bool = False
 async def config_set(ctx: ApplicationContext, key: str, value: str):
-    token_ref = NovaConfig.parse_key(key, guild=ctx.guild.id)
+    token_ref = config.parse_key(key, guild=ctx.guild.id)
 
     # check if valid token key
     if token_ref is None:
@@ -78,7 +79,7 @@ async def config_set(ctx: ApplicationContext, key: str, value: str):
         await ctx.respond('Failed: You do not have permission to access that identifier', ephemeral=True)
         return
 
-    token = await NovaConfig.get_raw(token_ref.key, guild=token_ref.guild)
+    token = await config.get_raw(token_ref.key, guild=token_ref.guild)
     old_value = token.unpack()
 
     try:
@@ -92,11 +93,11 @@ async def config_set(ctx: ApplicationContext, key: str, value: str):
         return
 
     if token_ref.guild == 0:
-        await NovaConfig.load_globals()  # no type checking on this btw
-        await NovaConfig.load_theme()
+        await config.load_globals()  # no type checking on this btw
+        await config.load_theme()
         await ctx.respond(f'Changed `{token_ref!s}` from `{old_value!s}` to `{new_value!s}`')
 
-    elif await NovaConfig.load_guild(token_ref.guild):
+    elif await config.load_guild(token_ref.guild):
         await ctx.respond(f'Changed `{token_ref!s}` from `{old_value!s}` to `{new_value!s}`')
 
     else:
@@ -112,7 +113,7 @@ async def config_show(ctx: ApplicationContext):
         async for token in NovaToken.filter(guild=ctx.guild.id):
             config[str(token.key)] = token.unpack()
 
-        for key in NovaConfig.guild_keys:
+        for key in config.guild_keys:
             if key in config:
                 msg.append(f'`{key}` = `{config[key]!s}`')
             else:
@@ -123,7 +124,7 @@ async def config_show(ctx: ApplicationContext):
 
 @config_group.command(name='validate', description='Check if the current configuration is valid')
 async def config_validate(ctx: ApplicationContext):
-    if ctx.guild.id in NovaConfig.valid_guilds:
+    if ctx.guild.id in config.valid_guilds:
         await ctx.respond('Guild Status: :ballot_box_with_check:')
     else:
         await ctx.respond('Guild Status: :no_entry:')

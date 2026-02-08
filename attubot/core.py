@@ -18,7 +18,8 @@ from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
-from attubot.config import NovaConfig, UnauthorizedGuild
+from attubot import config
+from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 from attubot.util import create_task
 
@@ -39,7 +40,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
     logger.error(f'Error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
-        if ctx.guild.id in NovaConfig.authorized_guilds:
+        if ctx.guild.id in config.authorized_guilds:
             await ctx.respond("You're not my real dad!")
         else:
             # catch all for if bot gets added to another discord guild
@@ -82,13 +83,13 @@ async def on_ready():
         logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         try:
-            await NovaConfig.on_ready(bot)
+            await config.on_ready(bot)
 
             # util depends on config being init, can't import later
             from attubot.tasks import error_hook_refresh
             await error_hook_refresh(bot)
 
-            if NovaConfig.test_mode:
+            if config.test_mode:
                 logger.fatal('Reached ready state')
                 raise Exception('(Test Mode)')
 
@@ -114,13 +115,13 @@ async def on_message(message: Message):
         logger.debug(f'Skipping checks for message from "{message.author.name}" with blank guild')
         return
 
-    if message.guild.id not in NovaConfig.valid_guilds:
+    if message.guild.id not in config.valid_guilds:
         logger.debug(f'Skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
         return
 
-    channel = NovaConfig.guild(message.guild.id).channels.activity
+    channel = config.guild(message.guild.id).channels.activity
 
-    if message.channel.id == channel and message.content.startswith(f'[{NovaConfig.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username
+    if message.channel.id == channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username
         if 'blocked' in message.content or 'registered' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
@@ -153,7 +154,7 @@ async def command_pong(ctx: ApplicationContext):
 
         await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
 
-    if NovaConfig.is_owner(ctx.author.id):
+    if config.is_owner(ctx.author.id):
         await ctx.respond(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
 
     else:
@@ -163,7 +164,7 @@ async def command_pong(ctx: ApplicationContext):
 
 @discord.slash_command(name='test', description='Simple command to test with')
 async def command_test(ctx: ApplicationContext):
-    if not NovaConfig.is_owner(ctx.author.id):
+    if not config.is_owner(ctx.author.id):
         await ctx.respond('Do I know you?', ephemeral=True)
         return
 
@@ -179,7 +180,7 @@ async def command_test(ctx: ApplicationContext):
 # --- Trigger Function ---
 
 def start_bot_loop():
-    NovaConfig.on_init()
+    config.on_init()
 
     def dep_check(path: str):
         dep = Path(path)
@@ -207,4 +208,4 @@ def start_bot_loop():
     bot.load_extension('attubot.commands.year')
 
     logger.info('Starting Bot')
-    bot.run(NovaConfig.bot_token)
+    bot.run(config.bot_token)

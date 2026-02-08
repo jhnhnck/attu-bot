@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -16,7 +16,7 @@ async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
     arguments = [
         '--height', str(height),
         '--width', str(width),
-        '--resources-dir', str(NovaConfig.path.parent),
+        '--resources-dir', str(config.path.parent),
         '-',
         '-c']
 

@@ -67,11 +67,11 @@ class Logger:
             import aiohttp
             from discord import Webhook
 
-            from attubot.config import NovaConfig
+            from attubot import config
             from attubot.util import break_at_newline
 
             async with aiohttp.ClientSession() as session:
-                webhook = Webhook.from_url(NovaConfig.error_hook, session=session)
+                webhook = Webhook.from_url(config.error_hook, session=session)
                 await webhook.send(f'**{error}**\n', username='DoomBot')
 
                 # this removes the useless bits and trims the number of lines to fit

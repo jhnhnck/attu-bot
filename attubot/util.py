@@ -21,36 +21,36 @@ logger = get_logger(__name__)
 # --- Permissions Check ---
 
 def is_bot_owner(ctx: Context) -> bool:
-    from attubot.config import NovaConfig
+    from attubot import config
 
     user_id = cast(discord.ApplicationContext, ctx).user.id
-    return NovaConfig.is_owner(user_id)
+    return config.is_owner(user_id)
 
 
 def is_authorized_guild(ctx: Context) -> bool:
-    from attubot.config import NovaConfig
+    from attubot import config
 
-    return ctx.guild.id in NovaConfig.authorized_guilds
+    return ctx.guild.id in config.authorized_guilds
 
 # --- Async Background Jobs ---
 
 # from <https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task>
 def create_task(coro: Coroutine, name: str | None = None):
-    logger.alert(f'Deprecated call to "{__name__}.create_task()"; use "NovaConfig.job_worker.create_task(...)" instead')
-    from attubot.config import NovaConfig
-    NovaConfig.job_worker.add_job(coro, name, priority=True)
+    logger.alert(f'Deprecated call to "{__name__}.create_task()"; use "config.job_worker.create_task(...)" instead')
+    from attubot import config
+    config.job_worker.add_job(coro, name, priority=True)
 
 
 def get_task_count() -> int:
-    logger.alert(f'Deprecated call to "{__name__}.get_task_count()"; use "NovaConfig.job_worker.count" instead')
-    from attubot.config import NovaConfig
-    return NovaConfig.job_worker.count
+    logger.alert(f'Deprecated call to "{__name__}.get_task_count()"; use "config.job_worker.count" instead')
+    from attubot import config
+    return config.job_worker.count
 
 
 def get_task_names() -> list[str]:
-    logger.alert(f'Deprecated call to "{__name__}.get_task_names()"; use "NovaConfig.job_worker.running_tasks" instead')
-    from attubot.config import NovaConfig
-    return NovaConfig.job_worker.running_tasks
+    logger.alert(f'Deprecated call to "{__name__}.get_task_names()"; use "config.job_worker.running_tasks" instead')
+    from attubot import config
+    return config.job_worker.running_tasks
 
 # --- Decorators ---
 

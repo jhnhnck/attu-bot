@@ -9,7 +9,8 @@ from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel
 
-from attubot.config import GuildEpoch, NovaConfig
+from attubot import config
+from attubot.config import GuildEpoch
 from attubot.logging import get_logger
 
 # --- Initialization ---
@@ -40,7 +41,7 @@ def format_year_line(year: int, level: int = 1) -> str:
 
 
 def get_year_status(guild: int | None = None) -> tuple[int, int]:
-    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
+    epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
 
     today = datetime.combine(date.today(), epoch.rollover_time)
     epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.rollover_time)
@@ -56,7 +57,7 @@ def get_year_status(guild: int | None = None) -> tuple[int, int]:
 
 
 def get_next_year(guild: int | None = None) -> datetime:
-    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
+    epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
 
     if epoch.paused:
         return datetime.fromtimestamp(0).astimezone()
@@ -73,7 +74,7 @@ def get_next_year(guild: int | None = None) -> datetime:
 async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     from attubot.markers import YearMarker  # noqa: PLC0415
 
-    epoch: GuildEpoch = (NovaConfig.primary() if guild is None else NovaConfig.guild(guild)).epoch
+    epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
     result = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
     _, current_year = get_year_status()
@@ -112,7 +113,7 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
 async def move_epoch(length: int, guild: int | None = None):
     elapsed_days, current_year = get_year_status()
     year_span = await get_year_span(current_year)
-    cfg = NovaConfig.primary() if guild is None else NovaConfig.guild(guild)
+    cfg = config.primary() if guild is None else config.guild(guild)
 
     # handle picking new year time if paused
     if cfg.epoch.paused:

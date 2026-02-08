@@ -13,7 +13,7 @@ from discord.utils import snowflake_time
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
@@ -35,14 +35,14 @@ class YearMarker(Model):
     @classmethod
     async def total(cls, guild: int | None = None) -> int:
         if guild is None:
-            guild = NovaConfig.primary_guild
+            guild = config.primary_guild
 
         return await cls.filter(channel=guild).count()
 
     @classmethod  # Throws exception on invalid year
     async def timestamp(cls, year: int, guild: int | None = None) -> int:
         if guild is None:
-            guild = NovaConfig.primary_guild
+            guild = config.primary_guild
 
         marker = await cls.get(channel=guild, year=year)
         return int(snowflake_time(marker.message).timestamp())
@@ -50,7 +50,7 @@ class YearMarker(Model):
     @classmethod
     async def mark(cls, year: int, timestamp: int, channel: int | None = None):
         if channel is None:
-            channel = NovaConfig.primary_guild
+            channel = config.primary_guild
 
         logger.info(f'Marker appended: channel={channel} new={timestamp}')
         await cls.create(channel=channel, year=year, message=timestamp)
@@ -60,13 +60,13 @@ class YearMarker(Model):
 async def _init_db():
     logger.info('Connecting to database')
 
-    await Tortoise.init(db_url=f'sqlite://{NovaConfig.db_path}', modules={'models': [__name__, 'attubot.config']})
+    await Tortoise.init(db_url=f'sqlite://{config.db_path}', modules={'models': [__name__, 'attubot.config']})
     await Tortoise.generate_schemas(safe=True)
 
     logger.info(f'Loaded [{await YearMarker.all().count()}] markers')
 
     logger.info('Unpacking additional config values from database')
-    await NovaConfig.on_load()
+    await config.on_load()
 
 
 def setup(bot: Bot):

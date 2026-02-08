@@ -11,7 +11,8 @@ from discord.ext import commands
 from discord.utils import snowflake_time
 
 from attubot.calendar import get_year_status
-from attubot.config import NovaConfig, UnauthorizedGuild
+from attubot import config
+from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link, is_authorized_guild
@@ -32,7 +33,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     guild, channel, message = int(ids[0]), int(ids[1]), int(ids[2])  # unpack string into components
 
     try:
-        guild_config = NovaConfig.guild(guild)
+        guild_config = config.guild(guild)
         _, current_year = get_year_status(guild=guild_config.id)
 
     except UnauthorizedGuild:
@@ -74,7 +75,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
 @discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=int)
 @commands.check(is_authorized_guild)
 async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
-    guild_config = NovaConfig.guild(ctx.guild.id)
+    guild_config = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild=guild_config.id)
     snowflake = int(snowflake)
 
@@ -102,7 +103,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
 @discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
 @commands.check(is_authorized_guild)
 async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
-    guild_config = NovaConfig.guild(ctx.guild.id)
+    guild_config = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild=guild_config.id)
 
     if year < 1 or year >= current_year:

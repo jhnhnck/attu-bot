@@ -11,7 +11,7 @@ import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 from attubot.util import is_authorized_guild
 from attubot.wiki import AttuWiki
@@ -74,7 +74,7 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
     await ctx.respond(f'Blocking user [{user}]: {reason}')
 
     wiki = AttuWiki()
-    await wiki.authenticate(NovaConfig.wiki.user, NovaConfig.wiki.key)
+    await wiki.authenticate(config.wiki.user, config.wiki.key)
     await wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
 # --- Extension Def ---

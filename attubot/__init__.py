@@ -16,3 +16,8 @@ __description__ = 'A discord bot designed for automating tasks for the Attu Proj
 
 # TODO use gitpython to mark if dirty
 __version__ = '26.2.0'
+
+# Create config instance
+from attubot.config import NovaConfig
+
+config = NovaConfig()
