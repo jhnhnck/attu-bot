@@ -280,27 +280,48 @@ class NovaConfig:
         self.config_repo = ConfigRepository(db.get_db())
         await self.config_repo.init_indexes()
 
-        # Version check
+        # Version check and load system config
         system_config = await self.config_repo.get_system()
         if system_config:
             logger.info(f'Matched schema version: {system_config.version}')
         else:
             logger.warn('No system config found - creating defaults')
             from attubot.models import SystemConfigDocument
-            await self.config_repo.save_system(SystemConfigDocument(
+            system_config = SystemConfigDocument(
                 version=self.config_version,
                 error_log=[0, 0],
                 error_hook=f'{self.wiki.endpoint}/invalid-webhook',
                 primary_guild=self.primary_guild,
-            ))
+            )
+            await self.config_repo.save_system(system_config)
 
-        # Load configurations
-        await self.load_globals()
+        # Extract system config values (eliminates redundant query)
+        self.error_log = tuple(system_config.error_log)
+        self.error_hook = system_config.error_hook
+        self.primary_guild = system_config.primary_guild
+
+        # Load other configurations
         await self.load_theme()
 
-        # Load guild configs
-        for guild in self.authorized_guilds:
-            await self.load_guild(guild)
+        # Load guild configs in parallel
+        async def _load_guild_safe(guild_id: int) -> tuple[int, bool]:
+            """Wrapper that catches exceptions for parallel loading"""
+            try:
+                success = await self.load_guild(guild_id)
+                return (guild_id, success)
+            except Exception as e:
+                logger.error(f'Failed to load guild {guild_id} during parallel load: {e!s}')
+                return (guild_id, False)
+
+        results = await asyncio.gather(
+            *[_load_guild_safe(guild) for guild in self.authorized_guilds],
+            return_exceptions=False,
+        )
+
+        # Log any failures
+        for guild_id, success in results:
+            if not success:
+                logger.warn(f'Guild {guild_id} failed to load properly')
 
         self._get_event('load').set()
 
@@ -308,12 +329,25 @@ class NovaConfig:
         from attubot import bot
         logger.info('Starting post-ready config loading stage')
 
-        for idx, guild in self.guilds.items():
+        async def _update_guild_markers(guild_id: int, guild: GuildConfig) -> int | None:
+            """Add bot user to guild markers if needed"""
             if bot.user.id not in guild.users.markers:
-                logger.info(f'Adding bot user to valid year marker authors for {idx}')
-
+                logger.info(f'Adding bot user to valid year marker authors for {guild_id}')
                 guild.users.markers.append(bot.user.id)
-                await self.config_repo.update_guild_field(idx, 'users.markers', guild.users.markers)
+
+                try:
+                    await self.config_repo.update_guild_field(guild_id, 'users.markers', guild.users.markers)
+                    return guild_id
+                except Exception as e:
+                    logger.error(f'Failed to update markers for guild {guild_id}: {e!s}')
+                    return None
+            return None
+
+        # Execute parallel updates
+        await asyncio.gather(
+            *[_update_guild_markers(idx, guild) for idx, guild in self.guilds.items()],
+            return_exceptions=False,
+        )
 
         self.path.chmod(0o660)
 
@@ -332,9 +366,25 @@ class NovaConfig:
         # load guild names from discord and store in config object
         logger.debug('Fetching guild names')
 
-        for idx, cfg in self.guilds.items():
-            guild_obj = await bot.fetch_guild(idx)
-            cfg._display_name = guild_obj.name or None
+        async def _fetch_guild_name(guild_id: int) -> tuple[int, str | None]:
+            """Wrapper for parallel guild fetching with error handling"""
+            try:
+                guild_obj = await bot.fetch_guild(guild_id)
+                return (guild_id, guild_obj.name or None)
+            except Exception as e:
+                logger.error(f'Failed to fetch guild name for {guild_id}: {e!s}')
+                return (guild_id, None)
+
+        # Fetch all guild names in parallel
+        results = await asyncio.gather(
+            *[_fetch_guild_name(idx) for idx in self.guilds],
+            return_exceptions=False,
+        )
+
+        # Apply results
+        for guild_id, name in results:
+            if guild_id in self.guilds:
+                self.guilds[guild_id]._display_name = name
 
         self._get_event('ready').set()
 
@@ -355,6 +405,11 @@ class NovaConfig:
     # --- Private Methods ---
 
     async def load_globals(self):
+        """Reload system config from database (for runtime updates only)
+
+        Note: During startup, system config is loaded directly in on_load() to avoid
+        redundant database queries. This method is only used for runtime reloads.
+        """
         system = await self.config_repo.get_system()
         if system:
             self.error_log = tuple(system.error_log)

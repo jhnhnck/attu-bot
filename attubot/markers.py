@@ -42,7 +42,7 @@ class YearMarker(BaseModel):
 
     async def save(self):
         """Save this marker to MongoDB"""
-        await _get_repo().create(
+        await _get_repo().upsert(
             channel=self.channel,
             message=self.message,
             year=self.year,
@@ -104,7 +104,7 @@ class YearMarker(BaseModel):
             channel = config.primary_guild
 
         logger.info(f'Marker appended: channel={channel} new={timestamp}')
-        await _get_repo().create(channel=channel, year=year, message=timestamp)
+        await _get_repo().upsert(channel=channel, year=year, message=timestamp)
 
     @classmethod
     async def all_for_guild(cls, guild: int) -> list['YearMarker']:
@@ -144,8 +144,11 @@ class YearMarker(BaseModel):
 async def _init_db():
     logger.info('Initializing database')
 
-    # MongoDB initialization is handled by config.on_load()
-    # Just set up the repository and indexes
+    # Connect to MongoDB first
+    logger.info('Loading config from database')
+    await config.on_load()
+
+    # Now set up the repository and indexes
     global _marker_repo  # noqa: PLW0603
     from attubot import db
 
@@ -153,9 +156,6 @@ async def _init_db():
     await _marker_repo.init_indexes()
 
     logger.info(f'Loaded [{await YearMarker.total()}] markers')
-
-    logger.info('Loading config from database')
-    await config.on_load()
 
 
 def setup(bot: Bot):

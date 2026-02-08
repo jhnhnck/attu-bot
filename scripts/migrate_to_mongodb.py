@@ -80,23 +80,20 @@ class Migration:
         """Get all NovaToken entries for a specific guild"""
         cursor = self.sqlite_conn.cursor()
         cursor.execute(
-            'SELECT key, value FROM novatoken WHERE key LIKE ?',
-            (f'{guild_id}.%',),
+            'SELECT key, value FROM novatoken WHERE guild = ?',
+            (guild_id,),
         )
 
         tokens = {}
         for row in cursor.fetchall():
-            key = row['key'].replace(f'{guild_id}.', '', 1)  # Remove guild prefix
-            tokens[key] = tomlkit.loads(row['value']).get('X', None)
+            tokens[row['key']] = tomlkit.loads(row['value']).get('X', None)
 
         return tokens
 
     def get_global_tokens(self) -> dict:
-        """Get all global NovaToken entries"""
+        """Get all global NovaToken entries (guild = 0)"""
         cursor = self.sqlite_conn.cursor()
-        cursor.execute(
-            "SELECT key, value FROM novatoken WHERE key NOT LIKE '%._' AND key NOT LIKE '%.%'",
-        )
+        cursor.execute('SELECT key, value FROM novatoken WHERE guild = 0')
 
         tokens = {}
         for row in cursor.fetchall():
@@ -175,15 +172,12 @@ class Migration:
         """Migrate guild configurations from NovaToken to MongoDB"""
         logger.info('Migrating guild configurations...')
 
-        # Get list of all guild IDs from tokens
+        # Get list of all unique guild IDs (excluding global config where guild = 0)
         cursor = self.sqlite_conn.cursor()
-        cursor.execute(
-            "SELECT DISTINCT CAST(SUBSTR(key, 1, INSTR(key, '.') - 1) AS INTEGER) as guild_id "
-            "FROM novatoken WHERE key LIKE '%.%' AND SUBSTR(key, 1, INSTR(key, '.') - 1) GLOB '[0-9]*'",
-        )
+        cursor.execute('SELECT DISTINCT guild FROM novatoken WHERE guild != 0 ORDER BY guild')
 
-        guild_ids = [row['guild_id'] for row in cursor.fetchall()]
-        logger.info(f'Found {len(guild_ids)} guilds to migrate')
+        guild_ids = [row['guild'] for row in cursor.fetchall()]
+        logger.info(f'Found {len(guild_ids)} guilds to migrate: {guild_ids}')
 
         for guild_id in guild_ids:
             try:

@@ -10,7 +10,7 @@ TODO: Review ConfigRepository.save_guild() - verify model_dump() recursion is wo
 from typing import TYPE_CHECKING
 
 from pymongo import ASCENDING
-from pymongo.database import AsyncDatabase
+from pymongo.asynchronous.database import AsyncDatabase
 
 from attubot.models import GuildConfigDocument, SystemConfigDocument, ThemeDocument, YearMarkerDocument
 
@@ -40,7 +40,7 @@ class ConfigRepository:
             return GuildConfigDocument(**doc)
         return None
 
-    async def save_guild(self, config: GuildConfig):
+    async def save_guild(self, config: 'GuildConfig'):
         """Save guild config (upsert)"""
         doc = {
             'guild_id': config.id,
@@ -70,7 +70,7 @@ class ConfigRepository:
             return ThemeDocument(**doc)
         return None
 
-    async def save_theme(self, theme: BotTheme):
+    async def save_theme(self, theme: 'BotTheme'):
         """Save theme"""
         doc = ThemeDocument(
             rotation=theme.rotation,
@@ -143,6 +143,21 @@ class YearMarkerRepository:
         await self.db[self.COLLECTION].update_one(
             {'channel': channel, 'year': year},
             {'$set': kwargs},
+        )
+
+    async def upsert(self, channel: int, message: int, year: int, exact: bool = False, wiki_page: bool = False):
+        """Insert or update marker (upsert)"""
+        doc = YearMarkerDocument(
+            channel=channel,
+            message=message,
+            year=year,
+            exact=exact,
+            wiki_page=wiki_page,
+        ).model_dump()
+        await self.db[self.COLLECTION].update_one(
+            {'channel': channel, 'year': year},
+            {'$set': doc},
+            upsert=True,
         )
 
     async def delete(self, channel: int, year: int):
