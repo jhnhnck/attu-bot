@@ -4,7 +4,6 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
-#ruff: noqa: PLC0415
 
 import asyncio
 import sys
@@ -13,25 +12,17 @@ from random import randrange
 from typing import cast
 
 import discord
-from discord import ApplicationCommand, ApplicationContext, Intents, Message
+from discord import ApplicationCommand, ApplicationContext, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 from tortoise import Tortoise
 
-from attubot import config
+from attubot import bot, config
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 from attubot.util import create_task
 
-# --- Initialization ---
-
 logger = get_logger(__name__)
-logger.info('Initializing...')
-
-intents = Intents.default()
-intents.message_content = True
-
-bot = discord.Bot(intents=intents)
 
 # --- Error Handling ---
 
@@ -83,11 +74,11 @@ async def on_ready():
         logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         try:
-            await config.on_ready(bot)
+            await config.on_ready()
 
             # util depends on config being init, can't import later
             from attubot.tasks import error_hook_refresh
-            await error_hook_refresh(bot)
+            await error_hook_refresh()
 
             if config.test_mode:
                 logger.fatal('Reached ready state')
@@ -180,6 +171,7 @@ async def command_test(ctx: ApplicationContext):
 # --- Trigger Function ---
 
 def start_bot_loop():
+    logger.info('Starting DoomBot!')
     config.on_init()
 
     def dep_check(path: str):

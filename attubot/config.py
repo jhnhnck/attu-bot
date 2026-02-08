@@ -14,7 +14,6 @@ from typing import Any, Literal, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
 import tomlkit
-from discord import Bot
 from pydantic import BaseModel, ValidationError, model_validator
 from tortoise import Tortoise, fields
 from tortoise.models import Model
@@ -315,7 +314,6 @@ class NovaConfig:
         self.error_hook: str = None
         self.primary_guild: int = None
         self.owner_ids: set[int] = set()
-        self._bot: Bot = None
         self._raw: RawConfig = None
 
         # Key tracking
@@ -405,9 +403,9 @@ class NovaConfig:
 
         self._get_event('load').set()
 
-    async def on_ready(self, bot: Bot):  # called by Bot.on_ready after connect, low priority maintenance tasks
+    async def on_ready(self):  # called by Bot.on_ready after connect, low priority maintenance tasks
+        from attubot import bot
         logger.info('Starting post-ready config loading stage')
-        self._bot = bot
 
         for idx, guild in self.guilds.items():
             if bot.user.id not in guild.users.markers:
@@ -439,8 +437,8 @@ class NovaConfig:
         logger.debug('Fetching guild names')
 
         for idx, cfg in self.guilds.items():
-            guild = await self._bot.fetch_guild(idx)
-            cfg._display_name = guild.name or None
+            guild_obj = await bot.fetch_guild(idx)
+            cfg._display_name = guild_obj.name or None
 
         self._get_event('ready').set()
 

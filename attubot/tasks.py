@@ -13,8 +13,8 @@ from typing import Never, cast
 from discord import Bot, TextChannel
 from discord.ext import commands, tasks
 
+from attubot import bot, config
 from attubot.calendar import format_year_line, get_year_span, get_year_status
-from attubot import config
 from attubot.config import GuildConfig
 from attubot.jobs import job_construct_year_links
 from attubot.logging import get_logger
@@ -31,10 +31,7 @@ logger = get_logger(__name__)
 Rewrite to support multiple guilds
 """
 class NovaYearEvent(commands.Cog):
-    bot: Bot
-
-    def __init__(self, bot: Bot):
-        self.bot = bot
+    def __init__(self):
         self.task = self.guild_event_dispatch.start()
 
     @tasks.loop(minutes=30)  # gets updated in before_loop, but we have to pass it *something*
@@ -56,7 +53,7 @@ class NovaYearEvent(commands.Cog):
         # Update the loop interval to match loaded guilds
         create_task(self.update_loop_loop(), 'NovaYearEvent[scheduler]')
 
-        await self.bot.wait_until_ready()
+        await bot.wait_until_ready()
 
     # task keeps the event intervals in sync with the guild config
     @webhook_logging(scope=logger)
@@ -99,7 +96,7 @@ class NovaYearEvent(commands.Cog):
     @webhook_logging(scope=logger)
     async def advance_year(self, cfg: GuildConfig, year: int):
         logger.info(f'[{cfg!s}] Happy New Year! Advancing to Year {year} PC')
-        guild = self.bot.get_guild(cfg.id)
+        guild = bot.get_guild(cfg.id)
 
         # --- Lore Channel Year Markers ---
 
@@ -145,7 +142,7 @@ class NovaYearEvent(commands.Cog):
 # --- Webhook Task ---
 
 @webhook_logging(scope=logger)
-async def error_hook_refresh(bot: Bot):
+async def error_hook_refresh():
     if config.test_mode:
         logger.debug('Application in test mode; skipping error hook refresh')
         return
@@ -182,10 +179,7 @@ async def error_hook_refresh(bot: Bot):
 Daily task to keep the logo in sync with theme settings
 """
 class LogoUpdateEvent(commands.Cog):
-    bot: Bot
-
-    def __init__(self, bot: Bot):
-        self.bot = bot
+    def __init__(self):
         self.task = self.update_logo.start()
 
     # @tasks.loop(time=time(hour=8, minute=0, tzinfo=config.timezone))
@@ -197,7 +191,7 @@ class LogoUpdateEvent(commands.Cog):
     @update_logo.before_loop
     async def wait_for_ready(self):
         await config.wait_for_load()
-        await self.bot.wait_until_ready()
+        await bot.wait_until_ready()
 
     @webhook_logging(scope=logger)
     async def perform_update(self):
@@ -221,9 +215,9 @@ class LogoUpdateEvent(commands.Cog):
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # edit guild and bot with new logos
-        guild = self.bot.get_guild(config.primary_guild)
+        guild = bot.get_guild(config.primary_guild)
         await guild.edit(icon=guild_icon, reason='logo update task')
-        await self.bot.user.edit(avatar=bot_avatar)
+        await bot.user.edit(avatar=bot_avatar)
 
         # update the emoji too. why not?
         emoji_name = guild.name.replace(' ', '_').lower()
@@ -245,5 +239,5 @@ class LogoUpdateEvent(commands.Cog):
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
-    bot.add_cog(NovaYearEvent(bot))
-    bot.add_cog(LogoUpdateEvent(bot))
+    bot.add_cog(NovaYearEvent())
+    bot.add_cog(LogoUpdateEvent())
