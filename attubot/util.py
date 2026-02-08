@@ -74,17 +74,20 @@ def format_message_link(guild: int, channel: int, message: int, relative: bool =
 
 # for trimming to discord character length
 def break_at_newline(text: str, maximum: int, end: str = '...\n') -> str:
-    if len(text) > maximum:
-        lines = text[:(maximum + len(end))].split('\n')
-        _ = lines.pop()  # remove mangled last line
-        result = ''
+    if len(text) <= maximum:
+        return text
 
-        for line in lines:
-            holding = f'f{result}{line}\n'
+    lines = text.split('\n')
+    result = ''
 
-            if len(holding) + len(end) > maximum:
-                return result + end
+    for line in lines:
+        # Check if adding this line (with newline) plus the end marker would exceed maximum
+        potential = result + line + '\n'
+        if len(potential) + len(end) > maximum:
+            # Can't fit this line, return what we have so far with end marker
+            return (result + end)[:maximum]
 
-            result += line + '\n'
+        result = potential
 
-    return text
+    # If we get here, we've included all lines but still need to add end marker
+    return (result + end)[:maximum]
