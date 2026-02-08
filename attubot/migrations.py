@@ -9,7 +9,6 @@ from collections.abc import Callable
 
 from attubot import config
 from attubot.logging import get_logger
-from attubot.util import create_task
 
 logger = get_logger(__name__)
 
@@ -37,60 +36,6 @@ def migration(old: str, new: str) -> Callable:
     return decorator_migration
 
 # --- Migration Steps ---
-
-# Version 1.8.0-pre5
-@migration(old='1.8.0-pre4', new='1.8.0-pre5')
-async def migration_pre4():
-    pass
-
-
-# Version 1.8.0-pre6
-@migration(old='1.8.0-pre5', new='1.8.0-pre6')
-async def migration_error_hooks():
-
-    async def error_hook_init():
-        from attubot.tasks import error_hook_refresh
-
-        await config.wait_for_ready()
-        await error_hook_refresh(config._bot)
-
-    # Add ready hook to grab webhook
-    create_task(error_hook_init(), 'MigrationEvent[error-hook-init]')
-    logger.debug(f'Created future task for {error_hook_init!s}')
-
-
-# Version 1.8.0-pre7
-@migration(old='1.8.0-pre6', new='1.8.0-pre7')
-async def migration_named_guilds():
-    config.primary_guild = await config.set('primary_guild', config.primary_guild)
-
-
-# Version 1.8.0-pre8
-@migration(old='1.8.0-pre7', new='1.8.0-pre8')
-async def migration_markers_move():
-
-    async def migrate_guild_markers():
-        from attubot.markers import YearMarker
-
-        await config.wait_for_ready()
-
-        logger.debug(f'Updating markers from 0 -> {config.primary_guild}')
-        primary_guild = int(config.primary_guild)
-        await YearMarker.raw(f'UPDATE yearmarker SET channel = {primary_guild} WHERE channel = 0;')  # noqa: S608
-
-    # Create a task so this executes after ready
-    create_task(migrate_guild_markers(), 'MigrationEvent[guild-markers]')
-    logger.debug(f'Created future task for {migrate_guild_markers!s}')
-
-
-# Version 1.8.0-pre9
-@migration(old='1.8.0-pre8', new='1.8.0-pre9')
-async def migration_themes():
-    await config.set('theme.rotation', 0.0)
-    await config.set('theme.max_rate', 0.5)
-    await config.set('theme.bot_color', '#ff7f50')
-    await config.set('theme.guild_color', '#ffffff')
-
 
 # Version 1.8.0
 @migration(old='1.8.0-pre9', new='1.8.0')
