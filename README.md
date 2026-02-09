@@ -129,6 +129,41 @@ If using the `[Import]` directive within the config file, use the following form
 - Users:
   - **users.markers**: [1000000000000000000, 1000000000000000000]
 
+
+
+## Development
+
+### Setup
+
+1. Create a Python 3.13+ virtual environment:
+
+Using [pyenv](https://github.com/pyenv/pyenv):
+```bash
+$ pyenv virtualenv 3.13 doom-bot
+$ pyenv activate doom-bot
+```
+
+Or using the built-in `venv` module:
+```bash
+$ python3.13 -m venv .venv
+$ source .venv/bin/activate
+```
+
+2. Install dependencies:
+```bash
+$ pip install -r requirements.txt -r requirements-dev.txt
+```
+
+### Running Tests
+
+```bash
+$ pytest
+```
+
+Tests are located in `tests/` and configured via `pyproject.toml`. The test suite uses [freezegun](https://github.com/spulec/freezegun) to pin wall-clock time for deterministic calendar calculations.
+
+Tests marked with `xfail` document known bugs that are expected to fail until the underlying issue is fixed. When a fix lands, these tests will automatically flag as `XPASS` (unexpected pass), indicating the marker should be removed.
+
 ## License
 
 Copyright (c) 2026 John Hancock, The Attu Project
