@@ -12,7 +12,6 @@ import httpx
 
 from attubot import __email__, __title__, __version__, config
 from attubot.logging import get_logger
-from attubot.util import create_task
 
 logger = get_logger(__name__)
 
@@ -29,11 +28,6 @@ class AttuWiki:
 
         self.action_endpoint = '/api.php'
         self.rest_endpoint = '/rest.php/v1'
-
-    def __del__(self):
-        logger.debug(f'Closing out httpx session: {self.client}')
-
-        create_task(self.client.aclose(), 'HttpxClientClose')
 
     # TODO: convert these into an AuthProvider
     async def _get_csrf(self) -> str:
