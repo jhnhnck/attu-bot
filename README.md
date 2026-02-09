@@ -40,14 +40,7 @@ $ cp ./config/attu-bot.sample.toml ./assets/attu-bot.toml
 $ vim ./assets/attu-bot.toml
 ```
 
-3. Make a copy of the sample database file or generate a new blank one from scratch (requires sqlite3 package)
-```bash
-$ cp ./config/markers.sample.db ./assets/markers.db
-# OR
-$ sqlite3 ./assets/markers.db "VACUUM;"
-```
-
-4. Run the following command to build the Docker image and start the bot:
+3. Run the following command to build the Docker image and start the bot:
 ```bash
 $ docker compose up --build -d
 ```
@@ -72,12 +65,12 @@ Use the following commands to interact with the bot:
 
 ### Admin
 
-- **/config**: Modify various options for bot behavior (Admin only)
-  - **/config delete <key>**: Delete a specific key from the config table
-  - **/config get <key>**: Fetch the value of a configuration
-  - **/config list**: List out the available config options
-  - **/config set <key> <value>**: Set the value of a configuration
-  - **/config show**: Show the entire guild configuration
+- **/config**: ~~Modify various options for bot behavior (Admin only)~~ *Currently unavailable*
+  - ~~**/config delete <key>**: Delete a specific key from the config table~~
+  - ~~**/config get <key>**: Fetch the value of a configuration~~
+  - ~~**/config list**: List out the available config options~~
+  - ~~**/config set <key> <value>**: Set the value of a configuration~~
+  - ~~**/config show**: Show the entire guild configuration~~
 
 - **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
   - **/debug dump_config**: Prints currently loaded config values to console
