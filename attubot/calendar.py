@@ -16,7 +16,7 @@ from attubot.logging import get_logger
 # --- Initialization ---
 
 logger = get_logger(__name__)
-SECONDS_PER_DAY = SECONDS_PER_DAY
+SECONDS_PER_DAY = 86400
 
 # --- Components ---
 

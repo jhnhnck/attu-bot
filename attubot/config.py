@@ -32,7 +32,6 @@ class RawConfig(TypedDict):
     config_version: str
     auth: dict[str, Any]
     discord: dict[str, Any]
-    imports: dict[str, Any] | None
 
 
 class NovaGlobals(BaseModel):
@@ -256,7 +255,6 @@ class NovaConfig:
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
         self.authorized_guilds = { *self._raw['discord']['guilds']['authorized'] }
-        self.primary_guild = self._raw['discord']['guilds']['primary']  # TODO: Deprecate
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
@@ -292,7 +290,7 @@ class NovaConfig:
                 version=self.config_version,
                 error_log=[0, 0],
                 error_hook=f'{self.wiki.endpoint}/invalid-webhook',
-                primary_guild=self.primary_guild,
+                primary_guild=next(iter(self.authorized_guilds)),
             )
             await self.config_repo.save_system(system_config)
 

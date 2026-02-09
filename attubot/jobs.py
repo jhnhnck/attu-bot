@@ -71,10 +71,6 @@ class JobWorker:
 
 # --- jobs ---
 
-async def job_compress_year_markers():
-    pass
-
-
 async def job_construct_year_links(guild_id: int):
     from attubot import bot, config
     from attubot.calendar import format_year_line, get_year_span, get_year_status

@@ -3,8 +3,6 @@ AttuBot - MongoDB Repository Classes
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-TODO: Review ConfigRepository.save_guild() - verify model_dump() recursion is working correctly
 """
 
 from typing import TYPE_CHECKING

@@ -119,16 +119,6 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
         logger.debug(f'Hit cache for {year} PC in {channel.id}')
         marker = await YearMarker.get(channel=channel.id, year=year)
 
-        # fix exactness; TODO: remove this eventually
-        if marker.channel in cfg.channels.lore_channels: # and not marker.exact:
-            try:
-                message = await channel.fetch_message(marker.message)
-                logger.debug(f'Fixing exactness on {marker.channel}/{marker.message}')
-                marker.exact = has_year_marker(year, message.content)
-                await marker.save()
-            except discord.NotFound:
-                pass
-
     else:
         # Fetch stored marker for that year
         guild_marker = await YearMarker.get(channel=cfg.id, year=year)
