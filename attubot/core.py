@@ -112,7 +112,7 @@ async def on_message(message: Message):
 
     channel = config.guild(message.guild.id).channels.activity
 
-    if message.channel.id == channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):  # TODO: verify correct part of wiki bot username
+    if message.channel.id == channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):
         if 'blocked' in message.content or 'registered' in message.content:
             await message.add_reaction('<:tieteran_wave:1308636215930654801>')
         else:
@@ -186,6 +186,7 @@ def start_bot_loop():
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
     bot.load_extension('attubot.tasks')
+    # TODO: re-implement as a web interface
     # bot.load_extension('attubot.commands.config')
     bot.load_extension('attubot.commands.debug')
     bot.load_extension('attubot.commands.marker')
