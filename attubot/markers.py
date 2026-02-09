@@ -87,14 +87,15 @@ class YearMarker(BaseModel):
         return await _get_repo().total(guild)
 
     @classmethod
-    async def timestamp(cls, year: int, guild: int | None = None) -> int:
-        """Get timestamp for a year marker (throws exception on invalid year)"""
+    async def timestamp(cls, year: int, guild: int | None = None) -> int | None:
+        """Get timestamp for a year marker, or None if not found"""
         if guild is None:
             guild = config.primary_guild
 
         marker = await _get_repo().get(guild, year)
         if not marker:
-            raise Exception(f'No marker found for year {year}')
+            logger.error(f'No marker found for year {year} in guild {guild}')
+            return None
         return int(snowflake_time(marker.message).timestamp())
 
     @classmethod

@@ -16,6 +16,7 @@ from attubot.logging import get_logger
 # --- Initialization ---
 
 logger = get_logger(__name__)
+SECONDS_PER_DAY = SECONDS_PER_DAY
 
 # --- Components ---
 
@@ -47,7 +48,7 @@ def get_year_status(guild: int | None = None) -> tuple[int, int]:
     epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.get_rollover_time())
     time_diff_sec = (today - epoch_time).total_seconds()
 
-    elapsed_days = int(time_diff_sec / 86400)
+    elapsed_days = int(time_diff_sec / SECONDS_PER_DAY)
     year = epoch.year + (elapsed_days // epoch.length)
 
     if (elapsed_days % epoch.length) == 0 and datetime.now().time() < epoch.get_rollover_time():
@@ -87,12 +88,12 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
 
     # Past Years
     elif year < current_year:
-        result.start_time = await YearMarker.timestamp(year)
-        result.end_time = await YearMarker.timestamp(year + 1)
+        result.start_time = await YearMarker.timestamp(year) or 0
+        result.end_time = await YearMarker.timestamp(year + 1) or 0
 
     # Current Year
     elif year == current_year:
-        result.start_time = await YearMarker.timestamp(year)
+        result.start_time = await YearMarker.timestamp(year) or 0
         result.end_time = int(next_year.timestamp())
 
     # Next Year
@@ -105,7 +106,7 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
         result.start_time = int((next_year + timedelta(days=(epoch.length * (year - current_year - 1)))).timestamp())
         result.end_time = int((next_year + timedelta(days=(epoch.length * (year - current_year)))).timestamp())
 
-    result.duration = round((result.end_time - result.start_time) / 86400)
+    result.duration = round((result.end_time - result.start_time) / SECONDS_PER_DAY)
     return result
 
 

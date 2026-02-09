@@ -15,7 +15,7 @@ from discord.enums import ChannelType
 from discord.utils import snowflake_time
 
 from attubot import config
-from attubot.calendar import get_year_span, get_year_status
+from attubot.calendar import SECONDS_PER_DAY, get_year_span, get_year_status
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
@@ -132,10 +132,14 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
 
     else:
         # Fetch stored marker for that year
-        timestamp = snowflake_time((await YearMarker.get(channel=cfg.id, year=year)).message)
+        guild_marker = await YearMarker.get(channel=cfg.id, year=year)
+        if guild_marker is None:
+            logger.error(f'No guild marker found for year {year} in {cfg.id}')
+            return format_message_link(guild=cfg.id, channel=channel.id, message=0, relative=True)
+        timestamp = snowflake_time(guild_marker.message)
         marker = YearMarker(channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
-        closest = 86400
+        closest = SECONDS_PER_DAY
 
         # Search Channel History
         async for message in channel.history(around=timestamp, limit=15):
