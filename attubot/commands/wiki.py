@@ -75,7 +75,12 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
 
     wiki = AttuWiki()
     await wiki.authenticate(config.wiki.user, config.wiki.key)
-    await wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
+    result = await wiki.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
+
+    if result is False:
+        await ctx.edit(content=f'Failed to block user [{user}] after {wiki.max_retries} attempts')
+        # TODO: we should improve the webhooks some, maybe with a library outside pycord.
+        await logger.send_to_webhook(Exception(f'wiki.block() failed for user "{user}" after {wiki.max_retries} retries'))
 
 # --- Extension Def ---
 
