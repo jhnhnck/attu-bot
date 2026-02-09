@@ -1,3 +1,4 @@
+aiohttp
 httpx
 py-cord[speed]<3
 pydantic

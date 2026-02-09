@@ -172,7 +172,7 @@ def start_bot_loop():
     def dep_check(path: str):
         dep = Path(path)
 
-        if not dep.exists() and dep.is_file():
+        if not dep.is_file():
             raise Exception(f'missing dependency: {path}')
 
     logger.info('Checking Dependencies')
