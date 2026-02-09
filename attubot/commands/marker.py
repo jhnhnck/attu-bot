@@ -29,6 +29,10 @@ marker_group = SlashCommandGroup('marker', default_member_permissions=Permission
 @discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
+    if 'discord.com/channels' not in link:
+        await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
+        return
+
     ids = link.split('/')[-3:]
     guild, channel, message = int(ids[0]), int(ids[1]), int(ids[2])  # unpack string into components
 
@@ -42,10 +46,6 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
 
     if year < 1 or year >= current_year:
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
-        return
-
-    if 'discord.com/channels' not in link:
-        await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
         return
 
     if channel not in guild_config.channels.lore_channels:
