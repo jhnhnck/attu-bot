@@ -66,6 +66,7 @@ class GuildChannels(BaseModel):
     year_links: int = 0
     meta_chat: int = 0
     lore_channels: list[int] = []
+    canon_channels: list[int] = []  # additional channels included in year search/link lookups
 
 
 class GuildEpoch(BaseModel):

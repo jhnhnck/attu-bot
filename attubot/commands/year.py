@@ -84,8 +84,7 @@ async def year_search(ctx: ApplicationContext, year: int):
         await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
         return
 
-    # TODO: Migrate this to a config value instead of hardcoding
-    canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+    canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, *guild_config.channels.canon_channels]
 
     # get a list of all the lore channels
     for channel_id in canon_channels:
@@ -180,8 +179,7 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
     cfg = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild=cfg.id)
 
-    # TODO: Migrate this to a config value instead of hardcoding
-    canon_channels = [*cfg.channels.lore_channels, cfg.channels.meta_chat, 1001837934590312458, 1175719558032654356]
+    canon_channels = [*cfg.channels.lore_channels, cfg.channels.meta_chat, *cfg.channels.canon_channels]
 
     if channel is None:
         channel = cast(TextChannel, ctx.guild.get_channel_or_thread(canon_channels[0]))
