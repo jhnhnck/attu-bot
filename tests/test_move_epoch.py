@@ -9,32 +9,13 @@ import pytest
 from freezegun import freeze_time
 
 from attubot.calendar import move_epoch
-from attubot.years import Year
-
-# Test helpers
-def make_year_doc(guild=1234567890, year=5, start_time=1700000000, end_time=0, duration=0, notes=''):
-    """Helper to create a YearDocument-like object"""
-    from attubot.models import YearDocument
-    return YearDocument(
-        guild=guild, year=year, start_time=start_time,
-        end_time=end_time, duration=duration, formatted='', notes=notes,
-    )
-
-
-def make_year(guild=1234567890, year=5, start_time=1700000000, end_time=0, duration=0, notes=''):
-    """Helper to create a Year instance"""
-    return Year(
-        guild=guild, year=year, start_time=start_time,
-        end_time=end_time, duration=duration, formatted='', notes=notes,
-    )
-
 
 class TestMoveEpochYearUpdates:
     """Test that move_epoch updates Year records with notes"""
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
-    async def test_epoch_extend_adds_note(self):
+    async def test_epoch_extend_adds_note(self, make_year):
         """When epoch is extended, Year record should be updated with note"""
         guild_id = 1234567890
         current_year = 5
@@ -43,6 +24,7 @@ class TestMoveEpochYearUpdates:
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
         with patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get, \
+             patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update, \
              patch('attubot.calendar.get_year_status') as mock_status, \
              patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span, \
              patch('attubot.calendar.config') as mock_config:
@@ -63,31 +45,30 @@ class TestMoveEpochYearUpdates:
             mock_config.primary.return_value = mock_guild_config
             mock_config.primary_guild = guild_id
 
-            # Mock the update method using patch.object
-            with patch.object(existing_year, 'update', new_callable=AsyncMock) as mock_update:
-                # Call move_epoch with a longer length (extend scenario)
-                await move_epoch(400)
+            # Call move_epoch with a longer length (extend scenario)
+            await move_epoch(400)
 
-                # Verify Year.get was called
-                mock_get.assert_called_once_with(guild_id, current_year)
+            # Verify Year.get was called
+            mock_get.assert_called_once_with(guild_id, current_year)
 
-                # Verify update was called with a note
-                mock_update.assert_called_once()
-                call_kwargs = mock_update.call_args[1]
-                assert 'notes' in call_kwargs
-                assert 'Epoch extended' in call_kwargs['notes']
-                assert 'Year 5' in call_kwargs['notes']
+            # Verify update was called with a note
+            mock_update.assert_called_once()
+            call_kwargs = mock_update.call_args[1]
+            assert 'notes' in call_kwargs
+            assert 'Epoch extended' in call_kwargs['notes']
+            assert 'Year 5' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
-    async def test_epoch_shorten_adds_note(self):
+    async def test_epoch_shorten_adds_note(self, make_year):
         """When epoch is shortened, Year record should be updated with note"""
         guild_id = 1234567890
         current_year = 5
 
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
-        with patch('attubot.calendar.Year.get', new_callable=AsyncMock) as mock_get, \
+        with patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get, \
+             patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update, \
              patch('attubot.calendar.get_year_status') as mock_status, \
              patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span, \
              patch('attubot.calendar.config') as mock_config:
@@ -107,19 +88,18 @@ class TestMoveEpochYearUpdates:
             mock_config.primary.return_value = mock_guild_config
             mock_config.primary_guild = guild_id
 
-            with patch.object(existing_year, 'update', new_callable=AsyncMock) as mock_update:
-                # Call move_epoch with a shorter length (shorten scenario - new length < elapsed)
-                await move_epoch(100)
+            # Call move_epoch with a shorter length (shorten scenario - new length < elapsed)
+            await move_epoch(100)
 
-                # Verify update was called with a note
-                mock_update.assert_called_once()
-                call_kwargs = mock_update.call_args[1]
-                assert 'notes' in call_kwargs
-                assert 'Epoch shortened' in call_kwargs['notes']
+            # Verify update was called with a note
+            mock_update.assert_called_once()
+            call_kwargs = mock_update.call_args[1]
+            assert 'notes' in call_kwargs
+            assert 'Epoch shortened' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
-    async def test_epoch_resume_adds_note(self):
+    async def test_epoch_resume_adds_note(self, make_year):
         """When epoch is resumed from pause, Year record should be updated with note"""
         guild_id = 1234567890
         current_year = 5
@@ -127,6 +107,7 @@ class TestMoveEpochYearUpdates:
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
         with patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get, \
+             patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update, \
              patch('attubot.calendar.get_year_status') as mock_status, \
              patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span, \
              patch('attubot.calendar.config') as mock_config:
@@ -146,19 +127,18 @@ class TestMoveEpochYearUpdates:
             mock_config.primary.return_value = mock_guild_config
             mock_config.primary_guild = guild_id
 
-            with patch.object(existing_year, 'update', new_callable=AsyncMock) as mock_update:
-                # Call move_epoch to resume
-                await move_epoch(365)
+            # Call move_epoch to resume
+            await move_epoch(365)
 
-                # Verify update was called with a note
-                mock_update.assert_called_once()
-                call_kwargs = mock_update.call_args[1]
-                assert 'notes' in call_kwargs
-                assert 'Epoch resumed' in call_kwargs['notes']
+            # Verify update was called with a note
+            mock_update.assert_called_once()
+            call_kwargs = mock_update.call_args[1]
+            assert 'notes' in call_kwargs
+            assert 'Epoch resumed' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
-    async def test_multiple_epoch_changes_append_notes(self):
+    async def test_multiple_epoch_changes_append_notes(self, make_year):
         """Multiple epoch changes should append notes, not replace them"""
         guild_id = 1234567890
         current_year = 5
@@ -170,6 +150,7 @@ class TestMoveEpochYearUpdates:
         )
 
         with patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get, \
+             patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update, \
              patch('attubot.calendar.get_year_status') as mock_status, \
              patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span, \
              patch('attubot.calendar.config') as mock_config:
@@ -189,18 +170,17 @@ class TestMoveEpochYearUpdates:
             mock_config.primary.return_value = mock_guild_config
             mock_config.primary_guild = guild_id
 
-            with patch.object(existing_year, 'update', new_callable=AsyncMock) as mock_update:
-                # Call move_epoch
-                await move_epoch(400)
+            # Call move_epoch
+            await move_epoch(400)
 
-                # Verify the note was appended, not replaced
-                mock_update.assert_called_once()
-                call_kwargs = mock_update.call_args[1]
-                assert 'notes' in call_kwargs
-                notes = call_kwargs['notes']
-                assert 'Previous change note' in notes
-                assert 'Epoch extended' in notes
-                assert '\n' in notes  # Notes should be on separate lines
+            # Verify the note was appended, not replaced
+            mock_update.assert_called_once()
+            call_kwargs = mock_update.call_args[1]
+            assert 'notes' in call_kwargs
+            notes = call_kwargs['notes']
+            assert 'Previous change note' in notes
+            assert 'Epoch extended' in notes
+            assert '\n' in notes  # Notes should be on separate lines
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
