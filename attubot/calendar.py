@@ -123,9 +123,17 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
 
 # TODO: Shouldn't this be on the guild object
 async def move_epoch(length: int, guild: int | None = None):
-    elapsed_days, current_year = get_year_status()
-    year_span = await get_year_span(current_year)
+    from attubot.years import Year
+
+    elapsed_days, current_year = get_year_status(guild)
+    year_span = await get_year_span(current_year, guild)
     cfg = config.primary() if guild is None else config.guild(guild)
+    guild_id = config.primary_guild if guild is None else guild
+
+    old_epoch_year = cfg.epoch.year
+    old_epoch_time = cfg.epoch.time
+    old_year_length = cfg.epoch.length
+    note = ''
 
     # handle picking new year time if paused
     if cfg.epoch.paused:
@@ -136,15 +144,28 @@ async def move_epoch(length: int, guild: int | None = None):
         if date.today().weekday() == 4 and datetime.now().astimezone() >= friday_rollover:
             friday += timedelta(days=7)
 
-        await cfg.set_epoch(datetime.combine(friday, cfg.epoch.get_rollover_time()), current_year + 1)
+        new_epoch_time = datetime.combine(friday, cfg.epoch.get_rollover_time()).timestamp()
+        await cfg.set_epoch(new_epoch_time, current_year + 1)
+        note = f'Epoch resumed from pause: Year {current_year + 1} will start on <t:{int(new_epoch_time)}:F>, length {old_year_length}→{length} days'
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % cfg.epoch.length):
-        await cfg.set_epoch(datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.get_rollover_time()).timestamp(), current_year)
+        new_epoch_time = datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.get_rollover_time()).timestamp()
+        await cfg.set_epoch(new_epoch_time, current_year)
+        note = f'Epoch extended: Year {current_year} extended from {old_year_length} to {length} days (elapsed: {elapsed_days % old_year_length})'
 
     # wait for current year to complete first
     else:
         await cfg.set_epoch(year_span.end_time, current_year + 1)
+        note = f'Epoch shortened: Year {current_year} will complete at {old_year_length} days, Year {current_year + 1} will be {length} days'
 
     await cfg.set_year_length(length)
     logger.info(f'[{cfg!s}] New Epoch Set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f> with year length of {cfg.epoch.length}')
+
+    # Update the current Year record with epoch change note
+    current_year_record = await Year.get(guild_id, current_year)
+    if current_year_record:
+        existing_notes = current_year_record.notes
+        updated_notes = f'{existing_notes}\n{note}' if existing_notes else note
+        await current_year_record.update(notes=updated_notes.strip())
+        logger.info(f'[{cfg!s}] Updated Year {current_year} record: {note}')
