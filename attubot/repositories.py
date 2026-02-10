@@ -198,11 +198,11 @@ class YearRepository:
         await self.db[self.COLLECTION].create_index('guild')
 
     async def create(self, guild: int, year: int, start_time: int,
-                     end_time: int = 0, duration: int = 0, formatted: str = ''):
+                     end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
         """Create new year record"""
         doc = YearDocument(
             guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration, formatted=formatted,
+            end_time=end_time, duration=duration, formatted=formatted, notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].insert_one(doc)
 
@@ -221,11 +221,11 @@ class YearRepository:
         )
 
     async def upsert(self, guild: int, year: int, start_time: int,
-                     end_time: int = 0, duration: int = 0, formatted: str = ''):
+                     end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
         """Insert or update year record (upsert)"""
         doc = YearDocument(
             guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration, formatted=formatted,
+            end_time=end_time, duration=duration, formatted=formatted, notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].update_one(
             {'guild': guild, 'year': year},
