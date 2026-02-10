@@ -22,6 +22,7 @@ from attubot.logo import generate_png
 from attubot.markers import YearMarker
 from attubot.util import create_task, webhook_logging
 from attubot.wiki import AttuWiki
+from attubot.years import Year
 
 logger = get_logger(__name__)
 
@@ -97,6 +98,17 @@ class NovaYearEvent(commands.Cog):
     async def advance_year(self, cfg: GuildConfig, year: int):
         logger.info(f'[{cfg!s}] Happy New Year! Advancing to Year {year} PC')
         guild = bot.get_guild(cfg.id)
+
+        # --- Year Record Lifecycle ---
+
+        now = int(datetime.now().astimezone().timestamp())
+
+        # Finalize the previous year (set end_time, compute duration)
+        if year > 1:
+            await Year.finalize(cfg.id, year - 1, end_time=now)
+
+        # Create the new year record
+        await Year.create_from_rollover(cfg.id, year, start_time=now)
 
         # --- Lore Channel Year Markers ---
 

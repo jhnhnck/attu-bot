@@ -51,7 +51,7 @@ def get_year_status(guild: int | None = None) -> tuple[int, int]:
     elapsed_days = int(time_diff_sec / SECONDS_PER_DAY)
     year = epoch.year + (elapsed_days // epoch.length)
 
-    if (elapsed_days % epoch.length) == 0 and datetime.now().time() < epoch.get_rollover_time():
+    if (elapsed_days % epoch.length) == 0 and datetime.now().astimezone() < today:
         year -= 1
 
     return elapsed_days, year
@@ -66,7 +66,7 @@ def get_next_year(guild: int | None = None) -> datetime:
     elapsed_days, _ = get_year_status(guild)
     new_date = datetime.combine(date.today(), epoch.get_rollover_time()) + timedelta((epoch.length - elapsed_days) % epoch.length)
 
-    if (elapsed_days % epoch.length) == 0 and datetime.now().time() >= epoch.get_rollover_time():
+    if (elapsed_days % epoch.length) == 0 and datetime.now().astimezone() >= new_date:
         new_date += timedelta(days=epoch.length)
 
     return new_date
@@ -74,26 +74,37 @@ def get_next_year(guild: int | None = None) -> datetime:
 
 async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     from attubot.markers import YearMarker
+    from attubot.years import Year
 
+    guild_id = config.primary_guild if guild is None else guild
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
     result = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
-    _, current_year = get_year_status()
-    next_year = get_next_year()
+    _, current_year = get_year_status(guild)
+    next_year = get_next_year(guild)
 
     # Invalid Years
     if year <= 0 or year > 10000:
         logger.error(f'get_year() requested with invalid year: {year}')
         year = 10000 if year > 0 else 1
 
-    # Past Years
+    # Past Years — DB-first fast path via Year records
     elif year < current_year:
-        result.start_time = await YearMarker.timestamp(year) or 0
-        result.end_time = await YearMarker.timestamp(year + 1) or 0
+        year_record = await Year.get(guild_id, year)
+        if year_record and year_record.end_time > 0:
+            return year_record.to_span()
 
-    # Current Year
+        # Fallback to marker-based computation
+        result.start_time = await YearMarker.timestamp(year, guild_id) or 0
+        result.end_time = await YearMarker.timestamp(year + 1, guild_id) or 0
+
+    # Current Year — Year record for start_time, epoch math for projected end
     elif year == current_year:
-        result.start_time = await YearMarker.timestamp(year) or 0
+        year_record = await Year.get(guild_id, year)
+        if year_record and year_record.start_time > 0:
+            result.start_time = year_record.start_time
+        else:
+            result.start_time = await YearMarker.timestamp(year, guild_id) or 0
         result.end_time = int(next_year.timestamp())
 
     # Next Year
@@ -119,9 +130,10 @@ async def move_epoch(length: int, guild: int | None = None):
     # handle picking new year time if paused
     if cfg.epoch.paused:
         friday = date.today() + timedelta(days=(11 - date.today().weekday()) % 7)
+        friday_rollover = datetime.combine(friday, cfg.epoch.get_rollover_time())
 
         # check if already passed trigger time
-        if date.today().weekday() == 4 and datetime.now().time() >= cfg.epoch.get_rollover_time():
+        if date.today().weekday() == 4 and datetime.now().astimezone() >= friday_rollover:
             friday += timedelta(days=7)
 
         await cfg.set_epoch(datetime.combine(friday, cfg.epoch.get_rollover_time()), current_year + 1)
