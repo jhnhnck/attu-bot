@@ -40,6 +40,7 @@ class Year(BaseModel):
     end_time: int = 0
     duration: int = 0
     formatted: str = ''
+    notes: str = ''
 
     async def save(self):
         """Save this year to MongoDB"""
