@@ -1,0 +1,77 @@
+"""
+AttuBot - Ping/Pong Command Tests
+Author(s): @jhnhnck <john@jhnhnck.com>
+
+This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+
+Integration tests for the /ping and /pong commands from core.py
+"""
+
+import os
+import time as _time
+
+os.environ['TZ'] = 'UTC'
+_time.tzset()
+
+from unittest.mock import patch  # noqa: E402
+
+import pytest  # noqa: E402
+
+
+# --- /ping Command Tests ---
+
+class TestPingCommand:
+    @pytest.mark.asyncio
+    async def test_ping_responds_pong(self, mock_ctx):
+        """Test that /ping responds with 'Pong!'"""
+        from attubot.core import command_ping
+
+        await command_ping(mock_ctx)
+
+        mock_ctx.respond.assert_called_once()
+        response = mock_ctx._responses[0]['args'][0]
+        assert 'Pong!' in response
+        assert '<:rockball:1308981475114225694>' in response
+
+
+# --- /pong Command Tests ---
+
+class TestPongCommand:
+    @pytest.mark.asyncio
+    async def test_pong_owner_immediate_response(self, mock_ctx_factory):
+        """Test that /pong responds immediately with mention for bot owner"""
+        from attubot.core import command_pong
+
+        ctx = mock_ctx_factory(user_id=999, is_owner=True)
+
+        # Mock config.is_owner to return True
+        with patch('attubot.core.config.is_owner', return_value=True):
+            await command_pong(ctx)
+
+        ctx.respond.assert_called_once()
+        response = ctx._responses[0]['args'][0]
+        assert ctx.author.mention in response
+        assert '<:rockball:1308981475114225694>' in response
+
+    @pytest.mark.asyncio
+    async def test_pong_non_owner_ping_response(self, mock_ctx_factory):
+        """Test that /pong responds with 'Ping!' for non-owner and creates background task"""
+        from attubot.core import command_pong
+
+        ctx = mock_ctx_factory(user_id=888, is_owner=False)
+
+        # Mock config.is_owner to return False and create_task to prevent actual task creation
+        with patch('attubot.core.config.is_owner', return_value=False), \
+             patch('attubot.core.create_task') as mock_create_task:
+
+            await command_pong(ctx)
+
+        ctx.respond.assert_called_once()
+        response = ctx._responses[0]['args'][0]
+        assert 'Ping!' in response
+        assert '<:rockball:1308981475114225694>' in response
+
+        # Verify a background task was created
+        mock_create_task.assert_called_once()
+        call_args = mock_create_task.call_args
+        assert 'PongTask' in call_args[0][1]  # task name contains 'PongTask'

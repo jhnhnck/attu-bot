@@ -23,14 +23,6 @@ from attubot.calendar import format_year_line, get_next_year, get_year_status
 from attubot.config import GuildEpoch
 from tests.conftest import TEST_GUILD
 
-# Tests that hit a year boundary trigger a naive-vs-aware time comparison bug
-# in calendar.py:54 and :69. These are marked xfail until the timezone fix lands.
-boundary_bug = pytest.mark.xfail(
-    reason='naive vs aware time comparison in get_year_status() line 54',
-    raises=TypeError,
-    strict=True,
-)
-
 UTC = ZoneInfo('UTC')
 
 
@@ -97,7 +89,6 @@ class TestGetYearStatus:
         assert elapsed == 1
         assert year == 1
 
-    @boundary_bug
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
         """Exactly 14 days, after rollover → year 2"""
@@ -105,7 +96,6 @@ class TestGetYearStatus:
         assert elapsed == 14
         assert year == 2
 
-    @boundary_bug
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
         """Exactly 14 days, before rollover → still year 1 (boundary correction)"""
@@ -113,7 +103,6 @@ class TestGetYearStatus:
         assert elapsed == 14
         assert year == 1
 
-    @boundary_bug
     @freeze_time('2024-01-29 18:00:00')
     def test_multiple_years_elapsed(self, guild):
         """28 days = 2 full years → year 3"""
@@ -121,7 +110,6 @@ class TestGetYearStatus:
         assert elapsed == 28
         assert year == 3
 
-    @boundary_bug
     @freeze_time('2024-02-26 18:00:00')
     def test_many_years(self, guild):
         """56 days = 4 full years → year 5"""
@@ -129,7 +117,6 @@ class TestGetYearStatus:
         assert elapsed == 56
         assert year == 5
 
-    @boundary_bug
     @freeze_time('2024-01-01 12:00:00')
     def test_epoch_start_day_before_rollover(self, guild):
         """Day zero, before rollover → boundary correction, year 0"""
@@ -138,7 +125,6 @@ class TestGetYearStatus:
         # At boundary (0 % 14 == 0) and before rollover → year - 1 = 0
         assert year == 0
 
-    @boundary_bug
     @freeze_time('2024-01-01 18:00:00')
     def test_epoch_start_day_after_rollover(self, guild):
         """Day zero, after rollover → year 1"""
@@ -146,7 +132,6 @@ class TestGetYearStatus:
         assert elapsed == 0
         assert year == 1
 
-    @boundary_bug
     @freeze_time('2024-01-08 12:00:00')
     def test_different_year_length(self, make_guild):
         """7-day years: 7 days in = boundary"""
@@ -156,7 +141,6 @@ class TestGetYearStatus:
         # At boundary, before rollover → year correction
         assert year == 1
 
-    @boundary_bug
     @freeze_time('2024-01-08 18:00:00')
     def test_different_year_length_after_rollover(self, make_guild):
         """7-day years: 7 days in, after rollover = year 2"""
@@ -191,7 +175,6 @@ class TestGetNextYear:
         expected = datetime(2024, 1, 15, 17, 0, tzinfo=UTC)
         assert result == expected
 
-    @boundary_bug
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
         """At boundary after rollover → next year is one full length away"""
@@ -199,7 +182,6 @@ class TestGetNextYear:
         expected = datetime(2024, 1, 29, 17, 0, tzinfo=UTC)
         assert result == expected
 
-    @boundary_bug
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
         """At boundary before rollover → next year is today at rollover"""
