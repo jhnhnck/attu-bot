@@ -39,7 +39,10 @@ class TestYearCheckCommand:
         )
 
         # Current year is 2, so year 1 is prior
-        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 2)):
+        # Also need to patch Year.get to avoid database access
+        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), \
+             patch('attubot.commands.year.get_year_status', return_value=(7, 2)), \
+             patch('attubot.years.Year.get', new_callable=AsyncMock, return_value=None):
             await year_check(mock_ctx, year=1)
 
         mock_ctx.respond.assert_called_once()

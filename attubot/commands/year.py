@@ -19,6 +19,7 @@ from attubot.calendar import SECONDS_PER_DAY, get_year_span, get_year_status
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link
+from attubot.years import Year
 
 logger = get_logger(__name__)
 
@@ -32,15 +33,20 @@ async def year_check(ctx: ApplicationContext, year: int):
     guild_config = config.guild(ctx.guild.id)
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year = year if year is not None else (current_year + 1)
-    year_span = await get_year_span(year, guild=guild_config.id)
 
     # invalid year input
     if year <= 0:
         await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
 
-    # prior years
+    # prior years - read directly from Year records
     elif year < current_year:
-        await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
+        year_record = await Year.get(guild_config.id, year)
+        if year_record:
+            await ctx.respond(f'Year {year} PC lasted for {year_record.duration} days, starting on <t:{year_record.start_time}:d> and ending on <t:{year_record.end_time}:d>')
+        else:
+            # Fallback to computed span if no record exists
+            year_span = await get_year_span(year, guild=guild_config.id)
+            await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     # check if time is paused first
     elif guild_config.epoch.paused:
@@ -48,10 +54,12 @@ async def year_check(ctx: ApplicationContext, year: int):
 
     # current year
     elif year == current_year:
+        year_span = await get_year_span(year, guild=guild_config.id)
         await ctx.respond(f'Year {year} PC will last for {year_span.duration} days, which started on <t:{year_span.start_time}:d> and will end on <t:{year_span.end_time}:d>')
 
     # next year (original functionality)
     elif year == (current_year + 1):
+        year_span = await get_year_span(year, guild=guild_config.id)
         if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.get_rollover_time():
             await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
 
@@ -64,6 +72,7 @@ async def year_check(ctx: ApplicationContext, year: int):
 
     # check future years
     else:
+        year_span = await get_year_span(year, guild=guild_config.id)
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
 
