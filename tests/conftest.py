@@ -74,7 +74,7 @@ def guild(make_guild):
 def mock_ctx_factory():
     """Factory fixture: creates a mock ApplicationContext for command testing."""
 
-    def _make_ctx(  # noqa: PLR0913
+    def _make_ctx(
         guild_id=TEST_GUILD,
         user_id=TEST_USER,
         channel_id=TEST_CHANNEL,

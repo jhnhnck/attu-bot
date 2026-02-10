@@ -21,7 +21,6 @@ from freezegun import freeze_time  # noqa: E402
 
 from tests.conftest import TEST_GUILD  # noqa: E402
 
-
 # --- /year check Command Tests ---
 
 class TestYearCheckCommand:
@@ -36,7 +35,7 @@ class TestYearCheckCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1704067200,  # 2024-01-01
             end_time=1705276800,    # 2024-01-15
-            duration=14
+            duration=14,
         )
 
         # Current year is 2, so year 1 is prior
@@ -59,7 +58,7 @@ class TestYearCheckCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1704067200,
             end_time=1705276800,
-            duration=14
+            duration=14,
         )
 
         with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 2)):
@@ -81,7 +80,7 @@ class TestYearCheckCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1705276800,
             end_time=1706486400,
-            duration=14
+            duration=14,
         )
 
         # 13 days elapsed (not at boundary), current year 1, checking year 2
@@ -104,7 +103,7 @@ class TestYearCheckCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1705276800,
             end_time=1706486400,
-            duration=14
+            duration=14,
         )
 
         with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
@@ -142,7 +141,7 @@ class TestYearCheckCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1706486400,
             end_time=1707696000,
-            duration=14
+            duration=14,
         )
 
         with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
@@ -206,7 +205,7 @@ class TestYearSearchCommand:
         mock_span_obj = AttuYearSpan(
             start_time=1704067200,
             end_time=1705276800,
-            duration=14
+            duration=14,
         )
 
         with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 1)):

@@ -147,7 +147,7 @@ class TestPersistence:
         await y.save()
         mock_repo.upsert.assert_called_once_with(
             guild=TEST_GUILD, year=5, start_time=100,
-            end_time=200, duration=1, formatted='test',
+            end_time=200, duration=1, formatted='test', notes='',
         )
 
     @pytest.mark.asyncio

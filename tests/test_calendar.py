@@ -16,7 +16,6 @@ The test guild epoch starts at 2024-01-01 00:00:00 UTC with:
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import pytest
 from freezegun import freeze_time
 
 from attubot.calendar import format_year_line, get_next_year, get_year_status

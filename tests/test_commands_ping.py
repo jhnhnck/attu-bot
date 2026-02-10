@@ -17,7 +17,6 @@ from unittest.mock import patch  # noqa: E402
 
 import pytest  # noqa: E402
 
-
 # --- /ping Command Tests ---
 
 class TestPingCommand:

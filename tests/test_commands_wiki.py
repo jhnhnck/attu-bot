@@ -17,7 +17,6 @@ from unittest.mock import AsyncMock, patch  # noqa: E402
 
 import pytest  # noqa: E402
 
-
 # --- /wiki lookup Command Tests ---
 
 class TestWikiLookupCommand:
@@ -28,11 +27,11 @@ class TestWikiLookupCommand:
 
         mock_wiki = AsyncMock()
         mock_wiki.search = AsyncMock(return_value=[
-            {'title': 'Test Page', 'key': 'Test_Page'}
+            {'title': 'Test Page', 'key': 'Test_Page'},
         ])
         mock_wiki.site_info = AsyncMock(return_value={
             'server': 'https://wiki.example.com',
-            'articlepath': '/wiki/$1'
+            'articlepath': '/wiki/$1',
         })
 
         with patch('attubot.commands.wiki.AttuWiki', return_value=mock_wiki):
@@ -53,11 +52,11 @@ class TestWikiLookupCommand:
         mock_wiki.search = AsyncMock(return_value=[
             {'title': 'First Page', 'key': 'First_Page'},
             {'title': 'Second Page', 'key': 'Second_Page'},
-            {'title': 'Third Page', 'key': 'Third_Page'}
+            {'title': 'Third Page', 'key': 'Third_Page'},
         ])
         mock_wiki.site_info = AsyncMock(return_value={
             'server': 'https://wiki.example.com',
-            'articlepath': '/wiki/$1'
+            'articlepath': '/wiki/$1',
         })
 
         with patch('attubot.commands.wiki.AttuWiki', return_value=mock_wiki):
@@ -81,7 +80,7 @@ class TestWikiLookupCommand:
         mock_wiki.search = AsyncMock(return_value=[])
         mock_wiki.site_info = AsyncMock(return_value={
             'server': 'https://wiki.example.com',
-            'articlepath': '/wiki/$1'
+            'articlepath': '/wiki/$1',
         })
 
         with patch('attubot.commands.wiki.AttuWiki', return_value=mock_wiki):
@@ -100,11 +99,11 @@ class TestWikiLookupCommand:
         mock_wiki = AsyncMock()
         mock_wiki.search = AsyncMock(return_value=[
             {'title': 'Page 1', 'key': 'Page_1'},
-            {'title': 'Page 2', 'key': 'Page_2'}
+            {'title': 'Page 2', 'key': 'Page_2'},
         ])
         mock_wiki.site_info = AsyncMock(return_value={
             'server': 'https://wiki.example.com',
-            'articlepath': '/wiki/$1'
+            'articlepath': '/wiki/$1',
         })
 
         with patch('attubot.commands.wiki.AttuWiki', return_value=mock_wiki):
@@ -126,11 +125,11 @@ class TestWikiLookupCommand:
 
         mock_wiki = AsyncMock()
         mock_wiki.search = AsyncMock(return_value=[
-            {'title': 'Test: Special & Characters', 'key': 'Test:_Special_%26_Characters'}
+            {'title': 'Test: Special & Characters', 'key': 'Test:_Special_%26_Characters'},
         ])
         mock_wiki.site_info = AsyncMock(return_value={
             'server': 'https://wiki.example.com',
-            'articlepath': '/wiki/$1'
+            'articlepath': '/wiki/$1',
         })
 
         with patch('attubot.commands.wiki.AttuWiki', return_value=mock_wiki):
