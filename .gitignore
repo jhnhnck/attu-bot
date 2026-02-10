@@ -87,3 +87,5 @@ assets/
 # Undocumented extensions
 attubot/ext/
 vendor/
+
+.claude/

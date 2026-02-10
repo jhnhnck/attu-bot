@@ -185,6 +185,7 @@ def start_bot_loop():
 
     logger.info('Loading Extensions')
     bot.load_extension('attubot.markers')  # db init step
+    bot.load_extension('attubot.years')    # year record init (requires db)
     bot.load_extension('attubot.tasks')
     # TODO: re-implement as a web interface
     # bot.load_extension('attubot.commands.config')
