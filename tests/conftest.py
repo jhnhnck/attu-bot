@@ -14,7 +14,7 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import AsyncMock, MagicMock  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
 
 import pytest  # noqa: E402
 
@@ -152,3 +152,144 @@ def mock_ctx_factory():
 def mock_ctx(mock_ctx_factory):
     """Default mock ApplicationContext."""
     return mock_ctx_factory()
+
+
+# --- Database and Repository Mocking Fixtures ---
+
+@pytest.fixture
+def mock_db():
+    """Mock database instance for testing.
+
+    Use this when you need to mock the database connection itself.
+    Provides clean context management without nested `with` statements.
+
+    Example:
+        def test_something(mock_db):
+            with patch('attubot.db.get_db', return_value=mock_db):
+                # Your test code
+                pass
+    """
+    return MagicMock()
+
+
+@pytest.fixture
+def mock_db_and_repos():
+    """Mock database and reset repository instances.
+
+    This fixture mocks the database and resets module-level repository instances,
+    using a flat context manager pattern instead of nested `with` statements.
+
+    Example:
+        def test_something(mock_db_and_repos):
+            # Database is mocked and repos are reset
+            pass
+    """
+    mock_database = MagicMock()
+
+    with patch('attubot.db.get_db', return_value=mock_database), \
+         patch('attubot.years._year_repo', None), \
+         patch('attubot.markers._marker_repo', None):
+        yield mock_database
+
+
+@pytest.fixture
+def mock_year_repo():
+    """Mock year repository for isolated testing.
+
+    This fixture mocks the _get_repo() function in years.py, which is the
+    preferred approach as it mocks the interface rather than internal state.
+
+    Example:
+        @pytest.mark.asyncio
+        async def test_year_get(mock_year_repo):
+            mock_year_repo.get = AsyncMock(return_value=some_doc)
+            result = await Year.get(TEST_GUILD, 1)
+            assert result is not None
+    """
+    repo = AsyncMock()
+    with patch('attubot.years._get_repo', return_value=repo):
+        yield repo
+
+
+@pytest.fixture
+def mock_marker_repo():
+    """Mock marker repository for isolated testing.
+
+    This fixture mocks the _get_repo() function in markers.py.
+
+    Example:
+        @pytest.mark.asyncio
+        async def test_marker_get(mock_marker_repo):
+            mock_marker_repo.get = AsyncMock(return_value=some_doc)
+            result = await YearMarker.get(channel_id, 1)
+            assert result is not None
+    """
+    repo = AsyncMock()
+    with patch('attubot.markers._get_repo', return_value=repo):
+        yield repo
+
+
+@pytest.fixture
+def mock_all_repos():
+    """Mock both year and marker repositories for integrated testing.
+
+    Returns a dict with 'year' and 'marker' keys containing the mocked repos.
+    This avoids nested context managers when testing code that uses both repos.
+
+    Example:
+        @pytest.mark.asyncio
+        async def test_rollover(mock_all_repos):
+            mock_all_repos['year'].get_latest = AsyncMock(return_value=year_doc)
+            mock_all_repos['marker'].get = AsyncMock(return_value=marker_doc)
+            # Test code using both repos
+    """
+    year_repo = AsyncMock()
+    marker_repo = AsyncMock()
+
+    with patch('attubot.years._get_repo', return_value=year_repo), \
+         patch('attubot.markers._get_repo', return_value=marker_repo):
+        yield {'year': year_repo, 'marker': marker_repo}
+
+
+# --- Year Model Fixtures ---
+
+@pytest.fixture
+def make_year_doc():
+    """Factory fixture: creates a YearDocument for testing.
+
+    Example:
+        def test_something(make_year_doc):
+            doc = make_year_doc(year=5, start_time=1700000000)
+            assert doc.year == 5
+    """
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200,
+              end_time=1705276800, duration=14,
+              formatted='# === Year 1 PC ===', notes=''):
+        from attubot.models import YearDocument
+        return YearDocument(
+            guild=guild, year=year, start_time=start_time,
+            end_time=end_time, duration=duration,
+            formatted=formatted, notes=notes,
+        )
+    return _make
+
+
+@pytest.fixture
+def make_year():
+    """Factory fixture: creates a Year instance for testing.
+
+    Example:
+        def test_something(make_year):
+            year = make_year(year=5, start_time=1700000000)
+            assert year.year == 5
+    """
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200,
+              end_time=1705276800, duration=14,
+              formatted='# === Year 1 PC ===', notes=''):
+        from attubot.years import Year
+        return Year(
+            guild=guild, year=year, start_time=start_time,
+            end_time=end_time, duration=duration,
+            formatted=formatted, notes=notes,
+        )
+    return _make

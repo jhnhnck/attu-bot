@@ -28,6 +28,7 @@ select = [
 ignore = [
   "E501",     # line-length violations
   "PLC0415",  # imports at top of file
+  "PLR0913",  # too many arguments
   "PLE1205",  # logging builtin
   "PLR2004",  # magic values
   "RUF012",   # ClassVar decorators
@@ -65,7 +66,6 @@ exclude = ["*.wip.py", "wip/"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
   "S101",     # assert is expected in tests
-  "PLR0913",  # too many arguments
 ]
 
 [tool.pytest.ini_options]
