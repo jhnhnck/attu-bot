@@ -84,8 +84,5 @@ wip/
 backups
 assets/
 
-# Undocumented extensions
-attubot/ext/
-vendor/
-
 .claude/
+notes/
