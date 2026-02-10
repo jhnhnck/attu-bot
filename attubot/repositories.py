@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
-from attubot.models import GuildConfigDocument, SystemConfigDocument, ThemeDocument, YearMarkerDocument
+from attubot.models import GuildConfigDocument, SystemConfigDocument, ThemeDocument, YearDocument, YearMarkerDocument
 
 if TYPE_CHECKING:
     from attubot.config import BotTheme, GuildConfig
@@ -181,3 +181,87 @@ class YearMarkerRepository:
         cursor = self.db[self.COLLECTION].find({'channel': guild})
         docs = await cursor.to_list(length=None)
         return [YearMarkerDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
+
+class YearRepository:
+    """Repository for year documents"""
+    COLLECTION = 'years'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self):
+        await self.db[self.COLLECTION].create_index(
+            [('guild', ASCENDING), ('year', ASCENDING)],
+            unique=True,
+        )
+        await self.db[self.COLLECTION].create_index('guild')
+
+    async def create(self, guild: int, year: int, start_time: int,
+                     end_time: int = 0, duration: int = 0, formatted: str = ''):
+        """Create new year record"""
+        doc = YearDocument(
+            guild=guild, year=year, start_time=start_time,
+            end_time=end_time, duration=duration, formatted=formatted,
+        ).model_dump()
+        await self.db[self.COLLECTION].insert_one(doc)
+
+    async def get(self, guild: int, year: int) -> YearDocument | None:
+        doc = await self.db[self.COLLECTION].find_one({'guild': guild, 'year': year})
+        if doc:
+            doc.pop('_id', None)
+            return YearDocument(**doc)
+        return None
+
+    async def update(self, guild: int, year: int, **kwargs):
+        """Update year fields"""
+        await self.db[self.COLLECTION].update_one(
+            {'guild': guild, 'year': year},
+            {'$set': kwargs},
+        )
+
+    async def upsert(self, guild: int, year: int, start_time: int,
+                     end_time: int = 0, duration: int = 0, formatted: str = ''):
+        """Insert or update year record (upsert)"""
+        doc = YearDocument(
+            guild=guild, year=year, start_time=start_time,
+            end_time=end_time, duration=duration, formatted=formatted,
+        ).model_dump()
+        await self.db[self.COLLECTION].update_one(
+            {'guild': guild, 'year': year},
+            {'$set': doc},
+            upsert=True,
+        )
+
+    async def delete(self, guild: int, year: int):
+        await self.db[self.COLLECTION].delete_one({'guild': guild, 'year': year})
+
+    async def total(self, guild: int) -> int:
+        return await self.db[self.COLLECTION].count_documents({'guild': guild})
+
+    async def get_or_create(self, guild: int, year: int, start_time: int):
+        """Get existing year or create new"""
+        existing = await self.get(guild, year)
+        if existing:
+            return existing, False
+        await self.create(guild, year, start_time)
+        return await self.get(guild, year), True
+
+    async def exists(self, guild: int, year: int) -> bool:
+        count = await self.db[self.COLLECTION].count_documents({'guild': guild, 'year': year})
+        return count > 0
+
+    async def all_for_guild(self, guild: int) -> list[YearDocument]:
+        """Get all years for a guild, sorted by year ascending"""
+        cursor = self.db[self.COLLECTION].find({'guild': guild}).sort('year', ASCENDING)
+        docs = await cursor.to_list(length=None)
+        return [YearDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
+    async def get_latest(self, guild: int) -> YearDocument | None:
+        """Get the highest-numbered year for a guild"""
+        cursor = self.db[self.COLLECTION].find({'guild': guild}).sort('year', -1).limit(1)
+        docs = await cursor.to_list(length=1)
+        if docs:
+            docs[0].pop('_id', None)
+            return YearDocument(**docs[0])
+        return None

@@ -55,3 +55,15 @@ class YearMarkerDocument(BaseModel):
     year: int
     exact: bool = False
     wiki_page: bool = False
+
+
+class YearDocument(BaseModel):
+    """MongoDB document for year records"""
+    model_config = ConfigDict(extra='ignore')
+
+    guild: int
+    year: int
+    start_time: int
+    end_time: int = 0
+    duration: int = 0
+    formatted: str = ''
