@@ -1,5 +1,5 @@
 [tool.ruff]
-exclude = [".venv/", "*.wip.py", "wip/"]
+exclude = ["*.wip.py", "wip/"]
 target-version = "py313"
 line-length = 320
 
@@ -60,10 +60,13 @@ reportOptionalSubscript = false
 reportInvalidCast = false
 reportFunctionMemberAccess = false
 reportAttributeAccessIssue = false
-exclude = [".venv/", "*.wip.py", "wip/", "vendor/"]
+exclude = ["*.wip.py", "wip/"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # assert is expected in tests
+"tests/**" = [
+  "S101",     # assert is expected in tests
+  "PLR0913",  # too many arguments
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

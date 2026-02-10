@@ -33,7 +33,7 @@ def migration(old: str, new: str) -> Callable:
             database = db.get_db()
             await database.config.update_one(
                 {'config_type': 'system'},
-                {'$set': {'version': new}}
+                {'$set': {'version': new}},
             )
 
         migration_table.append(wrapper)
