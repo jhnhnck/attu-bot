@@ -13,8 +13,8 @@ from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 from attubot import config
 from attubot.calendar import get_year_status, move_epoch
 from attubot.logging import get_logger
-from attubot.markers import YearMarker
 from attubot.tasks import NovaYearEvent
+from attubot.years import Year
 
 logger = get_logger(__name__)
 
@@ -24,7 +24,8 @@ time_group = SlashCommandGroup('time', default_member_permissions=Permissions.al
 
 @time_group.command(name='advance', description='Manually advance to the next year, ignoring all checks')
 async def time_advance(ctx: ApplicationContext):
-    forced_year = (await YearMarker.total()) + 1
+    latest_year = await Year.get_latest(ctx.guild.id)
+    forced_year = (latest_year.year if latest_year else 0) + 1
     _, year = get_year_status(ctx.guild.id)
     cog: NovaYearEvent = cast(NovaYearEvent, ctx.bot.get_cog('NovaYearEvent'))
     cfg = config.guild(ctx.guild.id)
