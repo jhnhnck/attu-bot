@@ -160,7 +160,7 @@ class TestYearCheckCommand:
         """Test /year check when time is paused"""
         from attubot.commands.year import year_check
 
-        cfg = make_guild(paused=True)
+        make_guild(paused=True)
 
         await year_check(mock_ctx, year=2)
 

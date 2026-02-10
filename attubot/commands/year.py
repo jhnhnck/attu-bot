@@ -188,7 +188,7 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
         await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
 
     # Skip if its a not a text channel (so we can be unspecific about canon_channels)
-    elif channel.type != ChannelType.text:
+    elif channel.type not in (ChannelType.text, ChannelType.news):
         await ctx.respond(f'Failed: Command does not work on whatever {channel.mention} is', ephemeral=True)
 
     # validate as lore channel
