@@ -73,13 +73,17 @@ class JobWorker:
 
 async def job_construct_year_links(guild_id: int):
     from attubot import bot, config
-    from attubot.calendar import format_year_line, get_year_span, get_year_status
+    from attubot.calendar import format_year_line, get_year_span
     from attubot.commands.year import find_marker_link
+    from attubot.years import Year
 
     cfg = config.guild(guild_id)
     guild = bot.get_guild(cfg.id)
     lore_channels: list[TextChannel] = []
-    _, current_year = get_year_status(guild=cfg.id)
+
+    # Get all years from DB instead of computing current year
+    all_years = await Year.all_for_guild(guild_id)
+    current_year = all_years[-1].year if all_years else 1
 
     # collecting these so were not constantly querying them later
     for channel_id in cfg.channels.lore_channels:
