@@ -48,6 +48,7 @@ class Year(BaseModel):
             guild=self.guild, year=self.year,
             start_time=self.start_time, end_time=self.end_time,
             duration=self.duration, formatted=self.formatted,
+            notes=self.notes,
         )
 
     async def update(self, **kwargs):
@@ -93,6 +94,7 @@ class Year(BaseModel):
                 guild=doc.guild, year=doc.year,
                 start_time=doc.start_time, end_time=doc.end_time,
                 duration=doc.duration, formatted=doc.formatted,
+                notes=doc.notes,
             )
         return None
 
@@ -117,6 +119,7 @@ class Year(BaseModel):
                 guild=doc.guild, year=doc.year,
                 start_time=doc.start_time, end_time=doc.end_time,
                 duration=doc.duration, formatted=doc.formatted,
+                notes=doc.notes,
             )
             for doc in docs
         ]
@@ -130,6 +133,7 @@ class Year(BaseModel):
                 guild=doc.guild, year=doc.year,
                 start_time=doc.start_time, end_time=doc.end_time,
                 duration=doc.duration, formatted=doc.formatted,
+                notes=doc.notes,
             )
         return None
 
