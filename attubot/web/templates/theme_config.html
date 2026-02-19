@@ -1,0 +1,128 @@
+{% extends "base.html" %} {% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="display-6">
+            <i data-feather="droplet" class="me-2"></i>
+            Theme Configuration
+          </h1>
+          <p class="text-muted">Customize bot appearance and colors</p>
+        </div>
+        <a href="/" class="btn btn-outline-secondary">
+          <i data-feather="arrow-left" class="me-1"></i>
+          Back
+        </a>
+      </div>
+
+      <!-- Theme Form -->
+      <form id="theme-config-form">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label" for="bot_color">Bot Color</label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  class="form-control form-control-color"
+                  id="bot_color_picker"
+                  type="color"
+                  value="#ff0000"
+                />
+                <input
+                  class="form-control"
+                  id="bot_color"
+                  name="bot_color"
+                  type="text"
+                  value="#ff0000"
+                  placeholder="#ff0000"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  style="max-width: 120px"
+                />
+              </div>
+              <small class="text-muted"
+                >Primary color for bot-related elements</small
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="guild_color">Guild Color</label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  class="form-control form-control-color"
+                  id="guild_color_picker"
+                  type="color"
+                  value="#ffffff"
+                />
+                <input
+                  class="form-control"
+                  id="guild_color"
+                  name="guild_color"
+                  type="text"
+                  value="#ffffff"
+                  placeholder="#ffffff"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  style="max-width: 120px"
+                />
+              </div>
+              <small class="text-muted"
+                >Primary color for guild-related elements</small
+              >
+            </div>
+
+            <hr />
+
+            <div class="mb-3">
+              <label class="form-label" for="rotation">Rotation</label>
+              <input
+                class="form-control"
+                id="rotation"
+                name="rotation"
+                type="number"
+                step="0.1"
+                value="0.0"
+                style="max-width: 150px"
+              />
+              <small class="text-muted">Theme rotation value</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="max_rate">Max Rate</label>
+              <input
+                class="form-control"
+                id="max_rate"
+                name="max_rate"
+                type="number"
+                step="0.1"
+                value="0.5"
+                min="0"
+                max="1"
+                style="max-width: 150px"
+              />
+              <small class="text-muted">Maximum rate value (0.0 - 1.0)</small>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <div class="d-flex justify-content-between">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                id="reset-theme-btn"
+              >
+                <i data-feather="rotate-ccw" class="me-1"></i>
+                Reset to Saved Values
+              </button>
+              <button class="btn btn-primary" type="button" id="save-theme-btn">
+                <i data-feather="save" class="me-1"></i>
+                Save Theme
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

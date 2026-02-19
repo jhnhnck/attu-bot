@@ -1,0 +1,137 @@
+{% extends "base.html" %} {% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="display-6">
+            <i data-feather="sliders" class="me-2"></i>
+            System Configuration
+          </h1>
+          <p class="text-muted">System-wide settings and error logging</p>
+        </div>
+        <a href="/" class="btn btn-outline-secondary">
+          <i data-feather="arrow-left" class="me-1"></i>
+          Back
+        </a>
+      </div>
+
+      <!-- Warning Alert -->
+      <div class="alert alert-warning" role="alert">
+        <i data-feather="alert-triangle" class="me-2"></i>
+        <strong>Caution:</strong> These settings affect the entire bot system.
+        Changes should be made carefully.
+      </div>
+
+      <!-- System Form -->
+      <form id="system-config-form">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Schema Version</label>
+              <input
+                class="form-control"
+                id="schema-version"
+                type="text"
+                value="loading..."
+                disabled
+                style="max-width: 150px"
+              />
+              <small class="text-muted"
+                >Current configuration schema version (read-only)</small
+              >
+            </div>
+
+            <hr />
+
+            <div class="mb-3">
+              <label class="form-label" for="primary_guild"
+                >Primary Guild ID</label
+              >
+              <input
+                class="form-control"
+                id="primary_guild"
+                name="primary_guild"
+                type="number"
+                placeholder="0"
+                style="max-width: 250px"
+              />
+              <small class="text-muted">Main guild for system operations</small>
+            </div>
+
+            <hr />
+
+            <h5>Error Logging</h5>
+
+            <div class="mb-3">
+              <label class="form-label" for="error_log_guild"
+                >Error Log Guild</label
+              >
+              <input
+                class="form-control"
+                id="error_log_guild"
+                name="error_log_guild"
+                type="number"
+                placeholder="0"
+                style="max-width: 250px"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="error_log_channel"
+                >Error Log Channel</label
+              >
+              <input
+                class="form-control"
+                id="error_log_channel"
+                name="error_log_channel"
+                type="number"
+                placeholder="0"
+                style="max-width: 250px"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="error_hook"
+                >Error Webhook URL</label
+              >
+              <input
+                class="form-control"
+                id="error_hook"
+                name="error_hook"
+                type="url"
+                placeholder="https://discord.com/api/webhooks/..."
+              />
+              <small class="text-muted"
+                >Discord webhook for error notifications</small
+              >
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <div class="d-flex justify-content-between">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                id="reset-system-btn"
+              >
+                <i data-feather="rotate-ccw" class="me-1"></i>
+                Reset
+              </button>
+              <button
+                class="btn btn-primary"
+                type="button"
+                id="save-system-btn"
+              >
+                <i data-feather="save" class="me-1"></i>
+                Save System Config
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
