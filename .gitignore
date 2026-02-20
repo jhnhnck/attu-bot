@@ -68,6 +68,10 @@ dmypy.json
 # ruff
 .ruff_cache/
 
+# Node.js
+node_modules/
+package-lock.json
+
 # Config files
 attu-bot.json
 attu-bot.toml
@@ -80,9 +84,18 @@ wip/
 *.db
 *.sql
 
-.vscode/
+# VS Code
+.vscode/*
+
 backups
-assets/
+assets/*
+!assets/templates/
+!assets/templates/**
+!assets/static/
+!assets/static/**
 
 .claude/
+/devcontainer/
 notes/
+
+.devcontainer/

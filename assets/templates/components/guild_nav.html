@@ -1,0 +1,31 @@
+<!-- Guild Navigation Bar -->
+<nav class="nav nav-pills nav-fill mb-4 border rounded p-1" id="guild-nav">
+  <a
+    class="nav-link {% if request.path == '/guild/' ~ guild_id %}active{% endif %}"
+    href="/guild/{{ guild_id }}"
+  >
+    <i data-feather="settings" class="me-1"></i>
+    Configuration
+  </a>
+  <a
+    class="nav-link {% if request.path == '/guild/' ~ guild_id ~ '/years' %}active{% endif %}"
+    href="/guild/{{ guild_id }}/years"
+  >
+    <i data-feather="calendar" class="me-1"></i>
+    Years
+  </a>
+  <a
+    class="nav-link {% if request.path == '/guild/' ~ guild_id ~ '/markers' %}active{% endif %}"
+    href="/guild/{{ guild_id }}/markers"
+  >
+    <i data-feather="map-pin" class="me-1"></i>
+    Markers
+  </a>
+  <a
+    class="nav-link {% if request.path == '/guild/' ~ guild_id ~ '/time' %}active{% endif %}"
+    href="/guild/{{ guild_id }}/time"
+  >
+    <i data-feather="clock" class="me-1"></i>
+    Time Status
+  </a>
+</nav>

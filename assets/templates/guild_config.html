@@ -1,0 +1,450 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6">
+        <i data-feather="settings" class="me-2"></i>
+        Guild Configuration
+      </h1>
+      <p class="text-muted mb-0">Guild ID: <code>{{ guild_id }}</code></p>
+    </div>
+    <div>
+      <button
+        class="btn btn-outline-secondary me-2"
+        type="button"
+        id="refresh-discord-btn"
+      >
+        <i data-feather="refresh-cw" class="me-1"></i>
+        Refresh Discord Data
+      </button>
+      <a href="/" class="btn btn-outline-secondary">
+        <i data-feather="arrow-left" class="me-1"></i>
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Guild Navigation -->
+  {% include "components/guild_nav.html" %}
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-tabs mb-3" id="guild-config-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link active"
+        id="channels-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#channels-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="hash" class="me-1"></i>
+        Channels
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="epoch-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#epoch-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="clock" class="me-1"></i>
+        Epoch
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="roles-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#roles-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="shield" class="me-1"></i>
+        Roles
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="users-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#users-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="user" class="me-1"></i>
+        Users
+      </button>
+    </li>
+  </ul>
+
+  <!-- Configuration Form -->
+  <form id="guild-config-form" data-guild-id="{{ guild_id }}">
+    <div class="tab-content" id="guild-config-tab-content">
+      <!-- Channels Tab -->
+      <div class="tab-pane fade show active" id="channels-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Channel Configuration</h5>
+            <small class="text-muted"
+              >Configure Discord channels for various bot features</small
+            >
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="activity"
+                  >Activity Channel</label
+                >
+                <select
+                  class="form-select discord-channel-select"
+                  id="activity"
+                  name="channels.activity"
+                >
+                  <option value="0">Loading channels...</option>
+                </select>
+                <small class="text-muted"
+                  >Channel for activity monitoring</small
+                >
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="announcements"
+                  >Announcements Channel</label
+                >
+                <select
+                  class="form-select discord-channel-select"
+                  id="announcements"
+                  name="channels.announcements"
+                >
+                  <option value="0">Loading channels...</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="year_vc"
+                  >Year Voice Channel</label
+                >
+                <select
+                  class="form-select discord-channel-select"
+                  id="year_vc"
+                  name="channels.year_vc"
+                >
+                  <option value="0">Loading channels...</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="year_links"
+                  >Year Links Channel</label
+                >
+                <select
+                  class="form-select discord-channel-select"
+                  id="year_links"
+                  name="channels.year_links"
+                >
+                  <option value="0">Loading channels...</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="meta_chat"
+                  >Meta Chat Channel</label
+                >
+                <select
+                  class="form-select discord-channel-select"
+                  id="meta_chat"
+                  name="channels.meta_chat"
+                >
+                  <option value="0">Loading channels...</option>
+                </select>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="lore_channels"
+                  >Lore Channels</label
+                >
+                <div class="input-group mb-2">
+                  <input
+                    class="form-control"
+                    id="lore_channel_input"
+                    type="text"
+                    placeholder="Channel ID"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="addListItem('lore_channels', 'lore_channel_input')"
+                  >
+                    Add
+                  </button>
+                </div>
+                <input
+                  type="hidden"
+                  id="lore_channels"
+                  name="channels.lore_channels"
+                />
+                <ul id="list-lore_channels" class="list-group list-group-flush">
+                  <!-- Items will be added here -->
+                </ul>
+                <small class="text-muted">Channels for lore content</small>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="canon_channels"
+                  >Canon Channels</label
+                >
+                <div class="input-group mb-2">
+                  <input
+                    class="form-control"
+                    id="canon_channel_input"
+                    type="text"
+                    placeholder="Channel ID"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    onclick="
+                      addListItem('canon_channels', 'canon_channel_input')
+                    "
+                  >
+                    Add
+                  </button>
+                </div>
+                <input
+                  type="hidden"
+                  id="canon_channels"
+                  name="channels.canon_channels"
+                />
+                <ul
+                  id="list-canon_channels"
+                  class="list-group list-group-flush"
+                >
+                  <!-- Items will be added here -->
+                </ul>
+                <small class="text-muted"
+                  >Additional channels included in year search/link
+                  lookups</small
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Epoch Tab -->
+      <div class="tab-pane fade" id="epoch-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Epoch Configuration</h5>
+            <small class="text-muted"
+              >Configure time progression and epoch settings</small
+            >
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="epoch_time"
+                  >Epoch Start Time (Unix Timestamp)</label
+                >
+                <input
+                  class="form-control"
+                  id="epoch_time"
+                  name="epoch.time"
+                  type="number"
+                  placeholder="0"
+                />
+                <small class="text-muted"
+                  >Unix timestamp of when the epoch starts</small
+                >
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="epoch_year">Starting Year</label>
+                <input
+                  class="form-control"
+                  id="epoch_year"
+                  name="epoch.year"
+                  type="number"
+                  placeholder="1"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="epoch_length"
+                  >Year Length (days)</label
+                >
+                <input
+                  class="form-control"
+                  id="epoch_length"
+                  name="epoch.length"
+                  type="number"
+                  placeholder="14"
+                  min="1"
+                  max="365"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="rollover_time"
+                  >Daily Rollover Time</label
+                >
+                <input
+                  class="form-control"
+                  id="rollover_time"
+                  name="epoch.rollover_time"
+                  type="text"
+                  placeholder="17:00"
+                  pattern="[0-2][0-9]:[0-5][0-9]"
+                  style="max-width: 120px"
+                />
+                <small class="text-muted"
+                  >Time when day transitions occur (HH:MM format)</small
+                >
+              </div>
+              <div class="col-12 mb-3">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="epoch_paused"
+                    name="epoch.paused"
+                  />
+                  <label class="form-check-label" for="epoch_paused">
+                    Pause time progression
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles Tab -->
+      <div class="tab-pane fade" id="roles-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Role Configuration</h5>
+            <small class="text-muted"
+              >Configure Discord roles for bot features</small
+            >
+          </div>
+          <div class="card-body">
+            <div class="col-md-6">
+              <label class="form-label" for="role_announcements"
+                >Announcements Role</label
+              >
+              <select
+                class="form-select discord-role-select"
+                id="role_announcements"
+                name="roles.announcements"
+              >
+                <option value="0">Loading roles...</option>
+              </select>
+              <small class="text-muted"
+                >Role to ping for year change announcements</small
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div class="tab-pane fade" id="users-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">User Configuration</h5>
+            <small class="text-muted"
+              >Configure authorized users for bot features</small
+            >
+          </div>
+          <div class="card-body">
+            <div class="col-md-6">
+              <label class="form-label" for="marker_users"
+                >Year Marker Authors</label
+              >
+              <div class="input-group mb-2">
+                <input
+                  class="form-control"
+                  id="marker_user_input"
+                  type="text"
+                  placeholder="User ID"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  onclick="addListItem('marker_users', 'marker_user_input')"
+                >
+                  Add
+                </button>
+              </div>
+              <input type="hidden" id="marker_users" name="users.markers" />
+              <ul id="list-marker_users" class="list-group list-group-flush">
+                <!-- Items will be added here -->
+              </ul>
+              <small class="text-muted"
+                >User IDs authorized to create year markers</small
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card mt-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+          <div>
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              id="reset-guild-btn"
+            >
+              <i data-feather="rotate-ccw" class="me-1"></i>
+              Reset
+            </button>
+            <button
+              class="btn btn-outline-info"
+              type="button"
+              id="validate-guild-btn"
+            >
+              <i data-feather="check-circle" class="me-1"></i>
+              Validate
+            </button>
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              id="export-guild-btn"
+            >
+              <i data-feather="download" class="me-1"></i>
+              Export JSON
+            </button>
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              id="import-guild-btn"
+            >
+              <i data-feather="upload" class="me-1"></i>
+              Import JSON
+            </button>
+            <input
+              type="file"
+              id="import-guild-file"
+              style="display: none"
+              accept=".json"
+            />
+          </div>
+          <button class="btn btn-primary" type="button" id="save-guild-btn">
+            <i data-feather="save" class="me-1"></i>
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

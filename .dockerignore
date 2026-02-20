@@ -1,18 +1,23 @@
 .aws
 .env
-.git
 .venv**
 *.db
-*.json
 *.keytab
 *.sample.*
 *.sql
-*.toml
+attu-bot.toml
 **/__pycache__/
 **/*.wip.py
 .ruff_cache/
 assets/
+!assets/templates/
+!assets/static/
 backups/
 config/
 wip/
-pyproject.toml
+notes/
+
+# Allow package files for test runner
+!package.json
+!package-lock.json
+!pyproject.toml

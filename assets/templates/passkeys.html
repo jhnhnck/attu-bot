@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+  .passkey-card {
+    transition: box-shadow 0.2s;
+  }
+  .passkey-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+  }
+  .credential-id {
+    font-family: monospace;
+    font-size: 0.75rem;
+    word-break: break-all;
+    color: #6c757d;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center mb-4">
+    <a href="/" class="btn btn-outline-secondary btn-sm me-3">
+      <i data-feather="arrow-left" style="width:16px;height:16px;"></i>
+    </a>
+    <div>
+      <h1 class="h3 mb-0">
+        <i data-feather="key" class="me-2"></i>Manage Passkeys
+      </h1>
+      <p class="text-muted mb-0 small">Add or remove passkeys for signing in to the configurator</p>
+    </div>
+  </div>
+
+  <!-- Status area -->
+  <div id="status-area" class="mb-3"></div>
+
+  <!-- Existing passkeys -->
+  <div class="card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span class="fw-semibold">Registered Passkeys</span>
+      <span class="badge bg-secondary">{{ passkeys | length }}</span>
+    </div>
+    <div class="list-group list-group-flush" id="passkey-list">
+      {% for pk in passkeys %}
+      <div class="list-group-item passkey-card" id="passkey-{{ loop.index }}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1 me-3">
+            <div class="d-flex align-items-center mb-1">
+              <i data-feather="shield" class="me-2 text-success" style="width:16px;height:16px;"></i>
+              <strong>{{ pk.name }}</strong>
+            </div>
+            <div class="small text-muted">
+              <span class="me-3">
+                <i data-feather="calendar" style="width:12px;height:12px;" class="me-1"></i>
+                Added {{ pk.created_at | int | timestamp_to_date if pk.created_at else 'Unknown' }}
+              </span>
+              <span>
+                <i data-feather="clock" style="width:12px;height:12px;" class="me-1"></i>
+                Last used {{ pk.last_used | int | timestamp_to_date if pk.last_used else 'Never' }}
+              </span>
+            </div>
+            <div class="credential-id mt-1">{{ pk.credential_id[:32] }}…</div>
+          </div>
+          <button
+            class="btn btn-sm btn-outline-danger flex-shrink-0"
+            onclick="deletePasskey('{{ pk.credential_id }}')"
+            {% if passkeys | length <= 1 %}
+            disabled
+            title="Cannot delete the last passkey"
+            {% endif %}
+          >
+            <i data-feather="trash-2" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+      {% else %}
+      <div class="list-group-item text-center text-muted py-4">
+        <i data-feather="alert-circle" class="mb-2"></i>
+        <p class="mb-0">No passkeys registered</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Register new passkey -->
+  <div class="card">
+    <div class="card-header fw-semibold">
+      <i data-feather="plus-circle" class="me-1" style="width:16px;height:16px;"></i>
+      Register a New Passkey
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Use this to add a backup passkey (e.g., on another device or a different password manager).
+      </p>
+      <div class="mb-3">
+        <label for="new-passkey-name" class="form-label">Passkey Name</label>
+        <input
+          type="text"
+          id="new-passkey-name"
+          class="form-control"
+          placeholder="e.g. Bitwarden — iPhone"
+          maxlength="64"
+        />
+      </div>
+      <button id="btn-register" class="btn btn-primary" type="button">
+        <i data-feather="key" class="me-1" style="width:16px;height:16px;"></i>
+        Register Passkey
+      </button>
+    </div>
+  </div>
+
+  <!-- Logout -->
+  <div class="mt-4 text-center">
+    <form method="post" action="/auth/logout" class="d-inline">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i data-feather="log-out" class="me-1" style="width:14px;height:14px;"></i>
+        Sign Out
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" nonce="{{ csp_nonce }}">
+  import { beginRegistration } from "/static/js/modules/webauthn.js";
+
+  function showStatus(msg, type = "success") {
+    document.getElementById("status-area").innerHTML = `
+      <div class="alert alert-${type} py-2" role="alert">${msg}</div>`;
+  }
+
+  // Register new passkey
+  document.getElementById("btn-register").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-register");
+    const name = document.getElementById("new-passkey-name").value.trim() || "Passkey";
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span>Waiting…`;
+
+    try {
+      await beginRegistration(name, "/auth/register/begin", "/auth/register/complete");
+      showStatus(`Passkey "${name}" registered successfully! Reloading…`);
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      showStatus(err.message || "Registration failed", "danger");
+      btn.disabled = false;
+      btn.innerHTML = `<i data-feather="key" class="me-1" style="width:16px;height:16px;"></i>Register Passkey`;
+      feather.replace();
+    }
+  });
+
+  // Delete passkey
+  window.deletePasskey = async (credentialId) => {
+    if (!confirm("Delete this passkey? You will no longer be able to sign in with it.")) return;
+
+    try {
+      const res = await fetch(`/auth/passkeys/${encodeURIComponent(credentialId)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Delete failed");
+      showStatus("Passkey deleted. Reloading…");
+      setTimeout(() => location.reload(), 800);
+    } catch (err) {
+      showStatus(err.message || "Failed to delete passkey", "danger");
+    }
+  };
+</script>
+{% endblock %}
