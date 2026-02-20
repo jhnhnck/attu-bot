@@ -34,6 +34,7 @@ def _get_repo() -> YearMarkerRepository:
 
 class YearMarker(BaseModel):
     """Year marker runtime model"""
+    guild: int
     channel: int
     message: int
     year: int
@@ -43,6 +44,7 @@ class YearMarker(BaseModel):
     async def save(self):
         """Save this marker to MongoDB"""
         await _get_repo().upsert(
+            guild=self.guild,
             channel=self.channel,
             message=self.message,
             year=self.year,
@@ -71,6 +73,22 @@ class YearMarker(BaseModel):
         doc = await _get_repo().get(channel, year)
         if doc:
             return cls(
+                guild=doc.guild,
+                channel=doc.channel,
+                message=doc.message,
+                year=doc.year,
+                exact=doc.exact,
+                wiki_page=doc.wiki_page,
+            )
+        return None
+
+    @classmethod
+    async def get_any(cls, guild: int, year: int) -> 'YearMarker | None':
+        """Get any marker for a guild+year (used as the canonical timestamp reference)"""
+        doc = await _get_repo().get_any_for_guild_year(guild, year)
+        if doc:
+            return cls(
+                guild=doc.guild,
                 channel=doc.channel,
                 message=doc.message,
                 year=doc.year,
@@ -92,20 +110,22 @@ class YearMarker(BaseModel):
         if guild is None:
             guild = config.primary_guild
 
-        marker = await _get_repo().get(guild, year)
+        marker = await _get_repo().get_any_for_guild_year(guild, year)
         if not marker:
             logger.error(f'No marker found for year {year} in guild {guild}')
             return None
         return int(snowflake_time(marker.message).timestamp())
 
     @classmethod
-    async def mark(cls, year: int, timestamp: int, channel: int | None = None):
+    async def mark(cls, year: int, timestamp: int, channel: int | None = None, guild: int | None = None):
         """Create a new year marker"""
         if channel is None:
             channel = config.primary_guild
+        if guild is None:
+            guild = config.primary_guild
 
-        logger.info(f'Marker appended: channel={channel} new={timestamp}')
-        await _get_repo().upsert(channel=channel, year=year, message=timestamp)
+        logger.info(f'Marker appended: guild={guild} channel={channel} new={timestamp}')
+        await _get_repo().upsert(guild=guild, channel=channel, year=year, message=timestamp)
 
     @classmethod
     async def all_for_guild(cls, guild: int) -> list['YearMarker']:
@@ -113,6 +133,7 @@ class YearMarker(BaseModel):
         docs = await _get_repo().all_for_guild(guild)
         return [
             cls(
+                guild=doc.guild,
                 channel=doc.channel,
                 message=doc.message,
                 year=doc.year,
@@ -123,10 +144,11 @@ class YearMarker(BaseModel):
         ]
 
     @classmethod
-    async def get_or_create(cls, channel: int, year: int, message: int) -> tuple['YearMarker', bool]:
+    async def get_or_create(cls, guild: int, channel: int, year: int, message: int) -> tuple['YearMarker', bool]:
         """Get existing marker or create new one. Returns (marker, created)"""
-        doc, created = await _get_repo().get_or_create(channel, year, message)
+        doc, created = await _get_repo().get_or_create(guild, channel, year, message)
         marker = cls(
+            guild=doc.guild,
             channel=doc.channel,
             message=doc.message,
             year=doc.year,
@@ -142,6 +164,17 @@ class YearMarker(BaseModel):
 
 # --- Extension Def ---
 
+async def init_repo():
+    """Initialize marker repository and indexes (call after DB is connected)"""
+    global _marker_repo  # noqa: PLW0603
+    from attubot import db
+
+    _marker_repo = YearMarkerRepository(db.get_db())
+    await _marker_repo.init_indexes()
+
+    logger.info(f'Loaded [{await YearMarker.total()}] markers')
+
+
 async def _init_db():
     logger.info('Initializing database')
 
@@ -150,13 +183,7 @@ async def _init_db():
     await config.on_load()
 
     # Now set up the repository and indexes
-    global _marker_repo  # noqa: PLW0603
-    from attubot import db
-
-    _marker_repo = YearMarkerRepository(db.get_db())
-    await _marker_repo.init_indexes()
-
-    logger.info(f'Loaded [{await YearMarker.total()}] markers')
+    await init_repo()
 
 
 def setup(bot: Bot):
