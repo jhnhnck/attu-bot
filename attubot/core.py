@@ -54,7 +54,19 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
 
         await logger.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
 
+
 # --- Events ---
+
+
+async def _shutdown(exit_code: int = 1):
+    """close db connections and stop the event loop cleanly"""
+    from attubot import db
+
+    if db.client:
+        await db.client.close()
+    asyncio.get_running_loop().stop()
+    sys.exit(exit_code)
+
 
 @bot.event
 async def on_ready():
@@ -71,27 +83,27 @@ async def on_ready():
 
         try:
             await config.on_ready()
-
-            # util depends on config being init, can't import later
-            from attubot.tasks import error_hook_refresh
-            await error_hook_refresh()
-
-            if config.test_mode:
-                logger.fatal('Reached ready state')
-                raise Exception('(Test Mode)')
-
         except Exception as err:
             logger.fatal('Exception caught in on_ready() event; exiting', err)
+            await logger.send_to_webhook(err)
+            await _shutdown(exit_code=1)
+            return
 
-            if str(err) != '(Test Mode)':
-                await logger.send_to_webhook(err)
+        if config.test_mode:
+            logger.fatal('Reached ready state')
+            await _shutdown(exit_code=0)
+            return
 
-            # Close database connections
-            from attubot import db
-            if db.client:
-                await db.client.close()
-            await bot.close()
-            sys.exit(1)
+        # util depends on config being init, can't import later
+        try:
+            from attubot.tasks import error_hook_refresh
+
+            await error_hook_refresh()
+        except Exception as err:
+            logger.fatal('Exception caught in on_ready() event; exiting', err)
+            await logger.send_to_webhook(err)
+            await _shutdown(exit_code=1)
+            return
 
         logger.info('Pushing commands to Discord')
         await bot.sync_commands()

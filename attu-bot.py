@@ -9,17 +9,14 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import sys
 import time
 import traceback
-from os import environ, getenv
+from os import environ
 
-from dotenv import load_dotenv
-
-load_dotenv()  # take environment variables from .env
-
-from attubot.logging import get_logger  # noqa: E402
+from attubot import __build_time__
+from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-logger.info(f'Container Build Time: {getenv("BUILD_TIME")}')
+logger.info(f'Container Build Time: {__build_time__}')
 
 if 'DEBUG' in environ:
     logger.debug('Debug Mode: Enabled')
