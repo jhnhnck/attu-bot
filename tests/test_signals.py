@@ -330,7 +330,6 @@ class TestReloadWatcher:
 
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
-
 @pytest_asyncio.fixture(scope='function')
 async def web_app_with_signals():
     """Web app fixture that also patches send_signal for assertion."""

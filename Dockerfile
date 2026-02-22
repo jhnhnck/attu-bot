@@ -31,12 +31,17 @@ RUN useradd --home-dir /home/doom --uid 1000 doom; \
 RUN --mount=type=cache,target=/var/lib/apt \
     set -eux; \
     apt-get update; \
-    apt-get install -y \
+    apt-get install -qq -y \
     curl \
     neovim \
     zsh;
 
 SHELL [ "/usr/bin/zsh", "-euc" ]
+
+# TODO: Update this to latest version
+RUN --mount=type=cache,target=/var/lib/apt \
+    curl -fsSL "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-x86_64-100.14.1.deb" -o "/tmp/mongodb-database-tools.deb"; \
+    dpkg -i "/tmp/mongodb-database-tools.deb";
 
 # install resvg
 COPY --from=builder /usr/local/cargo/bin/resvg /usr/local/bin/resvg
@@ -68,7 +73,7 @@ USER root
 RUN --mount=type=cache,target=/var/lib/apt \
     curl -fsSL "https://deb.nodesource.com/setup_22.x" -o "/tmp/setup_22.x"; \
     bash /tmp/setup_22.x; \
-    apt-get install -y nodejs;
+    apt-get install -y -qq nodejs;
 
 USER doom
 WORKDIR /home/doom
