@@ -19,11 +19,11 @@ from discord.ext.commands import MissingPermissions
 from attubot import bot, config
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
-from attubot.util import create_task
 
 logger = get_logger(__name__)
 
 # --- Error Handling ---
+
 
 @bot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
@@ -157,11 +157,12 @@ async def command_pong(ctx: ApplicationContext):
 
     else:
         await ctx.respond('Ping! <:rockball:1308981475114225694>')
-        create_task(wait_random(), f'PongTask[{ctx.author.name}]')
+        config.job_worker.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
 
 
 @discord.slash_command(name='test', description='Simple command to test with')
 async def command_test(ctx: ApplicationContext):
+    """Utility command for debugging - kept unregistered for manual use when needed"""
     if not config.is_owner(ctx.author.id):
         await ctx.respond('Do I know you?', ephemeral=True)
         return
