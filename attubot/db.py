@@ -6,7 +6,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
-from os import getenv
 
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
@@ -22,13 +21,15 @@ class MongoStorage:
     def __init__(self):
         self.client: AsyncMongoClient | None = None
         self.db: AsyncDatabase | None = None
-        self.mongo_url: str = getenv('MONGODB_URL', 'mongodb://localhost:27017')
-        self.db_name: str = getenv('MONGODB_DATABASE', 'doombot')
+        self.mongo_url: str | None = None
+        self.db_name: str | None = None
 
-    async def connect(self, timeout: int = 10000) -> AsyncDatabase:  # noqa: ASYNC109
+    async def connect(self, url: str, name: str, timeout: int = 10000) -> AsyncDatabase:  # noqa: ASYNC109
         """Initialize MongoDB connection with timeout
 
         Args:
+            url: MongoDB connection URL (e.g. "mongodb://localhost:27017")
+            name: Database name
             timeout: Connection timeout in milliseconds (default: 10000ms = 10s)
 
         Returns:
@@ -37,6 +38,8 @@ class MongoStorage:
         Raises:
             RuntimeError: If connection fails or times out
         """
+        self.mongo_url = url
+        self.db_name = name
         logger.info(f'Connecting to MongoDB: {self.mongo_url}/{self.db_name}')
 
         try:

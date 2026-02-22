@@ -6,7 +6,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from datetime import datetime
-from os import getenv
 from platform import freedesktop_os_release as os_release
 from platform import python_version
 from typing import Never, cast

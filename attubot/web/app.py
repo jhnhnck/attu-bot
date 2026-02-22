@@ -5,31 +5,35 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import os
+import secrets
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from quart import Quart
+from quart import Quart, g
 
-from attubot.config import NovaConfig
+from attubot import config
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
-
-# Initialize config
-config = NovaConfig()
 
 # Initialize audit logger (will be set up after DB connection)
 audit_logger = None
 
 
-def create_app() -> Quart:
+def create_app() -> Quart:  # noqa: PLR0915
     """Application factory for Quart app"""
 
-    # Create Quart app
+    # Load config file synchronously — needed before building the app so that
+    # assets path and secret key are available at construction time.
+    # Skipped if already initialized (e.g. in tests where config is set up manually).
+    if not config._get_event('init').is_set():
+        config.on_init()
+
+    _assets_dir = Path(config.paths.assets).resolve()
     app = Quart(
         __name__,
-        template_folder=str(Path(__file__).parent / 'templates'),
-        static_folder=str(Path(__file__).parent / 'static'),
+        template_folder=str(_assets_dir / 'templates'),
+        static_folder=str(_assets_dir / 'static'),
     )
 
     @app.before_serving
