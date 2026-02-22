@@ -4,7 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Integration tests for the /ping and /pong commands from core.py
+Integration tests for the /ping and /pong commands
 """
 
 import os
@@ -23,7 +23,7 @@ class TestPingCommand:
     @pytest.mark.asyncio
     async def test_ping_responds_pong(self, mock_ctx):
         """Test that /ping responds with 'Pong!'"""
-        from attubot.core import command_ping
+        from attubot import command_ping
 
         await command_ping(mock_ctx)
 
@@ -39,12 +39,12 @@ class TestPongCommand:
     @pytest.mark.asyncio
     async def test_pong_owner_immediate_response(self, mock_ctx_factory):
         """Test that /pong responds immediately with mention for bot owner"""
-        from attubot.core import command_pong
+        from attubot.commands.debug import command_pong
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
         # Mock config.is_owner to return True
-        with patch('attubot.core.config.is_owner', return_value=True):
+        with patch('attubot.commands.debug.config.is_owner', return_value=True):
             await command_pong(ctx)
 
         ctx.respond.assert_called_once()
@@ -58,7 +58,7 @@ class TestPongCommand:
         from unittest.mock import MagicMock
 
         from attubot import tasks as tasks_module
-        from attubot.core import command_pong
+        from attubot.commands.debug import command_pong
 
         ctx = mock_ctx_factory(user_id=888, is_owner=False)
 
@@ -66,7 +66,7 @@ class TestPongCommand:
         mock_scheduler = MagicMock()
 
         # Mock config.is_owner to return False and the tasks module scheduler
-        with patch('attubot.core.config.is_owner', return_value=False), \
+        with patch('attubot.commands.debug.config.is_owner', return_value=False), \
              patch.object(tasks_module, 'scheduler', mock_scheduler):
 
             await command_pong(ctx)

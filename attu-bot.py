@@ -36,9 +36,9 @@ if mode not in ('bot', 'web'):
 
 try:
     if mode == 'bot':
-        from attubot import core
+        from attubot import start_bot_loop
 
-        core.start_bot_loop()
+        start_bot_loop()
 
     elif mode == 'web':
         from attubot.web.app import start_web

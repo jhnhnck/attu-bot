@@ -1,5 +1,5 @@
 """
-AttuBot - Main file
+AttuBot - Bot Event Handlers
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
@@ -7,12 +7,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import sys
-from pathlib import Path
-from random import randrange
-from typing import cast
 
-import discord
-from discord import ApplicationCommand, ApplicationContext, Message
+from discord import ApplicationContext, Member, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
@@ -22,7 +18,20 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-# --- Error Handling ---
+# --- Helpers ---
+
+
+async def _shutdown(exit_code: int = 1):
+    """close db connections and stop the event loop cleanly"""
+    from attubot import db
+
+    if db.client:
+        await db.client.close()
+    asyncio.get_running_loop().stop()
+    sys.exit(exit_code)
+
+
+# --- Events ---
 
 
 @bot.event
@@ -53,19 +62,6 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             link = '`fuck idk man`'
 
         await logger.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
-
-
-# --- Events ---
-
-
-async def _shutdown(exit_code: int = 1):
-    """close db connections and stop the event loop cleanly"""
-    from attubot import db
-
-    if db.client:
-        await db.client.close()
-    asyncio.get_running_loop().stop()
-    sys.exit(exit_code)
 
 
 @bot.event
@@ -145,88 +141,30 @@ async def on_message(message: Message):
             await message.add_reaction('💖')
 
 
+@bot.event
+async def on_member_join(member: Member):
+    if member.guild.id not in config.valid_guilds:
+        return
+
+    guild_config = config.guild(member.guild.id)
+    channel_id = guild_config.channels.meta_chat
+
+    if channel_id == 0:
+        logger.debug(f'No meta_chat channel configured for guild {member.guild.id}, skipping welcome')
+        return
+
+    channel = member.guild.get_channel(channel_id)
+
+    if channel is None:
+        logger.warn(f'meta_chat channel {channel_id} not found in guild {member.guild.id}')
+        return
+
+    await channel.send(f'welcome to the archipelago {member.mention}')
+
+
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
     logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
 
-# --- Commands ---
-
-
-@discord.slash_command(name='ping', description='Simple command to test if the bot is online')
-async def command_ping(ctx: ApplicationContext):
-    await ctx.respond('Pong! <:rockball:1308981475114225694>')
-
-
-@discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
-async def command_pong(ctx: ApplicationContext):
-    async def wait_random():
-        sleep_time = 5 * randrange(25, 240)
-
-        logger.info(f'Pong task sleeping for {sleep_time} seconds')
-        await asyncio.sleep(sleep_time)
-
-        await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
-
-    if config.is_owner(ctx.author.id):
-        await ctx.respond(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
-
-    else:
-        await ctx.respond('Ping! <:rockball:1308981475114225694>')
-        from attubot.tasks import scheduler
-
-        scheduler.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
-
-
-@discord.slash_command(name='test', description='Simple command to test with')
-async def command_test(ctx: ApplicationContext):
-    """Utility command for debugging - kept unregistered for manual use when needed"""
-    if not config.is_owner(ctx.author.id):
-        await ctx.respond('Do I know you?', ephemeral=True)
-        return
-
-    try:
-        pass
-
-    except Exception as err:
-        await logger.send_to_webhook(err)
-
-        await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
-        return
-
-
-# --- Trigger Function ---
-
-
-def start_bot_loop():
-    logger.info('Starting DoomBot!')
-    config.on_init()
-
-    def dep_check(path: str):
-        dep = Path(path)
-
-        if not dep.is_file():
-            raise Exception(f'missing dependency: {path}')
-
-    logger.info('Checking Dependencies')
-    dep_check('/usr/local/bin/resvg')
-
-    logger.info('Loading Commands')
-    bot.add_application_command(cast(ApplicationCommand, command_ping))
-    bot.add_application_command(cast(ApplicationCommand, command_pong))
-    # bot.add_application_command(cast(ApplicationCommand, command_test))
-
-    logger.info('Loading Extensions')
-    try:
-        bot.load_extension('attubot.commands.debug')
-        bot.load_extension('attubot.commands.marker')
-        bot.load_extension('attubot.commands.query')
-        bot.load_extension('attubot.commands.time')
-        bot.load_extension('attubot.commands.wiki')
-        bot.load_extension('attubot.commands.year')
-    except Exception as e:
-        logger.fatal(f'Failed to load extensions, cannot start bot: {e}')
-        sys.exit(1)
-
-    logger.info('Starting Bot')
-    bot.run(config.bot_token)
+logger.info('Registered event handlers')

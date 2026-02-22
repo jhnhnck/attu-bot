@@ -23,8 +23,8 @@ There are two runnable modes, both launched from `attu-bot.py`:
 ### Package: `attubot/`
 | File | Role |
 |---|---|
-| `__init__.py` | Module metadata, creates singleton `bot`, `config`, `db` instances |
-| `core.py` | Event handlers (`on_ready`, `on_message`), base slash commands, `start_bot_loop()` |
+| `__init__.py` | Module metadata, creates singleton `bot`, `config`, `db` instances; `/ping` command; `start_bot_loop()` |
+| `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); Pydantic models for all config sections |
 | `models.py` | Pydantic models for MongoDB documents (`GuildConfigDocument`, `YearDocument`, etc.) |
 | `repositories.py` | MongoDB repository classes (`ConfigRepository`, `YearMarkerRepository`, `YearRepository`) - all async |
@@ -105,7 +105,7 @@ Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. `trace`/`d
 - Slash commands use `@discord.slash_command()` or `SlashCommandGroup`
 - Each command module is a pycord **extension** with a `setup(bot: Bot)` function
 - Options use `@discord.commands.option()` decorators
-- Error handling: `on_application_command_error` in `core.py` is the global handler - extension-level commands should raise naturally
+- Error handling: `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
 
 ### MongoDB / Repository Pattern
 - All database access goes through the repository classes in `repositories.py`
@@ -238,3 +238,4 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 - write code comments in all lowercase including at the beginning of sentences, except where it would be unclear; prefer to be brief
 - use american english spelling and grammar
 - Use spaces for indentation always; avoid formats that require tabs
+- prefer brief statements over long explanations

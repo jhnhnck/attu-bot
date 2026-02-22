@@ -5,14 +5,16 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 from datetime import datetime
 from platform import freedesktop_os_release as os_release
 from platform import python_version
+from random import randrange
 from typing import Never, cast
 
 import discord
 import tomlkit
-from discord import ApplicationContext, Bot, Embed, Permissions, SlashCommandGroup
+from discord import ApplicationCommand, ApplicationContext, Bot, Embed, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
@@ -24,6 +26,46 @@ from attubot.tasks.jobs import job_construct_year_links
 from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
+
+# --- Fun Commands ---
+
+
+@discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
+async def command_pong(ctx: ApplicationContext):
+    async def wait_random():
+        sleep_time = 5 * randrange(25, 240)
+
+        logger.info(f'Pong task sleeping for {sleep_time} seconds')
+        await asyncio.sleep(sleep_time)
+
+        await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+
+    if config.is_owner(ctx.author.id):
+        await ctx.respond(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+
+    else:
+        await ctx.respond('Ping! <:rockball:1308981475114225694>')
+        from attubot.tasks import scheduler
+
+        scheduler.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
+
+
+@discord.slash_command(name='test', description='Simple command to test with')
+async def command_test(ctx: ApplicationContext):
+    """Utility command for debugging - kept unregistered for manual use when needed"""
+    if not config.is_owner(ctx.author.id):
+        await ctx.respond('Do I know you?', ephemeral=True)
+        return
+
+    try:
+        pass
+
+    except Exception as err:
+        await logger.send_to_webhook(err)
+
+        await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
+        return
+
 
 # --- Debug Commands ---
 
@@ -138,4 +180,6 @@ async def debug_check_year_links(ctx: ApplicationContext):
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')
 
+    bot.add_application_command(cast(ApplicationCommand, command_pong))
+    # bot.add_application_command(cast(ApplicationCommand, command_test))
     bot.add_application_command(debug_group)
