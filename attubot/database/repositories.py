@@ -10,7 +10,14 @@ from typing import TYPE_CHECKING
 from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
-from attubot.models import GuildConfigDocument, SystemConfigDocument, ThemeDocument, YearDocument, YearMarkerDocument
+from attubot.database.models import (
+    GuildConfigDocument,
+    ReloadSignalDocument,
+    SystemConfigDocument,
+    ThemeDocument,
+    YearDocument,
+    YearMarkerDocument,
+)
 
 if TYPE_CHECKING:
     from attubot.config import BotTheme, GuildConfig
@@ -117,10 +124,12 @@ class YearMarkerRepository:
             unique=True,
         )
         await self.db[self.COLLECTION].create_index('channel')
+        await self.db[self.COLLECTION].create_index('guild')
 
-    async def create(self, channel: int, message: int, year: int, exact: bool = False, wiki_page: bool = False):
+    async def create(self, guild: int, channel: int, message: int, year: int, exact: bool = False, wiki_page: bool = False):
         """Create new marker"""
         doc = YearMarkerDocument(
+            guild=guild,
             channel=channel,
             message=message,
             year=year,
@@ -136,6 +145,14 @@ class YearMarkerRepository:
             return YearMarkerDocument(**doc)
         return None
 
+    async def get_any_for_guild_year(self, guild: int, year: int) -> YearMarkerDocument | None:
+        """Get any marker for a guild+year (used as the canonical timestamp reference)"""
+        doc = await self.db[self.COLLECTION].find_one({'guild': guild, 'year': year})
+        if doc:
+            doc.pop('_id', None)
+            return YearMarkerDocument(**doc)
+        return None
+
     async def update(self, channel: int, year: int, **kwargs):
         """Update marker fields"""
         await self.db[self.COLLECTION].update_one(
@@ -143,9 +160,10 @@ class YearMarkerRepository:
             {'$set': kwargs},
         )
 
-    async def upsert(self, channel: int, message: int, year: int, exact: bool = False, wiki_page: bool = False):
+    async def upsert(self, guild: int, channel: int, message: int, year: int, exact: bool = False, wiki_page: bool = False):
         """Insert or update marker (upsert)"""
         doc = YearMarkerDocument(
+            guild=guild,
             channel=channel,
             message=message,
             year=year,
@@ -162,14 +180,14 @@ class YearMarkerRepository:
         await self.db[self.COLLECTION].delete_one({'channel': channel, 'year': year})
 
     async def total(self, guild: int) -> int:
-        return await self.db[self.COLLECTION].count_documents({'channel': guild})
+        return await self.db[self.COLLECTION].count_documents({'guild': guild})
 
-    async def get_or_create(self, channel: int, year: int, message: int):
+    async def get_or_create(self, guild: int, channel: int, year: int, message: int):
         """Get existing marker or create new"""
         existing = await self.get(channel, year)
         if existing:
             return existing, False
-        await self.create(channel, message, year)
+        await self.create(guild, channel, message, year)
         return await self.get(channel, year), True
 
     async def exists(self, channel: int, year: int) -> bool:
@@ -178,7 +196,7 @@ class YearMarkerRepository:
 
     async def all_for_guild(self, guild: int) -> list[YearMarkerDocument]:
         """Get all markers for a guild"""
-        cursor = self.db[self.COLLECTION].find({'channel': guild})
+        cursor = self.db[self.COLLECTION].find({'guild': guild})
         docs = await cursor.to_list(length=None)
         return [YearMarkerDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
@@ -265,3 +283,40 @@ class YearRepository:
             docs[0].pop('_id', None)
             return YearDocument(**docs[0])
         return None
+
+
+class ReloadSignalRepository:
+    """Repository for cross-process config reload signals
+
+    the web process writes signals here; the bot process polls and consumes them.
+    documents are upserted by (signal_type, guild_id) so rapid saves coalesce.
+    """
+    COLLECTION = 'reload_signals'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self):
+        await self.db[self.COLLECTION].create_index(
+            [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
+            unique=True,
+        )
+
+    async def send(self, signal_type: str, guild_id: int | None = None):
+        """Upsert a reload signal - idempotent for the same (type, guild) pair"""
+        doc = ReloadSignalDocument.make(signal_type, guild_id).model_dump()  # type: ignore[arg-type]
+        await self.db[self.COLLECTION].update_one(
+            {'signal_type': signal_type, 'guild_id': guild_id},
+            {'$set': doc},
+            upsert=True,
+        )
+
+    async def consume_all(self) -> list[ReloadSignalDocument]:
+        """Atomically fetch and delete all pending signals"""
+        cursor = self.db[self.COLLECTION].find({})
+        docs = await cursor.to_list(length=None)
+        if not docs:
+            return []
+        ids = [doc['_id'] for doc in docs]
+        await self.db[self.COLLECTION].delete_many({'_id': {'$in': ids}})
+        return [ReloadSignalDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
