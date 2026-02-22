@@ -43,16 +43,25 @@ def create_app() -> Quart:  # noqa: PLR0915
             from attubot.logo import generate_png
             from attubot.web.audit import AuditLogger
 
-            logger.info('Initializing configuration...')
-            config.on_init()
-
             logger.info('Connecting to database...')
             await config.on_load()
+
+            logger.info('Initializing marker repository...')
+            from attubot.markers import init_repo as init_markers
+            await init_markers()
+
+            logger.info('Initializing year repository...')
+            from attubot.years import init_repo as init_years
+            await init_years()
+
+            logger.info('Initializing signal repository...')
+            from attubot.signals import init_repo as init_signals
+            await init_signals()
 
             logger.info('Configuration loaded successfully')
 
             logger.info('Generating favicon...')
-            static_dir = Path(__file__).parent / 'static' / 'img'
+            static_dir = _assets_dir / 'static' / 'img'
             favicon_path = static_dir / 'favicon.png'
             static_dir.mkdir(parents=True, exist_ok=True)
 
@@ -72,12 +81,18 @@ def create_app() -> Quart:  # noqa: PLR0915
             # Initialize Discord bot (REST only)
             logger.info('Initializing Discord API connection...')
             from attubot import bot
+
             await bot.login(config.bot_token)
             logger.info(f'Logged into Discord as {bot.user}')
+
+            # Fetch guild names and perform post-ready setup
+            logger.info('Running post-ready config setup...')
+            await config.on_ready()
 
             # Initialize audit logger
             logger.info('Initializing audit logger...')
             from attubot import db
+
             global audit_logger  # noqa: PLW0603
             audit_logger = AuditLogger(db.get_db())
             logger.info('Audit logger initialized')
@@ -86,22 +101,89 @@ def create_app() -> Quart:  # noqa: PLR0915
             logger.fatal(f'Failed to initialize: {err}')
             raise err
 
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+    app.config['SECRET_KEY'] = config.web.secret_key
+    app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB max upload
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Session lasts 30 days
+
+    # Jinja2 filter: format a Unix timestamp as a human-readable date
+    @app.template_filter('timestamp_to_date')
+    def timestamp_to_date_filter(ts):
+        try:
+            return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            return 'Unknown'
+
+    # generate a fresh nonce for every request; stored on g so the CSP header and templates agree
+    @app.before_request
+    async def set_csp_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)
 
     # Security headers
     @app.after_request
     async def set_security_headers(response):
+        nonce = getattr(g, 'csp_nonce', '')
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        # Content-Security-Policy (L2)
+        # 'unsafe-inline' is kept for style-src only (inline <style> in base.html navbar theme).
+        # script-src uses a per-request nonce for inline <script> blocks; no 'unsafe-inline'.
+        # script-src-attr is relaxed to 'unsafe-inline' because dynamically generated rows
+        # inject onclick= attributes with runtime values (year ids, field names, credential ids)
+        # that cannot be hashed. inline event handlers are lower-risk than injected <script> blocks.
+        response.headers['Content-Security-Policy'] = (
+            f"default-src 'self'; "
+            f"script-src 'self' https://cdn.jsdelivr.net 'nonce-{nonce}'; "
+            f"script-src-attr 'unsafe-inline'; "
+            f"style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
+            f"img-src 'self' data:; "
+            f"font-src 'self' https://cdn.jsdelivr.net; "
+            f"connect-src 'self'; "
+            f"frame-ancestors 'none'"
+        )
         return response
 
-    # Register routes
+    # CSRF token and CSP nonce available in all templates (L3)
+    @app.context_processor
+    async def inject_csrf():
+        from attubot.web.auth import get_csrf_token
+        try:
+            nonce = getattr(g, 'csp_nonce', '')
+            return {'csrf_token': get_csrf_token(), 'csp_nonce': nonce}
+        except Exception:
+            return {'csrf_token': '', 'csp_nonce': ''}
+
+    # Rate limiting (L4) — must be registered before routes
+    from quart_rate_limiter import RateLimit, RateLimiter, rate_limit  # noqa: F401 (re-exported for auth.py)
+
+    RateLimiter(app, default_limits=[RateLimit(60, timedelta(minutes=1))])
+
+    # Register auth routes first (installs the before_request guard + per-endpoint rate limits)
+    from attubot.web.auth import register_auth_routes
+
+    register_auth_routes(app)
+
+    # Register application routes
     from attubot.web.routes import register_routes
+
     register_routes(app)
 
     logger.info('Quart application initialized')
 
     return app
+
+
+def start_web():
+    """Start the web interface — mirrors core.start_bot_loop()"""
+    logger.info('Starting AttuBot Web Interface!')
+    config.on_init()
+
+    logger.info('Starting Web Server')
+    app = create_app()
+    app.run(
+        host='0.0.0.0',  # noqa: S104
+        port=5000,
+        debug=False,
+        use_reloader=False,
+    )

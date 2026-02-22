@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any
 
 from pymongo.asynchronous.database import AsyncDatabase
+from quart import request
 
 from attubot.logging import get_logger
 
@@ -159,6 +160,23 @@ class AuditLogger:
     async def get_recent_changes(self, limit: int = 50) -> list[dict]:
         """Get most recent changes across all configs"""
         return await self.get_logs(limit=limit)
+
+
+def get_client_ip() -> str:
+    """Return the real client IP, honouring reverse-proxy headers.
+
+    Safe to call unconditionally: the web port is bound to 127.0.0.1:5000,
+    so only a local reverse proxy can reach Quart and external clients cannot
+    forge X-Forwarded-For directly.
+    """
+    forwarded_for = request.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        # Leftmost entry is the original client
+        return forwarded_for.split(',')[0].strip()
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        return real_ip.strip()
+    return request.remote_addr or 'unknown'
 
 
 def compare_configs(old: dict, new: dict, prefix: str = '') -> list[ConfigChange]:
