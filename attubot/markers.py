@@ -166,33 +166,3 @@ class YearMarker(BaseModel):
         return await _get_repo().exists(channel, year)
 
 
-# --- Extension Def ---
-
-
-async def init_repo():
-    """Initialize marker repository and indexes (call after DB is connected)"""
-    global _marker_repo  # noqa: PLW0603
-    from attubot import db
-
-    _marker_repo = YearMarkerRepository(db.get_db())
-    await _marker_repo.init_indexes()
-
-    logger.info(f'Loaded [{await YearMarker.total()}] markers')
-
-
-async def _init_db():
-    logger.info('Initializing database')
-
-    # Connect to MongoDB first
-    logger.info('Loading config from database')
-    await config.on_load()
-
-    # Now set up the repository and indexes
-    await init_repo()
-
-
-def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(_init_db())

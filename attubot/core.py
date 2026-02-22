@@ -218,9 +218,6 @@ def start_bot_loop():
 
     logger.info('Loading Extensions')
     try:
-        bot.load_extension('attubot.markers')  # db init step (runs migrations)
-        bot.load_extension('attubot.years')  # year record init (requires db)
-        bot.load_extension('attubot.database.signals')  # cross-process reload watcher (requires db)
         bot.load_extension('attubot.commands.debug')
         bot.load_extension('attubot.commands.marker')
         bot.load_extension('attubot.commands.query')

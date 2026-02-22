@@ -162,26 +162,3 @@ class Year(BaseModel):
         return existing
 
 
-# --- Extension Def ---
-
-async def init_repo():
-    """Initialize Year repository and indexes (call after DB is connected)"""
-    global _year_repo  # noqa: PLW0603
-    from attubot import db
-
-    _year_repo = YearRepository(db.get_db())
-    await _year_repo.init_indexes()
-
-    logger.info(f'Loaded [{await Year.total()}] year records')
-
-
-async def _init_db():
-    """Full init: used by bot extension loading"""
-    await init_repo()
-
-
-def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(_init_db())

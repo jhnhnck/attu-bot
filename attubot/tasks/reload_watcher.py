@@ -34,12 +34,6 @@ def _get_config():
     return config
 
 
-async def init_repo():
-    """Initialize the reload signal repository and its indexes."""
-    repo = _get_repo()
-    await repo.init_indexes()
-
-
 class ReloadWatcherTask(BaseTask):
     """Polls MongoDB for reload signals and applies them."""
 
