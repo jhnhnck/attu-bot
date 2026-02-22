@@ -23,6 +23,68 @@ The bot maintains a timekeeping system that calculates the current year and dete
 current_year = epoch_year + (days_since_epoch // epoch_length) - (1 IF (days_since_epoch MOD epoch_length) == 0 AND current_time < trigger_time ELSE 0)
 ```
 
+## Configuration
+
+AttuBot uses a **three-tier configuration system**:
+
+### Tier 1 — Environment Variables (`.env`)
+
+Only two values belong here. Copy `config/sample.env` to `.env`:
+
+| Variable | Purpose |
+|---|---|
+| `ATTU_CONFIG_FILE` | Path to the TOML config file (default: `./assets/attu-bot.toml`) |
+| `BUILD_TIME` | Stamped automatically at container build time — do not set manually |
+
+Everything else that was previously in `.env` has been moved into the TOML file.
+
+### Tier 2 — TOML Config File (secrets + read-only config)
+
+The TOML file holds all **secrets and static configuration** that must be present before the bot can start. Copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values:
+
+```toml
+config_version = "2.1.0"
+
+[paths]
+# Path to assets directory (templates, static files, favicon)
+assets = "./assets"
+
+[database]
+# MongoDB connection settings
+url = "mongodb://localhost:27017"
+name = "doombot"
+
+[auth.bot]
+# Discord bot token — from the Discord Developer Portal
+token = "TOKEN_GOES_HERE"
+
+[auth.web]
+# Secret key for session signing — generate with:
+#   python -c "import secrets; print(secrets.token_hex(32))"
+secret_key = "your-secret-key-here"
+
+[auth.webauthn]
+# WebAuthn / Passkey settings for the web interface
+rp_id = "localhost"              # domain only, e.g. "example.com"
+rp_name = "AttuBot Configurator"
+origin = "http://localhost:5000" # full origin, e.g. "https://example.com"
+
+[auth.wiki]
+key = "KEY_GOES_HERE"
+page = "Example:Home"
+user = "WikiBot@WikiBot"
+endpoint = "https://example.org"
+
+[discord.guilds]
+authorized = [1000000000000000000]
+```
+
+### Tier 3 — MongoDB (configurable runtime settings)
+
+Guild-level and system-level settings that can be changed at runtime are stored in MongoDB. These include epoch configuration, channel/role IDs, theme, and other values that may be updated via bot commands or the web interface. See [Configuration Keys](#configuration-keys) below for the full list.
+
+---
+
 ## Build / Setup
 
 1. Clone the repository:

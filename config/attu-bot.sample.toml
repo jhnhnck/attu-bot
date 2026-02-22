@@ -1,9 +1,42 @@
-config_version = "2.1.0"
+config_version = "2.3.0"
+
+[paths]
+# Path to the assets directory (templates, static files, favicon)
+# Can be relative (to working directory) or absolute
+assets = "./assets"
+
+[database]
+# MongoDB connection settings
+# Include credentials when MongoDB authentication is enabled (L5).
+# Format: mongodb://USER:PASS@HOST:PORT
+# When running via docker-compose, HOST is the service name "mongo".
+# Credentials must match MONGO_ROOT_USER / MONGO_ROOT_PASS in .env.
+url = "mongodb://doom:CHANGE_ME@mongo:27017"
+name = "doombot"
 
 [auth.bot]
+# Discord bot token — from the Discord Developer Portal
 token = "TOKEN_GOES_HERE"
 
+[auth.web]
+# Secret key for Quart/Flask session signing — REQUIRED for production
+# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+secret_key = "your-secret-key-here"
+
+[auth.webauthn]
+# WebAuthn / Passkey authentication settings
+# rp_id must match the domain users access the web interface on
+# For local access via localhost: use "localhost"
+# For a real domain: use e.g. "example.com"
+rp_id = "localhost"
+rp_name = "AttuBot Configurator"
+# origin must be the full origin including scheme and port
+# For local access: "http://localhost:5000"
+# Behind a reverse proxy on HTTPS: "https://example.com"
+origin = "http://localhost:5000"
+
 [auth.wiki]
+# MediaWiki bot credentials
 key = "KEY_GOES_HERE"
 page = "Example:Home"
 user = "WikiBot@WikiBot"
