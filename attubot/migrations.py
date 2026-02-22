@@ -299,3 +299,17 @@ async def migration_2_3_0():
     The version update is handled automatically by the @migration decorator.
     """
     logger.info('Running migration to 2.3.0')
+
+
+# Version 2.4.0
+@migration(old='2.3.0', new='2.4.0')
+async def migration_2_4_0():
+    """Migration to schema version 2.4.0
+
+    Adds weekly database backup task. Backup settings (path, day, time) are
+    configured in the [backup] section of the TOML config file.
+
+    No structural database changes needed — this is a version bump only.
+    The version update is handled automatically by the @migration decorator.
+    """
+    logger.info('Running migration to 2.4.0')
