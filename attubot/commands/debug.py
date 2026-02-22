@@ -33,7 +33,7 @@ debug_group = SlashCommandGroup('debug', default_member_permissions=Permissions.
 @debug_group.command(name='version', description='Displays the current version and container build time')
 async def debug_version(ctx: ApplicationContext):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
-    build_time = datetime.strptime(getenv('BUILD_TIME', 'Thu Aug 11 02:23:20 UTC 2022'), build_format)
+    build_time = datetime.strptime(__build_time__, build_format)
     distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
 
     embed = Embed(title='Version Info', color=0xE86348)

@@ -9,12 +9,12 @@ __title__ = 'AttuBot'
 __author__ = 'jhnhnck'
 __license__ = 'Apache License, Version 2.0'
 __copyright__ = 'Copyright (c) 2026 John Hancock, The Attu Project'
-__schema__ = '2.2.0'  # previously __version__
+__schema__ = '2.3.0'  # previously __version__
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'
 
-# TODO use gitpython to mark if dirty
-__version__ = '26.2.2'
+__version__ = '26.2.19'
+__build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
 
 import discord
 from discord import Intents
