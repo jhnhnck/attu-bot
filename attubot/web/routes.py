@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from quart import Quart, jsonify, render_template, request
 
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildUsers
-from attubot.database.signals import send_signal
+from attubot.signals import send_signal
 from attubot.logging import get_logger
 from attubot.web.app import config
 from attubot.web.audit import ConfigChange, compare_configs, get_client_ip

@@ -7,8 +7,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from typing import TYPE_CHECKING
 
-from discord import Bot
-
 from attubot.logging import get_logger
 
 if TYPE_CHECKING:
@@ -43,5 +41,3 @@ async def send_signal(signal_type: str, guild_id: int | None = None):
         logger.error(f'Failed to send reload signal (type={signal_type} guild_id={guild_id}): {e}')
 
 
-def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')

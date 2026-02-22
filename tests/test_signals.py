@@ -159,38 +159,38 @@ class TestReloadSignalRepository:
 def mock_signal_repo():
     """Patch attubot.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
     repo = AsyncMock()
-    with patch('attubot.database.signals._get_repo', return_value=repo), patch('attubot.tasks.reload_watcher._get_repo', return_value=repo):
+    with patch('attubot.signals._get_repo', return_value=repo), patch('attubot.tasks.reload_watcher._get_repo', return_value=repo):
         yield repo
 
 
 class TestSendSignalHelper:
     async def test_sends_guild_signal(self, mock_signal_repo):
-        from attubot.database.signals import send_signal
+        from attubot.signals import send_signal
 
         await send_signal('guild', TEST_GUILD)
         mock_signal_repo.send.assert_called_once_with('guild', TEST_GUILD)
 
     async def test_sends_theme_signal(self, mock_signal_repo):
-        from attubot.database.signals import send_signal
+        from attubot.signals import send_signal
 
         await send_signal('theme')
         mock_signal_repo.send.assert_called_once_with('theme', None)
 
     async def test_sends_system_signal(self, mock_signal_repo):
-        from attubot.database.signals import send_signal
+        from attubot.signals import send_signal
 
         await send_signal('system')
         mock_signal_repo.send.assert_called_once_with('system', None)
 
     async def test_swallows_exception(self, mock_signal_repo):
-        from attubot.database.signals import send_signal
+        from attubot.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=Exception('db gone'))
         # should not raise - errors are logged but never re-raised
         await send_signal('guild', TEST_GUILD)
 
     async def test_swallows_connection_error(self, mock_signal_repo):
-        from attubot.database.signals import send_signal
+        from attubot.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=ConnectionError('mongo down'))
         await send_signal('theme')
