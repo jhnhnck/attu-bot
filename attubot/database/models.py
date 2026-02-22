@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import time
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -50,6 +51,7 @@ class YearMarkerDocument(BaseModel):
     """MongoDB document for year markers"""
     model_config = ConfigDict(extra='ignore')
 
+    guild: int
     channel: int
     message: int
     year: int
@@ -68,3 +70,20 @@ class YearDocument(BaseModel):
     duration: int = 0
     formatted: str = ''
     notes: str = ''
+
+
+class ReloadSignalDocument(BaseModel):
+    """MongoDB document for cross-process config reload signals
+
+    written by the web process; consumed and deleted by the bot process.
+    upserted by (signal_type, guild_id) so rapid saves coalesce into one signal.
+    """
+    model_config = ConfigDict(extra='ignore')
+
+    signal_type: Literal['guild', 'theme', 'system']
+    guild_id: int | None = None
+    timestamp: int = 0
+
+    @classmethod
+    def make(cls, signal_type: Literal['guild', 'theme', 'system'], guild_id: int | None = None) -> 'ReloadSignalDocument':
+        return cls(signal_type=signal_type, guild_id=guild_id, timestamp=int(time.time()))
