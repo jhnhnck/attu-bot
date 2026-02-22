@@ -14,7 +14,30 @@ logger = get_logger(__name__)
 
 migration_table: list[Callable] = []
 
+
+class MigrationError(Exception):
+    """Raised when a migration fails; signals the bot should not continue initializing."""
+
+
+# --- Backup / Restore Helpers ---
+
+
+async def _backup_collection(db, name: str) -> list[dict]:
+    """Snapshot all documents in a collection for rollback purposes."""
+    docs = await db[name].find({}).to_list(length=None)
+    return [dict(doc) for doc in docs]
+
+
+async def _restore_collection(db, name: str, backup: list[dict]):
+    """Restore a collection from a snapshot, replacing all current contents."""
+    await db[name].delete_many({})
+    if backup:
+        clean = [{k: v for k, v in doc.items() if k != '_id'} for doc in backup]
+        await db[name].insert_many(clean)
+
+
 # --- Decorator ---
+
 
 def migration(old: str, new: str) -> Callable:
     def decorator_migration(func: Callable) -> Callable:
@@ -24,28 +47,44 @@ def migration(old: str, new: str) -> Callable:
                 logger.debug(f'Patch for {new} already applied')
                 return
 
-            # call migrator
-            await func()
+            # call migrator — do NOT bump version if it fails
+            try:
+                await func()
+            except Exception as e:
+                logger.error(f'Migration to {new} FAILED: {e}')
+                raise MigrationError(f'Migration to {new} failed') from e
 
             # Bump version in MongoDB
             logger.info(f'Applied patch for {new}')
             from attubot import db
+
             database = db.get_db()
-            await database.config.update_one(
+            await database.global_config.update_one(
                 {'config_type': 'system'},
                 {'$set': {'version': new}},
             )
 
         migration_table.append(wrapper)
         return wrapper
+
     return decorator_migration
 
+
 # --- Migration Steps ---
+
+
+# Bootstrap: fresh database with no prior version
+@migration(old='0.0.0', new='1.8.0-pre9')
+async def migration_bootstrap():
+    """Bootstrap migration for fresh databases"""
+    pass
+
 
 # Version 1.8.0
 @migration(old='1.8.0-pre9', new='1.8.0')
 async def migration_full_release():
     pass
+
 
 # Version 2.0.0
 @migration(old='1.8.0', new='2.0.0')
