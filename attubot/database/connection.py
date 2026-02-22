@@ -40,7 +40,7 @@ class MongoStorage:
         """
         self.mongo_url = url
         self.db_name = name
-        logger.info(f'Connecting to MongoDB: {self.mongo_url}/{self.db_name}')
+        logger.info(f'Connecting to MongoDB: {self.db_name}')
 
         try:
             # Create client with timeout settings

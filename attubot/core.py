@@ -82,6 +82,20 @@ async def on_ready():
         logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         try:
+            logger.info('Connecting to database and initializing repositories...')
+            from attubot.database import init_database
+
+            await init_database(config.database.url, config.database.name)
+
+            logger.info('Loading configuration from database...')
+            await config.on_load()
+        except Exception as err:
+            logger.fatal('Exception caught initializing database; exiting', err)
+            await logger.send_to_webhook(err)
+            await _shutdown(exit_code=1)
+            return
+
+        try:
             await config.on_ready()
         except Exception as err:
             logger.fatal('Exception caught in on_ready() event; exiting', err)

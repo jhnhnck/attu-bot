@@ -319,15 +319,8 @@ class NovaConfig:
 
         self._get_event('init').set()
 
-    async def on_load(self):  # called by markers setup after db is connected
+    async def on_load(self):  # called after init_database() connects and sets up config_repo
         logger.info('Starting post-connect config loading stage')
-
-        # Initialize MongoDB and repositories
-        from attubot import db
-
-        await db.connect(self.database.url, self.database.name)
-        self.config_repo = ConfigRepository(db.get_db())
-        await self.config_repo.init_indexes()
 
         # Version check and load system config
         system_config = await self.config_repo.get_system()

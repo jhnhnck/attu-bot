@@ -43,23 +43,13 @@ def create_app() -> Quart:  # noqa: PLR0915
             from attubot.logo import generate_png
             from attubot.web.audit import AuditLogger
 
-            logger.info('Connecting to database...')
+            logger.info('Connecting to database and initializing repositories...')
+            from attubot.database import init_database
+
+            await init_database(config.database.url, config.database.name)
+
+            logger.info('Loading configuration from database...')
             await config.on_load()
-
-            logger.info('Initializing marker repository...')
-            from attubot.markers import init_repo as init_markers
-
-            await init_markers()
-
-            logger.info('Initializing year repository...')
-            from attubot.years import init_repo as init_years
-
-            await init_years()
-
-            logger.info('Initializing signal repository...')
-            from attubot.database.signals import init_repo as init_signals
-
-            await init_signals()
 
             logger.info('Configuration loaded successfully')
 
