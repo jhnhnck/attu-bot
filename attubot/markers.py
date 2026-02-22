@@ -12,8 +12,8 @@ from discord.utils import snowflake_time
 from pydantic import BaseModel
 
 from attubot import config
+from attubot.database.repositories import YearMarkerRepository
 from attubot.logging import get_logger
-from attubot.repositories import YearMarkerRepository
 
 logger = get_logger(__name__)
 
@@ -26,14 +26,17 @@ def _get_repo() -> YearMarkerRepository:
     global _marker_repo  # noqa: PLW0603
     if _marker_repo is None:
         from attubot import db
+
         _marker_repo = YearMarkerRepository(db.get_db())
     return _marker_repo
 
 
 # --- Year Marker Model ---
 
+
 class YearMarker(BaseModel):
     """Year marker runtime model"""
+
     guild: int
     channel: int
     message: int
@@ -162,7 +165,9 @@ class YearMarker(BaseModel):
         """Check if a marker exists for the given channel and year"""
         return await _get_repo().exists(channel, year)
 
+
 # --- Extension Def ---
+
 
 async def init_repo():
     """Initialize marker repository and indexes (call after DB is connected)"""
@@ -191,4 +196,3 @@ def setup(bot: Bot):
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(_init_db())
-

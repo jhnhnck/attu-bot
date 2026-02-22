@@ -12,8 +12,8 @@ from pydantic import BaseModel
 
 from attubot import config
 from attubot.calendar import SECONDS_PER_DAY, format_year_line
+from attubot.database.repositories import YearRepository
 from attubot.logging import get_logger
-from attubot.repositories import YearRepository
 
 logger = get_logger(__name__)
 
@@ -164,8 +164,8 @@ class Year(BaseModel):
 
 # --- Extension Def ---
 
-async def _init_db():
-    """Initialize Year repository and create indexes"""
+async def init_repo():
+    """Initialize Year repository and indexes (call after DB is connected)"""
     global _year_repo  # noqa: PLW0603
     from attubot import db
 
@@ -173,6 +173,11 @@ async def _init_db():
     await _year_repo.init_indexes()
 
     logger.info(f'Loaded [{await Year.total()}] year records')
+
+
+async def _init_db():
+    """Full init: used by bot extension loading"""
+    await init_repo()
 
 
 def setup(bot: Bot):
