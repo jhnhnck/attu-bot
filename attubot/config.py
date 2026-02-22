@@ -91,6 +91,8 @@ class GuildChannels(BaseModel):
     announcements: int = 0
     year_links: int = 0
     meta_chat: int = 0
+    general: int = 0
+    logs: int = 0
     lore_channels: list[int] = []
     canon_channels: list[int] = []  # additional channels included in year search/link lookups
 

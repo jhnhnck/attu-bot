@@ -7,8 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import sys
+from datetime import datetime, timezone
 
-from discord import ApplicationContext, Member, Message
+from discord import ApplicationContext, Color, Embed, Member, Message
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
@@ -147,19 +148,46 @@ async def on_member_join(member: Member):
         return
 
     guild_config = config.guild(member.guild.id)
-    channel_id = guild_config.channels.meta_chat
 
-    if channel_id == 0:
-        logger.debug(f'No meta_chat channel configured for guild {member.guild.id}, skipping welcome')
-        return
+    async def send_welcome():
+        channel_id = guild_config.channels.general
+        if channel_id == 0:
+            logger.debug(f'no general channel configured for guild {member.guild.id}, skipping welcome')
+            return
+        channel = member.guild.get_channel(channel_id)
+        if channel is None:
+            logger.warn(f'general channel {channel_id} not found in guild {member.guild.id}')
+            return
+        await channel.send(f'welcome to the archipelago {member.mention}')
 
-    channel = member.guild.get_channel(channel_id)
+    async def send_log():
+        channel_id = guild_config.channels.logs
+        if channel_id == 0:
+            logger.debug(f'no logs channel configured for guild {member.guild.id}, skipping member log')
+            return
+        channel = member.guild.get_channel(channel_id)
+        if channel is None:
+            logger.warn(f'logs channel {channel_id} not found in guild {member.guild.id}')
+            return
 
-    if channel is None:
-        logger.warn(f'meta_chat channel {channel_id} not found in guild {member.guild.id}')
-        return
+        created_at = member.created_at.replace(tzinfo=timezone.utc) if member.created_at.tzinfo is None else member.created_at
+        now = datetime.now(tz=timezone.utc)
+        age_days = (now - created_at).days
+        age_str = f'{age_days // 365}y {age_days % 365}d' if age_days >= 365 else f'{age_days}d'
 
-    await channel.send(f'welcome to the archipelago {member.mention}')
+        color_hex = int(config.theme.bot_color.lstrip('#'), 16) if config.theme else Color.blurple().value
+        embed = Embed(title='Member Joined', color=color_hex)
+        embed.add_field(name='Mention', value=member.mention, inline=True)
+        embed.add_field(name='Username', value=member.name, inline=True)
+        embed.add_field(name='Account Created', value=f'<t:{int(created_at.timestamp())}:f>', inline=False)
+        embed.add_field(name='Account Age', value=age_str, inline=True)
+
+        if member.display_avatar:
+            embed.set_thumbnail(url=member.display_avatar.url)
+
+        await channel.send(embed=embed)
+
+    await asyncio.gather(send_welcome(), send_log())
 
 
 @bot.before_invoke
