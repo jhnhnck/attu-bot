@@ -130,8 +130,6 @@ async def move_epoch(length: int, guild: int | None = None):
     cfg = config.primary() if guild is None else config.guild(guild)
     guild_id = config.primary_guild if guild is None else guild
 
-    old_epoch_year = cfg.epoch.year
-    old_epoch_time = cfg.epoch.time
     old_year_length = cfg.epoch.length
     note = ''
 
