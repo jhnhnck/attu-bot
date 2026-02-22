@@ -13,12 +13,11 @@ from typing import Any, Literal, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
 import tomlkit
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
 from attubot import __schema__
-from attubot.jobs import JobWorker
+from attubot.database.repositories import ConfigRepository
 from attubot.logging import get_logger
-from attubot.repositories import ConfigRepository
 
 logger = get_logger(__name__)
 
@@ -27,15 +26,37 @@ _config: 'NovaConfig'
 
 # --- Components ---
 
+
 # Type definition for the raw TOML config file structure
 class RawConfig(TypedDict):
     config_version: str
+    paths: dict[str, Any]
+    database: dict[str, Any]
     auth: dict[str, Any]
     discord: dict[str, Any]
 
 
 class NovaGlobals(BaseModel):
     pass
+
+
+class PathsConfig(BaseModel):
+    assets: str = './assets'
+
+
+class DatabaseConfig(BaseModel):
+    url: str = 'mongodb://localhost:27017'
+    name: str = 'doombot'
+
+
+class WebConfig(BaseModel):
+    secret_key: str
+
+
+class WebAuthnConfig(BaseModel):
+    rp_id: str = 'localhost'
+    rp_name: str = 'AttuBot Configurator'
+    origin: str = 'http://localhost:5000'
 
 
 class BotTheme(BaseModel):
@@ -110,7 +131,7 @@ class GuildConfig(BaseModel):
     epoch: GuildEpoch
     roles: GuildRoles
     users: GuildUsers
-    _display_name: str | None = None
+    _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):
         """Save entire guild config to MongoDB"""
@@ -150,8 +171,10 @@ class GuildConfig(BaseModel):
     def __str__(self) -> str:
         return str(self.id) if self._display_name is None else self._display_name
 
+
 class GuildConfigExport(GuildConfig):
     name: str
+
 
 # Type definition for NovaConfig serialization
 class NovaConfigRepr(TypedDict):
@@ -163,7 +186,9 @@ class NovaConfigRepr(TypedDict):
     guilds: list[GuildConfigExport]
     wiki: WikiAuth
 
+
 # --- Exceptions ---
+
 
 # Raised when configuration loading fails
 class ConfigLoadError(Exception):
@@ -179,8 +204,8 @@ class UnauthorizedGuild(Exception):
         super().__init__(self.message)
 
 
-
 # --- Config Class ---
+
 
 # New Config Rewrite
 class NovaConfig:
@@ -204,7 +229,6 @@ class NovaConfig:
         self.config_version: str = __schema__
         self.wiki: WikiAuth = None
         self.theme: BotTheme = None
-        self.job_worker: JobWorker = None
         self.bot_token: str = None
         self.authorized_guilds: set[int] = set()
         self.valid_guilds: list[int] = []
@@ -216,6 +240,12 @@ class NovaConfig:
 
         # MongoDB repositories
         self.config_repo: ConfigRepository = None
+
+        # Config sections loaded from TOML
+        self.paths: PathsConfig = None
+        self.database: DatabaseConfig = None
+        self.web: WebConfig = None
+        self.webauthn: WebAuthnConfig = None
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './assets/attu-bot.toml')).resolve()
@@ -254,7 +284,31 @@ class NovaConfig:
 
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
-        self.authorized_guilds = { *self._raw['discord']['guilds']['authorized'] }
+        self.authorized_guilds = {*self._raw['discord']['guilds']['authorized']}
+
+        try:
+            self.paths = PathsConfig(**self._raw.get('paths', {}))
+        except ValidationError as err:
+            logger.error(f'Failed to validate paths configuration: {err!s}')
+            raise ConfigLoadError('invalid paths configuration')
+
+        try:
+            self.database = DatabaseConfig(**self._raw.get('database', {}))
+        except ValidationError as err:
+            logger.error(f'Failed to validate database configuration: {err!s}')
+            raise ConfigLoadError('invalid database configuration')
+
+        try:
+            self.web = WebConfig(**self._raw['auth']['web'])
+        except (KeyError, ValidationError) as err:
+            logger.error(f'Failed to validate web auth configuration: {err!s}')
+            raise ConfigLoadError('invalid web auth configuration (missing [auth.web] section?)')
+
+        try:
+            self.webauthn = WebAuthnConfig(**self._raw['auth'].get('webauthn', {}))
+        except ValidationError as err:
+            logger.error(f'Failed to validate webauthn configuration: {err!s}')
+            raise ConfigLoadError('invalid webauthn configuration')
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
@@ -263,9 +317,6 @@ class NovaConfig:
             logger.error(f'Failed to validate wiki auth configuration: {err!s}')
             raise ConfigLoadError('invalid wiki auth configuration')
 
-        # initialize job worker
-        self.job_worker = JobWorker()
-
         self._get_event('init').set()
 
     async def on_load(self):  # called by markers setup after db is connected
@@ -273,9 +324,8 @@ class NovaConfig:
 
         # Initialize MongoDB and repositories
         from attubot import db
-        from attubot.repositories import ConfigRepository
 
-        await db.connect()
+        await db.connect(self.database.url, self.database.name)
         self.config_repo = ConfigRepository(db.get_db())
         await self.config_repo.init_indexes()
 
@@ -285,28 +335,15 @@ class NovaConfig:
             logger.info(f'Current schema version: {system_config.version}')
         else:
             logger.warn('No system config found - creating defaults')
-            from attubot.models import SystemConfigDocument
+            from attubot.database.models import SystemConfigDocument
+
             system_config = SystemConfigDocument(
-                version=self.config_version,
+                version='0.0.0',
                 error_log=[0, 0],
                 error_hook=f'{self.wiki.endpoint}/invalid-webhook',
                 primary_guild=next(iter(self.authorized_guilds)),
             )
             await self.config_repo.save_system(system_config)
-
-        # Run migrations if needed
-        if system_config.version != self.config_version:
-            logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
-            logger.info('Running migrations...')
-
-            from attubot.migrations import migration_table
-
-            for migration in migration_table:
-                await migration(system_config.version)
-
-            # Reload system config after migrations
-            system_config = await self.config_repo.get_system()
-            logger.info(f'Migration complete: now at version {system_config.version}')
 
         # Extract system config values (eliminates redundant query)
         self.error_log = tuple(system_config.error_log)
@@ -336,10 +373,34 @@ class NovaConfig:
             if not success:
                 logger.warn(f'Guild {guild_id} failed to load properly')
 
+        # Run migrations after guild configs are loaded (migrations may need guild data)
+        if system_config.version != self.config_version:
+            logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
+
+            if self.test_mode:
+                logger.info('Skipping migrations in TEST_MODE (no DB changes)')
+            else:
+                logger.info('Running migrations...')
+
+                from attubot.migrations import MigrationError, migration_table
+
+                try:
+                    for migration in migration_table:
+                        await migration(system_config.version)
+                        system_config = await self.config_repo.get_system()
+                except MigrationError as e:
+                    logger.fatal(f'Migration failed — refusing to continue initialization: {e}')
+                    raise
+
+                # Reload system config after migrations
+                system_config = await self.config_repo.get_system()
+                logger.info(f'Migration complete: now at version {system_config.version}')
+
         self._get_event('load').set()
 
     async def on_ready(self):  # called by Bot.on_ready after connect, low priority maintenance tasks
         from attubot import bot
+
         logger.info('Starting post-ready config loading stage')
 
         async def _update_guild_markers(guild_id: int, guild: GuildConfig) -> int | None:
@@ -356,43 +417,46 @@ class NovaConfig:
                     return None
             return None
 
-        # Execute parallel updates
-        await asyncio.gather(
-            *[_update_guild_markers(idx, guild) for idx, guild in self.guilds.items()],
-            return_exceptions=False,
-        )
+        # Execute parallel updates (skip in test mode to avoid DB writes)
+        if not self.test_mode:
+            await asyncio.gather(
+                *[_update_guild_markers(idx, guild) for idx, guild in self.guilds.items()],
+                return_exceptions=False,
+            )
 
-        self.path.chmod(0o660)
+        # Only chmod if not in test mode (volume may be read-only in tests)
+        if not self.test_mode:
+            self.path.chmod(0o660)
 
         # manually fetch owner info ourselves bc pycord is weird
         logger.debug('Fetching bot owner info')
         bot_info = await bot.application_info()
 
         if bot_info.team:
-            self.owner_ids = { usr.id for usr in bot_info.team.members }
+            self.owner_ids = {usr.id for usr in bot_info.team.members}
         else:
-            self.owner_ids = { bot_info.owner.id }
+            self.owner_ids = {bot_info.owner.id}
 
         if self.test_mode:
-            logger.debug('Dumping NovaConfig:', tomlkit.dumps(self.to_dict(), sort_keys=True), sep='\n')
+            # logger.debug('Dumping NovaConfig:', tomlkit.dumps(self.to_dict(banned_keys=['config_repo', 'job_worker']), sort_keys=True), sep='\n')
+            pass
 
         # load guild names from discord and store in config object
         logger.debug('Fetching guild names')
 
         async def _fetch_guild_name(guild_id: int) -> tuple[int, str | None]:
-            """Wrapper for parallel guild fetching with error handling"""
-            try:
-                guild_obj = await bot.fetch_guild(guild_id)
-                return (guild_id, guild_obj.name or None)
-            except Exception as e:
-                logger.error(f'Failed to fetch guild name for {guild_id}: {e!s}')
-                return (guild_id, None)
+            """Fetch guild name from bot cache, falling back to API if not cached"""
+            guild_obj = bot.get_guild(guild_id)
+            if guild_obj is None:
+                try:
+                    logger.warn(f'Fetching guild {guild_id} info!')
+                    guild_obj = await bot.fetch_guild(guild_id)
+                except Exception as e:
+                    logger.error(f'Failed to fetch guild {guild_id} from API: {e}')
+                    return (guild_id, None)
+            return (guild_id, guild_obj.name if guild_obj else None)
 
-        # Fetch all guild names in parallel
-        results = await asyncio.gather(
-            *[_fetch_guild_name(idx) for idx in self.guilds],
-            return_exceptions=False,
-        )
+        results = await asyncio.gather(*[_fetch_guild_name(idx) for idx in self.guilds])
 
         # Apply results
         for guild_id, name in results:
@@ -545,7 +609,7 @@ class NovaConfig:
 
     # --- Debug ---
 
-    def to_dict(self, banned_keys = []) -> NovaConfigRepr:
+    def to_dict(self, banned_keys=[]) -> NovaConfigRepr:
         result = {}
 
         def convert_value(value):
@@ -569,7 +633,7 @@ class NovaConfig:
                 guilds = []
 
                 for idx, guild in self.guilds.items():
-                    guilds.append({**{ 'name': str(guild) }, **{ key: convert_value(value) for key, value in vars(guild).items() }})
+                    guilds.append({**{'name': str(guild)}, **{key: convert_value(value) for key, value in vars(guild).items()}})
 
                 result[key] = guilds
 
@@ -580,7 +644,6 @@ class NovaConfig:
                 result[key] = convert_value(value)
 
         return cast(NovaConfigRepr, result)
-
 
     def to_repr(self) -> NovaConfigRepr:
         banned_keys = ['bot_token', 'global_keys', 'guild_keys', 'valid_keys', 'test_mode', 'authorized_guilds', 'valid_guilds']
