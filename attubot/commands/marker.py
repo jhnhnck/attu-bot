@@ -53,7 +53,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         return
 
     # Check if close
-    est_marker = await YearMarker.get(channel=guild_config.id, year=year)
+    est_marker = await YearMarker.get(channel=channel, year=year)
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
     if time_diff > 600 and not force:
@@ -61,7 +61,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         return
 
     # Add or update marker
-    marker, created = await YearMarker.get_or_create(channel=channel, year=year, message=message)
+    marker, created = await YearMarker.get_or_create(guild=guild, channel=channel, year=year, message=message)
     await marker.update(message=message, exact=True)
 
     verb = 'Created' if created else 'Updated'
@@ -82,7 +82,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
         return
 
     # Get existing marker
-    est_marker = await YearMarker.get(channel=guild_config.id, year=year)
+    est_marker = await YearMarker.get_any(guild=guild_config.id, year=year)
     old_time = int(snowflake_time(est_marker.message).timestamp())
     new_time = int(snowflake_time(snowflake).timestamp())
 

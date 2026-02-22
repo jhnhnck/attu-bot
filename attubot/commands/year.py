@@ -130,12 +130,12 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
 
     else:
         # Fetch stored marker for that year
-        guild_marker = await YearMarker.get(channel=cfg.id, year=year)
+        guild_marker = await YearMarker.get_any(guild=cfg.id, year=year)
         if guild_marker is None:
             logger.error(f'No guild marker found for year {year} in {cfg.id}')
             return format_message_link(guild=cfg.id, channel=channel.id, message=0, relative=True)
         timestamp = snowflake_time(guild_marker.message)
-        marker = YearMarker(channel=channel.id, message=0, year=year)
+        marker = YearMarker(guild=cfg.id, channel=channel.id, message=0, year=year)
         logger.debug(f'Searching for {year} PC in {channel.id}')
         closest = SECONDS_PER_DAY
 
