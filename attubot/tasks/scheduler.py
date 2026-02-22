@@ -132,12 +132,10 @@ class TaskScheduler:
 
     @property
     def count(self) -> int:
-        from attubot import bot
-        return len(self._jobs) + len(bot.cogs)
+        return len(self._jobs) + len(self._loop_tasks)
 
     @property
     def running_tasks(self) -> list[str]:
-        from attubot import bot
         names: list[str] = []
 
         for task in self._jobs:
@@ -145,9 +143,6 @@ class TaskScheduler:
 
         for task in self._loop_tasks:
             names.append(task.get_name())
-
-        for name, _ in bot.cogs.items():
-            names.append(name)
 
         return names
 
