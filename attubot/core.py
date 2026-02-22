@@ -135,7 +135,9 @@ async def on_message(message: Message):
 async def on_application_command(ctx: ApplicationContext):
     logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
+
 # --- Commands ---
+
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx: ApplicationContext):
@@ -176,7 +178,9 @@ async def command_test(ctx: ApplicationContext):
         await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
         return
 
+
 # --- Trigger Function ---
+
 
 def start_bot_loop():
     logger.info('Starting DoomBot!')
@@ -197,17 +201,20 @@ def start_bot_loop():
     # bot.add_application_command(cast(ApplicationCommand, command_test))
 
     logger.info('Loading Extensions')
-    bot.load_extension('attubot.markers')  # db init step
-    bot.load_extension('attubot.years')    # year record init (requires db)
-    bot.load_extension('attubot.tasks')
-    # TODO: re-implement as a web interface
-    # bot.load_extension('attubot.commands.config')
-    bot.load_extension('attubot.commands.debug')
-    bot.load_extension('attubot.commands.marker')
-    bot.load_extension('attubot.commands.query')
-    bot.load_extension('attubot.commands.time')
-    bot.load_extension('attubot.commands.wiki')
-    bot.load_extension('attubot.commands.year')
+    try:
+        bot.load_extension('attubot.markers')  # db init step (runs migrations)
+        bot.load_extension('attubot.years')  # year record init (requires db)
+        bot.load_extension('attubot.signals')  # cross-process reload watcher (requires db)
+        bot.load_extension('attubot.tasks')
+        bot.load_extension('attubot.commands.debug')
+        bot.load_extension('attubot.commands.marker')
+        bot.load_extension('attubot.commands.query')
+        bot.load_extension('attubot.commands.time')
+        bot.load_extension('attubot.commands.wiki')
+        bot.load_extension('attubot.commands.year')
+    except Exception as e:
+        logger.fatal(f'Failed to load extensions, cannot start bot: {e}')
+        sys.exit(1)
 
     logger.info('Starting Bot')
     bot.run(config.bot_token)
