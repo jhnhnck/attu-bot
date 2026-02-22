@@ -140,7 +140,7 @@ class Year(BaseModel):
     @classmethod
     async def create_from_rollover(cls, guild: int, year: int, start_time: int) -> 'Year':
         """Create a new Year record during rollover with auto-computed formatted line"""
-        formatted = format_year_line(year)
+        formatted = format_year_line(year).lstrip('# ')
         new_year = cls(
             guild=guild, year=year,
             start_time=start_time, end_time=0,
