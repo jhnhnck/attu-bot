@@ -35,6 +35,7 @@ class TaskScheduler:
         """Add a fire-and-forget background task."""
         if not name:
             from uuid import uuid4
+
             name = f'Task[{uuid4().hex[:16]}]'
 
         async def run_and_forget():

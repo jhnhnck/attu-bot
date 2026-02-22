@@ -20,12 +20,15 @@ SECONDS_PER_DAY = 86400
 
 # --- Components ---
 
+
 class AttuYearSpan(BaseModel):
     start_time: int
     end_time: int
     duration: int
 
+
 # --- Utilities ---
+
 
 def format_year_line(year: int, level: int = 1) -> str:
     separators = ['<', '=', '+', r'\>', '/', '&', ':', '$', r'\*', '%', '@', '⁂', 'xXx', '\\\\', '?', '^', r'\|', r'\~', '-']
