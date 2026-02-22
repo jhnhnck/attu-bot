@@ -57,7 +57,7 @@ def create_app() -> Quart:  # noqa: PLR0915
             await init_years()
 
             logger.info('Initializing signal repository...')
-            from attubot.signals import init_repo as init_signals
+            from attubot.database.signals import init_repo as init_signals
 
             await init_signals()
 
