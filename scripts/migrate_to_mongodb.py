@@ -131,6 +131,7 @@ class Migration:
                 # Handle JSON array or comma-separated
                 if val.startswith('['):
                     import json
+
                     return json.loads(val)
                 return [int(x.strip()) for x in val.split(',') if x.strip()]
             return []
@@ -183,7 +184,7 @@ class Migration:
             try:
                 tokens = self.get_tokens_for_guild(guild_id)
                 if not tokens:
-                    logger.warning(f'No tokens found for guild {guild_id}, skipping')
+                    logger.warn(f'No tokens found for guild {guild_id}, skipping')
                     continue
 
                 config = self.parse_tokens_to_guild_config(guild_id, tokens)
@@ -348,9 +349,9 @@ class Migration:
         try:
             await self.connect()
 
-            logger.info('='*60)
-            logger.info(f"Starting migration {'(DRY RUN)' if self.dry_run else ''}")
-            logger.info('='*60)
+            logger.info('=' * 60)
+            logger.info(f'Starting migration {"(DRY RUN)" if self.dry_run else ""}')
+            logger.info('=' * 60)
 
             await self.migrate_guild_configs()
             await self.migrate_theme()
@@ -358,14 +359,14 @@ class Migration:
             await self.migrate_year_markers()
             await self.create_indexes()
 
-            logger.info('='*60)
+            logger.info('=' * 60)
             logger.info('Migration complete!')
-            logger.info(f"  Guilds migrated: {self.stats['guilds']}")
-            logger.info(f"  Markers migrated: {self.stats['markers']}")
-            logger.info(f"  Theme migrated: {self.stats['theme']}")
-            logger.info(f"  System config migrated: {self.stats['system']}")
-            logger.info(f"  Errors: {self.stats['errors']}")
-            logger.info('='*60)
+            logger.info(f'  Guilds migrated: {self.stats["guilds"]}')
+            logger.info(f'  Markers migrated: {self.stats["markers"]}')
+            logger.info(f'  Theme migrated: {self.stats["theme"]}')
+            logger.info(f'  System config migrated: {self.stats["system"]}')
+            logger.info(f'  Errors: {self.stats["errors"]}')
+            logger.info('=' * 60)
 
             if self.dry_run:
                 logger.info('This was a dry run - no changes were made to MongoDB')
