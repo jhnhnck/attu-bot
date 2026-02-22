@@ -94,13 +94,13 @@ async def on_ready():
             await _shutdown(exit_code=0)
             return
 
-        # util depends on config being init, can't import later
+        # start task scheduler
         try:
-            from attubot.tasks import error_hook_refresh
+            from attubot.tasks import scheduler
 
-            await error_hook_refresh()
+            await scheduler.start_all()
         except Exception as err:
-            logger.fatal('Exception caught in on_ready() event; exiting', err)
+            logger.fatal('Exception caught starting task scheduler; exiting', err)
             await logger.send_to_webhook(err)
             await _shutdown(exit_code=1)
             return
@@ -159,7 +159,9 @@ async def command_pong(ctx: ApplicationContext):
 
     else:
         await ctx.respond('Ping! <:rockball:1308981475114225694>')
-        config.job_worker.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
+        from attubot.tasks import scheduler
+
+        scheduler.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
 
 
 @discord.slash_command(name='test', description='Simple command to test with')
@@ -204,8 +206,7 @@ def start_bot_loop():
     try:
         bot.load_extension('attubot.markers')  # db init step (runs migrations)
         bot.load_extension('attubot.years')  # year record init (requires db)
-        bot.load_extension('attubot.signals')  # cross-process reload watcher (requires db)
-        bot.load_extension('attubot.tasks')
+        bot.load_extension('attubot.database.signals')  # cross-process reload watcher (requires db)
         bot.load_extension('attubot.commands.debug')
         bot.load_extension('attubot.commands.marker')
         bot.load_extension('attubot.commands.query')
