@@ -13,9 +13,9 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import patch  # noqa: E402
+from unittest.mock import patch
 
-import pytest  # noqa: E402
+import pytest
 
 # --- /ping Command Tests ---
 
@@ -55,13 +55,19 @@ class TestPongCommand:
     @pytest.mark.asyncio
     async def test_pong_non_owner_ping_response(self, mock_ctx_factory):
         """Test that /pong responds with 'Ping!' for non-owner and creates background task"""
+        from unittest.mock import MagicMock
+
+        from attubot import tasks as tasks_module
         from attubot.core import command_pong
 
         ctx = mock_ctx_factory(user_id=888, is_owner=False)
 
-        # Mock config.is_owner to return False and create_task to prevent actual task creation
+        # Create a mock scheduler with an add_job method
+        mock_scheduler = MagicMock()
+
+        # Mock config.is_owner to return False and the tasks module scheduler
         with patch('attubot.core.config.is_owner', return_value=False), \
-             patch('attubot.core.create_task') as mock_create_task:
+             patch.object(tasks_module, 'scheduler', mock_scheduler):
 
             await command_pong(ctx)
 
@@ -71,6 +77,6 @@ class TestPongCommand:
         assert '<:rockball:1308981475114225694>' in response
 
         # Verify a background task was created
-        mock_create_task.assert_called_once()
-        call_args = mock_create_task.call_args
+        mock_scheduler.add_job.assert_called_once()
+        call_args = mock_scheduler.add_job.call_args
         assert 'PongTask' in call_args[0][1]  # task name contains 'PongTask'

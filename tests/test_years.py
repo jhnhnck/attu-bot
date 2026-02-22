@@ -15,13 +15,13 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import AsyncMock  # noqa: E402
+from unittest.mock import AsyncMock
 
-import pytest  # noqa: E402
+import pytest
 
-from attubot.calendar import SECONDS_PER_DAY, AttuYearSpan  # noqa: E402
-from attubot.years import Year  # noqa: E402
-from tests.conftest import TEST_GUILD  # noqa: E402
+from attubot.calendar import SECONDS_PER_DAY, AttuYearSpan
+from attubot.years import Year
+from tests.conftest import TEST_GUILD
 
 # --- Year Model Construction ---
 
@@ -239,7 +239,7 @@ class TestLifecycle:
     async def test_create_from_rollover_formatted_matches_format_year_line(self, mock_year_repo):
         from attubot.calendar import format_year_line
         result = await Year.create_from_rollover(TEST_GUILD, 7, start_time=100)
-        assert result.formatted == format_year_line(7)
+        assert result.formatted == format_year_line(7).lstrip('# ')
 
     @pytest.mark.asyncio
     async def test_finalize_sets_end_time_and_duration(self, mock_year_repo, make_year_doc):

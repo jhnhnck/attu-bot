@@ -13,13 +13,13 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest  # noqa: E402
-from discord.enums import ChannelType  # noqa: E402
-from freezegun import freeze_time  # noqa: E402
+import pytest
+from discord.enums import ChannelType
+from freezegun import freeze_time
 
-from tests.conftest import TEST_GUILD  # noqa: E402
+from tests.conftest import TEST_GUILD
 
 # --- /year check Command Tests ---
 
@@ -121,13 +121,14 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_far_future_year(self, mock_ctx, guild):
         """Test /year check for year >80 years away shows easter egg"""
+        from attubot.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
-        with patch('attubot.commands.year.get_year_span') as mock_span:
-            mock_span.return_value = AsyncMock(start_time=999999999, end_time=0, duration=0)()
+        mock_span_obj = AttuYearSpan(start_time=999999999, end_time=0, duration=0)
 
-            with patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
-                await year_check(mock_ctx, year=3000)
+        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), \
+             patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
+            await year_check(mock_ctx, year=3000)
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]

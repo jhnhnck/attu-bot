@@ -14,12 +14,12 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest  # noqa: E402
+import pytest
 
-from attubot import config  # noqa: E402
-from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers  # noqa: E402
+from attubot import config
+from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 TEST_GUILD = 1234567890
 TEST_USER = 9876543210
@@ -265,7 +265,7 @@ def make_year_doc():
     def _make(guild=TEST_GUILD, year=1, start_time=1704067200,
               end_time=1705276800, duration=14,
               formatted='# === Year 1 PC ===', notes=''):
-        from attubot.models import YearDocument
+        from attubot.database.models import YearDocument
         return YearDocument(
             guild=guild, year=year, start_time=start_time,
             end_time=end_time, duration=duration,
