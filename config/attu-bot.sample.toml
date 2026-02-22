@@ -44,3 +44,11 @@ endpoint = "https://example.org"
 
 [discord.guilds]
 authorized = [1000000000000000000, 2000000000000000000]
+
+[backup]
+# full database backup via mongodump — leave path empty to disable
+# day: day of week (monday ... sunday)
+# time: 24-hour time string ("HH:MM")
+path = ""
+day = "sunday"
+time = "03:00"

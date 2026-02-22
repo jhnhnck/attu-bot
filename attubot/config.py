@@ -44,6 +44,12 @@ class PathsConfig(BaseModel):
     assets: str = './assets'
 
 
+class BackupConfig(BaseModel):
+    path: str = ''
+    day: str = 'sunday'
+    time: str = '03:00'
+
+
 class DatabaseConfig(BaseModel):
     url: str = 'mongodb://localhost:27017'
     name: str = 'doombot'
@@ -227,6 +233,7 @@ class NovaConfig:
 
         # Core attributes
         self.config_version: str = __schema__
+        self.backup: BackupConfig = None
         self.wiki: WikiAuth = None
         self.theme: BotTheme = None
         self.bot_token: str = None
@@ -316,6 +323,12 @@ class NovaConfig:
         except ValidationError as err:
             logger.error(f'Failed to validate wiki auth configuration: {err!s}')
             raise ConfigLoadError('invalid wiki auth configuration')
+
+        try:
+            self.backup = BackupConfig(**self._raw.get('backup', {}))
+        except ValidationError as err:
+            logger.error(f'Failed to validate backup configuration: {err!s}')
+            raise ConfigLoadError('invalid backup configuration')
 
         self._get_event('init').set()
 
