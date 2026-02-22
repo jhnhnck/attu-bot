@@ -736,7 +736,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 for y in years
             ]
             total = len(years_data)
-            years_data = years_data[skip:skip + limit]
+            years_data = years_data[skip : skip + limit]
 
             return jsonify({
                 'guild_id': str(guild_id),
@@ -931,7 +931,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 for m in markers
             ]
             total = len(markers_data)
-            markers_data = markers_data[skip:skip + limit]
+            markers_data = markers_data[skip : skip + limit]
 
             return jsonify({
                 'guild_id': str(guild_id),
