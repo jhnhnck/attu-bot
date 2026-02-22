@@ -12,7 +12,10 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-migration_table: list[Callable] = []
+# load-stage migrations run during config.on_load() before bot is connected
+load_migration_table: list[Callable] = []
+# ready-stage migrations run during config.on_ready() after bot cache is populated
+ready_migration_table: list[Callable] = []
 
 
 class MigrationError(Exception):
@@ -39,7 +42,7 @@ async def _restore_collection(db, name: str, backup: list[dict]):
 # --- Decorator ---
 
 
-def migration(old: str, new: str) -> Callable:
+def migration(old: str, new: str, stage: str = 'load') -> Callable:
     def decorator_migration(func: Callable) -> Callable:
         async def wrapper(version: str):
             # Bail out if we're past this patch
@@ -64,7 +67,10 @@ def migration(old: str, new: str) -> Callable:
                 {'$set': {'version': new}},
             )
 
-        migration_table.append(wrapper)
+        if stage == 'ready':
+            ready_migration_table.append(wrapper)
+        else:
+            load_migration_table.append(wrapper)
         return wrapper
 
     return decorator_migration
@@ -313,3 +319,156 @@ async def migration_2_4_0():
     The version update is handled automatically by the @migration decorator.
     """
     logger.info('Running migration to 2.4.0')
+
+
+# Version 2.4.1 - no-op; version already written to DB before thread fix was ready
+@migration(old='2.4.0', new='2.4.1')
+async def migration_2_4_1():
+    pass
+
+
+# Version 2.4.2 - no-op; thread backfill attempted here but bot cache not yet ready
+@migration(old='2.4.1', new='2.4.2')
+async def migration_2_4_2():
+    pass
+
+
+# Version 2.4.3
+@migration(old='2.4.2', new='2.4.3', stage='ready')
+async def migration_fix_thread_parent_ids():
+    """Backfill parent_channel_id on stored messages that were sent in threads.
+
+    Previous attempts (2.4.1 and 2.4.2) ran during on_load() before the bot's
+    channel cache was populated, so all thread channels were skipped. This migration
+    runs during on_ready() when active threads are fully cached.
+
+    Superseded by 2.4.4 which also covers archived threads via the API.
+    """
+    import discord as _discord
+
+    from attubot import bot, db
+    from attubot.database.repositories import MessageRepository
+
+    logger.info('Running migration to 2.4.3: backfilling parent_channel_id on thread messages')
+
+    database = db.get_db()
+    collection = database[MessageRepository.COLLECTION]
+
+    # find all distinct channel_ids where parent_channel_id is not yet set
+    pipeline = [
+        {'$match': {'parent_channel_id': None}},
+        {'$group': {'_id': '$channel_id'}},
+    ]
+    cursor = await collection.aggregate(pipeline)
+    rows = await cursor.to_list(length=None)
+    channel_ids = [row['_id'] for row in rows]
+    logger.info(f'Checking {len(channel_ids)} distinct channel ids for thread membership')
+
+    fixed = 0
+    skipped = 0
+    for channel_id in channel_ids:
+        ch = bot.get_channel(channel_id)
+        if not isinstance(ch, _discord.Thread):
+            skipped += 1
+            continue
+        result = await collection.update_many(
+            {'channel_id': channel_id, 'parent_channel_id': None},
+            {'$set': {'parent_channel_id': ch.parent_id}},
+        )
+        fixed += result.modified_count
+        logger.debug(f'Set parent_channel_id={ch.parent_id} on {result.modified_count} messages in thread {channel_id}')
+
+    logger.info(f'Migration 2.4.3 complete: updated={fixed} skipped={skipped}')
+
+
+# Version 2.4.4
+@migration(old='2.4.3', new='2.4.4', stage='ready')
+async def migration_fix_thread_parent_ids_archived():
+    """Backfill parent_channel_id for messages in archived threads.
+
+    Migration 2.4.3 only covered threads still in the bot's active cache.
+    Archived threads are evicted from the cache and were skipped, leaving their
+    messages with parent_channel_id=None. This migration fetches all threads
+    (active + archived public + archived private) for every text channel in each
+    authorized guild via the Discord API, builds a complete thread->parent map,
+    and applies it to any remaining unfixed messages.
+    """
+    import asyncio
+
+    import discord as _discord
+
+    from attubot import bot, db
+    from attubot.database.repositories import MessageRepository
+
+    logger.info('Running migration to 2.4.4: backfilling parent_channel_id for archived threads')
+
+    database = db.get_db()
+    collection = database[MessageRepository.COLLECTION]
+
+    # collect the channel_ids still missing a parent
+    pipeline = [
+        {'$match': {'parent_channel_id': None}},
+        {'$group': {'_id': '$channel_id'}},
+    ]
+    cursor = await collection.aggregate(pipeline)
+    rows = await cursor.to_list(length=None)
+    unfixed_ids: set[int] = {row['_id'] for row in rows}
+
+    if not unfixed_ids:
+        logger.info('Migration 2.4.4: nothing to fix')
+        return
+
+    logger.info(f'Found {len(unfixed_ids)} channel ids still missing parent_channel_id')
+
+    # build thread_id -> parent_id map by querying the Discord API for every guild
+    thread_to_parent: dict[int, int] = {}
+
+    for guild_id in config.authorized_guilds:
+        discord_guild = bot.get_guild(guild_id)
+        if discord_guild is None:
+            logger.warn(f'Guild {guild_id} not in bot cache, skipping')
+            continue
+
+        # active threads - always available from cache after on_ready
+        for thread in discord_guild.threads:
+            if thread.parent_id is not None:
+                thread_to_parent[thread.id] = thread.parent_id
+
+        # archived threads require an API call per parent channel
+        text_channels = [ch for ch in discord_guild.channels if isinstance(ch, (_discord.TextChannel, _discord.ForumChannel))]
+        for parent_ch in text_channels:
+            # public archived threads
+            try:
+                async for thread in parent_ch.archived_threads(limit=None):
+                    thread_to_parent[thread.id] = parent_ch.id
+            except (_discord.Forbidden, _discord.HTTPException) as e:
+                logger.warn(f'Could not fetch public archived threads for channel {parent_ch.id}: {e}')
+
+            # private archived threads (requires MANAGE_THREADS)
+            try:
+                async for thread in parent_ch.archived_threads(limit=None, private=True):
+                    thread_to_parent[thread.id] = parent_ch.id
+            except (_discord.Forbidden, _discord.HTTPException) as e:
+                logger.debug(f'Could not fetch private archived threads for channel {parent_ch.id}: {e}')
+
+            # small delay to avoid hitting rate limits across many channels
+            await asyncio.sleep(0.5)
+
+    logger.info(f'Discovered {len(thread_to_parent)} total threads across all guilds')
+
+    fixed = 0
+    still_missing = 0
+    for channel_id in unfixed_ids:
+        parent_id = thread_to_parent.get(channel_id)
+        if parent_id is None:
+            # not a thread, or a thread we genuinely cannot resolve
+            still_missing += 1
+            continue
+        result = await collection.update_many(
+            {'channel_id': channel_id, 'parent_channel_id': None},
+            {'$set': {'parent_channel_id': parent_id}},
+        )
+        fixed += result.modified_count
+        logger.debug(f'Set parent_channel_id={parent_id} on {result.modified_count} messages in thread {channel_id}')
+
+    logger.info(f'Migration 2.4.4 complete: updated={fixed} unresolvable={still_missing}')

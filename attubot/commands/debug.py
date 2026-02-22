@@ -72,6 +72,7 @@ async def command_test(ctx: ApplicationContext):
 debug_group = SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
 # debug_admin_group = debug_group.create_subgroup('admin', description='Like the normal debug commands except scarier (Admin Only)', )
 
+
 @debug_group.command(name='version', description='Displays the current version and container build time')
 async def debug_version(ctx: ApplicationContext):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
@@ -166,6 +167,7 @@ async def debug_logo_refresh(ctx: ApplicationContext):
     await ctx.respond('Refreshing!')
     await task.run()
 
+
 @debug_group.command(name='check_year_links', description='Causes the construct_year_links job to be ran manually')
 @commands.check(is_bot_owner)
 async def debug_check_year_links(ctx: ApplicationContext):
@@ -175,7 +177,29 @@ async def debug_check_year_links(ctx: ApplicationContext):
     await ctx.respond(f'Starting worker on <#{cfg.channels.year_links}>')
     scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
+
+@debug_group.command(name='message_stats', description='Shows how many messages are stored for a channel or the whole guild')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='channel', required=False, description='Channel to query (omit for guild total)', input_type=discord.TextChannel)
+async def debug_message_stats(ctx: ApplicationContext, channel: discord.TextChannel | None = None):
+    from attubot.messages import _get_repo
+
+    try:
+        repo = _get_repo()
+    except RuntimeError:
+        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        return
+
+    if channel is not None:
+        count = await repo.count_for_channel(ctx.guild.id, channel.id)
+        await ctx.respond(f'{count:,} messages stored for <#{channel.id}>')
+    else:
+        count = await repo.count_for_guild(ctx.guild.id)
+        await ctx.respond(f'{count:,} messages stored for this guild')
+
+
 # --- Extension Def ---
+
 
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')

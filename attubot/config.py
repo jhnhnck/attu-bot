@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Literal, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
+import anyio
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
@@ -261,6 +262,7 @@ class NovaConfig:
         self.timezone = ZoneInfo(getenv('TZ', 'UTC'))
         self.guilds: dict[int, GuildConfig] = {}
         self.test_mode: bool = 'TEST_MODE' in environ
+        self.web_mode: bool = False  # set by web app to skip migrations
 
         # Event system
         self._events = {
@@ -385,24 +387,24 @@ class NovaConfig:
         if system_config.version != self.config_version:
             logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
 
-            if self.test_mode:
-                logger.info('Skipping migrations in TEST_MODE (no DB changes)')
+            if self.test_mode or self.web_mode:
+                logger.info('Skipping migrations (TEST_MODE or web_mode)')
             else:
                 logger.info('Running migrations...')
 
-                from attubot.migrations import MigrationError, migration_table
+                from attubot.migrations import MigrationError, load_migration_table
 
                 try:
-                    for migration in migration_table:
+                    for migration in load_migration_table:
                         await migration(system_config.version)
                         system_config = await self.config_repo.get_system()
                 except MigrationError as e:
                     logger.fatal(f'Migration failed — refusing to continue initialization: {e}')
                     raise
 
-                # Reload system config after migrations
+                # Reload system config after load-stage migrations
                 system_config = await self.config_repo.get_system()
-                logger.info(f'Migration complete: now at version {system_config.version}')
+                logger.info(f'Load-stage migrations complete: now at version {system_config.version}')
 
         self._get_event('load').set()
 
@@ -434,7 +436,7 @@ class NovaConfig:
 
         # Only chmod if not in test mode (volume may be read-only in tests)
         if not self.test_mode:
-            self.path.chmod(0o660)
+            await anyio.Path(self.path).chmod(0o660)
 
         # manually fetch owner info ourselves bc pycord is weird
         logger.debug('Fetching bot owner info')
@@ -470,6 +472,25 @@ class NovaConfig:
         for guild_id, name in results:
             if guild_id in self.guilds:
                 self.guilds[guild_id]._display_name = name
+
+        # Run ready-stage migrations now that bot cache is populated
+        if not self.test_mode and not self.web_mode:
+            system_config = await self.config_repo.get_system()
+            if system_config.version != self.config_version:
+                logger.info(f'Running ready-stage migrations: {system_config.version} -> {self.config_version}')
+
+                from attubot.migrations import MigrationError, ready_migration_table
+
+                try:
+                    for migration in ready_migration_table:
+                        await migration(system_config.version)
+                        system_config = await self.config_repo.get_system()
+                except MigrationError as e:
+                    logger.fatal(f'Ready-stage migration failed: {e}')
+                    raise
+
+                system_config = await self.config_repo.get_system()
+                logger.info(f'Ready-stage migrations complete: now at version {system_config.version}')
 
         self._get_event('ready').set()
 

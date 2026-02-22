@@ -72,6 +72,30 @@ class YearDocument(BaseModel):
     notes: str = ''
 
 
+class MessageDocument(BaseModel):
+    """MongoDB document for a stored Discord message"""
+    model_config = ConfigDict(extra='ignore')
+
+    message_id: int
+    guild_id: int
+    channel_id: int  # thread id if in a thread
+    parent_channel_id: int | None = None  # set only when channel_id is a thread
+    author_id: int
+    author_name: str
+    author_bot: bool = False
+    content: str = ''
+    attachments: list[dict] = []  # [{filename, url, content_type, size, saved_path}]
+    embeds: list[dict] = []
+    sticker_ids: list[int] = []
+    reference_id: int | None = None
+    pinned: bool = False
+    public: bool = True  # readable by @everyone
+    created_at: int  # unix timestamp
+    edited_at: int | None = None
+    deleted: bool = False
+    deleted_at: int | None = None
+
+
 class ReloadSignalDocument(BaseModel):
     """MongoDB document for cross-process config reload signals
 

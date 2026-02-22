@@ -9,19 +9,19 @@ __title__ = 'AttuBot'
 __author__ = 'jhnhnck'
 __license__ = 'Apache License, Version 2.0'
 __copyright__ = 'Copyright (c) 2026 John Hancock, The Attu Project'
-__schema__ = '2.4.0'  # previously __version__
+__schema__ = '2.4.4'  # previously __version__
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'
 
-__version__ = '26.2.19'
+__version__ = '26.2.22'
 __build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
 
+import shutil
 import sys
-from pathlib import Path
 from typing import cast
 
 import discord
-from discord import ApplicationContext, ApplicationCommand, Intents
+from discord import ApplicationCommand, ApplicationContext, Intents
 
 from attubot.config import NovaConfig
 from attubot.database import MongoStorage
@@ -62,14 +62,15 @@ def start_bot_loop():
     logger.info('Starting DoomBot!')
     config.on_init()
 
-    def dep_check(path: str):
-        dep = Path(path)
+    def dep_check(cmd: str):
+        where = shutil.which(cmd)
+        if where is None:
+            raise Exception(f'missing dependency: {cmd}')
+        else:
+            logger.info(f'found dependency: {where}')
 
-        if not dep.is_file():
-            raise Exception(f'missing dependency: {path}')
-
-    logger.info('Checking Dependencies')
-    dep_check('/usr/local/bin/resvg')
+    dep_check('resvg')
+    dep_check('mongodump')
 
     # import events module to register all bot event handlers
     import attubot.events  # noqa: F401

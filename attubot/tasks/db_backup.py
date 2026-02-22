@@ -71,7 +71,7 @@ class DatabaseBackupTask(BaseTask):
             logger.info('backup path not configured; database backup task disabled')
             return
 
-        if shutil.which('mongodump') is None:
+        if not shutil.which('mongodump'):
             logger.warn('mongodump not found in PATH; database backup task disabled')
             return
 

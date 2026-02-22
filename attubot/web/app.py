@@ -9,6 +9,7 @@ import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import anyio
 from quart import Quart, g
 
 from attubot import config
@@ -49,6 +50,7 @@ def create_app() -> Quart:  # noqa: PLR0915
             await init_database(config.database.url, config.database.name)
 
             logger.info('Loading configuration from database...')
+            config.web_mode = True
             await config.on_load()
 
             logger.info('Configuration loaded successfully')
@@ -56,7 +58,7 @@ def create_app() -> Quart:  # noqa: PLR0915
             logger.info('Generating favicon...')
             static_dir = _assets_dir / 'static' / 'img'
             favicon_path = static_dir / 'favicon.png'
-            static_dir.mkdir(parents=True, exist_ok=True)
+            await anyio.Path(static_dir).mkdir(parents=True, exist_ok=True)
 
             theme = config.theme
             rotation = theme.rotation if theme else 0.0
@@ -64,7 +66,7 @@ def create_app() -> Quart:  # noqa: PLR0915
 
             try:
                 favicon_png = await generate_png(rotation, bot_color, foreground='#000000', height=256, width=256)
-                favicon_path.write_bytes(favicon_png)
+                await anyio.Path(favicon_path).write_bytes(favicon_png)
                 logger.info(f'Favicon generated at {favicon_path}')
             except PermissionError as err:
                 logger.error(f'Unable to write favicon at {favicon_path}: {err}')

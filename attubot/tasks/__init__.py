@@ -10,6 +10,7 @@ from attubot.tasks.base import BaseTask
 from attubot.tasks.db_backup import DatabaseBackupTask, db_backup_task
 from attubot.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_hook_task
 from attubot.tasks.logo_update import LogoUpdateTask, logo_update_task
+from attubot.tasks.message_backfill import MessageBackfillTask, message_backfill_task
 from attubot.tasks.nova_year import NovaYearTask, nova_year_task
 from attubot.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
 from attubot.tasks.scheduler import TaskScheduler, scheduler
@@ -22,6 +23,7 @@ scheduler.register(logo_update_task)
 scheduler.register(error_hook_task)
 scheduler.register(reload_watcher_task)
 scheduler.register(db_backup_task)
+scheduler.register(message_backfill_task)
 
 
 __all__ = [
@@ -29,6 +31,7 @@ __all__ = [
     'DatabaseBackupTask',
     'ErrorHookTask',
     'LogoUpdateTask',
+    'MessageBackfillTask',
     'NovaYearTask',
     'ReloadWatcherTask',
     'TaskScheduler',
@@ -36,6 +39,7 @@ __all__ = [
     'error_hook_refresh',
     'error_hook_task',
     'logo_update_task',
+    'message_backfill_task',
     'nova_year_task',
     'reload_watcher_task',
     'scheduler',

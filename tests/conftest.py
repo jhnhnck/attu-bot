@@ -51,6 +51,8 @@ def make_guild():
 
         config.guilds[guild_id] = cfg
         config.authorized_guilds.add(guild_id)
+        if guild_id not in config.valid_guilds:
+            config.valid_guilds.append(guild_id)
         config.primary_guild = guild_id
         created.append(guild_id)
         return cfg
@@ -61,6 +63,8 @@ def make_guild():
     for gid in created:
         config.guilds.pop(gid, None)
         config.authorized_guilds.discard(gid)
+        if gid in config.valid_guilds:
+            config.valid_guilds.remove(gid)
     config.primary_guild = None
 
 

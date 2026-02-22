@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from attubot.database.connection import MongoStorage
 from attubot.database.models import (
     GuildConfigDocument,
+    MessageDocument,
     ReloadSignalDocument,
     SystemConfigDocument,
     ThemeDocument,
@@ -16,6 +17,7 @@ from attubot.database.models import (
 )
 from attubot.database.repositories import (
     ConfigRepository,
+    MessageRepository,
     ReloadSignalRepository,
     YearMarkerRepository,
     YearRepository,
@@ -47,6 +49,7 @@ async def init_database(url: str, name: str):
     marker_repo = YearMarkerRepository(database)
     year_repo = YearRepository(database)
     signal_repo = ReloadSignalRepository(database)
+    message_repo = MessageRepository(database)
 
     await marker_repo.init_indexes()
     logger.debug('marker indexes ready')
@@ -57,14 +60,19 @@ async def init_database(url: str, name: str):
     await signal_repo.init_indexes()
     logger.debug('signal indexes ready')
 
+    await message_repo.init_indexes()
+    logger.debug('message indexes ready')
+
     # seed module-level repo singletons so lazy _get_repo() calls work
     import attubot.markers as _markers
+    import attubot.messages as _messages
     import attubot.signals as _signals
     import attubot.years as _years
 
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
     _signals._repo = signal_repo
+    _messages._message_repo = message_repo
 
     logger.info('database initialized')
 
@@ -72,6 +80,8 @@ async def init_database(url: str, name: str):
 __all__ = [
     'ConfigRepository',
     'GuildConfigDocument',
+    'MessageDocument',
+    'MessageRepository',
     'MongoStorage',
     'ReloadSignalDocument',
     'ReloadSignalRepository',

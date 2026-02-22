@@ -12,6 +12,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from attubot.database.models import (
     GuildConfigDocument,
+    MessageDocument,
     ReloadSignalDocument,
     SystemConfigDocument,
     ThemeDocument,
@@ -283,6 +284,78 @@ class YearRepository:
             docs[0].pop('_id', None)
             return YearDocument(**docs[0])
         return None
+
+
+class MessageRepository:
+    """Repository for stored Discord messages"""
+    COLLECTION = 'messages'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self):
+        await self.db[self.COLLECTION].create_index(
+            [('guild_id', ASCENDING), ('channel_id', ASCENDING), ('message_id', ASCENDING)],
+            unique=True,
+        )
+        await self.db[self.COLLECTION].create_index(
+            [('guild_id', ASCENDING), ('channel_id', ASCENDING), ('created_at', ASCENDING)],
+        )
+        await self.db[self.COLLECTION].create_index('message_id')
+
+    async def upsert(self, doc: MessageDocument):
+        """Insert or update a message document"""
+        data = doc.model_dump()
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': doc.message_id},
+            {'$set': data},
+            upsert=True,
+        )
+
+    async def get(self, message_id: int) -> MessageDocument | None:
+        """Fetch a message by its ID"""
+        doc = await self.db[self.COLLECTION].find_one({'message_id': message_id})
+        if doc:
+            doc.pop('_id', None)
+            return MessageDocument(**doc)
+        return None
+
+    async def mark_edited(self, message_id: int, content: str, edited_at: int):
+        """Update content and edited timestamp on an existing message"""
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': message_id},
+            {'$set': {'content': content, 'edited_at': edited_at}},
+        )
+
+    async def mark_deleted(self, message_id: int, deleted_at: int):
+        """Soft-delete a single message"""
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': message_id},
+            {'$set': {'deleted': True, 'deleted_at': deleted_at}},
+        )
+
+    async def mark_bulk_deleted(self, message_ids: list[int], deleted_at: int):
+        """Soft-delete multiple messages in one operation"""
+        await self.db[self.COLLECTION].update_many(
+            {'message_id': {'$in': message_ids}},
+            {'$set': {'deleted': True, 'deleted_at': deleted_at}},
+        )
+
+    async def get_latest_in_channel(self, guild_id: int, channel_id: int) -> int | None:
+        """Return the highest message_id stored for a channel (used as backfill cursor)"""
+        cursor = self.db[self.COLLECTION].find(
+            {'guild_id': guild_id, 'channel_id': channel_id},
+        ).sort('message_id', -1).limit(1)
+        docs = await cursor.to_list(length=1)
+        if docs:
+            return docs[0]['message_id']
+        return None
+
+    async def count_for_guild(self, guild_id: int) -> int:
+        return await self.db[self.COLLECTION].count_documents({'guild_id': guild_id})
+
+    async def count_for_channel(self, guild_id: int, channel_id: int) -> int:
+        return await self.db[self.COLLECTION].count_documents({'guild_id': guild_id, 'channel_id': channel_id})
 
 
 class ReloadSignalRepository:
