@@ -48,14 +48,17 @@ def create_app() -> Quart:  # noqa: PLR0915
 
             logger.info('Initializing marker repository...')
             from attubot.markers import init_repo as init_markers
+
             await init_markers()
 
             logger.info('Initializing year repository...')
             from attubot.years import init_repo as init_years
+
             await init_years()
 
             logger.info('Initializing signal repository...')
             from attubot.signals import init_repo as init_signals
+
             await init_signals()
 
             logger.info('Configuration loaded successfully')
@@ -133,14 +136,7 @@ def create_app() -> Quart:  # noqa: PLR0915
         # inject onclick= attributes with runtime values (year ids, field names, credential ids)
         # that cannot be hashed. inline event handlers are lower-risk than injected <script> blocks.
         response.headers['Content-Security-Policy'] = (
-            f"default-src 'self'; "
-            f"script-src 'self' https://cdn.jsdelivr.net 'nonce-{nonce}'; "
-            f"script-src-attr 'unsafe-inline'; "
-            f"style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
-            f"img-src 'self' data:; "
-            f"font-src 'self' https://cdn.jsdelivr.net; "
-            f"connect-src 'self'; "
-            f"frame-ancestors 'none'"
+            f"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'nonce-{nonce}'; script-src-attr 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; frame-ancestors 'none'"
         )
         return response
 
@@ -148,6 +144,7 @@ def create_app() -> Quart:  # noqa: PLR0915
     @app.context_processor
     async def inject_csrf():
         from attubot.web.auth import get_csrf_token
+
         try:
             nonce = getattr(g, 'csp_nonce', '')
             return {'csrf_token': get_csrf_token(), 'csp_nonce': nonce}

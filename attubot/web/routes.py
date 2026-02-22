@@ -10,8 +10,9 @@ from quart import Quart, jsonify, render_template, request
 
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildUsers
 from attubot.logging import get_logger
+from attubot.signals import send_signal
 from attubot.web.app import config
-from attubot.web.audit import ConfigChange, compare_configs
+from attubot.web.audit import ConfigChange, compare_configs, get_client_ip
 from attubot.web.discord_integration import get_guild_channels, get_guild_info, get_guild_roles, get_users_info, invalidate_guild_cache
 from attubot.web.forms import GuildConfigForm, SystemConfigForm, ThemeConfigForm
 
@@ -200,13 +201,13 @@ def register_routes(app: Quart):  # noqa: PLR0915
         def get_channel_name(channel_id):
             if not channel_id:
                 return None
-            return channel_map.get(str(channel_id), None)
+            return channel_map.get(str(channel_id))
 
         # Helper function to get user name from ID
         def get_user_name(user_id):
             if not user_id:
                 return None
-            return user_map.get(str(user_id), None)
+            return user_map.get(str(user_id))
 
         return jsonify({
             'guild_id': str(guild.id),  # Send as string to preserve precision
@@ -279,6 +280,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             # Save to database
             await guild.save()
+            await send_signal('guild', guild_id)
 
             # Audit logging
             from attubot.web import app as web_app
@@ -296,7 +298,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                         config_type='guild',
                         action='update',
                         changes=changes,
-                        ip_address=request.remote_addr or 'unknown',
+                        ip_address=get_client_ip(),
                         guild_id=guild_id,
                         success=True,
                     )
@@ -319,7 +321,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='guild',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=False,
                     error_message=f'Validation error: {e!s}',
@@ -340,7 +342,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='guild',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=False,
                     error_message=str(e),
@@ -476,6 +478,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             # Save to database
             await config.theme.save()
+            await send_signal('theme')
 
             # Audit logging
             from attubot.web import app as web_app
@@ -493,7 +496,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                         config_type='theme',
                         action='update',
                         changes=changes,
-                        ip_address=request.remote_addr or 'unknown',
+                        ip_address=get_client_ip(),
                         success=True,
                     )
 
@@ -515,7 +518,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='theme',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     success=False,
                     error_message=f'Validation error: {e!s}',
                 )
@@ -535,7 +538,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='theme',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     success=False,
                     error_message=str(e),
                 )
@@ -584,6 +587,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             # Reload system config into memory
             await config.load_globals()
+            await send_signal('system')
 
             # Audit logging
             from attubot.web import app as web_app
@@ -601,7 +605,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                         config_type='system',
                         action='update',
                         changes=changes,
-                        ip_address=request.remote_addr or 'unknown',
+                        ip_address=get_client_ip(),
                         success=True,
                     )
 
@@ -623,7 +627,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='system',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     success=False,
                     error_message=f'Validation error: {e!s}',
                 )
@@ -650,7 +654,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='system',
                     action='update',
                     changes=[],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     success=False,
                     error_message=str(e),
                 )
@@ -690,6 +694,8 @@ def register_routes(app: Quart):  # noqa: PLR0915
             for log in logs:
                 if '_id' in log:
                     log['_id'] = str(log['_id'])
+                if 'guild_id' in log and log['guild_id'] is not None:
+                    log['guild_id'] = str(log['guild_id'])
                 log['timestamp_formatted'] = datetime.fromtimestamp(log['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
 
             return jsonify({
@@ -712,6 +718,10 @@ def register_routes(app: Quart):  # noqa: PLR0915
         try:
             from attubot.years import Year
 
+            # Pagination (L7)
+            limit = min(request.args.get('limit', default=100, type=int), 500)
+            skip = request.args.get('skip', default=0, type=int)
+
             years = await Year.all_for_guild(guild_id)
             years_data = [
                 {
@@ -725,11 +735,16 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 }
                 for y in years
             ]
+            total = len(years_data)
+            years_data = years_data[skip:skip + limit]
 
             return jsonify({
                 'guild_id': str(guild_id),
                 'years': years_data,
                 'count': len(years_data),
+                'total': total,
+                'limit': limit,
+                'skip': skip,
             })
 
         except Exception as e:
@@ -842,7 +857,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='year',
                     action='create' if not existing else 'update',
                     changes=[ConfigChange(field='year_data', old_value=str(existing) if existing else None, new_value=str(data))],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=True,
                 )
@@ -852,7 +867,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
         except Exception as e:
             logger.error(f'Error creating/updating year {year} for guild {guild_id}: {e}')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/<int:year>', methods=['DELETE'])
     async def api_delete_year(guild_id: int, year: int):
@@ -877,7 +892,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='year',
                     action='delete',
                     changes=[ConfigChange(field='year', old_value=year, new_value=None)],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=True,
                 )
@@ -887,7 +902,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
         except Exception as e:
             logger.error(f'Error deleting year {year} for guild {guild_id}: {e}')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Markers ==========
 
@@ -900,6 +915,10 @@ def register_routes(app: Quart):  # noqa: PLR0915
         try:
             from attubot.markers import YearMarker
 
+            # Pagination (L7)
+            limit = min(request.args.get('limit', default=100, type=int), 500)
+            skip = request.args.get('skip', default=0, type=int)
+
             markers = await YearMarker.all_for_guild(guild_id)
             markers_data = [
                 {
@@ -911,11 +930,16 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 }
                 for m in markers
             ]
+            total = len(markers_data)
+            markers_data = markers_data[skip:skip + limit]
 
             return jsonify({
                 'guild_id': str(guild_id),
                 'markers': markers_data,
                 'count': len(markers_data),
+                'total': total,
+                'limit': limit,
+                'skip': skip,
             })
 
         except Exception as e:
@@ -1007,6 +1031,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 new_marker = YearMarker(
                     channel=channel,
                     message=message,
+                    guild=guild_id,
                     year=year,
                     exact=data.get('exact', False),
                     wiki_page=data.get('wiki_page', False),
@@ -1022,7 +1047,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='marker',
                     action='create' if not existing else 'update',
                     changes=[ConfigChange(field='marker_data', old_value=str(existing) if existing else None, new_value=str(data))],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=True,
                 )
@@ -1032,7 +1057,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
         except Exception as e:
             logger.error(f'Error creating/updating marker for year {year} in guild {guild_id}: {e}')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>', methods=['DELETE'])
     async def api_delete_marker(guild_id: int, year: int):
@@ -1061,7 +1086,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     config_type='marker',
                     action='delete',
                     changes=[ConfigChange(field='marker', old_value=year, new_value=None)],
-                    ip_address=request.remote_addr or 'unknown',
+                    ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=True,
                 )
@@ -1071,7 +1096,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
         except Exception as e:
             logger.error(f'Error deleting marker for year {year} in guild {guild_id}: {e}')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Time/Calendar ==========
 
@@ -1159,7 +1184,10 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 total_markers += await YearMarker.total(guild_id)
 
             # Database connection status
-            db_connected = db.get_db() is not None
+            try:
+                db_connected = db.get_db() is not None
+            except Exception:
+                db_connected = False
 
             # Config status
             config_loaded = config._get_event('load').is_set()
