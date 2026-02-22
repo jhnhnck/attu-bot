@@ -4,6 +4,10 @@ AttuBot - Command line entrypoint
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+
+Usage:
+    python attu-bot.py bot   # Launch the Discord bot (default)
+    python attu-bot.py web   # Launch the web interface
 """
 
 import sys
@@ -23,10 +27,23 @@ if 'DEBUG' in environ:
 else:
     logger.info('Debug Mode: Disabled')
 
-try:
-    from attubot import core
+# Determine mode from CLI args (default: bot)
+mode = sys.argv[1] if len(sys.argv) > 1 else 'bot'
 
-    core.start_bot_loop()
+if mode not in ('bot', 'web'):
+    logger.error(f'Unknown mode: "{mode}". Valid options: bot, web')
+    sys.exit(1)
+
+try:
+    if mode == 'bot':
+        from attubot import core
+
+        core.start_bot_loop()
+
+    elif mode == 'web':
+        from attubot.web.app import start_web
+
+        start_web()
 
 except Exception as error:
     tb_str = ''.join(traceback.format_exception(error))
