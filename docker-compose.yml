@@ -14,6 +14,7 @@ services:
     user: doom:doom
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+      - /srv/backups/attu-bot:/home/doom/backups
     depends_on:
       - mongo
 
