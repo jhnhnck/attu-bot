@@ -81,6 +81,7 @@ def start_bot_loop():
     logger.info('Loading Extensions')
     try:
         bot.load_extension('attubot.commands.debug')
+        bot.load_extension('attubot.commands.fix')
         bot.load_extension('attubot.commands.marker')
         bot.load_extension('attubot.commands.query')
         bot.load_extension('attubot.commands.time')

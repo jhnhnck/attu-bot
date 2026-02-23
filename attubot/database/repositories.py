@@ -357,6 +357,18 @@ class MessageRepository:
     async def count_for_channel(self, guild_id: int, channel_id: int) -> int:
         return await self.db[self.COLLECTION].count_documents({'guild_id': guild_id, 'channel_id': channel_id})
 
+    async def distinct_author_ids(self, guild_id: int) -> list[int]:
+        """Return all unique author_ids stored for a guild."""
+        return await self.db[self.COLLECTION].distinct('author_id', {'guild_id': guild_id})
+
+    async def update_author_name(self, author_id: int, author_name: str) -> int:
+        """Set author_name on every message by this author; returns modified count."""
+        result = await self.db[self.COLLECTION].update_many(
+            {'author_id': author_id},
+            {'$set': {'author_name': author_name}},
+        )
+        return result.modified_count
+
 
 class ReloadSignalRepository:
     """Repository for cross-process config reload signals

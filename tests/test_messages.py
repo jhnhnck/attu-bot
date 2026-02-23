@@ -73,7 +73,8 @@ def _make_mock_message(
     msg.channel.permissions_for = MagicMock(return_value=MagicMock(read_messages=public))
     msg.author = MagicMock()
     msg.author.id = author_id
-    msg.author.display_name = 'TestUser'
+    msg.author.global_name = 'TestUser'
+    msg.author.name = 'testuser'
     msg.author.bot = bot
     msg.attachments = []
     msg.embeds = []
@@ -249,6 +250,22 @@ class TestMessageRepository:
 
     def test_collection_name(self, message_repo):
         assert message_repo.COLLECTION == 'messages'
+
+    async def test_distinct_author_ids(self, message_repo):
+        message_repo.db[message_repo.COLLECTION].distinct = AsyncMock(return_value=[TEST_USER, TEST_USER + 1])
+        result = await message_repo.distinct_author_ids(TEST_GUILD)
+        assert result == [TEST_USER, TEST_USER + 1]
+        message_repo.db[message_repo.COLLECTION].distinct.assert_called_once_with('author_id', {'guild_id': TEST_GUILD})
+
+    async def test_update_author_name(self, message_repo):
+        mock_result = MagicMock()
+        mock_result.modified_count = 5
+        message_repo.db[message_repo.COLLECTION].update_many = AsyncMock(return_value=mock_result)
+        count = await message_repo.update_author_name(TEST_USER, 'NewName')
+        assert count == 5
+        call_args = message_repo.db[message_repo.COLLECTION].update_many.call_args
+        assert call_args[0][0] == {'author_id': TEST_USER}
+        assert call_args[0][1] == {'$set': {'author_name': 'NewName'}}
 
 
 # --- store_message ---
@@ -721,3 +738,93 @@ class TestOnRawBulkMessageDelete:
         with patch('attubot.messages.log_bulk_delete', new=AsyncMock()) as mock_log:
             await on_raw_bulk_message_delete(payload)
             mock_log.assert_not_called()
+
+
+# --- job_fix_author_names ---
+
+
+def _make_mock_user(global_name: str | None = 'GlobalName', name: str = 'username') -> MagicMock:
+    user = MagicMock()
+    user.global_name = global_name
+    user.name = name
+    return user
+
+
+class TestJobFixAuthorNames:
+    async def test_updates_all_users(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
+        mock_message_repo.update_author_name = AsyncMock(return_value=3)
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user('GlobalName'))
+            await job_fix_author_names(TEST_GUILD)
+
+        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'GlobalName')
+
+    async def test_falls_back_to_name_when_no_global_name(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
+        mock_message_repo.update_author_name = AsyncMock(return_value=1)
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user(global_name=None, name='rawname'))
+            await job_fix_author_names(TEST_GUILD)
+
+        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'rawname')
+
+    async def test_single_user_skips_distinct(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        mock_message_repo.update_author_name = AsyncMock(return_value=2)
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user())
+            await job_fix_author_names(TEST_GUILD, user_id=TEST_USER)
+
+        mock_message_repo.distinct_author_ids.assert_not_called()
+        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'GlobalName')
+
+    async def test_user_not_found_is_skipped(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
+        mock_message_repo.update_author_name = AsyncMock(return_value=0)
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(return_value=None)
+            await job_fix_author_names(TEST_GUILD)
+
+        mock_message_repo.update_author_name.assert_not_called()
+
+    async def test_fetch_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
+        mock_message_repo.update_author_name = AsyncMock(return_value=0)
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(side_effect=Exception('api error'))
+            # should not raise
+            await job_fix_author_names(TEST_GUILD)
+
+        mock_message_repo.update_author_name.assert_not_called()
+
+    async def test_posts_progress_to_interaction(self, mock_message_repo, guild):
+        from attubot.tasks.jobs import job_fix_author_names
+
+        # build a list of 50 users to trigger the progress update at i=49
+        author_ids = list(range(TEST_USER, TEST_USER + 50))
+        mock_message_repo.distinct_author_ids = AsyncMock(return_value=author_ids)
+        mock_message_repo.update_author_name = AsyncMock(return_value=1)
+
+        interaction = AsyncMock()
+
+        with patch('attubot.bot') as mock_bot:
+            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user())
+            await job_fix_author_names(TEST_GUILD, interaction=interaction)
+
+        # progress edit is called once at the 50-user mark, then again for the final summary
+        assert interaction.edit_original_response.call_count >= 2

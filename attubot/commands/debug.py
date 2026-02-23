@@ -6,10 +6,12 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import io
+import json
 from datetime import datetime
 from platform import freedesktop_os_release as os_release
 from platform import python_version
-from random import randrange
+from random import randrange, sample
 from typing import Never, cast
 
 import discord
@@ -21,8 +23,7 @@ from discord.utils import snowflake_time
 from attubot import __build_time__, __schema__, __title__, __version__, config
 from attubot.calendar import get_year_span, get_year_status
 from attubot.logging import get_logger
-from attubot.tasks import LogoUpdateTask, scheduler
-from attubot.tasks.jobs import job_construct_year_links
+from attubot.tasks import scheduler
 from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
@@ -85,15 +86,16 @@ async def debug_version(ctx: ApplicationContext):
     embed.add_field(name='Python', value=python_version(), inline=True)
     embed.add_field(name='Distro', value=f'{distro} {distro_version}', inline=True)
     embed.add_field(name='Container Build Time', value=f'<t:{int(build_time.timestamp())}:f>', inline=False)
-    embed.add_field(name='Total Running Jobs', value=str(scheduler.count), inline=False)
 
     await ctx.respond(embed=embed)
 
 
-@debug_group.command(name='tasks', description='Displays the currently running tasks')
-async def debug_tasks(ctx: ApplicationContext):
+@debug_group.command(name='scheduler', description='Displays the currently running tasks')
+async def debug_scheduler(ctx: ApplicationContext):
     task_names = scheduler.running_tasks
+
     embed = Embed(title='Tasks', description=', '.join(task_names), color=0xE86348)
+    embed.add_field(name='Total', value=str(scheduler.count), inline=False)
 
     await ctx.respond(embed=embed)
 
@@ -156,26 +158,6 @@ async def debug_dump_config(ctx: ApplicationContext):
     logger.info('Dumping NovaConfig:', tomlkit.dumps(config.to_dict(), sort_keys=True), sep='\n')
 
     await ctx.respond('Done!')
-
-
-@debug_group.command(name='logo_refresh', description='Causes the logo update task to be ran manually')
-@commands.check(is_bot_owner)
-async def debug_logo_refresh(ctx: ApplicationContext):
-    logger.info('Weap. Logo update forced by admin')
-    task = LogoUpdateTask()
-
-    await ctx.respond('Refreshing!')
-    await task.run()
-
-
-@debug_group.command(name='check_year_links', description='Causes the construct_year_links job to be ran manually')
-@commands.check(is_bot_owner)
-async def debug_check_year_links(ctx: ApplicationContext):
-    logger.info('Weap. Year links update forced by admin')
-    cfg = config.guild(ctx.guild.id)
-
-    await ctx.respond(f'Starting worker on <#{cfg.channels.year_links}>')
-    scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
 
 @debug_group.command(name='message_stats', description='Shows how many messages are stored for a channel or the whole guild')

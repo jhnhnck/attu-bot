@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 import anyio
 import discord
@@ -149,6 +150,11 @@ def _is_public(message: Message) -> bool:
     return perms.read_messages
 
 
+def _global_username(author: discord.User | discord.Member) -> str:
+    """Return the author's global username - global_name if set, otherwise name."""
+    return author.global_name or author.name
+
+
 async def build_message_doc(message: Message) -> MessageDocument:
     """Build a MessageDocument from a pycord Message object."""
     guild_id = message.guild.id
@@ -167,7 +173,7 @@ async def build_message_doc(message: Message) -> MessageDocument:
         channel_id=channel_id,
         parent_channel_id=parent_channel_id,
         author_id=message.author.id,
-        author_name=message.author.display_name,
+        author_name=_global_username(message.author),
         author_bot=message.author.bot,
         content=message.content or '',
         attachments=attachments,
@@ -214,69 +220,102 @@ async def _get_logs_channel(guild_id: int) -> discord.TextChannel | None:
     return guild.get_channel(channel_id)  # type: ignore[return-value]
 
 
-async def log_edit(payload: RawMessageUpdateEvent) -> None:
-    """Post a message-edited embed to the guild's logs channel."""
-    if payload.guild_id is None:
-        return
+class _EditContext(NamedTuple):
+    old_content: str | None
+    author_name: str | None
+    author_id: int | None
+    author_bot: bool
 
-    now = int(datetime.now(tz=UTC).timestamp())
-    new_content = payload.data.get('content', '')
 
-    # pull stored record for old content before updating
-    old_content = None
-    old_author = None
-    old_author_id = None
-    old_author_bot = False
+async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
+    """Look up stored record and return edit context; falls back to payload data on miss."""
     try:
         stored = await _get_repo().get(payload.message_id)
+        logger.debug(f'log_edit: db lookup result - found={stored is not None}')
         if stored:
-            old_content = stored.content
-            old_author = stored.author_name
-            old_author_id = stored.author_id
-            old_author_bot = stored.author_bot
+            logger.debug(f'log_edit: stored record - author={stored.author_name!r} author_id={stored.author_id} bot={stored.author_bot} content={stored.content!r}')
+            return _EditContext(
+                old_content=stored.content,
+                author_name=stored.author_name,
+                author_id=stored.author_id,
+                author_bot=stored.author_bot,
+            )
     except Exception as err:
         logger.warn(f'could not retrieve old message {payload.message_id} for edit log: {err}')
 
-    # skip log embed for bot-authored messages
-    if old_author_bot:
-        try:
-            await _get_repo().mark_edited(payload.message_id, new_content, now)
-        except Exception as err:
-            logger.warn(f'failed to update edited message {payload.message_id}: {err}')
-        return
+    # not in db - fall back to payload author info
+    author_bot = payload.data.get('author', {}).get('bot', False)
+    logger.debug(f'log_edit: no stored record - payload author.bot={author_bot}')
+    return _EditContext(old_content=None, author_name=None, author_id=None, author_bot=author_bot)
 
-    # always update the stored record, even if we can't post to logs
-    try:
-        await _get_repo().mark_edited(payload.message_id, new_content, now)
-    except Exception as err:
-        logger.warn(f'failed to update edited message {payload.message_id}: {err}')
 
-    channel = await _get_logs_channel(payload.guild_id)
-    if channel is None:
-        return
-
+def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> Embed:
+    """Build the edit log embed from context and payload."""
     embed = Embed(title='Message Edited', color=_theme_color())
 
-    if old_author:
-        embed.add_field(name='Author', value=f'<@{old_author_id}> ({old_author})', inline=True)
+    if ctx.author_name:
+        embed.add_field(name='Author', value=f'<@{ctx.author_id}> ({ctx.author_name})', inline=True)
 
-    embed.add_field(
-        name='Channel',
-        value=f'<#{payload.channel_id}>',
-        inline=True,
-    )
+    embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)
     embed.add_field(
         name='Jump',
         value=f'[View Message](https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id})',
         inline=True,
     )
 
-    if old_content is not None:
-        embed.add_field(name='Before', value=_truncate(old_content) or '*(empty)*', inline=False)
+    if ctx.old_content is not None:
+        embed.add_field(name='Before', value=_truncate(ctx.old_content) or '*(empty)*', inline=False)
 
     embed.add_field(name='After', value=_truncate(new_content) or '*(empty)*', inline=False)
     embed.set_footer(text=f'message id: {payload.message_id}')
     embed.timestamp = datetime.now(tz=UTC)
+    return embed
+
+
+async def log_edit(payload: RawMessageUpdateEvent) -> None:
+    """Post a message-edited embed to the guild's logs channel."""
+    if payload.guild_id is None:
+        return
+
+    now = int(datetime.now(tz=UTC).timestamp())
+
+    logger.debug(f'log_edit: message_id={payload.message_id} guild_id={payload.guild_id} channel_id={payload.channel_id}')
+    logger.debug(f'log_edit: full payload.data={payload.data!r}')
+
+    # ignore events that aren't content changes (embed unfurls, pin toggles, etc.)
+    if 'content' not in payload.data:
+        logger.debug('log_edit: dropping - no content key in payload.data')
+        return
+
+    new_content = payload.data['content']
+    logger.debug(f'log_edit: new_content={new_content!r}')
+
+    ctx = await _fetch_edit_context(payload)
+
+    # skip if content didn't actually change
+    if ctx.old_content is not None and new_content == ctx.old_content:
+        logger.debug('log_edit: dropping - content unchanged')
+        return
+
+    # always update the stored record
+    try:
+        await _get_repo().mark_edited(payload.message_id, new_content, now)
+        logger.debug(f'log_edit: marked message {payload.message_id} as edited in db')
+    except Exception as err:
+        logger.warn(f'failed to update edited message {payload.message_id}: {err}')
+
+    # skip log embed for bot-authored messages
+    if ctx.author_bot:
+        logger.debug('log_edit: skipping log embed - message is bot-authored')
+        return
+
+    channel = await _get_logs_channel(payload.guild_id)
+    logger.debug(f'log_edit: logs channel resolved - channel={channel}')
+    if channel is None:
+        logger.debug(f'log_edit: no logs channel for guild {payload.guild_id}, skipping embed')
+        return
+
+    embed = _build_edit_embed(ctx, payload, new_content)
 
     try:
         await channel.send(embed=embed)

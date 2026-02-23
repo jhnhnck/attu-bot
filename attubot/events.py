@@ -168,17 +168,25 @@ async def on_message(message: Message):
 
 @bot.event
 async def on_raw_message_edit(payload: RawMessageUpdateEvent):
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+    if payload.guild_id is None:
+        logger.debug('raw_message_edit: dropping - guild_id is None')
+        return
+
+    if payload.guild_id not in config.valid_guilds:
+        logger.debug(f'raw_message_edit: dropping - guild_id={payload.guild_id} not in valid_guilds')
         return
 
     # skip edits in the logs channel
     try:
         logs_channel_id = config.guild(payload.guild_id).channels.logs
         if payload.channel_id == logs_channel_id:
+            logger.debug('raw_message_edit: dropping - channel is logs channel')
             return
-    except Exception:
+    except Exception as err:
+        logger.debug(f'raw_message_edit: dropping - exception resolving logs channel: {err}')
         return
 
+    logger.debug('raw_message_edit: passing to log_edit')
     from attubot.messages import log_edit
 
     await log_edit(payload)

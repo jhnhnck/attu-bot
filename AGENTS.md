@@ -42,6 +42,11 @@ There are two runnable modes, both launched from `attu-bot.py`:
 ### Package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
 
+| File | Slash Group | Purpose |
+|---|---|---|
+| `debug.py` | `/debug` | Diagnostic/informational commands (version, tasks, year stats, message stats, etc.) |
+| `fix.py` | `/fix` | Repair/rebuild commands (logo refresh, year links rebuild, message backfill) |
+
 ### Package: `attubot/web/`
 Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger.
 
