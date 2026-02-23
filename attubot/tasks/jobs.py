@@ -155,7 +155,11 @@ async def job_fix_author_names(guild_id: int, interaction: discord.Interaction |
 
     for i, author_id in enumerate(author_ids):
         try:
-            user = bot.get_user(author_id) or await bot.fetch_user(author_id)
+            user = await bot.get_or_fetch(discord.User, author_id)
+            if user is None:
+                not_found += 1
+                logger.warn(f'fix author_names: could not resolve user {author_id}: user not found')
+                continue
             name = _global_username(user)
             count = await repo.update_author_name(author_id, name)
             updated_msgs += count

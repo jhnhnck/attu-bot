@@ -35,6 +35,8 @@ logger.debug('Creating bot instance')
 intents = Intents.default()
 intents.message_content = True
 intents.members = True
+intents.emojis_and_stickers = True
+intents.moderation = True
 
 bot = discord.Bot(intents=intents)
 

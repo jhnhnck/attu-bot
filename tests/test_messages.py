@@ -91,12 +91,13 @@ def _make_raw_edit_payload(
     channel_id: int = TEST_CHANNEL,
     message_id: int = TEST_MESSAGE,
     new_content: str = 'edited content',
+    edited_timestamp: str | None = '2024-01-01T12:00:00.000000+00:00',
 ):
     payload = MagicMock()
     payload.guild_id = guild_id
     payload.channel_id = channel_id
     payload.message_id = message_id
-    payload.data = {'content': new_content}
+    payload.data = {'content': new_content, 'edited_timestamp': edited_timestamp}
     payload.cached_message = None
     return payload
 
@@ -430,6 +431,24 @@ class TestLogEdit:
         # no embed posted to logs
         logs_ch.send.assert_not_called()
 
+    async def test_skips_non_edit_update_no_edited_timestamp(self, mock_message_repo, guild):
+        from attubot.messages import log_edit
+
+        # simulate a MESSAGE_UPDATE where discord echoes full content but edited_timestamp is null
+        # (e.g. a member timeout change causes this)
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload(edited_timestamp=None)
+
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch):
+            await log_edit(payload)
+
+        # nothing should be stored or logged for a non-edit update
+        mock_message_repo.mark_edited.assert_not_called()
+        logs_ch.send.assert_not_called()
+
 
 # --- log_delete ---
 
@@ -758,10 +777,10 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name = AsyncMock(return_value=3)
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user('GlobalName'))
+            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user('GlobalName'))
             await job_fix_author_names(TEST_GUILD)
 
-        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'GlobalName')
+        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'username')
 
     async def test_falls_back_to_name_when_no_global_name(self, mock_message_repo, guild):
         from attubot.tasks.jobs import job_fix_author_names
@@ -770,7 +789,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name = AsyncMock(return_value=1)
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user(global_name=None, name='rawname'))
+            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user(global_name=None, name='rawname'))
             await job_fix_author_names(TEST_GUILD)
 
         mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'rawname')
@@ -781,11 +800,11 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name = AsyncMock(return_value=2)
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user())
+            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
             await job_fix_author_names(TEST_GUILD, user_id=TEST_USER)
 
         mock_message_repo.distinct_author_ids.assert_not_called()
-        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'GlobalName')
+        mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'username')
 
     async def test_user_not_found_is_skipped(self, mock_message_repo, guild):
         from attubot.tasks.jobs import job_fix_author_names
@@ -794,7 +813,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(return_value=None)
+            mock_bot.get_or_fetch = AsyncMock(return_value=None)
             await job_fix_author_names(TEST_GUILD)
 
         mock_message_repo.update_author_name.assert_not_called()
@@ -806,7 +825,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(side_effect=Exception('api error'))
+            mock_bot.get_or_fetch = AsyncMock(side_effect=Exception('api error'))
             # should not raise
             await job_fix_author_names(TEST_GUILD)
 
@@ -823,7 +842,7 @@ class TestJobFixAuthorNames:
         interaction = AsyncMock()
 
         with patch('attubot.bot') as mock_bot:
-            mock_bot.get_or_fetch_user = AsyncMock(return_value=_make_mock_user())
+            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
             await job_fix_author_names(TEST_GUILD, interaction=interaction)
 
         # progress edit is called once at the 50-user mark, then again for the final summary

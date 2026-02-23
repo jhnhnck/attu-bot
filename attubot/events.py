@@ -139,7 +139,7 @@ async def on_ready():
         logger.info(f'Reconnected as {bot.user} (ID: {bot.user.id})!')
 
 
-@bot.event
+@bot.listen()
 async def on_message(message: Message):
     if message.guild is None:
         logger.debug(f'Skipping checks for message from "{message.author.name}" with blank guild')
@@ -166,7 +166,7 @@ async def on_message(message: Message):
             await message.add_reaction('💖')
 
 
-@bot.event
+@bot.listen()
 async def on_raw_message_edit(payload: RawMessageUpdateEvent):
     if payload.guild_id is None:
         logger.debug('raw_message_edit: dropping - guild_id is None')
@@ -192,7 +192,7 @@ async def on_raw_message_edit(payload: RawMessageUpdateEvent):
     await log_edit(payload)
 
 
-@bot.event
+@bot.listen()
 async def on_raw_message_delete(payload: RawMessageDeleteEvent):
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
         return
@@ -210,7 +210,7 @@ async def on_raw_message_delete(payload: RawMessageDeleteEvent):
     await log_delete(payload)
 
 
-@bot.event
+@bot.listen()
 async def on_raw_bulk_message_delete(payload: RawBulkMessageDeleteEvent):
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
         return
@@ -228,7 +228,7 @@ async def on_raw_bulk_message_delete(payload: RawBulkMessageDeleteEvent):
     await log_bulk_delete(payload)
 
 
-@bot.event
+@bot.listen()
 async def on_member_join(member: Member):
     if member.guild.id not in config.valid_guilds:
         return
@@ -246,34 +246,7 @@ async def on_member_join(member: Member):
             return
         await channel.send(f'welcome to the archipelago {member.mention}')
 
-    async def send_log():
-        channel_id = guild_config.channels.logs
-        if channel_id == 0:
-            logger.debug(f'no logs channel configured for guild {member.guild.id}, skipping member log')
-            return
-        channel = member.guild.get_channel(channel_id)
-        if channel is None:
-            logger.warn(f'logs channel {channel_id} not found in guild {member.guild.id}')
-            return
-
-        created_at = member.created_at.replace(tzinfo=UTC) if member.created_at.tzinfo is None else member.created_at
-        now = datetime.now(tz=UTC)
-        age_days = (now - created_at).days
-        age_str = f'{age_days // 365}y {age_days % 365}d' if age_days >= 365 else f'{age_days}d'
-
-        color_hex = int(config.theme.bot_color.lstrip('#'), 16) if config.theme else Color.blurple().value
-        embed = Embed(title='Member Joined', color=color_hex)
-        embed.add_field(name='Mention', value=member.mention, inline=True)
-        embed.add_field(name='Username', value=member.name, inline=True)
-        embed.add_field(name='Account Created', value=f'<t:{int(created_at.timestamp())}:f>', inline=False)
-        embed.add_field(name='Account Age', value=age_str, inline=True)
-
-        if member.display_avatar:
-            embed.set_thumbnail(url=member.display_avatar.url)
-
-        await channel.send(embed=embed)
-
-    await asyncio.gather(send_welcome(), send_log())
+    await send_welcome()
 
 
 @bot.before_invoke
@@ -282,3 +255,6 @@ async def on_application_command(ctx: ApplicationContext):
 
 
 logger.info('Registered event handlers')
+
+# register moderation log handlers
+import attubot.modlog  # noqa: E402,F401

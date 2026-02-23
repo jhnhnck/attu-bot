@@ -151,8 +151,8 @@ def _is_public(message: Message) -> bool:
 
 
 def _global_username(author: discord.User | discord.Member) -> str:
-    """Return the author's global username - global_name if set, otherwise name."""
-    return author.global_name or author.name
+    """Return the author's global username"""
+    return author.name
 
 
 async def build_message_doc(message: Message) -> MessageDocument:
@@ -285,6 +285,11 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
     # ignore events that aren't content changes (embed unfurls, pin toggles, etc.)
     if 'content' not in payload.data:
         logger.debug('log_edit: dropping - no content key in payload.data')
+        return
+
+    # drop non-edit updates where discord echoes the full message body (e.g. member timeout changes)
+    if not payload.data.get('edited_timestamp'):
+        logger.debug('log_edit: dropping - edited_timestamp is absent/null (not a content edit)')
         return
 
     new_content = payload.data['content']
