@@ -7,10 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import sys
-from datetime import UTC, datetime
 
 import anyio
-from discord import ApplicationContext, Color, Embed, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent
+from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 

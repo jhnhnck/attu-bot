@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import discord
@@ -320,12 +321,12 @@ async def on_member_update(before: Member, after: Member):
         await _send_embed(after.guild.id, embed)
 
 
-def _emoji_map(emojis: list[GuildEmoji]) -> dict[int, GuildEmoji]:
+def _emoji_map(emojis: Sequence[GuildEmoji]) -> dict[int, GuildEmoji]:
     return {emoji.id: emoji for emoji in emojis}
 
 
 @bot.listen()
-async def on_guild_emojis_update(guild: Guild, before: list[GuildEmoji], after: list[GuildEmoji]):
+async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], after: Sequence[GuildEmoji]):
     if guild.id not in config.valid_guilds:
         return
 
