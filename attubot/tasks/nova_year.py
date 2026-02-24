@@ -14,12 +14,78 @@ from attubot.config import GuildConfig
 from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.tasks.base import BaseTask
-from attubot.tasks.jobs import job_construct_year_links
 from attubot.util import webhook_logging
 from attubot.wiki import get_wiki
 from attubot.years import Year
 
 logger = get_logger(__name__)
+
+
+async def job_construct_year_links(guild_id: int):
+    from typing import cast
+
+    from discord import ChannelType, TextChannel
+
+    from attubot import bot, config
+    from attubot.calendar import format_year_line, get_year_span
+    from attubot.commands.year import find_marker_link
+    from attubot.years import Year
+
+    cfg = config.guild(guild_id)
+    guild = bot.get_guild(cfg.id)
+    lore_channels: list[TextChannel] = []
+
+    all_years = await Year.all_for_guild(guild_id)
+    current_year = all_years[-1].year if all_years else 1
+
+    # collecting these so we're not constantly querying them later
+    for channel_id in cfg.channels.lore_channels:
+        channel = guild.get_channel_or_thread(channel_id)
+
+        if channel is not None and channel.type == ChannelType.text:
+            lore_channels.append(cast(TextChannel, channel))
+
+    async def generate_links_block(year: int) -> str:
+        year_str = format_year_line(year, level=2)
+        marker_links = []
+
+        for channel in lore_channels:
+            jump_url = await find_marker_link(year, channel)
+            marker_links.append(jump_url)
+
+        span = await get_year_span(year, guild_id)
+
+        return (
+            f'{year_str}\n'
+            f'<t:{span.start_time}:f> - <t:{span.end_time}:f>\n'
+            f'{"\n".join(marker_links)}'
+        )
+
+    thread = guild.get_channel_or_thread(cfg.channels.year_links)
+
+    if thread is None:
+        logger.error(f'could not find channel {cfg.channels.year_links} for construction')
+        return
+
+    year_idx = 1
+    async for message in thread.history(limit=None, oldest_first=True):
+        if message.author.id != bot.user.id:
+            await message.add_reaction('<:rockball:1308981475114225694>')
+            continue
+
+        block = await generate_links_block(year_idx)
+
+        if message.content != block:
+            logger.warn(f'index {year_idx} is wrong for {message.jump_url}; replacing block')
+            await message.edit(content=block)
+
+        year_idx += 1
+
+    while year_idx <= current_year:
+        logger.warn(f'index {year_idx} is missing; sending new block')
+        block = await generate_links_block(year_idx)
+        await thread.send(content=block)
+        year_idx += 1
 
 
 class NovaYearTask(BaseTask):

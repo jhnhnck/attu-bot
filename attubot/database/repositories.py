@@ -357,6 +357,15 @@ class MessageRepository:
     async def count_for_channel(self, guild_id: int, channel_id: int) -> int:
         return await self.db[self.COLLECTION].count_documents({'guild_id': guild_id, 'channel_id': channel_id})
 
+    async def get_all_message_ids_in_channel(self, guild_id: int, channel_id: int) -> set[int]:
+        """Return a set of all stored message_ids for a channel - used for efficient full-scan backfill."""
+        cursor = self.db[self.COLLECTION].find(
+            {'guild_id': guild_id, 'channel_id': channel_id},
+            {'_id': 0, 'message_id': 1},
+        )
+        docs = await cursor.to_list(length=None)
+        return {doc['message_id'] for doc in docs}
+
     async def distinct_author_ids(self, guild_id: int) -> list[int]:
         """Return all unique author_ids stored for a guild."""
         return await self.db[self.COLLECTION].distinct('author_id', {'guild_id': guild_id})

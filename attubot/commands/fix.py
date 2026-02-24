@@ -14,10 +14,108 @@ from discord.ext import commands
 from attubot import config
 from attubot.logging import get_logger
 from attubot.tasks import LogoUpdateTask, scheduler
-from attubot.tasks.jobs import job_backfill_channel, job_construct_year_links, job_fix_author_names
+from attubot.tasks.nova_year import job_construct_year_links
 from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
+
+async def job_backfill_channel(channel_id: int, guild_id: int, interaction: discord.Interaction | None = None):
+    """scan a channel and backfill any messages not already stored."""
+    from attubot import bot
+    from attubot.messages import _get_repo, build_message_doc
+
+    repo = _get_repo()
+    channel = bot.get_channel(channel_id)
+
+    if channel is None:
+        logger.error(f'fix messages: channel {channel_id} not found in cache')
+        if interaction is not None:
+            await interaction.edit_original_response(content=f'Error: channel {channel_id} not found')
+        return
+
+    # fetch all known ids upfront to avoid a db roundtrip per message
+    stored_ids = await repo.get_all_message_ids_in_channel(guild_id, channel.id)
+    stored = 0
+    backfilled = 0
+
+    try:
+        async for message in channel.history(oldest_first=True, limit=None):
+            if message.id in stored_ids:
+                stored += 1
+            else:
+                try:
+                    doc = await build_message_doc(message)
+                    await repo.upsert(doc)
+                    backfilled += 1
+                except Exception as err:
+                    logger.warn(f'fix messages: failed to store message {message.id}: {err}')
+
+            total = stored + backfilled
+            if total % 1000 == 0:
+                logger.debug(f'fix messages #{channel.name}: scanned {total:,} messages, {backfilled:,} backfilled so far')
+
+    except discord.Forbidden:
+        logger.warn(f'fix messages: no permission to read history in #{channel.name} ({channel_id})')
+        if interaction is not None:
+            await interaction.edit_original_response(content=f'No permission to read history in <#{channel_id}>')
+        return
+    except Exception as err:
+        logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
+        if interaction is not None:
+            await interaction.edit_original_response(content=f'Error scanning <#{channel_id}> - check logs')
+        return
+
+    total = stored + backfilled
+    logger.info(f'fix messages #{channel.name}: done - {total:,} scanned, {backfilled:,} backfilled')
+
+    if interaction is not None:
+        await interaction.edit_original_response(content=f'Done! Scanned {total:,} messages in <#{channel_id}>: {stored:,} already stored, {backfilled:,} backfilled')
+
+
+async def job_fix_author_names(guild_id: int, interaction: discord.Interaction | None = None, user_id: int | None = None):
+    """resolve current global usernames and bulk-update author_name on all stored messages."""
+    from attubot import bot
+    from attubot.messages import _get_repo, _global_username
+
+    repo = _get_repo()
+
+    if user_id is not None:
+        author_ids = [user_id]
+    else:
+        author_ids = await repo.distinct_author_ids(guild_id)
+        logger.info(f'fix author_names: found {len(author_ids)} distinct authors for guild {guild_id}')
+
+    updated_msgs = 0
+    resolved = 0
+    not_found = 0
+
+    for i, author_id in enumerate(author_ids):
+        try:
+            user = await bot.get_or_fetch(discord.User, author_id)
+            if user is None:
+                not_found += 1
+                logger.warn(f'fix author_names: could not resolve user {author_id}: user not found')
+                continue
+            name = _global_username(user)
+            count = await repo.update_author_name(author_id, name)
+            updated_msgs += count
+            resolved += 1
+        except Exception as err:
+            not_found += 1
+            logger.warn(f'fix author_names: could not resolve user {author_id}: {err}')
+
+        if (i + 1) % 50 == 0 and interaction is not None:
+            await interaction.edit_original_response(content=f'Progress: {i + 1}/{len(author_ids)} users processed...')
+
+    summary = f'Done - {resolved} users resolved, {updated_msgs:,} messages updated'
+    if not_found:
+        summary += f', {not_found} users not found'
+
+    logger.info(f'fix author_names: {summary} (guild {guild_id})')
+
+    if interaction is not None:
+        await interaction.edit_original_response(content=summary)
+
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 
