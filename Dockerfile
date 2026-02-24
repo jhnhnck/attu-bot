@@ -1,6 +1,7 @@
 # builder for svg converter
 FROM rust:bookworm AS builder
-RUN cargo install --version ^0.46 resvg
+RUN set -eux; \
+    cargo install --version ^0.46 resvg --quiet;
 
 # git-info stage: stamps version and build time into __init__.py via sed
 FROM python:3.13-bookworm AS git-info
@@ -30,7 +31,7 @@ RUN useradd --home-dir /home/doom --uid 1000 doom; \
 # install system dependencies
 RUN --mount=type=cache,target=/var/lib/apt \
     set -eux; \
-    apt-get update; \
+    apt-get update -qq; \
     apt-get install -qq -y \
     curl \
     neovim \
@@ -53,7 +54,7 @@ COPY --chown=doom:doom ./requirements.txt $DOOM_HOME/
 
 # install user dependencies
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
-    pip install --user -r ./requirements.txt; \
+    pip install --user -r ./requirements.txt --quiet; \
     python -m compileall $HOME/attubot;
 
 # include docs/license with code
@@ -72,8 +73,8 @@ USER root
 # Install Node.js for JavaScript tests
 RUN --mount=type=cache,target=/var/lib/apt \
     curl -fsSL "https://deb.nodesource.com/setup_22.x" -o "/tmp/setup_22.x"; \
-    bash /tmp/setup_22.x; \
-    apt-get install -y -qq nodejs;
+    bash /tmp/setup_22.x > /dev/null; \
+    apt-get install -y -qq nsolid;
 
 USER doom
 WORKDIR /home/doom
@@ -93,7 +94,7 @@ COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
 # install python dev dependencies
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
-    pip install --user -r ./requirements-dev.txt;
+    pip install --user -r ./requirements-dev.txt --quiet;
 
 # Install npm dependencies
-RUN npm clean-install;
+RUN npm clean-install > /dev/null;
