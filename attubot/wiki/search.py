@@ -22,7 +22,7 @@ class SearchApi:
         self._rest = rest_endpoint
 
     async def search(self, query: str, limit: int) -> list[SearchResult]:
-        """search for wiki pages matching the query"""
+        """search for wiki pages matching the query (full-text, title + body)"""
         res = await self._client.get(
             f'{self._rest}/search/page',
             params={'q': query, 'limit': limit},
@@ -32,6 +32,19 @@ class SearchApi:
         logger.debug(res.text)
 
         # the api doesn't always respect limit so truncate manually
+        raw = res.json().get('pages', [])[:limit]
+        return [SearchResult.model_validate(page) for page in raw]
+
+    async def search_title(self, query: str, limit: int) -> list[SearchResult]:
+        """search for wiki pages by title only"""
+        res = await self._client.get(
+            f'{self._rest}/search/title',
+            params={'q': query, 'limit': limit},
+        )
+        res.raise_for_status()
+        logger.debug(f'req: "{res.request.url}"')
+        logger.debug(res.text)
+
         raw = res.json().get('pages', [])[:limit]
         return [SearchResult.model_validate(page) for page in raw]
 

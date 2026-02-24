@@ -226,6 +226,15 @@ docker compose logs -f
 
 ---
 
+## Reference Notes
+
+Notes in `notes/` with relevant implementation details:
+
+- [`notes/button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
+- [`notes/embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
+
+---
+
 ## File & Directory Layout
 
 ```

@@ -11,7 +11,7 @@ class SearchResult(BaseModel):
     """a single result from the wiki REST search api"""
     title: str
     key: str
-    excerpt: str = ''
+    excerpt: str | None = None
     matched_title: str | None = None
     description: str | None = None
 
