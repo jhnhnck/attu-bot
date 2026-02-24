@@ -24,7 +24,7 @@ from attubot import __build_time__, __schema__, __title__, __version__, config
 from attubot.calendar import get_year_span, get_year_status
 from attubot.logging import get_logger
 from attubot.tasks import scheduler
-from attubot.util import is_bot_owner
+from attubot.util import is_bot_owner, theme_color
 
 logger = get_logger(__name__)
 
@@ -80,7 +80,7 @@ async def debug_version(ctx: ApplicationContext):
     build_time = datetime.strptime(__build_time__, build_format)
     distro, distro_version = os_release()['ID'].capitalize(), os_release()['VERSION_ID']
 
-    embed = Embed(title='Version Info', color=0xE86348)
+    embed = Embed(title='Version Info', color=theme_color())
 
     embed.add_field(name='Version', value=f'{__title__} {__version__} ({__schema__})', inline=True)
     embed.add_field(name='Python', value=python_version(), inline=True)
@@ -94,7 +94,7 @@ async def debug_version(ctx: ApplicationContext):
 async def debug_scheduler(ctx: ApplicationContext):
     task_names = scheduler.running_tasks
 
-    embed = Embed(title='Tasks', description=', '.join(task_names), color=0xE86348)
+    embed = Embed(title='Tasks', description=', '.join(task_names), color=theme_color())
     embed.add_field(name='Total', value=str(scheduler.count), inline=False)
 
     await ctx.respond(embed=embed)
@@ -106,7 +106,7 @@ async def debug_year_stats(ctx: ApplicationContext):
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year_span = await get_year_span(current_year, guild=guild_config.id)
 
-    embed = Embed(title='Year Stats', color=0xE86348)
+    embed = Embed(title='Year Stats', color=theme_color())
 
     embed.add_field(name='Current Year', value=f'{current_year} PC', inline=True)
     embed.add_field(name='Time Since Epoch', value=f'{elapsed_days} Days', inline=True)

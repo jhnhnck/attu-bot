@@ -9,6 +9,7 @@ import httpx
 
 from attubot.logging import get_logger
 from attubot.wiki.auth import AuthApi
+from attubot.wiki.models import PageSummary
 
 logger = get_logger(__name__)
 
@@ -54,3 +55,44 @@ class PagesApi:
         res = await self._client.post(self._endpoint, data=data)
         res.raise_for_status()
         logger.debug(res.text)
+
+    async def get_summary(self, page_name: str) -> PageSummary | None:
+        """fetch the intro extract and thumbnail for a specific page; returns None if the page doesn't exist"""
+        res = await self._client.get(
+            self._endpoint,
+            params={
+                'action': 'query',
+                'format': 'json',
+                'titles': page_name,
+                'prop': 'extracts|pageimages',
+                'exintro': 1,
+                'explaintext': 1,
+                'pithumbsize': 500,
+                'formatversion': 2,
+            },
+        )
+        res.raise_for_status()
+        pages = res.json().get('query', {}).get('pages', [])
+        if not pages or pages[0].get('pageid', -1) == -1:
+            return None
+        return PageSummary.model_validate(pages[0])
+
+    async def get_random_summary(self, namespace: int = 0) -> PageSummary:
+        """fetch the intro extract and thumbnail for a random page in the given namespace"""
+        res = await self._client.get(
+            self._endpoint,
+            params={
+                'action': 'query',
+                'format': 'json',
+                'generator': 'random',
+                'grnnamespace': namespace,
+                'prop': 'extracts|pageimages',
+                'exintro': 1,
+                'explaintext': 1,
+                'pithumbsize': 500,
+                'formatversion': 2,
+            },
+        )
+        res.raise_for_status()
+        pages = res.json()['query']['pages']
+        return PageSummary.model_validate(pages[0])

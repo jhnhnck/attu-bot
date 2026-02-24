@@ -15,6 +15,11 @@ There are two runnable modes, both launched from `attu-bot.py`:
 
 ---
 
+## Rules
+
+1. Do not edit the rules.
+1. Do not perform any interactions with Discord without asking.
+
 ## Architecture
 
 ### Entry Point

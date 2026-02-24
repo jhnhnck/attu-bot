@@ -17,6 +17,7 @@ from attubot import bot, config
 from attubot.database.models import MessageDocument
 from attubot.database.repositories import MessageRepository
 from attubot.logging import get_logger
+from attubot.util import theme_color
 
 logger = get_logger(__name__)
 
@@ -32,12 +33,6 @@ def _get_repo() -> MessageRepository:
 
 # --- Helpers ---
 
-
-def _theme_color() -> int:
-    """Return bot theme color as int, falling back to blurple."""
-    if config.theme:
-        return int(config.theme.bot_color.lstrip('#'), 16)
-    return Color.blurple().value
 
 
 def _is_archive_channel(channel_id: int, guild_id: int, parent_channel_id: int | None = None) -> bool:
@@ -251,7 +246,7 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
 
 def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> Embed:
     """Build the edit log embed from context and payload."""
-    embed = Embed(title='Message Edited', color=_theme_color())
+    embed = Embed(title='Message Edited', color=theme_color())
 
     if ctx.author_name:
         embed.add_field(name='Author', value=f'<@{ctx.author_id}> ({ctx.author_name})', inline=True)

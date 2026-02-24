@@ -45,6 +45,16 @@ def webhook_logging(scope: Logger) -> Callable:
         return wrapper
     return decorator
 
+# --- Theme ---
+
+def theme_color() -> int:
+    """return the bot theme color as an int, falling back to blurple"""
+    from attubot import config
+    if config.theme:
+        return int(config.theme.bot_color.lstrip('#'), 16)
+    return 0x5865F2  # discord blurple
+
+
 # --- Formatting ---
 
 # util to make discord message links

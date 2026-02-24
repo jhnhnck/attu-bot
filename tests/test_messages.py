@@ -771,7 +771,7 @@ def _make_mock_user(global_name: str | None = 'GlobalName', name: str = 'usernam
 
 class TestJobFixAuthorNames:
     async def test_updates_all_users(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
         mock_message_repo.update_author_name = AsyncMock(return_value=3)
@@ -783,7 +783,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'username')
 
     async def test_falls_back_to_name_when_no_global_name(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
         mock_message_repo.update_author_name = AsyncMock(return_value=1)
@@ -795,7 +795,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'rawname')
 
     async def test_single_user_skips_distinct(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         mock_message_repo.update_author_name = AsyncMock(return_value=2)
 
@@ -807,7 +807,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name.assert_called_once_with(TEST_USER, 'username')
 
     async def test_user_not_found_is_skipped(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
@@ -819,7 +819,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name.assert_not_called()
 
     async def test_fetch_error_is_swallowed(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[TEST_USER])
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
@@ -832,7 +832,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.update_author_name.assert_not_called()
 
     async def test_posts_progress_to_interaction(self, mock_message_repo, guild):
-        from attubot.tasks.jobs import job_fix_author_names
+        from attubot.commands.fix import job_fix_author_names
 
         # build a list of 50 users to trigger the progress update at i=49
         author_ids = list(range(TEST_USER, TEST_USER + 50))

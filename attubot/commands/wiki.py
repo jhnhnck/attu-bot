@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 import re
 
 import discord
@@ -13,14 +14,53 @@ from discord.ext import commands
 
 from attubot import config
 from attubot.logging import get_logger
-from attubot.util import is_authorized_guild
+from attubot.util import is_authorized_guild, theme_color
 from attubot.wiki import get_wiki
+from attubot.wiki.models import PageSummary, SiteInfo
+
+# embed description is capped at 4096 chars; leave room for ellipsis
+_EMBED_DESC_LIMIT = 4000
+
+
+def build_wiki_embed(summary: PageSummary, site_info: SiteInfo) -> discord.Embed:
+    """build a discord embed representing a wiki page summary"""
+    key = summary.title.replace(' ', '_')
+    url = site_info.page_url(key)
+
+    extract = summary.extract or '_No description available._'
+    if len(extract) > _EMBED_DESC_LIMIT:
+        extract = extract[:_EMBED_DESC_LIMIT] + '...'
+
+    embed = discord.Embed(
+        title=summary.title,
+        description=extract,
+        color=theme_color(),
+    )
+
+    if summary.thumbnail:
+        embed.set_thumbnail(url=summary.thumbnail.source)
+
+    embed.add_field(name='Open', value=f'[Wiki page]({url})', inline=False)
+    embed.set_footer(text=site_info.site_name)
+
+    return embed
+
 
 logger = get_logger(__name__)
 
 # --- Wiki Commands ---
 
 wiki_group = SlashCommandGroup('wiki', description='Utilities for managing and querying the wiki')
+
+
+@wiki_group.command(name='random', description='Get a random page from the wiki')
+async def wiki_random(ctx: ApplicationContext):
+    await ctx.defer()
+    wiki = get_wiki()
+    summary, site_info = await asyncio.gather(wiki.pages.get_random_summary(), wiki.search.site_info())
+    embed = build_wiki_embed(summary, site_info)
+    await ctx.respond(embed=embed)
+
 
 @wiki_group.command(name='lookup', description='Search the wiki for relevent pages; defaults to top result')
 @discord.commands.option(name='query', required=True, description='Search Query', input_type=str)

@@ -17,7 +17,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.wiki.models import SearchResult, SiteInfo
+import discord
+
+from attubot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
 
 def _make_mock_wiki(pages: list[dict], site: dict | None = None):
     """build a mock WikiClient whose search api returns the given pages"""
@@ -165,3 +167,189 @@ class TestSearchResultModel:
         r = SearchResult.model_validate({'title': 'A Page', 'key': 'A_Page', 'excerpt': 'some text'})
         assert r.title == 'A Page'
         assert r.excerpt == 'some text'
+
+
+# --- PageSummary / PageThumbnail Model Tests ---
+
+class TestPageSummaryModel:
+    def test_basic_fields(self):
+        s = PageSummary(title='Test', extract='some text')
+        assert s.title == 'Test'
+        assert s.extract == 'some text'
+        assert s.thumbnail is None
+
+    def test_thumbnail_absent_normalizes_to_none(self):
+        s = PageSummary.model_validate({'title': 'No Image', 'extract': 'text'})
+        assert s.thumbnail is None
+
+    def test_thumbnail_present(self):
+        data = {
+            'title': 'With Image',
+            'extract': 'text',
+            'thumbnail': {'source': 'https://example.com/img.png', 'width': 100, 'height': 100},
+        }
+        s = PageSummary.model_validate(data)
+        assert s.thumbnail is not None
+        assert s.thumbnail.source == 'https://example.com/img.png'
+
+    def test_extract_defaults_to_empty_string(self):
+        s = PageSummary.model_validate({'title': 'Empty'})
+        assert s.extract == ''
+
+
+class TestPageThumbnailModel:
+    def test_fields(self):
+        t = PageThumbnail(source='https://example.com/img.png', width=300, height=200)
+        assert t.source == 'https://example.com/img.png'
+        assert t.width == 300
+        assert t.height == 200
+
+
+# --- build_wiki_embed Tests ---
+
+_SITE_INFO = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1', sitename='Test Wiki')
+
+
+class TestBuildWikiEmbed:
+    def test_title_and_url(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='Some Page', extract='A description.')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert embed.title == 'Some Page'
+        assert embed.url is None
+        # link is now in the 'Open' field, not the description
+        assert len(embed.fields) == 1
+        assert embed.fields[0].name == 'Open'
+        assert 'https://wiki.example.com/wiki/Some_Page' in embed.fields[0].value
+
+    def test_title_with_spaces_becomes_underscores_in_url(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='Page With Spaces', extract='text')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert 'Page_With_Spaces' in embed.fields[0].value
+
+    def test_description_from_extract(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='T', extract='My extract text.')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert 'My extract text.' in embed.description
+
+    def test_empty_extract_shows_fallback(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='T', extract='')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert '_No description available._' in embed.description
+
+    def test_long_extract_is_truncated(self):
+        from attubot.commands.wiki import build_wiki_embed, _EMBED_DESC_LIMIT
+
+        summary = PageSummary(title='T', extract='x' * (_EMBED_DESC_LIMIT + 100))
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        # description is the extract directly; should be truncated with '...'
+        assert len(embed.description) == _EMBED_DESC_LIMIT + 3  # _EMBED_DESC_LIMIT chars + '...'
+        assert embed.description.endswith('...')
+        # the full input length should not appear verbatim
+        assert 'x' * (_EMBED_DESC_LIMIT + 100) not in embed.description
+
+    def test_thumbnail_set_when_present(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(
+            title='T',
+            extract='text',
+            thumbnail=PageThumbnail(source='https://example.com/img.png', width=100, height=100),
+        )
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert embed.thumbnail.url == 'https://example.com/img.png'
+
+    def test_no_thumbnail_when_absent(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='T', extract='text')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert embed.thumbnail is None
+
+    def test_footer_is_site_name(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='T', extract='text')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert embed.footer.text == 'Test Wiki'
+
+    def test_returns_discord_embed(self):
+        from attubot.commands.wiki import build_wiki_embed
+
+        summary = PageSummary(title='T', extract='text')
+        embed = build_wiki_embed(summary, _SITE_INFO)
+
+        assert isinstance(embed, discord.Embed)
+
+
+# --- /wiki random Command Tests ---
+
+class TestWikiRandomCommand:
+    @pytest.mark.asyncio
+    async def test_random_responds_with_embed(self, mock_ctx):
+        """/wiki random sends a discord embed"""
+        from attubot.commands.wiki import wiki_random
+
+        summary = PageSummary(title='Random Page', extract='Some intro text.')
+        site_info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1', sitename='Test Wiki')
+
+        mock_wiki = MagicMock()
+        mock_wiki.pages.get_random_summary = AsyncMock(return_value=summary)
+        mock_wiki.search.site_info = AsyncMock(return_value=site_info)
+
+        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+            await wiki_random(mock_ctx)
+
+        mock_ctx.respond.assert_called_once()
+        call_kwargs = mock_ctx._responses[0]['kwargs']
+        embed = call_kwargs['embed']
+        assert isinstance(embed, discord.Embed)
+        assert embed.title == 'Random Page'
+        assert 'Some intro text.' in embed.description
+
+    @pytest.mark.asyncio
+    async def test_random_defers_before_fetch(self, mock_ctx):
+        """/wiki random defers the response before hitting the api"""
+        from attubot.commands.wiki import wiki_random
+
+        summary = PageSummary(title='P', extract='text')
+        site_info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1')
+
+        mock_wiki = MagicMock()
+        mock_wiki.pages.get_random_summary = AsyncMock(return_value=summary)
+        mock_wiki.search.site_info = AsyncMock(return_value=site_info)
+
+        defer_order = []
+        original_defer = mock_ctx.defer
+        original_respond = mock_ctx.respond
+
+        async def tracking_defer():
+            defer_order.append('defer')
+            await original_defer()
+
+        async def tracking_respond(**kwargs):
+            defer_order.append('respond')
+            await original_respond(**kwargs)
+
+        mock_ctx.defer = tracking_defer
+        mock_ctx.respond = tracking_respond
+
+        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+            await wiki_random(mock_ctx)
+
+        assert defer_order == ['defer', 'respond']

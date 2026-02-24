@@ -105,6 +105,7 @@ def mock_ctx_factory():
         ctx = MagicMock()
         ctx.respond = AsyncMock()
         ctx.edit = AsyncMock()
+        ctx.defer = AsyncMock()
 
         # Guild
         ctx.guild = MagicMock()

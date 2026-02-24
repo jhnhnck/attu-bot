@@ -13,14 +13,9 @@ from discord import Color, Embed, Guild, GuildEmoji, Member, Role, User
 
 from attubot import bot, config
 from attubot.logging import get_logger
+from attubot.util import theme_color
 
 logger = get_logger(__name__)
-
-
-def _theme_color() -> int:
-    if config.theme:
-        return int(config.theme.bot_color.lstrip('#'), 16)
-    return Color.blurple().value
 
 
 async def _get_logs_channel(guild_id: int) -> discord.TextChannel | None:
@@ -87,7 +82,7 @@ def _build_member_join_embed(member: Member) -> Embed:
     age_days = (now - created_at).days
     age_str = f'{age_days // 365}y {age_days % 365}d' if age_days >= 365 else f'{age_days}d'
 
-    embed = Embed(title='Member Joined', color=_theme_color())
+    embed = Embed(title='Member Joined', color=theme_color())
     embed.add_field(name='Mention', value=member.mention, inline=True)
     embed.add_field(name='Username', value=member.name, inline=True)
     embed.add_field(name='Account Created', value=_format_dt(created_at), inline=False)
@@ -143,7 +138,7 @@ async def on_member_ban(guild: Guild, user: User | Member):
 async def on_member_unban(guild: Guild, user: User):
     if guild.id not in config.valid_guilds or user.bot:
         return
-    embed = Embed(title='Member Unbanned', color=_theme_color())
+    embed = Embed(title='Member Unbanned', color=theme_color())
     embed.add_field(name='User', value=f'{user.mention} ({_member_display_name(user)})', inline=False)
     embed.set_footer(text=f'user id: {user.id}')
     embed.timestamp = datetime.now(tz=UTC)
@@ -156,7 +151,7 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
         return
     if await _is_bot_audit_action(channel.guild, discord.AuditLogAction.channel_create, channel.id):
         return
-    embed = Embed(title='Channel Created', color=_theme_color())
+    embed = Embed(title='Channel Created', color=theme_color())
     embed.add_field(name='Channel', value=channel.mention, inline=True)
     embed.add_field(name='Type', value=str(channel.type), inline=True)
     if channel.category:
@@ -206,7 +201,7 @@ async def on_guild_channel_update(before: discord.abc.GuildChannel, after: disco
     if not changes:
         return
 
-    embed = Embed(title='Channel Updated', color=_theme_color())
+    embed = Embed(title='Channel Updated', color=theme_color())
     embed.add_field(name='Channel', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
@@ -221,7 +216,7 @@ async def on_guild_role_create(role: Role):
         return
     if await _is_bot_audit_action(role.guild, discord.AuditLogAction.role_create, role.id):
         return
-    embed = Embed(title='Role Created', color=_theme_color())
+    embed = Embed(title='Role Created', color=theme_color())
     embed.add_field(name='Role', value=role.mention, inline=True)
     embed.add_field(name='Color', value=str(role.color), inline=True)
     embed.set_footer(text=f'role id: {role.id}')
@@ -265,7 +260,7 @@ async def on_guild_role_update(before: Role, after: Role):
     if not changes:
         return
 
-    embed = Embed(title='Role Updated', color=_theme_color())
+    embed = Embed(title='Role Updated', color=theme_color())
     embed.add_field(name='Role', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
@@ -280,7 +275,7 @@ async def on_member_update(before: Member, after: Member):
         return
 
     if before.nick != after.nick:
-        embed = Embed(title='Nickname Changed', color=_theme_color())
+        embed = Embed(title='Nickname Changed', color=theme_color())
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Before', value=before.nick or before.name, inline=True)
         embed.add_field(name='After', value=after.nick or after.name, inline=True)
@@ -294,7 +289,7 @@ async def on_member_update(before: Member, after: Member):
     removed = [before_roles[rid] for rid in before_roles.keys() - after_roles.keys()]
 
     if added:
-        embed = Embed(title='Member Role Added', color=_theme_color())
+        embed = Embed(title='Member Role Added', color=theme_color())
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Roles', value=_role_mentions(added), inline=False)
         embed.set_footer(text=f'user id: {after.id}')
@@ -341,7 +336,7 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
         emoji = after_map[emoji_id]
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_create, emoji_id):
             continue
-        embed = Embed(title='Emoji Created', color=_theme_color())
+        embed = Embed(title='Emoji Created', color=theme_color())
         embed.add_field(name='Emoji', value=f'{emoji} ({emoji.name})', inline=True)
         embed.set_footer(text=f'emoji id: {emoji.id}')
         embed.timestamp = datetime.now(tz=UTC)
@@ -364,7 +359,7 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
             continue
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_update, emoji_id):
             continue
-        embed = Embed(title='Emoji Renamed', color=_theme_color())
+        embed = Embed(title='Emoji Renamed', color=theme_color())
         embed.add_field(name='Before', value=before_emoji.name, inline=True)
         embed.add_field(name='After', value=after_emoji.name, inline=True)
         embed.add_field(name='Emoji', value=str(after_emoji), inline=True)
