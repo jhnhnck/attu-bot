@@ -5,7 +5,6 @@ services:
       context: .
       target: doombox
     command: python -u attu-bot.py
-    container_name: attu-bot-core
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
     logging:
@@ -30,7 +29,6 @@ services:
       context: .
       target: doombox
     command: python -u attu-bot.py web
-    container_name: attu-bot-web
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
     logging:
@@ -55,7 +53,6 @@ services:
 
   mongo:
     image: mongo:8
-    container_name: attu-bot-mongo
     restart: always
     # ports:
       # - "172.17.0.1:5017:27017"
