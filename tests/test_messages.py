@@ -831,7 +831,7 @@ class TestJobFixAuthorNames:
 
         mock_message_repo.update_author_name.assert_not_called()
 
-    async def test_posts_progress_to_interaction(self, mock_message_repo, guild):
+    async def test_posts_progress_to_status_msg(self, mock_message_repo, guild):
         from attubot.commands.fix import job_fix_author_names
 
         # build a list of 50 users to trigger the progress update at i=49
@@ -839,11 +839,12 @@ class TestJobFixAuthorNames:
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=author_ids)
         mock_message_repo.update_author_name = AsyncMock(return_value=1)
 
-        interaction = AsyncMock()
+        status_msg = AsyncMock()
+        status_msg.edit = AsyncMock(return_value=status_msg)
 
         with patch('attubot.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
-            await job_fix_author_names(TEST_GUILD, interaction=interaction)
+            await job_fix_author_names(TEST_GUILD, status_msg=status_msg)
 
-        # progress edit is called once at the 50-user mark, then again for the final summary
-        assert interaction.edit_original_response.call_count >= 2
+        # edit is called once at the 50-user mark, then once more for the final summary
+        assert status_msg.edit.call_count >= 2

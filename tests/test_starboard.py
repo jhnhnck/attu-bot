@@ -435,6 +435,39 @@ class TestRecountStarboard:
 
         mock_sync.assert_not_called()
 
+    async def test_safe_edit_returns_none_on_http_exception(self):
+        """_safe_edit should return None and log a warning rather than raising"""
+        import discord
+        from unittest.mock import AsyncMock, MagicMock
+
+        from attubot.commands.fix import _safe_edit
+
+        msg = AsyncMock()
+        msg.edit = AsyncMock(side_effect=discord.HTTPException(MagicMock(), 'token expired'))
+
+        result = await _safe_edit(msg, 'progress...')
+        assert result is None
+
+    async def test_safe_edit_returns_msg_on_success(self):
+        """_safe_edit should return the message on a successful edit"""
+        from unittest.mock import AsyncMock
+
+        from attubot.commands.fix import _safe_edit
+
+        msg = AsyncMock()
+        msg.edit = AsyncMock()
+
+        result = await _safe_edit(msg, 'done')
+        assert result is msg
+        msg.edit.assert_called_once_with(content='done')
+
+    async def test_safe_edit_noop_when_none(self):
+        """_safe_edit with status_msg=None is a no-op and returns None"""
+        from attubot.commands.fix import _safe_edit
+
+        result = await _safe_edit(None, 'anything')
+        assert result is None
+
     async def test_sort_order_independent_comparison(self, make_starboard_guild, mock_sb_repo):
         """skip logic must be order-insensitive - same users in different order should still skip"""
         from unittest.mock import AsyncMock, MagicMock, patch

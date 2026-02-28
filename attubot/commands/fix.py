@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from typing import cast
 
 import discord
-from discord import ApplicationCommand, ApplicationContext, Bot, Interaction, Permissions, SlashCommandGroup
+from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 
 from attubot import config
@@ -19,7 +19,19 @@ from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
 
-async def job_backfill_channel(channel_id: int, guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912
+async def _safe_edit(status_msg: discord.Message | None, content: str) -> discord.Message | None:
+    """edit the status message safely; returns None if the edit fails so callers can stop retrying."""
+    if status_msg is None:
+        return None
+    try:
+        await status_msg.edit(content=content)
+        return status_msg
+    except discord.HTTPException as err:
+        logger.warn(f'fix: status message edit failed ({err}), further updates disabled')
+        return None
+
+
+async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912
     """scan a channel and backfill any messages not already stored."""
     from attubot import bot
     from attubot.messages import _get_repo, build_message_doc
@@ -29,8 +41,7 @@ async def job_backfill_channel(channel_id: int, guild_id: int, interaction: disc
 
     if channel is None:
         logger.error(f'fix messages: channel {channel_id} not found in cache')
-        if interaction is not None:
-            await interaction.edit_original_response(content=f'Error: channel {channel_id} not found')
+        status_msg = await _safe_edit(status_msg, f'Error: channel {channel_id} not found')
         return
 
     # fetch all known ids upfront to avoid a db roundtrip per message
@@ -64,23 +75,20 @@ async def job_backfill_channel(channel_id: int, guild_id: int, interaction: disc
 
     except discord.Forbidden:
         logger.warn(f'fix messages: no permission to read history in #{channel.name} ({channel_id})')
-        if interaction is not None:
-            await interaction.edit_original_response(content=f'No permission to read history in <#{channel_id}>')
+        status_msg = await _safe_edit(status_msg, f'No permission to read history in <#{channel_id}>')
         return
     except Exception as err:
         logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
-        if interaction is not None:
-            await interaction.edit_original_response(content=f'Error scanning <#{channel_id}> - check logs')
+        status_msg = await _safe_edit(status_msg, f'Error scanning <#{channel_id}> - check logs')
         return
 
     total = stored + backfilled
     logger.info(f'fix messages #{channel.name}: done - {total:,} scanned, {backfilled:,} backfilled')
 
-    if interaction is not None:
-        await interaction.edit_original_response(content=f'Done! Scanned {total:,} messages in <#{channel_id}>: {stored:,} already stored, {backfilled:,} backfilled')
+    await _safe_edit(status_msg, f'Done! Scanned {total:,} messages in <#{channel_id}>: {stored:,} already stored, {backfilled:,} backfilled')
 
 
-async def job_fix_author_names(guild_id: int, interaction: discord.Interaction | None = None, user_id: int | None = None):
+async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
     """resolve current global usernames and bulk-update author_name on all stored messages."""
     from attubot import bot
     from attubot.messages import _get_repo, _global_username
@@ -112,8 +120,8 @@ async def job_fix_author_names(guild_id: int, interaction: discord.Interaction |
             not_found += 1
             logger.warn(f'fix author_names: could not resolve user {author_id}: {err}')
 
-        if (i + 1) % 50 == 0 and interaction is not None:
-            await interaction.edit_original_response(content=f'Progress: {i + 1}/{len(author_ids)} users processed...')
+        if (i + 1) % 50 == 0:
+            status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(author_ids)} users processed...')
 
     summary = f'Done - {resolved} users resolved, {updated_msgs:,} messages updated'
     if not_found:
@@ -121,8 +129,7 @@ async def job_fix_author_names(guild_id: int, interaction: discord.Interaction |
 
     logger.info(f'fix author_names: {summary} (guild {guild_id})')
 
-    if interaction is not None:
-        await interaction.edit_original_response(content=summary)
+    await _safe_edit(status_msg, summary)
 
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
@@ -160,8 +167,9 @@ async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
         await ctx.respond('message repo not initialized yet', ephemeral=True)
         return
 
-    response = await ctx.respond(f'Scanning <#{channel.id}>...')
-    scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, response if isinstance(response, Interaction) else None), f'Job[fix_messages:#{channel.name}]')
+    await ctx.respond(f'Scanning <#{channel.id}>...', ephemeral=True)
+    status_msg = await ctx.channel.send(f'Scanning <#{channel.id}>...')
+    scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, status_msg), f'Job[fix_messages:#{channel.name}]')
 
 
 @fix_group.command(name='author_names', description='Re-resolves global usernames and updates all stored messages')
@@ -177,20 +185,20 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
         return
 
     if user is not None:
-        msg = f'Updating author name for <@{user.id}>...'
         label = f'Job[fix_author_names:{user.id}]'
-        _response = await ctx.respond(msg)
-        coro = job_fix_author_names(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None, user_id=user.id)
+        await ctx.respond(f'Updating author name for <@{user.id}>...', ephemeral=True)
+        status_msg = await ctx.channel.send(f'Updating author name for <@{user.id}>...')
+        coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg, user_id=user.id)
     else:
-        msg = 'Resolving all author names...'
         label = 'Job[fix_author_names:all]'
-        _response = await ctx.respond(msg)
-        coro = job_fix_author_names(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None)
+        await ctx.respond('Resolving all author names...', ephemeral=True)
+        status_msg = await ctx.channel.send('Resolving all author names...')
+        coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg)
 
     scheduler.add_job(coro, label)
 
 
-async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912, PLR0915
+async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
     """two-step ingestion: backfill the starboard channel, then parse stored messages into starboard documents."""
     from attubot import config
     from attubot.messages import _get_repo as _get_msg_repo
@@ -200,25 +208,21 @@ async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | 
     try:
         guild_config = config.guild(guild_id)
     except Exception as err:
-        if interaction is not None:
-            await interaction.edit_original_response(content=f'Error: {err}')
+        await _safe_edit(status_msg, f'Error: {err}')
         return
 
     sb = guild_config.starboard
     if not sb.channel_id:
-        if interaction is not None:
-            await interaction.edit_original_response(content='No starboard channel configured')
+        await _safe_edit(status_msg, 'No starboard channel configured')
         return
 
     # step 1: ensure all starboard channel messages are stored locally
-    if interaction is not None:
-        await interaction.edit_original_response(content=f'Step 1/2: backfilling <#{sb.channel_id}>...')
+    status_msg = await _safe_edit(status_msg, f'Step 1/2: backfilling <#{sb.channel_id}>...')
 
     await job_backfill_channel(sb.channel_id, guild_id)
 
     # step 2: scan all stored starboard messages and build StarredMessageDocument records
-    if interaction is not None:
-        await interaction.edit_original_response(content='Step 2/2: parsing starboard messages...')
+    status_msg = await _safe_edit(status_msg, 'Step 2/2: parsing starboard messages...')
 
     msg_repo = _get_msg_repo()
     sb_repo = _get_sb_repo()
@@ -298,8 +302,7 @@ async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | 
     summary = f'Done - {created} entries created, {skipped} skipped, {errors} errors'
     logger.info(f'learn_starboard: {summary} (guild {guild_id})')
 
-    if interaction is not None:
-        await interaction.edit_original_response(content=summary)
+    await _safe_edit(status_msg, summary)
 
 
 @fix_group.command(name='starboard', description='Backfills the starboard channel then ingests all entries into the database')
@@ -312,14 +315,12 @@ async def fix_starboard(ctx: ApplicationContext):
         await ctx.respond('starboard repo not initialized yet', ephemeral=True)
         return
 
-    _response = await ctx.respond('Starting starboard ingestion...')
-    scheduler.add_job(
-        job_learn_starboard(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None),
-        'Job[fix_starboard]',
-    )
+    await ctx.respond('Starting starboard ingestion...', ephemeral=True)
+    status_msg = await ctx.channel.send('Starting starboard ingestion...')
+    scheduler.add_job(job_learn_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard]')
 
 
-async def job_recount_starboard(guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912, PLR0915
+async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
     """fetch live reaction counts from discord for all starred messages and rebuild per-user reaction lists."""
     from attubot import bot, config
     from attubot.database.models import StarredMessageDocument
@@ -329,22 +330,19 @@ async def job_recount_starboard(guild_id: int, interaction: discord.Interaction 
     try:
         guild_config = config.guild(guild_id)
     except Exception as err:
-        if interaction is not None:
-            await interaction.edit_original_response(content=f'Error: {err}')
+        await _safe_edit(status_msg, f'Error: {err}')
         return
 
     sb = guild_config.starboard
     if not sb.channel_id:
-        if interaction is not None:
-            await interaction.edit_original_response(content='No starboard channel configured')
+        await _safe_edit(status_msg, 'No starboard channel configured')
         return
 
     sb_repo = _get_sb_repo()
     all_docs = await sb_repo.all_for_guild(guild_id)
 
     if not all_docs:
-        if interaction is not None:
-            await interaction.edit_original_response(content='No starred messages found - run /fix starboard first')
+        await _safe_edit(status_msg, 'No starred messages found - run /fix starboard first')
         return
 
     updated = 0
@@ -404,6 +402,9 @@ async def job_recount_starboard(guild_id: int, interaction: discord.Interaction 
                 skipped += 1
                 continue
 
+            old_total = doc.total_reactions
+            logger.info(f'recount_starboard: message {doc.message_id} updated ({old_total} -> {total} stars)')
+
             updated_doc = StarredMessageDocument(
                 message_id=doc.message_id,
                 channel_id=doc.channel_id,
@@ -421,14 +422,13 @@ async def job_recount_starboard(guild_id: int, interaction: discord.Interaction 
             logger.warn(f'recount_starboard: unexpected error for message {doc.message_id}: {err}')
             errors += 1
 
-        if (i + 1) % 25 == 0 and interaction is not None:
-            await interaction.edit_original_response(content=f'Progress: {i + 1}/{len(all_docs)} messages recounted...')
+        if (i + 1) % 25 == 0:
+            status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(all_docs)} messages recounted...')
 
-    summary = f'Done - {updated} updated, {skipped} skipped (not found), {errors} errors'
+    summary = f'Done - {updated} updated, {skipped} skipped, {errors} errors'
     logger.info(f'recount_starboard: {summary} (guild {guild_id})')
 
-    if interaction is not None:
-        await interaction.edit_original_response(content=summary)
+    await _safe_edit(status_msg, summary)
 
 
 @fix_group.command(name='starboard_recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
@@ -441,11 +441,9 @@ async def fix_starboard_recount(ctx: ApplicationContext):
         await ctx.respond('starboard repo not initialized yet', ephemeral=True)
         return
 
-    _response = await ctx.respond('Starting starboard recount...')
-    scheduler.add_job(
-        job_recount_starboard(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None),
-        'Job[fix_starboard_recount]',
-    )
+    await ctx.respond('Starting starboard recount...', ephemeral=True)
+    status_msg = await ctx.channel.send('Starting starboard recount...')
+    scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
 
 
 # --- Extension Def ---
