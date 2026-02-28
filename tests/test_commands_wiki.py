@@ -15,12 +15,10 @@ _time.tzset()
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import discord
 import pytest
 
-import discord
-
 from attubot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
-
 
 def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSummary | None = None, title_pages: list[dict] | None = None):
     """build a mock WikiClient whose search api returns the given pages"""
@@ -78,6 +76,7 @@ class TestWikiLookupCommand:
         link_buttons = [c for c in view.children if isinstance(c, discord.ui.Button) and c.style == discord.ButtonStyle.link]
         assert len(link_buttons) == 1
         assert link_buttons[0].label == 'Open Wiki!'
+        assert link_buttons[0].url is not None
         assert 'wiki.example.com' in link_buttons[0].url
 
     @pytest.mark.asyncio
@@ -98,7 +97,7 @@ class TestWikiLookupCommand:
         view = call_kwargs['view']
         assert view is not None
         non_link_buttons = [c for c in view.children if isinstance(c, discord.ui.Button) and c.style != discord.ButtonStyle.link]
-        labels = [b.label for b in non_link_buttons]
+        labels = [b.label for b in non_link_buttons if b.label is not None]
         assert 'Previous' in labels
         assert any('Next' in label for label in labels)
 
@@ -122,7 +121,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_always_searches_with_max_limit(self, mock_ctx):
         """/wiki lookup always calls the search api with the hardcoded limit of 11"""
-        from attubot.commands.wiki import wiki_lookup, _SEARCH_LIMIT
+        from attubot.commands.wiki import _SEARCH_LIMIT, wiki_lookup
 
         summary = PageSummary(title='Page 1', extract='text')
         mock_wiki = _make_mock_wiki([{'title': 'Page 1', 'key': 'Page_1'}], summary=summary)
@@ -164,6 +163,7 @@ class TestWikiLookupCommand:
         call_kwargs = mock_ctx._responses[0]['kwargs']
         embed = call_kwargs['embed']
         assert embed.title == 'Missing Page'
+        assert embed.description is not None
         assert 'short excerpt' in embed.description
 
     @pytest.mark.asyncio
@@ -346,7 +346,7 @@ class TestBuildWikiEmbed:
         summary = PageSummary(title='Some Page', extract='A description.')
         _, url = build_wiki_embed(summary, _SITE_INFO)
 
-        assert 'https://wiki.example.com/wiki/Some_Page' == url
+        assert url == 'https://wiki.example.com/wiki/Some_Page'
 
     def test_no_open_field_in_embed(self):
         """the open url is now returned as a separate value, not an embed field"""
@@ -371,6 +371,7 @@ class TestBuildWikiEmbed:
         summary = PageSummary(title='T', extract='My extract text.')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
 
+        assert embed.description is not None
         assert 'My extract text.' in embed.description
 
     def test_empty_extract_shows_fallback(self):
@@ -379,14 +380,16 @@ class TestBuildWikiEmbed:
         summary = PageSummary(title='T', extract='')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
 
+        assert embed.description is not None
         assert '_No description available._' in embed.description
 
     def test_long_extract_is_truncated(self):
-        from attubot.commands.wiki import build_wiki_embed, _EMBED_DESC_LIMIT
+        from attubot.commands.wiki import _EMBED_DESC_LIMIT, build_wiki_embed
 
         summary = PageSummary(title='T', extract='x' * (_EMBED_DESC_LIMIT + 100))
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
 
+        assert embed.description is not None
         assert len(embed.description) == _EMBED_DESC_LIMIT + 3  # _EMBED_DESC_LIMIT chars + '...'
         assert embed.description.endswith('...')
         assert 'x' * (_EMBED_DESC_LIMIT + 100) not in embed.description
@@ -443,6 +446,7 @@ class TestWikiRandomCommand:
         embed = call_kwargs['embed']
         assert isinstance(embed, discord.Embed)
         assert embed.title == 'Random Page'
+        assert embed.description is not None
         assert 'Some intro text.' in embed.description
 
     @pytest.mark.asyncio

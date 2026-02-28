@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import contextlib
 import re
 
 import discord
@@ -104,10 +105,8 @@ class WikiLookupView(discord.ui.View):
 
     async def on_timeout(self):
         self.disable_all_items()
-        try:
+        with contextlib.suppress(Exception):
             await self.message.edit(view=self)
-        except Exception:
-            pass
 
     async def _fetch_and_update(self, interaction: discord.Interaction):
         """fetch the summary for the current index and update the message"""
