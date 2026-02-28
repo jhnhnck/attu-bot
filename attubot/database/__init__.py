@@ -10,6 +10,7 @@ from attubot.database.models import (
     GuildConfigDocument,
     MessageDocument,
     ReloadSignalDocument,
+    StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
     YearDocument,
@@ -19,6 +20,7 @@ from attubot.database.repositories import (
     ConfigRepository,
     MessageRepository,
     ReloadSignalRepository,
+    StarboardRepository,
     YearMarkerRepository,
     YearRepository,
 )
@@ -64,15 +66,21 @@ async def init_database(url: str, name: str):
     logger.debug('message indexes ready')
 
     # seed module-level repo singletons so lazy _get_repo() calls work
+    starboard_repo = StarboardRepository(database)
+    await starboard_repo.init_indexes()
+    logger.debug('starboard indexes ready')
+
     import attubot.markers as _markers
     import attubot.messages as _messages
     import attubot.signals as _signals
+    import attubot.starboard as _starboard
     import attubot.years as _years
 
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
+    _starboard._starboard_repo = starboard_repo
 
     logger.info('database initialized')
 
@@ -85,6 +93,8 @@ __all__ = [
     'MongoStorage',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
+    'StarboardRepository',
+    'StarredMessageDocument',
     'SystemConfigDocument',
     'ThemeDocument',
     'YearDocument',

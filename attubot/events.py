@@ -9,7 +9,7 @@ import asyncio
 import sys
 
 import anyio
-from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent
+from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, RawReactionActionEvent
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
@@ -254,6 +254,38 @@ async def on_application_command(ctx: ApplicationContext):
 
 
 logger.info('Registered event handlers')
+
+@bot.listen()
+async def on_raw_reaction_add(payload: RawReactionActionEvent):
+    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        return
+
+    from attubot.starboard import handle_star_add
+
+    await handle_star_add(
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+        user_id=payload.user_id,
+        emoji_str=str(payload.emoji),
+    )
+
+
+@bot.listen()
+async def on_raw_reaction_remove(payload: RawReactionActionEvent):
+    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        return
+
+    from attubot.starboard import handle_star_remove
+
+    await handle_star_remove(
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+        user_id=payload.user_id,
+        emoji_str=str(payload.emoji),
+    )
+
 
 # register moderation log handlers
 import attubot.modlog  # noqa: E402,F401

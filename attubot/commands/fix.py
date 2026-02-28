@@ -182,6 +182,118 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     scheduler.add_job(coro, label)
 
 
+async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | None = None):
+    """two-step ingestion: backfill the starboard channel, then parse stored messages into starboard documents."""
+    from attubot import config
+    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.starboard import _get_repo as _get_sb_repo, parse_jump_url, parse_starboard_content
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception as err:
+        if interaction is not None:
+            await interaction.edit_original_response(content=f'Error: {err}')
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id:
+        if interaction is not None:
+            await interaction.edit_original_response(content='No starboard channel configured')
+        return
+
+    # step 1: ensure all starboard channel messages are stored locally
+    if interaction is not None:
+        await interaction.edit_original_response(content=f'Step 1/2: backfilling <#{sb.channel_id}>...')
+
+    await job_backfill_channel(sb.channel_id, guild_id)
+
+    # step 2: scan all stored starboard messages and build StarredMessageDocument records
+    if interaction is not None:
+        await interaction.edit_original_response(content='Step 2/2: parsing starboard messages...')
+
+    msg_repo = _get_msg_repo()
+    sb_repo = _get_sb_repo()
+
+    # fetch all stored messages from the starboard channel
+    from attubot.database.repositories import MessageRepository
+    cursor = msg_repo.db[MessageRepository.COLLECTION].find({'guild_id': guild_id, 'channel_id': sb.channel_id})
+    stored_msgs = await cursor.to_list(length=None)
+
+    created = 0
+    skipped = 0
+    errors = 0
+
+    for raw in stored_msgs:
+        try:
+            content = raw.get('content', '')
+            if not content:
+                skipped += 1
+                continue
+
+            emoji_counts, jump_url = parse_starboard_content(content)
+            if not jump_url or not emoji_counts:
+                skipped += 1
+                continue
+
+            parsed = parse_jump_url(jump_url)
+            if parsed is None:
+                skipped += 1
+                continue
+
+            _orig_guild_id, orig_channel_id, orig_message_id = parsed
+
+            # skip if we already have this starboard document
+            if await sb_repo.get(orig_message_id) is not None:
+                skipped += 1
+                continue
+
+            # look up the original message to get author_id
+            orig_doc = await msg_repo.get(orig_message_id)
+            author_id = orig_doc.author_id if orig_doc else 0
+
+            from attubot.database.models import StarredMessageDocument
+
+            total = sum(emoji_counts.values())
+            doc = StarredMessageDocument(
+                message_id=orig_message_id,
+                channel_id=orig_channel_id,
+                guild_id=guild_id,
+                author_id=author_id,
+                starboard_message_id=int(raw['message_id']),
+                reactions={},       # individual starrer IDs not available from legacy data
+                total_reactions=total,
+            )
+            await sb_repo.upsert(doc)
+            created += 1
+
+        except Exception as err:
+            logger.warn(f'learn_starboard: error processing message {raw.get("message_id")}: {err}')
+            errors += 1
+
+    summary = f'Done - {created} entries created, {skipped} skipped, {errors} errors'
+    logger.info(f'learn_starboard: {summary} (guild {guild_id})')
+
+    if interaction is not None:
+        await interaction.edit_original_response(content=summary)
+
+
+@fix_group.command(name='starboard', description='Backfills the starboard channel then ingests all entries into the database')
+@commands.check(is_bot_owner)
+async def fix_starboard(ctx: ApplicationContext):
+    try:
+        from attubot.starboard import _get_repo
+        _get_repo()
+    except RuntimeError:
+        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        return
+
+    _response = await ctx.respond('Starting starboard ingestion...')
+    scheduler.add_job(
+        job_learn_starboard(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None),
+        'Job[fix_starboard]',
+    )
+
+
 # --- Extension Def ---
 
 

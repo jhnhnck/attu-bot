@@ -23,6 +23,7 @@ class GuildConfigDocument(BaseModel):
     epoch: dict
     roles: dict
     users: dict
+    starboard: dict = {}
 
 
 class ThemeDocument(BaseModel):
@@ -94,6 +95,19 @@ class MessageDocument(BaseModel):
     edited_at: int | None = None
     deleted: bool = False
     deleted_at: int | None = None
+
+
+class StarredMessageDocument(BaseModel):
+    """MongoDB document tracking stars earned by a message"""
+    model_config = ConfigDict(extra='ignore')
+
+    message_id: int
+    channel_id: int
+    guild_id: int
+    author_id: int
+    starboard_message_id: int | None = None  # post in the starboard channel, if any
+    reactions: dict[str, list[int]] = {}     # emoji_str -> list of user_ids who reacted
+    total_reactions: int = 0                  # sum of all reaction list lengths; kept in sync for fast range queries
 
 
 class ReloadSignalDocument(BaseModel):

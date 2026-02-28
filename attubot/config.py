@@ -134,12 +134,19 @@ class GuildUsers(BaseModel):
     markers: list[int] = []  # user IDs authorized to create year markers
 
 
+class GuildStarboard(BaseModel):
+    channel_id: int = 0                  # channel where starboard posts are sent
+    emojis: dict[str, str] = {}          # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
+    valid_bots: list[int] = []           # bot IDs allowed to contribute legacy stars
+
+
 class GuildConfig(BaseModel):
     id: int
     channels: GuildChannels
     epoch: GuildEpoch
     roles: GuildRoles
     users: GuildUsers
+    starboard: GuildStarboard = GuildStarboard()
     _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):
@@ -553,6 +560,7 @@ class NovaConfig:
                     epoch=GuildEpoch(**doc.epoch),
                     roles=GuildRoles(**doc.roles),
                     users=GuildUsers(**doc.users),
+                    starboard=GuildStarboard(**doc.starboard),
                 )
 
             if guild not in self.valid_guilds:

@@ -14,6 +14,7 @@ from attubot.database.models import (
     GuildConfigDocument,
     MessageDocument,
     ReloadSignalDocument,
+    StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
     YearDocument,
@@ -54,6 +55,7 @@ class ConfigRepository:
             'epoch': config.epoch.model_dump(),
             'roles': config.roles.model_dump(),
             'users': config.users.model_dump(),
+            'starboard': config.starboard.model_dump(),
         }
         await self.db[self.GUILD_COLLECTION].update_one(
             {'guild_id': config.id},
@@ -377,6 +379,153 @@ class MessageRepository:
             {'$set': {'author_name': author_name}},
         )
         return result.modified_count
+
+
+class StarboardRepository:
+    """Repository for starred message documents"""
+    COLLECTION = 'starboard'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self):
+        await self.db[self.COLLECTION].create_index('message_id', unique=True)
+        await self.db[self.COLLECTION].create_index('guild_id')
+        await self.db[self.COLLECTION].create_index('author_id')
+        await self.db[self.COLLECTION].create_index('starboard_message_id')
+        await self.db[self.COLLECTION].create_index('total_reactions')
+
+    async def get(self, message_id: int) -> StarredMessageDocument | None:
+        doc = await self.db[self.COLLECTION].find_one({'message_id': message_id})
+        if doc:
+            doc.pop('_id', None)
+            return StarredMessageDocument(**doc)
+        return None
+
+    async def get_by_starboard_message(self, starboard_message_id: int) -> StarredMessageDocument | None:
+        doc = await self.db[self.COLLECTION].find_one({'starboard_message_id': starboard_message_id})
+        if doc:
+            doc.pop('_id', None)
+            return StarredMessageDocument(**doc)
+        return None
+
+    async def upsert(self, doc: StarredMessageDocument):
+        """insert or update a starred message document"""
+        data = doc.model_dump()
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': doc.message_id},
+            {'$set': data},
+            upsert=True,
+        )
+
+    async def add_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
+        """add a user to an emoji's reaction list; returns the updated doc or None if not found"""
+        from pymongo import ReturnDocument
+
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            {'$addToSet': {f'reactions.{emoji}': user_id}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        doc = StarredMessageDocument(**result)
+        # recompute and persist total_reactions
+        total = sum(len(v) for v in doc.reactions.values())
+        if total != doc.total_reactions:
+            await self.db[self.COLLECTION].update_one(
+                {'message_id': message_id},
+                {'$set': {'total_reactions': total}},
+            )
+            doc.total_reactions = total
+        return doc
+
+    async def remove_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
+        """remove a user from an emoji's reaction list; returns the updated doc or None if not found"""
+        from pymongo import ReturnDocument
+
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            {'$pull': {f'reactions.{emoji}': user_id}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        doc = StarredMessageDocument(**result)
+        total = sum(len(v) for v in doc.reactions.values())
+        if total != doc.total_reactions:
+            await self.db[self.COLLECTION].update_one(
+                {'message_id': message_id},
+                {'$set': {'total_reactions': total}},
+            )
+            doc.total_reactions = total
+        return doc
+
+    async def set_starboard_message(self, message_id: int, starboard_message_id: int | None):
+        """link or unlink a starboard channel post to this document"""
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': message_id},
+            {'$set': {'starboard_message_id': starboard_message_id}},
+        )
+
+    async def get_random(self, guild_id: int, min_total: int, max_total: int | None = None) -> StarredMessageDocument | None:
+        """return a random document matching the total_reactions range using $sample"""
+        match: dict = {'guild_id': guild_id, 'total_reactions': {'$gte': min_total}}
+        if max_total is not None:
+            match['total_reactions']['$lte'] = max_total
+        pipeline = [{'$match': match}, {'$sample': {'size': 1}}]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        docs = await cursor.to_list(length=1)
+        if docs:
+            docs[0].pop('_id', None)
+            return StarredMessageDocument(**docs[0])
+        return None
+
+    async def leaderboard_most_stars(self, guild_id: int, limit: int = 10) -> list[dict]:
+        """top users by total stars received (sum of all reaction list lengths on their messages)"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id}},
+            {'$project': {'author_id': 1, 'reactions_arr': {'$objectToArray': '$reactions'}}},
+            {'$unwind': '$reactions_arr'},
+            {'$project': {'author_id': 1, 'count': {'$size': '$reactions_arr.v'}}},
+            {'$group': {'_id': '$author_id', 'total_stars': {'$sum': '$count'}}},
+            {'$sort': {'total_stars': -1}},
+            {'$limit': limit},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        return await cursor.to_list(length=limit)
+
+    async def leaderboard_most_starred(self, guild_id: int, limit: int = 10) -> list[dict]:
+        """top users by number of messages that reached the starboard"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id, 'starboard_message_id': {'$ne': None}}},
+            {'$group': {'_id': '$author_id', 'starred_messages': {'$sum': 1}}},
+            {'$sort': {'starred_messages': -1}},
+            {'$limit': limit},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        return await cursor.to_list(length=limit)
+
+    async def leaderboard_most_given(self, guild_id: int, limit: int = 10) -> list[dict]:
+        """top users by total stars given across all emojis"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id}},
+            {'$project': {'reactions_arr': {'$objectToArray': '$reactions'}}},
+            {'$unwind': '$reactions_arr'},
+            {'$unwind': '$reactions_arr.v'},
+            {'$group': {'_id': '$reactions_arr.v', 'total_given': {'$sum': 1}}},
+            {'$sort': {'total_given': -1}},
+            {'$limit': limit},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        return await cursor.to_list(length=limit)
+
+    async def all_for_guild(self, guild_id: int) -> list[StarredMessageDocument]:
+        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id})
+        docs = await cursor.to_list(length=None)
+        return [StarredMessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
 
 class ReloadSignalRepository:

@@ -86,6 +86,7 @@ def start_bot_loop():
         bot.load_extension('attubot.commands.fix')
         bot.load_extension('attubot.commands.marker')
         bot.load_extension('attubot.commands.query')
+        bot.load_extension('attubot.commands.stars')
         bot.load_extension('attubot.commands.time')
         bot.load_extension('attubot.commands.wiki')
         bot.load_extension('attubot.commands.year')

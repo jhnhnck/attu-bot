@@ -1,0 +1,175 @@
+"""
+AttuBot - Stars Commands
+Author(s): @jhnhnck <john@jhnhnck.com>
+
+This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+"""
+
+from typing import cast
+
+import discord
+from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
+
+from attubot import config
+from attubot.logging import get_logger
+
+logger = get_logger(__name__)
+
+# page size for leaderboard commands
+_PAGE_SIZE = 10
+
+stars_group = SlashCommandGroup('stars', description='Starboard browsing and leaderboards')
+
+
+def _get_sb_repo():
+    from attubot.starboard import _get_repo
+    return _get_repo()
+
+
+def _get_msg_repo():
+    from attubot.messages import _get_repo
+    return _get_repo()
+
+
+async def _show_random_message(ctx: ApplicationContext, min_total: int, max_total: int | None = None) -> None:
+    """fetch and display a random starred message matching the reaction count range."""
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        return
+
+    guild_id = ctx.guild.id
+    doc = await sb_repo.get_random(guild_id, min_total=min_total, max_total=max_total)
+
+    if doc is None:
+        label = 'exactly 1 star' if max_total == 1 else f'{min_total}+ stars'
+        await ctx.respond(f'no messages found with {label}', ephemeral=True)
+        return
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('guild configuration not found', ephemeral=True)
+        return
+
+    from attubot.starboard import build_content, build_embeds, dominant_color
+
+    msg_repo = _get_msg_repo()
+    msg_doc = await msg_repo.get(doc.message_id)
+
+    if msg_doc is None:
+        await ctx.respond('original message not found in database', ephemeral=True)
+        return
+
+    sb = guild_config.starboard
+    jump_url = f'https://discord.com/channels/{guild_id}/{msg_doc.channel_id}/{msg_doc.message_id}'
+    content = build_content(doc.reactions, jump_url, sb.emojis) if doc.reactions else f'⭐ **{doc.total_reactions}** | {jump_url}'
+    color = dominant_color(doc.reactions, sb.emojis) if doc.reactions else 0xEEDD20
+    embeds = await build_embeds(msg_doc, guild_id, color)
+
+    await ctx.respond(content=content, embeds=embeds)
+
+
+@stars_group.command(name='random', description='Shows a random message with 2 or more stars')
+async def stars_random(ctx: ApplicationContext):
+    await _show_random_message(ctx, min_total=2)
+
+
+@stars_group.command(name='lost', description='Shows a random message with exactly 1 star')
+async def stars_lost(ctx: ApplicationContext):
+    await _show_random_message(ctx, min_total=1, max_total=1)
+
+
+@stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
+@discord.commands.option(name='message_id', required=True, description='ID of the original message to recheck')
+async def stars_recheck(ctx: ApplicationContext, message_id: str):
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        return
+
+    try:
+        msg_id = int(message_id)
+    except ValueError:
+        await ctx.respond('invalid message ID', ephemeral=True)
+        return
+
+    doc = await sb_repo.get(msg_id)
+    if doc is None:
+        await ctx.respond('no starboard entry found for that message', ephemeral=True)
+        return
+
+    try:
+        guild_config = config.guild(ctx.guild.id)
+    except Exception:
+        await ctx.respond('guild configuration not found', ephemeral=True)
+        return
+
+    from attubot.starboard import _sync_starboard_post
+
+    await ctx.defer()
+    await _sync_starboard_post(ctx.guild.id, doc, guild_config)
+    await ctx.respond('recheck complete')
+
+
+async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_key: str, value_label: str, title: str) -> None:
+    """build and send a numbered leaderboard embed."""
+    if not rows:
+        await ctx.respond(f'no data yet for {title.lower()}', ephemeral=True)
+        return
+
+    lines = []
+    for i, row in enumerate(rows[:_PAGE_SIZE], start=1):
+        user_id = row['_id']
+        value = row[value_key]
+        lines.append(f'**{i}.** <@{user_id}> - **{value}** {value_label}')
+
+    embed = discord.Embed(title=title, description='\n'.join(lines), color=0xEEDD20)
+    await ctx.respond(embed=embed)
+
+
+@stars_group.command(name='most-stars', description='Top users by total stars received')
+async def stars_most_stars(ctx: ApplicationContext):
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        return
+
+    rows = await sb_repo.leaderboard_most_stars(ctx.guild.id, limit=_PAGE_SIZE)
+    await _leaderboard_embed(ctx, rows, 'total_stars', 'stars received', 'Most Stars Received')
+
+
+@stars_group.command(name='most-starred', description='Top users by number of messages on the starboard')
+async def stars_most_starred(ctx: ApplicationContext):
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        return
+
+    rows = await sb_repo.leaderboard_most_starred(ctx.guild.id, limit=_PAGE_SIZE)
+    await _leaderboard_embed(ctx, rows, 'starred_messages', 'messages starred', 'Most Messages Starred')
+
+
+@stars_group.command(name='most-given', description='Top users by total stars given')
+async def stars_most_given(ctx: ApplicationContext):
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        return
+
+    rows = await sb_repo.leaderboard_most_given(ctx.guild.id, limit=_PAGE_SIZE)
+    await _leaderboard_embed(ctx, rows, 'total_given', 'stars given', 'Most Stars Given')
+
+
+# --- Extension Def ---
+
+
+def setup(bot: Bot):
+    logger.info(f'Registered: {__name__}')
+
+    bot.add_application_command(cast(ApplicationCommand, stars_group))
