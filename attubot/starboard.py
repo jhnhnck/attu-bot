@@ -190,6 +190,155 @@ def _is_image(attachment: dict) -> bool:
 # --- Reaction Processing ---
 
 
+async def _fetch_store_and_backfill(
+    guild_id: int,
+    channel_id: int,
+    message_id: int,
+    sb,
+    skip_user: int,
+    skip_emoji: str,
+) -> 'MessageDocument | None':
+    """fetch a missing message from discord, store it, then backfill any existing star reactions.
+
+    skips (skip_user, skip_emoji) since the caller will process that combination.
+    returns the stored MessageDocument or None on failure.
+    """
+    from attubot import bot
+    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.messages import build_message_doc
+
+    try:
+        channel = bot.get_channel(channel_id)
+        if channel is None:
+            channel = await bot.fetch_channel(channel_id)
+        discord_msg = await channel.fetch_message(message_id)
+    except Exception as err:
+        logger.warn(f'starboard: could not fetch message {message_id} from channel {channel_id}: {err}')
+        return None
+
+    try:
+        doc = await build_message_doc(discord_msg)
+        await _get_msg_repo().upsert(doc)
+        logger.info(f'starboard: stored missing message {message_id}')
+    except Exception as err:
+        logger.warn(f'starboard: could not store fetched message {message_id}: {err}')
+        return None
+
+    # backfill any existing star reactions, excluding the one the caller is about to process
+    repo = _get_repo()
+    backfilled = 0
+    for reaction in discord_msg.reactions:
+        emoji = str(reaction.emoji)
+        if emoji not in sb.emojis:
+            continue
+        async for user in reaction.users():
+            if user.id == doc.author_id or user.bot:
+                continue
+            if user.id == skip_user and emoji == skip_emoji:
+                continue
+            if await repo.get(message_id) is None:
+                existing_doc = StarredMessageDocument(
+                    message_id=message_id,
+                    channel_id=doc.channel_id,
+                    guild_id=guild_id,
+                    author_id=doc.author_id,
+                )
+                await repo.upsert(existing_doc)
+            await repo.add_reaction(message_id, emoji, user.id)
+            logger.info(f'starboard: backfilled {emoji} from user {user.id} on message {message_id}')
+            backfilled += 1
+
+    if backfilled:
+        logger.info(f'starboard: backfilled {backfilled} existing reaction(s) on message {message_id}')
+
+    return doc
+
+
+async def backfill_message_reactions(message: discord.Message, guild_id: int) -> None:  # noqa: PLR0912
+    """process all existing reactions on a discord message for starboard backfill.
+
+    intended to be called during channel backfill for messages we hadn't seen before.
+    no-ops on the starboard channel itself, bot messages, or unconfigured emojis.
+    """
+    from attubot import config
+    from attubot.messages import _get_repo as _get_msg_repo
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id or not sb.emojis:
+        return
+
+    # don't process reactions on the starboard channel itself
+    if message.channel.id == sb.channel_id:
+        return
+
+    if message.author.bot:
+        return
+
+    configured = {str(r.emoji): r for r in message.reactions if str(r.emoji) in sb.emojis}
+    if not configured:
+        return
+
+    repo = _get_repo()
+    msg_repo = _get_msg_repo()
+
+    # collect per-emoji user sets, excluding self-stars and bots
+    new_reactions: dict[str, list[int]] = {}
+    for emoji, reaction in configured.items():
+        users = []
+        async for user in reaction.users():
+            if user.id != message.author.id and not user.bot:
+                users.append(user.id)
+        if users:
+            new_reactions[emoji] = users
+
+    if not new_reactions:
+        return
+
+    existing = await repo.get(message.id)
+    if existing is None:
+        msg_doc = await msg_repo.get(message.id)
+        author_id = msg_doc.author_id if msg_doc else message.author.id
+        doc = StarredMessageDocument(
+            message_id=message.id,
+            channel_id=message.channel.id,
+            guild_id=guild_id,
+            author_id=author_id,
+            reactions=new_reactions,
+            total_reactions=sum(len(v) for v in new_reactions.values()),
+        )
+        await repo.upsert(doc)
+    else:
+        # merge into existing, deduplicating per user per emoji
+        merged = {k: list(v) for k, v in existing.reactions.items()}
+        for emoji, users in new_reactions.items():
+            current = set(merged.get(emoji, []))
+            current.update(users)
+            merged[emoji] = list(current)
+        total = sum(len(v) for v in merged.values())
+        doc = StarredMessageDocument(
+            message_id=existing.message_id,
+            channel_id=existing.channel_id,
+            guild_id=existing.guild_id,
+            author_id=existing.author_id,
+            starboard_message_id=existing.starboard_message_id,
+            reactions=merged,
+            total_reactions=total,
+        )
+        await repo.upsert(doc)
+
+    total_new = sum(len(v) for v in new_reactions.values())
+    logger.info(f'starboard: backfilled {total_new} reaction(s) on message {message.id} during channel scan')
+
+    updated = await repo.get(message.id)
+    if updated:
+        await _sync_starboard_post(guild_id, updated, guild_config)
+
+
 async def handle_star_add(
     guild_id: int,
     channel_id: int,
@@ -217,6 +366,7 @@ async def handle_star_add(
 
     # determine if the reaction is on a starboard post or the original message
     real_message_id = message_id
+    real_channel_id = channel_id
     if channel_id == sb.channel_id:
         # reaction is on the starboard post - look up the original
         existing = await repo.get_by_starboard_message(message_id)
@@ -224,12 +374,15 @@ async def handle_star_add(
             logger.debug(f'starboard: reaction on unknown starboard message {message_id}, ignoring')
             return
         real_message_id = existing.message_id
+        real_channel_id = existing.channel_id
 
     # fetch the original message to validate self-star and get author info
     msg_doc = await _get_msg_repo().get(real_message_id)
     if msg_doc is None:
-        logger.debug(f'starboard: message {real_message_id} not in db, ignoring reaction')
-        return
+        logger.debug(f'starboard: message {real_message_id} not in db, attempting fetch and store')
+        msg_doc = await _fetch_store_and_backfill(guild_id, real_channel_id, real_message_id, sb, skip_user=user_id, skip_emoji=emoji_str)
+        if msg_doc is None:
+            return
 
     # self-stars don't count
     if user_id == msg_doc.author_id:
@@ -251,7 +404,7 @@ async def handle_star_add(
     if updated is None:
         return
 
-    logger.debug(f'starboard: message {real_message_id} now has {updated.total_reactions} total reactions')
+    logger.info(f'starboard: {emoji_str} from user {user_id} on message {real_message_id} - total now {updated.total_reactions}')
 
     await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -288,12 +441,12 @@ async def handle_star_remove(
     if updated is None:
         return
 
-    logger.debug(f'starboard: after removal, message {real_message_id} has {updated.total_reactions} reactions')
+    logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - total now {updated.total_reactions}')
 
     await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:
+async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915
     """create or update (or do nothing for) the starboard channel post for a starred message."""
     from attubot import bot
     from attubot.messages import _get_repo as _get_msg_repo
@@ -343,6 +496,25 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             # old post was deleted - clear the reference so we can create a new one
             logger.warn(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
             await repo.set_starboard_message(doc.message_id, None)
+        except discord.Forbidden:
+            # not our message (old bot) - send a reply to the old post so it's easy to jump to
+            logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
+            try:
+                try:
+                    old_msg = await channel.fetch_message(doc.starboard_message_id)
+                    new_msg = await channel.send(content=content, embeds=embeds, reference=old_msg)
+                except discord.NotFound:
+                    new_msg = await channel.send(content=content, embeds=embeds)
+                await repo.set_starboard_message(doc.message_id, new_msg.id)
+                for emoji in doc.reactions:
+                    if doc.reactions[emoji] and emoji in sb.emojis:
+                        try:
+                            await new_msg.add_reaction(emoji)
+                        except Exception as react_err:
+                            logger.warn(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
+                logger.info(f'starboard: replaced uneditable post {doc.starboard_message_id} with {new_msg.id} for message {doc.message_id}')
+            except Exception as err:
+                logger.error(f'starboard: failed to send replacement for post {doc.starboard_message_id}: {err}')
         except Exception as err:
             logger.error(f'starboard: failed to update post {doc.starboard_message_id}: {err}')
 

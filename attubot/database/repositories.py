@@ -476,7 +476,7 @@ class StarboardRepository:
         if max_total is not None:
             match['total_reactions']['$lte'] = max_total
         pipeline = [{'$match': match}, {'$sample': {'size': 1}}]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         docs = await cursor.to_list(length=1)
         if docs:
             docs[0].pop('_id', None)
@@ -494,7 +494,7 @@ class StarboardRepository:
             {'$sort': {'total_stars': -1}},
             {'$limit': limit},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=limit)
 
     async def leaderboard_most_starred(self, guild_id: int, limit: int = 10) -> list[dict]:
@@ -505,7 +505,7 @@ class StarboardRepository:
             {'$sort': {'starred_messages': -1}},
             {'$limit': limit},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=limit)
 
     async def leaderboard_most_given(self, guild_id: int, limit: int = 10) -> list[dict]:
@@ -519,7 +519,7 @@ class StarboardRepository:
             {'$sort': {'total_given': -1}},
             {'$limit': limit},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=limit)
 
     async def total_for_guild(self, guild_id: int) -> int:
@@ -532,7 +532,7 @@ class StarboardRepository:
             {'$match': {'guild_id': guild_id}},
             {'$group': {'_id': None, 'total': {'$sum': '$total_reactions'}}},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         docs = await cursor.to_list(length=1)
         return docs[0]['total'] if docs else 0
 

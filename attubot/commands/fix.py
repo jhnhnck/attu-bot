@@ -19,7 +19,7 @@ from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
 
-async def job_backfill_channel(channel_id: int, guild_id: int, interaction: discord.Interaction | None = None):
+async def job_backfill_channel(channel_id: int, guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912
     """scan a channel and backfill any messages not already stored."""
     from attubot import bot
     from attubot.messages import _get_repo, build_message_doc
@@ -49,6 +49,14 @@ async def job_backfill_channel(channel_id: int, guild_id: int, interaction: disc
                     backfilled += 1
                 except Exception as err:
                     logger.warn(f'fix messages: failed to store message {message.id}: {err}')
+                    continue
+
+                # check for starboard reactions on newly-discovered messages
+                try:
+                    from attubot.starboard import backfill_message_reactions
+                    await backfill_message_reactions(message, guild_id)
+                except Exception as err:
+                    logger.warn(f'fix messages: reaction backfill failed for {message.id}: {err}')
 
             total = stored + backfilled
             if total % 1000 == 0:
@@ -248,9 +256,25 @@ async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | 
                 skipped += 1
                 continue
 
-            # look up the original message to get author_id
+            # look up the original message to get author_id; fetch from discord if not stored
             orig_doc = await msg_repo.get(orig_message_id)
-            author_id = orig_doc.author_id if orig_doc else 0
+            if orig_doc is not None:
+                author_id = orig_doc.author_id
+            else:
+                author_id = 0
+                try:
+                    from attubot import bot
+                    from attubot.messages import build_message_doc
+                    orig_channel = bot.get_channel(orig_channel_id)
+                    if orig_channel is None:
+                        orig_channel = await bot.fetch_channel(orig_channel_id)
+                    discord_msg = await orig_channel.fetch_message(orig_message_id)
+                    author_id = discord_msg.author.id
+                    fetched_doc = await build_message_doc(discord_msg)
+                    await msg_repo.upsert(fetched_doc)
+                    logger.debug(f'learn_starboard: fetched and stored original message {orig_message_id}')
+                except Exception as fetch_err:
+                    logger.debug(f'learn_starboard: could not fetch original message {orig_message_id}: {fetch_err}')
 
             from attubot.database.models import StarredMessageDocument
 
@@ -292,6 +316,129 @@ async def fix_starboard(ctx: ApplicationContext):
     scheduler.add_job(
         job_learn_starboard(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None),
         'Job[fix_starboard]',
+    )
+
+
+async def job_recount_starboard(guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912, PLR0915
+    """fetch live reaction counts from discord for all starred messages and rebuild per-user reaction lists."""
+    from attubot import bot, config
+    from attubot.database.models import StarredMessageDocument
+    from attubot.starboard import _get_repo as _get_sb_repo
+    from attubot.starboard import _sync_starboard_post
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception as err:
+        if interaction is not None:
+            await interaction.edit_original_response(content=f'Error: {err}')
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id:
+        if interaction is not None:
+            await interaction.edit_original_response(content='No starboard channel configured')
+        return
+
+    sb_repo = _get_sb_repo()
+    all_docs = await sb_repo.all_for_guild(guild_id)
+
+    if not all_docs:
+        if interaction is not None:
+            await interaction.edit_original_response(content='No starred messages found - run /fix starboard first')
+        return
+
+    updated = 0
+    skipped = 0
+    errors = 0
+
+    for i, doc in enumerate(all_docs):
+        try:
+            new_reactions: dict[str, set[int]] = {emoji: set() for emoji in sb.emojis}
+            author_id = doc.author_id
+
+            # fetch the original message for live reactions
+            try:
+                orig_channel = bot.get_channel(doc.channel_id)
+                if orig_channel is None:
+                    orig_channel = await bot.fetch_channel(doc.channel_id)
+                orig_msg = await orig_channel.fetch_message(doc.message_id)
+                author_id = orig_msg.author.id
+                for reaction in orig_msg.reactions:
+                    emoji_str = str(reaction.emoji)
+                    if emoji_str in sb.emojis:
+                        async for user in reaction.users():
+                            if user.id != author_id and not user.bot:
+                                new_reactions[emoji_str].add(user.id)
+            except (discord.NotFound, discord.Forbidden):
+                skipped += 1
+                continue
+            except Exception as err:
+                logger.warn(f'recount_starboard: failed to fetch original message {doc.message_id}: {err}')
+                errors += 1
+                continue
+
+            # also collect reactions from the starboard post if it exists
+            if doc.starboard_message_id:
+                try:
+                    sb_channel = bot.get_channel(sb.channel_id)
+                    if sb_channel is None:
+                        sb_channel = await bot.fetch_channel(sb.channel_id)
+                    sb_msg = await sb_channel.fetch_message(doc.starboard_message_id)
+                    for reaction in sb_msg.reactions:
+                        emoji_str = str(reaction.emoji)
+                        if emoji_str in sb.emojis:
+                            async for user in reaction.users():
+                                if user.id != author_id and not user.bot:
+                                    new_reactions[emoji_str].add(user.id)
+                except (discord.NotFound, discord.Forbidden):
+                    pass  # starboard post gone or unreadable - skip but don't fail the entry
+                except Exception as err:
+                    logger.warn(f'recount_starboard: failed to fetch starboard post {doc.starboard_message_id}: {err}')
+
+            reactions_dict = {emoji: list(users) for emoji, users in new_reactions.items() if users}
+            total = sum(len(v) for v in reactions_dict.values())
+
+            updated_doc = StarredMessageDocument(
+                message_id=doc.message_id,
+                channel_id=doc.channel_id,
+                guild_id=doc.guild_id,
+                author_id=author_id,
+                starboard_message_id=doc.starboard_message_id,
+                reactions=reactions_dict,
+                total_reactions=total,
+            )
+            await sb_repo.upsert(updated_doc)
+            await _sync_starboard_post(guild_id, updated_doc, guild_config)
+            updated += 1
+
+        except Exception as err:
+            logger.warn(f'recount_starboard: unexpected error for message {doc.message_id}: {err}')
+            errors += 1
+
+        if (i + 1) % 25 == 0 and interaction is not None:
+            await interaction.edit_original_response(content=f'Progress: {i + 1}/{len(all_docs)} messages recounted...')
+
+    summary = f'Done - {updated} updated, {skipped} skipped (not found), {errors} errors'
+    logger.info(f'recount_starboard: {summary} (guild {guild_id})')
+
+    if interaction is not None:
+        await interaction.edit_original_response(content=summary)
+
+
+@fix_group.command(name='starboard_recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
+@commands.check(is_bot_owner)
+async def fix_starboard_recount(ctx: ApplicationContext):
+    try:
+        from attubot.starboard import _get_repo
+        _get_repo()
+    except RuntimeError:
+        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        return
+
+    _response = await ctx.respond('Starting starboard recount...')
+    scheduler.add_job(
+        job_recount_starboard(ctx.guild.id, interaction=_response if isinstance(_response, Interaction) else None),
+        'Job[fix_starboard_recount]',
     )
 
 
