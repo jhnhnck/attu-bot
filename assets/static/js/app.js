@@ -285,6 +285,8 @@ async function loadGuildConfig(guildId) {
         populateField('channels.year_vc', data.channels.year_vc);
         populateField('channels.year_links', data.channels.year_links);
         populateField('channels.meta_chat', data.channels.meta_chat);
+        populateField('channels.general', data.channels.general);
+        populateField('channels.logs', data.channels.logs);
 
         // Use resolved channel names for display
         initListField('lore_channels', data.channels.lore_channels, data.channels.lore_channels_names);
@@ -300,6 +302,16 @@ async function loadGuildConfig(guildId) {
 
         // Use resolved user names for display
         initListField('marker_users', data.users.markers, data.users.markers_names);
+
+        // starboard
+        if (data.starboard) {
+            populateField('starboard.channel_id', data.starboard.channel_id);
+            if (data.starboard.emojis) {
+                emojiMap = Object.assign({}, data.starboard.emojis);
+                renderEmojiTable();
+            }
+            initListField('starboard_valid_bots', data.starboard.valid_bots);
+        }
 
         showNotification('Configuration loaded', 'success');
     } catch {
@@ -553,6 +565,47 @@ function escapeHtml(text) {
 window.addListItem = addListItem;
 window.removeListItem = removeListItem;
 window.initListField = initListField;
+
+// ========== Emoji Map (Starboard) ==========
+
+let emojiMap = {};
+
+function renderEmojiTable() {
+    const tbody = document.getElementById('emoji-table-body');
+    if (!tbody) { return; }
+    tbody.innerHTML = '';
+    for (const [emoji, color] of Object.entries(emojiMap)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${escapeHtml(emoji)}</td>
+            <td><span style="display:inline-block;width:20px;height:20px;background:${color};border:1px solid #ccc;border-radius:3px;vertical-align:middle;"></span> ${escapeHtml(color)}</td>
+            <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeEmoji('${escapeHtml(emoji)}')">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+    const hidden = document.getElementById('starboard_emojis');
+    if (hidden) { hidden.value = JSON.stringify(emojiMap); }
+}
+
+function addEmojiEntry() {
+    const emojiInput = document.getElementById('emoji_input');
+    const colorInput = document.getElementById('emoji_color_input');
+    if (!emojiInput || !colorInput) { return; }
+    const emoji = emojiInput.value.trim();
+    const color = colorInput.value.trim();
+    if (!emoji) { return; }
+    emojiMap[emoji] = color;
+    emojiInput.value = '';
+    renderEmojiTable();
+}
+
+function removeEmoji(emoji) {
+    delete emojiMap[emoji];
+    renderEmojiTable();
+}
+
+window.addEmojiEntry = addEmojiEntry;
+window.removeEmoji = removeEmoji;
 
 // ========== Theme Configuration ==========
 
@@ -858,6 +911,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const importBtn = document.getElementById('import-guild-btn');
         if (importBtn) {importBtn.addEventListener('click', () => importGuildConfig(guildForm));}
+
+        // live hex color preview for emoji swatch
+        const emojiColorInput = document.getElementById('emoji_color_input');
+        if (emojiColorInput) {
+            emojiColorInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                const preview = document.getElementById('emoji_color_preview');
+                if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                    if (preview) { preview.style.background = val; }
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.classList.add('is-invalid');
+                }
+            });
+        }
     }
 
     // Theme config page

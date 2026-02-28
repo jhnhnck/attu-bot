@@ -82,6 +82,19 @@
         Users
       </button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="starboard-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#starboard-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="star" class="me-1"></i>
+        Starboard
+      </button>
+    </li>
   </ul>
 
   <!-- Configuration Form -->
@@ -409,6 +422,62 @@
               <small class="text-muted"
                 >User IDs authorized to create year markers</small
               >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Starboard Tab -->
+      <div class="tab-pane fade" id="starboard-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Starboard Configuration</h5>
+            <small class="text-muted">Configure the starboard channel and star emojis</small>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="starboard_channel_id">Starboard Channel</label>
+                <select class="form-select discord-channel-select" id="starboard_channel_id" name="starboard.channel_id">
+                  <option value="0">Loading channels...</option>
+                </select>
+                <small class="text-muted">Channel where starred messages are posted</small>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-8 mb-3">
+                <label class="form-label">Star Emojis</label>
+                <small class="text-muted d-block mb-2">Each emoji will be counted separately with a distinct embed color. Use standard Unicode emojis (e.g. <code>⭐</code>) or custom server emojis in Discord format (e.g. <code><:name:id></code> or <code><a:name:id></code>).</small>
+                <div class="input-group mb-2">
+                  <input class="form-control" id="emoji_input" type="text" placeholder="⭐ or <:name:id>" />
+                  <span id="emoji_color_preview" style="display:inline-block;width:38px;height:38px;border:1px solid #ced4da;border-right:none;border-radius:4px 0 0 4px;background:#eedd20;flex-shrink:0;"></span>
+                  <input class="form-control" id="emoji_color_input" type="text" value="#eedd20" placeholder="#eedd20" style="max-width: 100px; border-radius: 0 4px 4px 0;" title="Embed color hex for this emoji" />
+                  <button class="btn btn-outline-secondary" type="button" onclick="addEmojiEntry()">Add</button>
+                </div>
+                <input type="hidden" id="starboard_emojis" name="starboard.emojis" value="{}" />
+                <table class="table table-sm table-bordered" id="emoji-table">
+                  <thead><tr><th>Emoji</th><th>Color</th><th></th></tr></thead>
+                  <tbody id="emoji-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Valid Starboard Bots</label>
+                <small class="text-muted d-block mb-2">Bot IDs allowed to contribute legacy star ingestion entries</small>
+                <div class="input-group mb-2">
+                  <input class="form-control" id="valid_bot_input" type="text" placeholder="Bot User ID" />
+                  <button class="btn btn-outline-secondary" type="button" onclick="addListItem('starboard_valid_bots', 'valid_bot_input')">Add</button>
+                </div>
+                <input type="hidden" id="starboard_valid_bots" name="starboard.valid_bots" />
+                <ul id="list-starboard_valid_bots" class="list-group list-group-flush"></ul>
+              </div>
             </div>
           </div>
         </div>

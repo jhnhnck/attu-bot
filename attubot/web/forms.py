@@ -71,12 +71,43 @@ class GuildUsersForm(BaseModel):
         return v
 
 
+class GuildStarboardForm(BaseModel):
+    """Form validation for guild starboard configuration"""
+    channel_id: int = Field(default=0, ge=0)
+    emojis: dict[str, str] = Field(default_factory=dict)  # emoji_str -> '#RRGGBB'
+    valid_bots: list[int] = Field(default_factory=list)
+
+    @field_validator('emojis', mode='before')
+    @classmethod
+    def validate_emoji_colors(cls, v):
+        """ensure all color values are valid hex strings"""
+        import re
+        if not isinstance(v, dict):
+            return {}
+        pattern = re.compile(r'^#[0-9a-fA-F]{6}$')
+        for emoji, color in v.items():
+            if not pattern.match(color):
+                raise ValueError(f'invalid color "{color}" for emoji "{emoji}" - must be #RRGGBB')
+        return v
+
+    @field_validator('valid_bots', mode='before')
+    @classmethod
+    def parse_bot_list(cls, v):
+        """parse comma-separated bot IDs or lists"""
+        if isinstance(v, str):
+            if not v.strip():
+                return []
+            return [int(x.strip()) for x in v.split(',') if x.strip()]
+        return v
+
+
 class GuildConfigForm(BaseModel):
     """Complete guild configuration form"""
     channels: GuildChannelsForm = Field(default_factory=GuildChannelsForm)
     epoch: GuildEpochForm = Field(default_factory=GuildEpochForm)
     roles: GuildRolesForm = Field(default_factory=GuildRolesForm)
     users: GuildUsersForm = Field(default_factory=GuildUsersForm)
+    starboard: GuildStarboardForm = Field(default_factory=GuildStarboardForm)
 
     @model_validator(mode='before')
     @classmethod
@@ -91,6 +122,7 @@ class GuildConfigForm(BaseModel):
             'epoch': data.get('epoch', {}).copy() if isinstance(data.get('epoch'), dict) else {},
             'roles': data.get('roles', {}).copy() if isinstance(data.get('roles'), dict) else {},
             'users': data.get('users', {}).copy() if isinstance(data.get('users'), dict) else {},
+            'starboard': data.get('starboard', {}).copy() if isinstance(data.get('starboard'), dict) else {},
         }
 
         for key, value in data.items():
@@ -110,6 +142,8 @@ class GuildConfigForm(BaseModel):
                 result['roles'][key] = value
             elif key in GuildUsersForm.model_fields:
                 result['users'][key] = value
+            elif key in GuildStarboardForm.model_fields:
+                result['starboard'][key] = value
 
         return result
 

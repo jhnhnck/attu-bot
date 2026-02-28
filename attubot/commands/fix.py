@@ -182,11 +182,12 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     scheduler.add_job(coro, label)
 
 
-async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | None = None):
+async def job_learn_starboard(guild_id: int, interaction: discord.Interaction | None = None):  # noqa: PLR0912, PLR0915
     """two-step ingestion: backfill the starboard channel, then parse stored messages into starboard documents."""
     from attubot import config
     from attubot.messages import _get_repo as _get_msg_repo
-    from attubot.starboard import _get_repo as _get_sb_repo, parse_jump_url, parse_starboard_content
+    from attubot.starboard import _get_repo as _get_sb_repo
+    from attubot.starboard import parse_jump_url, parse_starboard_content
 
     try:
         guild_config = config.guild(guild_id)

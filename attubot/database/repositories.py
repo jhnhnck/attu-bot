@@ -522,6 +522,20 @@ class StarboardRepository:
         cursor = self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=limit)
 
+    async def total_for_guild(self, guild_id: int) -> int:
+        """count of all starred message documents for a guild"""
+        return await self.db[self.COLLECTION].count_documents({'guild_id': guild_id})
+
+    async def sum_reactions_for_guild(self, guild_id: int) -> int:
+        """sum of total_reactions across all documents for a guild"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id}},
+            {'$group': {'_id': None, 'total': {'$sum': '$total_reactions'}}},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        docs = await cursor.to_list(length=1)
+        return docs[0]['total'] if docs else 0
+
     async def all_for_guild(self, guild_id: int) -> list[StarredMessageDocument]:
         cursor = self.db[self.COLLECTION].find({'guild_id': guild_id})
         docs = await cursor.to_list(length=None)

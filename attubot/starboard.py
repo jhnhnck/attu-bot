@@ -77,8 +77,8 @@ def parse_starboard_content(content: str) -> tuple[dict[str, int], str | None]:
 
     emoji_counts: dict[str, int] = {}
     for segment in pre.split(' | '):
-        segment = segment.strip()
-        m = _REACTION_PART_RE.match(segment)
+        stripped = segment.strip()
+        m = _REACTION_PART_RE.match(stripped)
         if m:
             emoji = m.group(1).strip()
             count = int(m.group(2))
@@ -99,7 +99,7 @@ def parse_jump_url(url: str) -> tuple[int, int, int] | None:
 # --- Embed Builder ---
 
 
-async def build_embeds(
+async def build_embeds(  # noqa: PLR0912
     message_doc: 'MessageDocument',
     guild_id: int,
     color: int,

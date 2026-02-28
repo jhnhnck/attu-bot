@@ -18,6 +18,7 @@ export class GuildConfig {
         this.epoch = data.epoch || {};
         this.roles = data.roles || {};
         this.users = data.users || {};
+        this.starboard = data.starboard || {};
     }
 
     toJSON() {
@@ -26,6 +27,7 @@ export class GuildConfig {
             epoch: this.epoch,
             roles: this.roles,
             users: this.users,
+            starboard: this.starboard,
         };
     }
 

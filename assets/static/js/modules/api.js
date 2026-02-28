@@ -22,8 +22,8 @@ export class ApiClient {
         if (typeof obj === 'object') {
             const result = {};
             for (const [key, value] of Object.entries(obj)) {
-                // Convert string IDs to BigInt (specific field names that are IDs)
-                // Use exact matches or suffix matches to avoid false positives like "admin" matching "role"
+                // convert string IDs to BigInt (specific field names that are IDs)
+                // use exact matches or suffix matches to avoid false positives like "admin" matching "role"
                 const isIdField =
                     key === 'id' ||
                     key === 'guild_id' ||
@@ -32,10 +32,16 @@ export class ApiClient {
                     key.endsWith('_id') ||
                     key.endsWith('_channel') ||
                     key.endsWith('_role') ||
-                    key.endsWith('_user');
+                    key.endsWith('_user') ||
+                    key === 'valid_bots';
 
                 if (typeof value === 'string' && isIdField && /^\d+$/.test(value)) {
                     result[key] = BigInt(value);
+                } else if (Array.isArray(value) && isIdField) {
+                    // convert arrays of ID strings (e.g. valid_bots) element-wise
+                    result[key] = value.map(item =>
+                        typeof item === 'string' && /^\d+$/.test(item) ? BigInt(item) : item
+                    );
                 } else if (typeof value === 'object' || Array.isArray(value)) {
                     result[key] = this.parseBigInts(value);
                 } else {

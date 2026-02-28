@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from pydantic import ValidationError
 from quart import Quart, jsonify, render_template, request
 
-from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildUsers
+from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 from attubot.logging import get_logger
 from attubot.signals import send_signal
 from attubot.web.app import config
@@ -223,6 +223,10 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 'year_links_name': get_channel_name(guild.channels.year_links),
                 'meta_chat': str(guild.channels.meta_chat) if guild.channels.meta_chat else '0',
                 'meta_chat_name': get_channel_name(guild.channels.meta_chat),
+                'general': str(guild.channels.general) if guild.channels.general else '0',
+                'general_name': get_channel_name(guild.channels.general),
+                'logs': str(guild.channels.logs) if guild.channels.logs else '0',
+                'logs_name': get_channel_name(guild.channels.logs),
                 'lore_channels': [str(ch) for ch in guild.channels.lore_channels],
                 'lore_channels_names': [get_channel_name(ch) for ch in guild.channels.lore_channels],
                 'canon_channels': [str(ch) for ch in guild.channels.canon_channels],
@@ -242,6 +246,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
             'users': {
                 'markers': [str(user) for user in guild.users.markers],
                 'markers_names': [get_user_name(user) for user in guild.users.markers],
+            },
+            'starboard': {
+                'channel_id': str(guild.starboard.channel_id) if guild.starboard.channel_id else '0',
+                'channel_id_name': get_channel_name(guild.starboard.channel_id),
+                'emojis': guild.starboard.emojis,
+                'valid_bots': [str(b) for b in guild.starboard.valid_bots],
             },
         })
 
@@ -277,6 +287,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
             guild.epoch = GuildEpoch(**validated.epoch.model_dump())
             guild.roles = GuildRoles(**validated.roles.model_dump())
             guild.users = GuildUsers(**validated.users.model_dump())
+            guild.starboard = GuildStarboard(**validated.starboard.model_dump())
 
             # Save to database
             await guild.save()
@@ -291,6 +302,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     'epoch': guild.epoch.model_dump(),
                     'roles': guild.roles.model_dump(),
                     'users': guild.users.model_dump(),
+                    'starboard': guild.starboard.model_dump(),
                 }
                 changes = compare_configs(old_config, new_config)
                 if changes:
@@ -1176,12 +1188,25 @@ def register_routes(app: Quart):  # noqa: PLR0915
             total_guilds = len(config.authorized_guilds)
             configured_guilds = len(config.valid_guilds)
 
-            # Count years and markers across all guilds
+            # Count years, markers, and stars across all guilds
             total_years = 0
             total_markers = 0
-            for guild_id in config.authorized_guilds:
-                total_years += await Year.total(guild_id)
-                total_markers += await YearMarker.total(guild_id)
+            total_starred_messages = 0
+            total_stars = 0
+            from attubot.starboard import _get_repo as _get_sb_repo
+
+            try:
+                sb_repo = _get_sb_repo()
+                for guild_id in config.authorized_guilds:
+                    total_years += await Year.total(guild_id)
+                    total_markers += await YearMarker.total(guild_id)
+                    total_starred_messages += await sb_repo.total_for_guild(guild_id)
+                    total_stars += await sb_repo.sum_reactions_for_guild(guild_id)
+            except RuntimeError:
+                # starboard not yet initialized (e.g. web-only mode)
+                for guild_id in config.authorized_guilds:
+                    total_years += await Year.total(guild_id)
+                    total_markers += await YearMarker.total(guild_id)
 
             # Database connection status
             try:
@@ -1206,6 +1231,8 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 'data': {
                     'total_years': total_years,
                     'total_markers': total_markers,
+                    'total_starred_messages': total_starred_messages,
+                    'total_stars': total_stars,
                 },
                 'system': {
                     'db_connected': db_connected,

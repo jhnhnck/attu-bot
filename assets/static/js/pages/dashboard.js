@@ -66,6 +66,12 @@ function updateStatsDisplay(stats) {
         markersCountEl.textContent = stats.data.total_markers || 0;
     }
 
+    // Update total stars count
+    const starsCountEl = document.getElementById('stat-stars');
+    if (starsCountEl && stats.data) {
+        starsCountEl.textContent = (stats.data.total_stars || 0).toLocaleString();
+    }
+
     // Update system status
     const statusEl = document.getElementById('stat-status');
     if (statusEl && stats.system) {

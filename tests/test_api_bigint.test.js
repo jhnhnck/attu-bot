@@ -125,6 +125,87 @@ describe('ApiClient BigInt Handling', () => {
         expect(result.webhook_url).toBe('https://discord.com/api/webhooks/123/abc');
         expect(result.empty).toBe('');
     });
+
+    it('should parse starboard channel_id to BigInt', () => {
+        const client = new ApiClient();
+
+        const input = {
+            starboard: {
+                channel_id: '555555555555555555',
+                emojis: { '⭐': '#eedd20', '<:mystar:123456789012345678>': '#ff0000' },
+                valid_bots: [],
+            },
+        };
+
+        const result = client.parseBigInts(input);
+
+        expect(typeof result.starboard.channel_id).toBe('bigint');
+        expect(result.starboard.channel_id).toBe(BigInt('555555555555555555'));
+        // emojis dict keys are not IDs - values preserved as-is
+        expect(result.starboard.emojis['⭐']).toBe('#eedd20');
+        expect(result.starboard.valid_bots).toEqual([]);
+    });
+
+    it('should parse valid_bots array to BigInt elements', () => {
+        const client = new ApiClient();
+
+        const input = {
+            starboard: {
+                channel_id: '555555555555555555',
+                valid_bots: ['111111111111111111', '222222222222222222'],
+            },
+        };
+
+        const result = client.parseBigInts(input);
+
+        expect(Array.isArray(result.starboard.valid_bots)).toBe(true);
+        expect(result.starboard.valid_bots).toHaveLength(2);
+        expect(typeof result.starboard.valid_bots[0]).toBe('bigint');
+        expect(result.starboard.valid_bots[0]).toBe(BigInt('111111111111111111'));
+        expect(typeof result.starboard.valid_bots[1]).toBe('bigint');
+        expect(result.starboard.valid_bots[1]).toBe(BigInt('222222222222222222'));
+    });
+
+    it('should stringify starboard BigInts back to strings', () => {
+        const client = new ApiClient();
+
+        const input = {
+            starboard: {
+                channel_id: BigInt('555555555555555555'),
+                emojis: { '⭐': '#eedd20' },
+                valid_bots: [BigInt('111111111111111111'), BigInt('222222222222222222')],
+            },
+        };
+
+        const result = client.stringifyBigInts(input);
+
+        expect(result.starboard.channel_id).toBe('555555555555555555');
+        expect(result.starboard.emojis['⭐']).toBe('#eedd20');
+        expect(result.starboard.valid_bots[0]).toBe('111111111111111111');
+        expect(result.starboard.valid_bots[1]).toBe('222222222222222222');
+    });
+
+    it('should round-trip starboard data through parse and stringify', () => {
+        const client = new ApiClient();
+
+        const original = {
+            starboard: {
+                channel_id: '555555555555555555',
+                emojis: { '⭐': '#eedd20', '<:custom:123456789012345678>': '#aabbcc' },
+                valid_bots: ['111111111111111111', '222222222222222222'],
+            },
+        };
+
+        const parsed = client.parseBigInts(original);
+        const stringified = client.stringifyBigInts(parsed);
+
+        expect(stringified.starboard.channel_id).toBe('555555555555555555');
+        expect(stringified.starboard.valid_bots[0]).toBe('111111111111111111');
+        expect(stringified.starboard.valid_bots[1]).toBe('222222222222222222');
+        // emoji keys and color values preserved as strings throughout
+        expect(stringified.starboard.emojis['⭐']).toBe('#eedd20');
+        expect(stringified.starboard.emojis['<:custom:123456789012345678>']).toBe('#aabbcc');
+    });
 });
 
 describe('ApiClient fetch', () => {
