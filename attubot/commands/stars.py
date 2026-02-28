@@ -82,35 +82,47 @@ async def stars_lost(ctx: ApplicationContext):
 
 
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
-@discord.commands.option(name='message_id', required=True, description='ID of the original message to recheck')
-async def stars_recheck(ctx: ApplicationContext, message_id: str):
+@discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
+async def stars_recheck(ctx: ApplicationContext, message_link: str):
+    from attubot.starboard import backfill_message_reactions, parse_jump_url
+
+    parsed = parse_jump_url(message_link.strip())
+    if parsed is None:
+        await ctx.respond('invalid message link - paste the full discord message link', ephemeral=True)
+        return
+
+    _link_guild_id, channel_id, message_id = parsed
+    if _link_guild_id != ctx.guild.id:
+        await ctx.respond('that message link is from a different server', ephemeral=True)
+        return
+
     try:
-        sb_repo = _get_sb_repo()
+        _get_sb_repo()
     except RuntimeError:
         await ctx.respond('starboard not initialized yet', ephemeral=True)
         return
 
-    try:
-        msg_id = int(message_id)
-    except ValueError:
-        await ctx.respond('invalid message ID', ephemeral=True)
-        return
-
-    doc = await sb_repo.get(msg_id)
-    if doc is None:
-        await ctx.respond('no starboard entry found for that message', ephemeral=True)
-        return
-
-    try:
-        guild_config = config.guild(ctx.guild.id)
-    except Exception:
-        await ctx.respond('guild configuration not found', ephemeral=True)
-        return
-
-    from attubot.starboard import _sync_starboard_post
-
     await ctx.defer()
-    await _sync_starboard_post(ctx.guild.id, doc, guild_config)
+
+    from attubot import bot as _bot
+    from attubot.messages import build_message_doc
+    from attubot.messages import _get_repo as _get_msg_repo
+
+    try:
+        channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)
+        discord_msg = await channel.fetch_message(message_id)
+    except Exception as err:
+        await ctx.respond(f'could not fetch message: {err}', ephemeral=True)
+        return
+
+    # ensure the message is stored so build_embeds etc. can find it
+    try:
+        msg_doc = await build_message_doc(discord_msg)
+        await _get_msg_repo().upsert(msg_doc)
+    except Exception as err:
+        logger.warn(f'recheck: failed to store message {message_id}: {err}')
+
+    await backfill_message_reactions(discord_msg, ctx.guild.id)
     await ctx.respond('recheck complete')
 
 
