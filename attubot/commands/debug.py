@@ -126,6 +126,39 @@ async def debug_force_error(ctx: ApplicationContext) -> Never:
     raise Exception(f'Forced error from {ctx.author.name}')
 
 
+def _embed_summary(e: discord.Embed, index: int) -> tuple[str, str]:
+    """build a (name, value) pair summarizing a single embed for the debug response."""
+    parts = []
+    if e.title:
+        parts.append(f'**{e.title}**')
+    if e.description:
+        snippet = (e.description[:120] + '...') if len(e.description) > 120 else e.description
+        parts.append(snippet)
+    if e.fields:
+        parts.append(f'*{len(e.fields)} field(s)*')
+    if e.image and e.image.url:
+        parts.append(f'image: {e.image.url}')
+    return f'embed {index} [{e.type}]', '\n'.join(parts) if parts else '*empty*'
+
+
+def _message_dump(message: discord.Message, channel_id: int, guild_id: int) -> dict:
+    """serialize a message to a dict for json export."""
+    return {
+        'id': str(message.id),
+        'author': {'id': str(message.author.id), 'name': str(message.author)},
+        'channel_id': str(channel_id),
+        'guild_id': str(guild_id),
+        'timestamp': message.created_at.isoformat(),
+        'edited_at': message.edited_at.isoformat() if message.edited_at else None,
+        'pinned': message.pinned,
+        'content': message.content,
+        'embeds': [e.to_dict() for e in message.embeds],
+        'attachments': [{'id': str(a.id), 'filename': a.filename, 'url': a.url} for a in message.attachments],
+        'reactions': [{'emoji': str(r.emoji), 'count': r.count} for r in message.reactions],
+        'stickers': [{'id': str(s.id), 'name': s.name} for s in message.stickers],
+    }
+
+
 @debug_group.command(name='message', description='Print message info')
 @commands.check(is_bot_owner)
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
@@ -136,18 +169,51 @@ async def debug_message(ctx: ApplicationContext, link):
 
     # unpack url
     ids = link.split('/')[-3:]
-    guild, channel, target = int(ids[0]), int(ids[1]), int(ids[2])
+    guild_id, channel_id, target = int(ids[0]), int(ids[1]), int(ids[2])
 
     try:
-        guild = ctx.bot.get_guild(guild)
-        channel = cast(discord.TextChannel, guild.get_channel_or_thread(channel))  # it doesn't really matter
+        guild = ctx.bot.get_guild(guild_id)
+        channel = cast(discord.TextChannel, guild.get_channel_or_thread(channel_id))
 
-        async for message in channel.history(around=snowflake_time(target), limit=15):
-            if message.id == target:
-                await ctx.respond(f'```\n{message}\n```')
-                return
+        message: discord.Message | None = None
+        async for msg in channel.history(around=snowflake_time(target), limit=15):
+            if msg.id == target:
+                message = msg
+                break
 
-        await ctx.respond("Couldn't find message! <:rockball_player:1308977543034048552>")
+        if message is None:
+            await ctx.respond("Couldn't find message! <:rockball_player:1308977543034048552>")
+            return
+
+        # build summary embed
+        content_preview = (message.content[:500] + '...') if len(message.content) > 500 else message.content
+        embed = make_embed(
+            f'Message {message.id}',
+            description=content_preview or '*no content*',
+            url=message.jump_url,
+            timestamp=message.created_at,
+        )
+        embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+
+        for i, e in enumerate(message.embeds):
+            name, value = _embed_summary(e, i + 1)
+            embed.add_field(name=name, value=value, inline=False)
+
+        if message.attachments:
+            attachment_lines = [f'[{a.filename}]({a.url})' for a in message.attachments]
+            embed.add_field(name=f'attachments ({len(message.attachments)})', value='\n'.join(attachment_lines), inline=False)
+
+        meta_parts = [f'channel: <#{channel_id}>', f'edited: {bool(message.edited_at)}', f'pinned: {message.pinned}']
+        if message.reactions:
+            meta_parts.append('reactions: ' + ' '.join(f'{r.emoji}x{r.count}' for r in message.reactions))
+        embed.add_field(name='meta', value='\n'.join(meta_parts), inline=False)
+
+        # full dump as json attachment
+        buf = io.BytesIO(json.dumps(_message_dump(message, channel_id, guild_id), indent=2).encode())
+        buf.seek(0)
+
+        await ctx.respond(embed=embed, file=discord.File(buf, filename=f'message_{message.id}.json'))
+
     except Exception as err:
         await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
         logger.error(err)
