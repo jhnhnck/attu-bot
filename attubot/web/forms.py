@@ -81,7 +81,14 @@ class GuildStarboardForm(BaseModel):
     @classmethod
     def validate_emoji_colors(cls, v):
         """ensure all color values are valid hex strings"""
+        import json
         import re
+        # serializeForm sends emojis as a JSON-encoded string from the hidden field
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except Exception:
+                return {}
         if not isinstance(v, dict):
             return {}
         pattern = re.compile(r'^#[0-9a-fA-F]{6}$')

@@ -341,6 +341,11 @@ async function saveGuildConfig(guildId, formElement) {
 
     try {
         const data = serializeForm(formElement);
+        // inject emoji map directly - the JSON.stringify value in the hidden field
+        // gets mangled by parseValue's comma-split logic when multiple emojis are present
+        if (data.starboard) {
+            data.starboard.emojis = { ...emojiMap };
+        }
         const result = await fetchJSON(`/api/guilds/${guildId}`, {
             method: 'POST',
             body: JSON.stringify(data)
@@ -360,6 +365,9 @@ async function validateGuildConfig(guildId, formElement) {
 
     try {
         const data = serializeForm(formElement);
+        if (data.starboard) {
+            data.starboard.emojis = { ...emojiMap };
+        }
         const result = await fetchJSON(`/api/guilds/${guildId}/validate`, {
             method: 'POST',
             body: JSON.stringify(data)
@@ -407,6 +415,9 @@ async function refreshDiscordData(guildId) {
 
 function exportGuildConfig(guildId, formElement) {
     const data = serializeForm(formElement);
+    if (data.starboard) {
+        data.starboard.emojis = { ...emojiMap };
+    }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

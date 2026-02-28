@@ -339,7 +339,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def handle_star_add(
+async def handle_star_add(  # noqa: PLR0911
     guild_id: int,
     channel_id: int,
     message_id: int,
@@ -359,7 +359,11 @@ async def handle_star_add(
         return
 
     sb = guild_config.starboard
-    if not sb.channel_id or emoji_str not in sb.emojis:
+    if not sb.channel_id:
+        logger.debug(f'starboard: no channel configured for guild {guild_id}, ignoring reaction')
+        return
+    if emoji_str not in sb.emojis:
+        logger.debug(f'starboard: emoji {emoji_str!r} not in configured emojis {list(sb.emojis)!r}, ignoring')
         return
 
     repo = _get_repo()

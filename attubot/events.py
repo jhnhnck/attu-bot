@@ -257,7 +257,9 @@ logger.info('Registered event handlers')
 
 @bot.listen()
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
+    logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        logger.debug(f'reaction_add: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.starboard import handle_star_add
@@ -273,7 +275,9 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
 
 @bot.listen()
 async def on_raw_reaction_remove(payload: RawReactionActionEvent):
+    logger.debug(f'reaction_remove: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        logger.debug(f'reaction_remove: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.starboard import handle_star_remove
