@@ -43,6 +43,7 @@ class TaskScheduler:
                 await coro
             except Exception as e:
                 logger.error(f'Job {name} raised: {e}')
+                await logger.send_to_webhook(e, location=f'job: {name}')
 
         logger.info(f'Starting task: {name}')
         task = asyncio.create_task(run_and_forget(), name=name)
@@ -105,6 +106,7 @@ class TaskScheduler:
                 return
             except Exception as e:
                 logger.error(f'Error in task {task.name} (immediate run): {e}')
+                await logger.send_to_webhook(e, location=f'recurring task: {task.name} (immediate run)')
 
         while self._running:
             try:
@@ -127,6 +129,7 @@ class TaskScheduler:
                 break
             except Exception as e:
                 logger.error(f'Error in task {task.name}: {e}')
+                await logger.send_to_webhook(e, location=f'recurring task: {task.name}')
 
         await task.on_stop()
         logger.info(f'Task {task.name} stopped')
