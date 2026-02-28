@@ -220,6 +220,20 @@ class _EditContext(NamedTuple):
     author_name: str | None
     author_id: int | None
     author_bot: bool
+    author_avatar_url: str | None
+
+
+def _resolve_avatar(guild_id: int, author_id: int) -> str | None:
+    """look up a user's display avatar url from the bot's in-memory cache."""
+    guild = bot.get_guild(guild_id)
+    if guild:
+        member = guild.get_member(author_id)
+        if member and member.display_avatar:
+            return member.display_avatar.url
+    user = bot.get_user(author_id)
+    if user and user.display_avatar:
+        return user.display_avatar.url
+    return None
 
 
 async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
@@ -229,11 +243,13 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
         logger.debug(f'log_edit: db lookup result - found={stored is not None}')
         if stored:
             logger.debug(f'log_edit: stored record - author={stored.author_name!r} author_id={stored.author_id} bot={stored.author_bot} content={stored.content!r}')
+            avatar_url = _resolve_avatar(payload.guild_id, stored.author_id) if payload.guild_id else None
             return _EditContext(
                 old_content=stored.content,
                 author_name=stored.author_name,
                 author_id=stored.author_id,
                 author_bot=stored.author_bot,
+                author_avatar_url=avatar_url,
             )
     except Exception as err:
         logger.warn(f'could not retrieve old message {payload.message_id} for edit log: {err}')
@@ -241,7 +257,7 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
     # not in db - fall back to payload author info
     author_bot = payload.data.get('author', {}).get('bot', False)
     logger.debug(f'log_edit: no stored record - payload author.bot={author_bot}')
-    return _EditContext(old_content=None, author_name=None, author_id=None, author_bot=author_bot)
+    return _EditContext(old_content=None, author_name=None, author_id=None, author_bot=author_bot, author_avatar_url=None)
 
 
 def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> discord.Embed:
@@ -256,6 +272,7 @@ def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_con
         description=description,
         footer=f'message id: {payload.message_id}',
         author_name=ctx.author_name,
+        author_icon_url=ctx.author_avatar_url,
     )
 
     embed.add_field(
@@ -351,12 +368,14 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     else:
         description = f'a message was deleted in <#{payload.channel_id}>'
 
+    avatar_url = _resolve_avatar(payload.guild_id, stored.author_id) if stored else None
     embed = make_embed(
         'Message Deleted',
         description=description,
         color=Color.red(),
         footer=f'message id: {payload.message_id}',
         author_name=stored.author_name if stored else None,
+        author_icon_url=avatar_url,
     )
 
     if stored and stored.content:

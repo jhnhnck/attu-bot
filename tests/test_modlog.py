@@ -347,6 +347,120 @@ class TestMemberUpdateLogs:
         assert embed.title == 'Member Timeout Updated'
 
 
+class TestMemberAvatarIcons:
+    """verify that member embeds include the author icon (profile picture)"""
+
+    AVATAR_URL = 'https://example.com/avatar.png'
+
+    async def test_member_join_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_join
+
+        member = _make_member()
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_join(member)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_member_leave_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_remove
+
+        member = _make_member()
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_remove(member)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_member_ban_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_ban
+
+        guild = _make_guild()
+        user = _make_member()
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_ban(guild, user)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_member_unban_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_unban
+
+        guild = _make_guild()
+        user = _make_member()
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_unban(guild, user)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_nick_change_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_update
+
+        before = _make_member()
+        after = _make_member()
+        after.nick = 'NewNick'
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_role_add_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_update
+
+        before = _make_member()
+        after = _make_member()
+        after.roles = [_make_role(role_id=10, mention='@new')]
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_role_remove_has_author_icon(self, guild_with_logs):
+        from attubot.modlog import on_member_update
+
+        before = _make_member()
+        before.roles = [_make_role(role_id=10, mention='@old')]
+        after = _make_member()
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+    async def test_timeout_has_author_icon(self, guild_with_logs):
+        from datetime import UTC, datetime
+
+        from attubot.modlog import on_member_update
+
+        before = _make_member()
+        after = _make_member()
+        after.communication_disabled_until = datetime(2024, 1, 3, tzinfo=UTC)
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.author.icon_url == self.AVATAR_URL
+
+
 class TestEmojiLogs:
     async def test_emoji_create_sends_embed(self, guild_with_logs):
         from attubot.modlog import on_guild_emojis_update

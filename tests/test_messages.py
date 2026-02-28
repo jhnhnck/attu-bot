@@ -431,6 +431,41 @@ class TestLogEdit:
         # no embed posted to logs
         logs_ch.send.assert_not_called()
 
+    async def test_edit_embed_has_author_icon_url(self, mock_message_repo, guild):
+        from attubot.messages import log_edit
+
+        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload()
+
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+            await log_edit(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        assert embed.author.icon_url == 'https://example.com/avatar.png'
+
+    async def test_edit_embed_no_icon_url_when_avatar_unavailable(self, mock_message_repo, guild):
+        from attubot.messages import log_edit
+
+        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload()
+
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.messages._resolve_avatar', return_value=None):
+            await log_edit(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        # icon_url should be empty/absent when avatar can't be resolved
+        assert not embed.author.icon_url
+
     async def test_skips_non_edit_update_no_edited_timestamp(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
@@ -517,6 +552,38 @@ class TestLogDelete:
             await log_delete(_make_raw_delete_payload())
 
         mock_message_repo.mark_deleted.assert_called_once()
+
+    async def test_delete_embed_has_author_icon_url(self, mock_message_repo, guild):
+        from attubot.messages import log_delete
+
+        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='deleted msg', created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        assert embed.author.icon_url == 'https://example.com/avatar.png'
+
+    async def test_delete_embed_no_icon_url_without_stored_record(self, mock_message_repo, guild):
+        from attubot.messages import log_delete
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        # no stored record means set_author was never called - embed.author is None
+        assert embed.author is None
 
 
 # --- log_bulk_delete ---
