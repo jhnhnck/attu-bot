@@ -501,6 +501,64 @@ class TestRecountStarboard:
         mock_sync.assert_not_called()
 
 
+class TestStarboardChannelFallthrough:
+    """verify that regular messages in the starboard channel can still be starred"""
+
+    async def test_regular_message_in_starboard_channel_is_processed(self, make_starboard_guild, mock_sb_and_msg_repos):
+        """reaction on an unlinked message in the starboard channel should not be silently dropped"""
+        from unittest.mock import AsyncMock, patch
+
+        from attubot.starboard import handle_star_add
+
+        sb_repo, msg_repo = mock_sb_and_msg_repos
+        make_starboard_guild()
+
+        # message is in the starboard channel but has no known starboard post lookup
+        sb_repo.get_by_starboard_message = AsyncMock(return_value=None)
+
+        msg_doc = _make_msg_doc(author_id=TEST_AUTHOR, channel_id=TEST_STARBOARD_CHANNEL)
+        msg_repo.get = AsyncMock(return_value=msg_doc)
+        sb_repo.get = AsyncMock(return_value=None)
+
+        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        sb_repo.add_reaction = AsyncMock(return_value=updated)
+
+        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+            await handle_star_add(
+                TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR
+            )
+
+        # should NOT have been dropped - add_reaction must have been called
+        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+
+    async def test_known_starboard_post_still_redirects_to_original(self, make_starboard_guild, mock_sb_and_msg_repos):
+        """reaction on a known starboard post should still redirect to the original message"""
+        from unittest.mock import AsyncMock, patch
+
+        from attubot.starboard import handle_star_add
+
+        sb_repo, msg_repo = mock_sb_and_msg_repos
+        make_starboard_guild()
+
+        existing_doc = _make_star_doc(starboard_message_id=TEST_STARBOARD_MSG, message_id=TEST_MESSAGE)
+        sb_repo.get_by_starboard_message = AsyncMock(return_value=existing_doc)
+
+        msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+        msg_repo.get = AsyncMock(return_value=msg_doc)
+        sb_repo.get = AsyncMock(return_value=existing_doc)
+
+        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        sb_repo.add_reaction = AsyncMock(return_value=updated)
+
+        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+            await handle_star_add(
+                TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR
+            )
+
+        # should have been redirected to the original message ID
+        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+
+
 # ---- parse_starboard_content against real dump samples ----
 
 

@@ -377,17 +377,16 @@ async def handle_star_add(  # noqa: PLR0911
 
     repo = _get_repo()
 
-    # determine if the reaction is on a starboard post or the original message
+    # determine if the reaction is on a starboard post or a regular message in the starboard channel
     real_message_id = message_id
     real_channel_id = channel_id
     if channel_id == sb.channel_id:
-        # reaction is on the starboard post - look up the original
         existing = await repo.get_by_starboard_message(message_id)
-        if existing is None:
-            logger.debug(f'starboard: reaction on unknown starboard message {message_id}, ignoring')
-            return
-        real_message_id = existing.message_id
-        real_channel_id = existing.channel_id
+        if existing is not None:
+            # reaction is on a known starboard post - redirect to the original
+            real_message_id = existing.message_id
+            real_channel_id = existing.channel_id
+        # else: regular message posted in the starboard channel - fall through and treat normally
 
     # fetch the original message to validate self-star and get author info
     msg_doc = await _get_msg_repo().get(real_message_id)
