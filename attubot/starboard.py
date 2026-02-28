@@ -366,6 +366,15 @@ async def handle_star_add(  # noqa: PLR0911
         logger.debug(f'starboard: emoji {emoji_str!r} not in configured emojis {list(sb.emojis)!r}, ignoring')
         return
 
+    # skip our own bot's reactions and any configured legacy bot IDs
+    from attubot import bot as _bot
+    if _bot.user and user_id == _bot.user.id:
+        logger.debug(f'starboard: ignoring own bot reaction from {user_id}')
+        return
+    if user_id in sb.valid_bots:
+        logger.debug(f'starboard: ignoring valid_bot reaction from {user_id}')
+        return
+
     repo = _get_repo()
 
     # determine if the reaction is on a starboard post or the original message
