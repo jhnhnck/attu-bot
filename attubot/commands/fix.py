@@ -421,9 +421,10 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
         except Exception as err:
             logger.warn(f'recount_starboard: unexpected error for message {doc.message_id}: {err}')
             errors += 1
-
-        if (i + 1) % 25 == 0:
-            status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(all_docs)} messages recounted...')
+        finally:
+            # runs on every iteration including those that hit `continue`
+            if (i + 1) % 25 == 0:
+                status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(all_docs)} messages recounted...')
 
     summary = f'Done - {updated} updated, {skipped} skipped, {errors} errors'
     logger.info(f'recount_starboard: {summary} (guild {guild_id})')
