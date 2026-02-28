@@ -15,6 +15,7 @@ from attubot.web.forms import (
     GuildConfigForm,
     GuildEpochForm,
     GuildRolesForm,
+    GuildStarboardForm,
     GuildUsersForm,
     SystemConfigForm,
     ThemeConfigForm,
@@ -197,6 +198,84 @@ class TestGuildUsersForm:
         """Test parsing empty user list string"""
         form = GuildUsersForm(markers='')  # type: ignore[arg-type]
         assert form.markers == []
+
+
+# ========== GuildStarboardForm Tests ==========
+
+class TestGuildStarboardForm:
+    def test_valid_unicode_emoji(self):
+        """test a valid unicode emoji with a hex color"""
+        form = GuildStarboardForm(emojis={'⭐': '#EEDD20'})
+        assert form.emojis == {'⭐': '#EEDD20'}
+
+    def test_valid_custom_emoji(self):
+        """test a custom discord emoji string - the format that was silently wiped before"""
+        form = GuildStarboardForm(emojis={'<:rockball:1308981475114225694>': '#FF0000'})
+        assert form.emojis == {'<:rockball:1308981475114225694>': '#FF0000'}
+
+    def test_valid_multiple_emojis(self):
+        """test multiple emojis including a custom one"""
+        emojis = {'⭐': '#EEDD20', '<:rockball:1308981475114225694>': '#FF0000'}
+        form = GuildStarboardForm(emojis=emojis)
+        assert form.emojis == emojis
+
+    def test_emojis_as_json_string(self):
+        """test that a valid JSON string is parsed correctly (frontend serialization path)"""
+        import json
+        payload = json.dumps({'⭐': '#EEDD20'})
+        form = GuildStarboardForm(emojis=payload)  # type: ignore[arg-type]
+        assert form.emojis == {'⭐': '#EEDD20'}
+
+    def test_custom_emoji_as_json_string(self):
+        """test that a custom emoji key in a JSON string is preserved after parsing"""
+        import json
+        payload = json.dumps({'<:rockball:1308981475114225694>': '#FF0000'})
+        form = GuildStarboardForm(emojis=payload)  # type: ignore[arg-type]
+        assert form.emojis == {'<:rockball:1308981475114225694>': '#FF0000'}
+
+    def test_empty_string_returns_empty_dict(self):
+        """an empty emojis string should produce an empty dict, not raise"""
+        form = GuildStarboardForm(emojis='')  # type: ignore[arg-type]
+        assert form.emojis == {}
+
+    def test_invalid_json_string_raises_validation_error(self):
+        """invalid JSON must raise ValidationError, not silently return {} (the old bug)"""
+        with pytest.raises(ValidationError) as exc_info:
+            GuildStarboardForm(emojis='not valid json{{{')  # type: ignore[arg-type]
+        errors = exc_info.value.errors()
+        assert any('emojis' in str(e['loc']) for e in errors)
+
+    def test_non_dict_value_raises_validation_error(self):
+        """non-dict value must raise ValidationError, not silently return {}"""
+        with pytest.raises(ValidationError) as exc_info:
+            GuildStarboardForm(emojis=['⭐', '#EEDD20'])  # type: ignore[arg-type]
+        errors = exc_info.value.errors()
+        assert any('emojis' in str(e['loc']) for e in errors)
+
+    def test_invalid_color_raises_validation_error(self):
+        """an invalid hex color must raise"""
+        with pytest.raises(ValidationError):
+            GuildStarboardForm(emojis={'⭐': 'not-a-color'})
+
+        with pytest.raises(ValidationError):
+            GuildStarboardForm(emojis={'⭐': '#ZZZ'})
+
+    def test_default_values(self):
+        """test default starboard form values"""
+        form = GuildStarboardForm()
+        assert form.channel_id == 0
+        assert form.emojis == {}
+        assert form.valid_bots == []
+
+    def test_valid_bots_as_list(self):
+        """test valid_bots as a list of ints"""
+        form = GuildStarboardForm(valid_bots=[111, 222])
+        assert form.valid_bots == [111, 222]
+
+    def test_valid_bots_as_comma_string(self):
+        """test valid_bots parsed from comma-separated string"""
+        form = GuildStarboardForm(valid_bots='111, 222')  # type: ignore[arg-type]
+        assert form.valid_bots == [111, 222]
 
 
 # ========== GuildConfigForm Tests ==========

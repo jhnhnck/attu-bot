@@ -395,8 +395,14 @@ async def job_recount_starboard(guild_id: int, interaction: discord.Interaction 
                 except Exception as err:
                     logger.warn(f'recount_starboard: failed to fetch starboard post {doc.starboard_message_id}: {err}')
 
-            reactions_dict = {emoji: list(users) for emoji, users in new_reactions.items() if users}
+            reactions_dict = {emoji: sorted(users) for emoji, users in new_reactions.items() if users}
             total = sum(len(v) for v in reactions_dict.values())
+
+            # skip if reactions haven't changed - avoids unnecessary edits (and 401s from old posts)
+            old_reactions_dict = {k: sorted(v) for k, v in doc.reactions.items() if v}
+            if reactions_dict == old_reactions_dict and total == doc.total_reactions:
+                skipped += 1
+                continue
 
             updated_doc = StarredMessageDocument(
                 message_id=doc.message_id,

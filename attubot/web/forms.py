@@ -85,12 +85,14 @@ class GuildStarboardForm(BaseModel):
         import re
         # serializeForm sends emojis as a JSON-encoded string from the hidden field
         if isinstance(v, str):
+            if not v.strip():
+                return {}
             try:
                 v = json.loads(v)
-            except Exception:
-                return {}
+            except Exception as err:
+                raise ValueError(f'emojis could not be parsed as JSON: {err}')
         if not isinstance(v, dict):
-            return {}
+            raise ValueError(f'emojis must be a dict, got {type(v).__name__}')
         pattern = re.compile(r'^#[0-9a-fA-F]{6}$')
         for emoji, color in v.items():
             if not pattern.match(color):

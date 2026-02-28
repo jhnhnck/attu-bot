@@ -326,6 +326,148 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
     mock_sync.assert_called_once()
 
 
+# ---- recount starboard skip-unchanged tests ----
+
+
+class TestRecountStarboard:
+    """tests for the skip-unchanged optimization in job_recount_starboard"""
+
+    def _make_reaction(self, emoji_str: str, user_ids: list[int]):
+        """build a mock discord Reaction whose .users() is an async iterator."""
+        from unittest.mock import MagicMock
+
+        reaction = MagicMock()
+        reaction.emoji = emoji_str
+
+        async def _iter_users():
+            for uid in user_ids:
+                user = MagicMock()
+                user.id = uid
+                user.bot = False
+                yield user
+
+        reaction.users = MagicMock(return_value=_iter_users())
+        return reaction
+
+    async def test_skip_when_reactions_unchanged(self, make_starboard_guild, mock_sb_repo):
+        """_sync_starboard_post must NOT be called when live reactions match stored reactions"""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from attubot.commands.fix import job_recount_starboard
+
+        make_starboard_guild()
+
+        # stored doc already has exactly [USER_A, USER_B]
+        doc = _make_star_doc(
+            reactions={EMOJI_STAR: [USER_A, USER_B]},
+            total_reactions=2,
+            starboard_message_id=0,    # no sb post - skips the second fetch
+        )
+        mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
+
+        orig_msg = MagicMock()
+        orig_msg.author = MagicMock(id=TEST_AUTHOR)
+        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+
+        orig_channel = AsyncMock()
+        orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
+
+        # bot and _sync_starboard_post are imported inside the function, so patch at source
+        with patch('attubot.bot') as mock_bot, \
+             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+            mock_bot.get_channel = MagicMock(return_value=orig_channel)
+            await job_recount_starboard(TEST_GUILD)
+
+        mock_sync.assert_not_called()
+        mock_sb_repo.upsert.assert_not_called()
+
+    async def test_syncs_when_reactions_changed(self, make_starboard_guild, mock_sb_repo):
+        """_sync_starboard_post MUST be called when live reactions differ from stored"""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from attubot.commands.fix import job_recount_starboard
+
+        make_starboard_guild()
+
+        # stored doc has 1 reaction, live has 2
+        doc = _make_star_doc(
+            reactions={EMOJI_STAR: [USER_A]},
+            total_reactions=1,
+            starboard_message_id=0,
+        )
+        mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
+        mock_sb_repo.upsert = AsyncMock()
+
+        orig_msg = MagicMock()
+        orig_msg.author = MagicMock(id=TEST_AUTHOR)
+        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+
+        orig_channel = AsyncMock()
+        orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
+
+        with patch('attubot.bot') as mock_bot, \
+             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+            mock_bot.get_channel = MagicMock(return_value=orig_channel)
+            await job_recount_starboard(TEST_GUILD)
+
+        mock_sync.assert_called_once()
+        mock_sb_repo.upsert.assert_called_once()
+
+    async def test_skip_when_message_not_found(self, make_starboard_guild, mock_sb_repo):
+        """discord.NotFound on the original message should not raise - just count as skipped"""
+        import discord
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from attubot.commands.fix import job_recount_starboard
+
+        make_starboard_guild()
+
+        doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
+
+        orig_channel = AsyncMock()
+        orig_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
+
+        with patch('attubot.bot') as mock_bot, \
+             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+            mock_bot.get_channel = MagicMock(return_value=orig_channel)
+            await job_recount_starboard(TEST_GUILD)   # must not raise
+
+        mock_sync.assert_not_called()
+
+    async def test_sort_order_independent_comparison(self, make_starboard_guild, mock_sb_repo):
+        """skip logic must be order-insensitive - same users in different order should still skip"""
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from attubot.commands.fix import job_recount_starboard
+
+        make_starboard_guild()
+
+        # stored doc has [USER_B, USER_A] (different order than live)
+        doc = _make_star_doc(
+            reactions={EMOJI_STAR: [USER_B, USER_A]},
+            total_reactions=2,
+            starboard_message_id=0,
+        )
+        mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
+
+        # live returns in a different order
+        orig_msg = MagicMock()
+        orig_msg.author = MagicMock(id=TEST_AUTHOR)
+        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+
+        orig_channel = AsyncMock()
+        orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
+
+        with patch('attubot.bot') as mock_bot, \
+             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+            mock_bot.get_channel = MagicMock(return_value=orig_channel)
+            await job_recount_starboard(TEST_GUILD)
+
+        # same users, just different storage order - should be skipped
+        mock_sync.assert_not_called()
+
+
 # ---- parse_starboard_content against real dump samples ----
 
 

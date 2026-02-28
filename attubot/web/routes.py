@@ -280,6 +280,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 'epoch': guild.epoch.model_dump(),
                 'roles': guild.roles.model_dump(),
                 'users': guild.users.model_dump(),
+                'starboard': guild.starboard.model_dump(),
             }
 
             # Update guild configuration

@@ -466,7 +466,7 @@ class NovaConfig:
             guild_obj = bot.get_guild(guild_id)
             if guild_obj is None:
                 try:
-                    logger.warn(f'Fetching guild {guild_id} info!')
+                    logger.info(f'Fetching guild {guild_id} info from API (not in cache)')
                     guild_obj = await bot.fetch_guild(guild_id)
                 except Exception as e:
                     logger.error(f'Failed to fetch guild {guild_id} from API: {e}')
