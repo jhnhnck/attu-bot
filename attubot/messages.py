@@ -246,12 +246,18 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
 
 def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> discord.Embed:
     """Build the edit log embed from context and payload."""
-    embed = make_embed('Message Edited', footer=f'message id: {payload.message_id}')
+    if ctx.author_id is not None:
+        description = f'<@{ctx.author_id}> edited a message in <#{payload.channel_id}>'
+    else:
+        description = f'a message was edited in <#{payload.channel_id}>'
 
-    if ctx.author_name:
-        embed.add_field(name='Author', value=f'<@{ctx.author_id}> ({ctx.author_name})', inline=True)
+    embed = make_embed(
+        'Message Edited',
+        description=description,
+        footer=f'message id: {payload.message_id}',
+        author_name=ctx.author_name,
+    )
 
-    embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)
     embed.add_field(
         name='Jump',
         value=f'[View Message](https://discord.com/channels/{payload.guild_id}/{payload.channel_id}/{payload.message_id})',
@@ -340,11 +346,18 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if channel is None:
         return
 
-    embed = make_embed('Message Deleted', color=Color.red(), footer=f'message id: {payload.message_id}')
-
     if stored:
-        embed.add_field(name='Author', value=f'<@{stored.author_id}> ({stored.author_name})', inline=True)
-    embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)
+        description = f'<@{stored.author_id}>\'s message was deleted in <#{payload.channel_id}>'
+    else:
+        description = f'a message was deleted in <#{payload.channel_id}>'
+
+    embed = make_embed(
+        'Message Deleted',
+        description=description,
+        color=Color.red(),
+        footer=f'message id: {payload.message_id}',
+        author_name=stored.author_name if stored else None,
+    )
 
     if stored and stored.content:
         embed.add_field(name='Content', value=_truncate(stored.content), inline=False)

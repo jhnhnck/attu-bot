@@ -181,6 +181,41 @@ async def debug_message_stats(ctx: ApplicationContext, channel: discord.TextChan
         await ctx.respond(f'{count:,} messages stored for this guild')
 
 
+_STARBOARD_BOT_ID = 655390915325591629
+_STARBOARD_CHANNEL_ID = 1064335304011554877
+
+
+@debug_group.command(name='dump_starboard', description='Dump 50 random starboard bot messages to a file')
+@commands.check(is_bot_owner)
+async def debug_dump_starboard(ctx: ApplicationContext):
+    await ctx.defer()
+
+    channel = cast(discord.TextChannel, ctx.bot.get_channel(_STARBOARD_CHANNEL_ID))
+    if channel is None:
+        await ctx.respond('could not find starboard channel', ephemeral=True)
+        return
+
+    # collect all messages from the starboard bot
+    found = []
+    async for msg in channel.history(limit=None):
+        if msg.author.id == _STARBOARD_BOT_ID:
+            found.append({
+                'id': str(msg.id),
+                'timestamp': msg.created_at.isoformat(),
+                'content': msg.content,
+                'embeds': [e.to_dict() for e in msg.embeds],
+                'attachments': [{'id': str(a.id), 'filename': a.filename, 'url': a.url} for a in msg.attachments],
+            })
+
+    picked = sample(found, min(50, len(found)))
+    picked.sort(key=lambda m: m['timestamp'])
+
+    buf = io.BytesIO(json.dumps(picked, indent=2).encode())
+    buf.seek(0)
+
+    await ctx.respond(f'found {len(found)} total, dumping {len(picked)}', file=discord.File(buf, filename='starboard_dump.json'))
+
+
 # --- Extension Def ---
 
 

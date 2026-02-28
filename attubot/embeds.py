@@ -14,24 +14,30 @@ from attubot.util import theme_color
 
 
 def make_embed(
-    title: str,
+    title: str | None = None,
     *,
     description: str | None = None,
     url: str | None = None,
     color: int | Color | None = None,
     footer: str | None = None,
     thumbnail: str | None = None,
+    author_name: str | None = None,
+    author_icon_url: str | None = None,
+    author_url: str | None = None,
     timestamp: bool | datetime = True,
 ) -> Embed:
     """create a discord embed with standard defaults.
 
     args:
-        title: the embed title
+        title: optional embed title
         description: optional embed description
         url: optional url to link from the title
         color: embed color; defaults to theme_color()
         footer: optional footer text
         thumbnail: optional thumbnail image url
+        author_name: optional author display name shown above the title
+        author_icon_url: optional icon shown next to the author name
+        author_url: optional url to link from the author name
         timestamp: if True, uses current utc time; pass a datetime to use a specific time; False to omit
     """
     resolved_color = color if color is not None else theme_color()
@@ -44,6 +50,9 @@ def make_embed(
         url=url,
         color=resolved_color,
     )
+
+    if author_name is not None:
+        embed.set_author(name=author_name, icon_url=author_icon_url, url=author_url)
 
     if footer is not None:
         embed.set_footer(text=footer)

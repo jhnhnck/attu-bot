@@ -76,6 +76,10 @@ async def _is_bot_audit_action(guild: Guild, action: discord.AuditLogAction, tar
     return False
 
 
+def _member_avatar(member: Member | User) -> str | None:
+    return member.display_avatar.url if member.display_avatar else None
+
+
 def _build_member_join_embed(member: Member) -> discord.Embed:
     created_at = member.created_at.replace(tzinfo=UTC) if member.created_at.tzinfo is None else member.created_at
     now = datetime.now(tz=UTC)
@@ -84,20 +88,25 @@ def _build_member_join_embed(member: Member) -> discord.Embed:
 
     embed = make_embed(
         'Member Joined',
+        description=f'{member.mention} joined the server',
         footer=f'user id: {member.id}',
-        thumbnail=member.display_avatar.url if member.display_avatar else None,
+        author_name=_member_display_name(member),
+        author_icon_url=_member_avatar(member),
     )
-    embed.add_field(name='Mention', value=member.mention, inline=True)
-    embed.add_field(name='Username', value=member.name, inline=True)
     embed.add_field(name='Account Created', value=_format_dt(created_at), inline=False)
     embed.add_field(name='Account Age', value=age_str, inline=True)
     return embed
 
 
 def _build_member_leave_embed(member: Member) -> discord.Embed:
-    embed = make_embed('Member Left', color=Color.red(), footer=f'user id: {member.id}')
-    embed.add_field(name='Mention', value=member.mention, inline=True)
-    embed.add_field(name='Username', value=member.name, inline=True)
+    embed = make_embed(
+        'Member Left',
+        description=f'{member.mention} left the server',
+        color=Color.red(),
+        footer=f'user id: {member.id}',
+        author_name=_member_display_name(member),
+        author_icon_url=_member_avatar(member),
+    )
     embed.add_field(name='Joined', value=_format_dt(member.joined_at), inline=True)
     embed.add_field(name='Roles', value=_role_mentions(list(member.roles)), inline=False)
     return embed
@@ -123,8 +132,14 @@ async def on_member_remove(member: Member):
 async def on_member_ban(guild: Guild, user: User | Member):
     if guild.id not in config.valid_guilds or user.bot:
         return
-    embed = make_embed('Member Banned', color=Color.red(), footer=f'user id: {user.id}')
-    embed.add_field(name='User', value=f'{user.mention} ({_member_display_name(user)})', inline=False)
+    embed = make_embed(
+        'Member Banned',
+        description=f'{user.mention} was banned',
+        color=Color.red(),
+        footer=f'user id: {user.id}',
+        author_name=_member_display_name(user),
+        author_icon_url=_member_avatar(user),
+    )
     await _send_embed(guild.id, embed)
 
 
@@ -132,8 +147,13 @@ async def on_member_ban(guild: Guild, user: User | Member):
 async def on_member_unban(guild: Guild, user: User):
     if guild.id not in config.valid_guilds or user.bot:
         return
-    embed = make_embed('Member Unbanned', footer=f'user id: {user.id}')
-    embed.add_field(name='User', value=f'{user.mention} ({_member_display_name(user)})', inline=False)
+    embed = make_embed(
+        'Member Unbanned',
+        description=f'{user.mention} was unbanned',
+        footer=f'user id: {user.id}',
+        author_name=_member_display_name(user),
+        author_icon_url=_member_avatar(user),
+    )
     await _send_embed(guild.id, embed)
 
 
@@ -255,8 +275,13 @@ async def on_member_update(before: Member, after: Member):
         return
 
     if before.nick != after.nick:
-        embed = make_embed('Nickname Changed', footer=f'user id: {after.id}')
-        embed.add_field(name='Member', value=after.mention, inline=True)
+        embed = make_embed(
+            'Nickname Changed',
+            description=f'{after.mention} changed their nickname',
+            footer=f'user id: {after.id}',
+            author_name=_member_display_name(after),
+            author_icon_url=_member_avatar(after),
+        )
         embed.add_field(name='Before', value=before.nick or before.name, inline=True)
         embed.add_field(name='After', value=after.nick or after.name, inline=True)
         await _send_embed(after.guild.id, embed)
@@ -267,22 +292,39 @@ async def on_member_update(before: Member, after: Member):
     removed = [before_roles[rid] for rid in before_roles.keys() - after_roles.keys()]
 
     if added:
-        embed = make_embed('Member Role Added', footer=f'user id: {after.id}')
-        embed.add_field(name='Member', value=after.mention, inline=True)
+        embed = make_embed(
+            'Member Role Added',
+            description=f'{after.mention} was given a role',
+            footer=f'user id: {after.id}',
+            author_name=_member_display_name(after),
+            author_icon_url=_member_avatar(after),
+        )
         embed.add_field(name='Roles', value=_role_mentions(added), inline=False)
         await _send_embed(after.guild.id, embed)
 
     if removed:
-        embed = make_embed('Member Role Removed', color=Color.red(), footer=f'user id: {after.id}')
-        embed.add_field(name='Member', value=after.mention, inline=True)
+        embed = make_embed(
+            'Member Role Removed',
+            description=f'{after.mention} had a role removed',
+            color=Color.red(),
+            footer=f'user id: {after.id}',
+            author_name=_member_display_name(after),
+            author_icon_url=_member_avatar(after),
+        )
         embed.add_field(name='Roles', value=_role_mentions(removed), inline=False)
         await _send_embed(after.guild.id, embed)
 
     before_timeout = getattr(before, 'communication_disabled_until', None)
     after_timeout = getattr(after, 'communication_disabled_until', None)
     if before_timeout != after_timeout:
-        embed = make_embed('Member Timeout Updated', color=Color.orange(), footer=f'user id: {after.id}')
-        embed.add_field(name='Member', value=after.mention, inline=True)
+        embed = make_embed(
+            'Member Timeout Updated',
+            description=f'{after.mention} had their timeout updated',
+            color=Color.orange(),
+            footer=f'user id: {after.id}',
+            author_name=_member_display_name(after),
+            author_icon_url=_member_avatar(after),
+        )
         embed.add_field(name='Before', value=_format_dt(before_timeout), inline=True)
         embed.add_field(name='After', value=_format_dt(after_timeout), inline=True)
         await _send_embed(after.guild.id, embed)
