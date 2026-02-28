@@ -31,26 +31,65 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `__init__.py` | Module metadata, creates singleton `bot`, `config`, `db` instances; `/ping` command; `start_bot_loop()` |
 | `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); Pydantic models for all config sections |
-| `models.py` | Pydantic models for MongoDB documents (`GuildConfigDocument`, `YearDocument`, etc.) |
-| `repositories.py` | MongoDB repository classes (`ConfigRepository`, `YearMarkerRepository`, `YearRepository`) - all async |
-| `db.py` | `MongoStorage` singleton; connects to MongoDB |
+| `embeds.py` | `make_embed()` - standard embed builder with auto-theme color and timestamp; see `notes/embed_usage.md` |
 | `markers.py` | `YearMarker` runtime model + bot extension setup |
 | `years.py` | `Year` runtime model + bot extension setup |
 | `calendar.py` | Pure calendar math - `get_year_status()`, `get_year_span()`, `get_next_year()` |
-| `tasks.py` | APScheduler background jobs |
-| `jobs.py` | `JobWorker` - lightweight async task queue |
+| `messages.py` | Message storage, `build_message_doc()`, edit/delete log embeds sent to the logs channel |
+| `modlog.py` | Moderation log event handlers - member join/leave/ban, channel/role/emoji changes, nickname and timeout updates |
+| `starboard.py` | Starboard reaction processing (`handle_star_add`, `handle_star_remove`), embed builder (`build_embeds`), post sync logic |
+| `signals.py` | Cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
+| `logo.py` | Logo generation and SVG-to-PNG rendering via `resvg` |
 | `logging.py` | Custom `Logger` class (termcolor-based); use `get_logger(__name__)` everywhere |
 | `migrations.py` | Schema migration table |
-| `util.py` | Shared helpers |
-| `wiki.py` | MediaWiki API integration |
+| `util.py` | Shared helpers - `theme_color()`, `format_message_link()`, `break_at_newline()`, permission checks |
+
+### Package: `attubot/database/`
+| File | Role |
+|---|---|
+| `__init__.py` | `init_database()` - connects storage and seeds all module-level repo singletons |
+| `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
+| `models.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, etc. |
+| `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
 
 ### Package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
 
 | File | Slash Group | Purpose |
 |---|---|---|
-| `debug.py` | `/debug` | Diagnostic/informational commands (version, tasks, year stats, message stats, etc.) |
-| `fix.py` | `/fix` | Repair/rebuild commands (logo refresh, year links rebuild, message backfill) |
+| `debug.py` | `/debug` | Diagnostic commands - version, scheduler state, year stats, message stats, starboard dump, config dump |
+| `fix.py` | `/fix` | Repair/rebuild commands - logo refresh, year links rebuild, message backfill, starboard learn and recount |
+| `marker.py` | `/marker` | Save, set, and clear year marker messages |
+| `query.py` | `/query` | Channel pin queries |
+| `stars.py` | `/stars` | Starboard browsing (`random`, `lost`, `recheck`) and leaderboards (`most-stars`, `most-starred`, `most-given`) |
+| `time.py` | `/time` | In-universe time controls - advance, pause, resume, dilate |
+| `wiki.py` | `/wiki` | Wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
+| `year.py` | `/year` | Year check, search, and link commands |
+
+### Package: `attubot/tasks/`
+Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
+
+| File | Role |
+|---|---|
+| `base.py` | `BaseTask` ABC - defines the task lifecycle interface |
+| `scheduler.py` | `TaskScheduler` - registers tasks, drives `_run_loop()` per task, exposes `running_tasks()` |
+| `nova_year.py` | `NovaYearTask` - checks for year rollover on schedule; `job_construct_year_links()` helper |
+| `message_backfill.py` | `MessageBackfillTask` - periodic scan of configured channels to store unseen messages |
+| `logo_update.py` | `LogoUpdateTask` - refreshes the bot's avatar on a schedule |
+| `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
+| `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
+| `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
+
+### Package: `attubot/wiki/`
+| File | Role |
+|---|---|
+| `__init__.py` | `get_wiki()` singleton accessor; `setup(bot)` extension entry point |
+| `client.py` | `WikiClient` - top-level client that composes auth, pages, search, and admin APIs |
+| `auth.py` | `AuthApi` - login and CSRF token handling |
+| `pages.py` | `PagesApi` - `get()`, `edit()`, `get_summary()`, `get_random_summary()` |
+| `search.py` | `SearchApi` - full-text and title search, `site_info()` |
+| `admin.py` | `AdminApi` - user block with retry logic |
+| `models.py` | Pydantic models - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail` |
 
 ### Package: `attubot/web/`
 Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger.
@@ -232,6 +271,7 @@ Notes in `notes/` with relevant implementation details:
 
 - [`notes/button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
 - [`notes/embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
+- [`notes/starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
 
 ---
 
@@ -241,7 +281,10 @@ Notes in `notes/` with relevant implementation details:
 attu-bot.py              # entrypoint
 attubot/                 # main package
   commands/              # slash command extensions (one group per file)
+  database/              # mongodb connection, models, and repositories
+  tasks/                 # background task scheduler and task implementations
   web/                   # Quart web app
+  wiki/                  # mediawiki api client
 assets/                  # runtime assets (TOML config, templates, static)
 config/                  # sample/reference config files (not used at runtime)
 tests/                   # pytest + vitest test suites

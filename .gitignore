@@ -86,16 +86,20 @@ wip/
 
 # VS Code
 .vscode/*
+.claude/
+.devcontainer/
 
-backups
 assets/*
 !assets/templates/
 !assets/templates/**
 !assets/static/
 !assets/static/**
 
-.claude/
-/devcontainer/
-notes/
 
-.devcontainer/
+
+# notes
+notes/*
+!notes/embed_usage.md
+!notes/button_usage.md
+!notes/starboard.md
+
