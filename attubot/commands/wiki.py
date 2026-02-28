@@ -14,8 +14,9 @@ from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
 from attubot import config
+from attubot.embeds import make_embed
 from attubot.logging import get_logger
-from attubot.util import is_authorized_guild, theme_color
+from attubot.util import is_authorized_guild
 from attubot.wiki import get_wiki
 from attubot.wiki.models import PageSummary, SearchResult, SiteInfo
 
@@ -35,16 +36,13 @@ def build_wiki_embed(summary: PageSummary, site_info: SiteInfo) -> tuple[discord
     if len(extract) > _EMBED_DESC_LIMIT:
         extract = extract[:_EMBED_DESC_LIMIT] + '...'
 
-    embed = discord.Embed(
-        title=summary.title,
+    embed = make_embed(
+        summary.title,
         description=extract,
-        color=theme_color(),
+        footer=site_info.site_name,
+        thumbnail=summary.thumbnail.source if summary.thumbnail else None,
+        timestamp=False,
     )
-
-    if summary.thumbnail:
-        embed.set_thumbnail(url=summary.thumbnail.source)
-
-    embed.set_footer(text=site_info.site_name)
 
     return embed, url
 

@@ -11,13 +11,13 @@ from typing import NamedTuple
 
 import anyio
 import discord
-from discord import Color, Embed, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
+from discord import Color, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 
 from attubot import bot, config
 from attubot.database.models import MessageDocument
 from attubot.database.repositories import MessageRepository
+from attubot.embeds import make_embed
 from attubot.logging import get_logger
-from attubot.util import theme_color
 
 logger = get_logger(__name__)
 
@@ -244,9 +244,9 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
     return _EditContext(old_content=None, author_name=None, author_id=None, author_bot=author_bot)
 
 
-def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> Embed:
+def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> discord.Embed:
     """Build the edit log embed from context and payload."""
-    embed = Embed(title='Message Edited', color=theme_color())
+    embed = make_embed('Message Edited', footer=f'message id: {payload.message_id}')
 
     if ctx.author_name:
         embed.add_field(name='Author', value=f'<@{ctx.author_id}> ({ctx.author_name})', inline=True)
@@ -262,8 +262,6 @@ def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_con
         embed.add_field(name='Before', value=_truncate(ctx.old_content) or '*(empty)*', inline=False)
 
     embed.add_field(name='After', value=_truncate(new_content) or '*(empty)*', inline=False)
-    embed.set_footer(text=f'message id: {payload.message_id}')
-    embed.timestamp = datetime.now(tz=UTC)
     return embed
 
 
@@ -342,7 +340,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if channel is None:
         return
 
-    embed = Embed(title='Message Deleted', color=Color.red().value)
+    embed = make_embed('Message Deleted', color=Color.red(), footer=f'message id: {payload.message_id}')
 
     if stored:
         embed.add_field(name='Author', value=f'<@{stored.author_id}> ({stored.author_name})', inline=True)
@@ -354,9 +352,6 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if stored and stored.attachments:
         names = ', '.join(a.get('filename', '?') for a in stored.attachments)
         embed.add_field(name='Attachments', value=names, inline=False)
-
-    embed.set_footer(text=f'message id: {payload.message_id}')
-    embed.timestamp = datetime.now(tz=UTC)
 
     try:
         await channel.send(embed=embed)
@@ -381,7 +376,7 @@ async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
     except Exception as err:
         logger.warn(f'failed to bulk-delete {len(ids)} messages: {err}')
 
-    embed = Embed(title='Bulk Message Delete', color=Color.dark_red().value)
+    embed = make_embed('Bulk Message Delete', color=Color.dark_red(), footer=f'guild: {payload.guild_id}')
     embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)
     embed.add_field(name='Count', value=str(len(ids)), inline=True)
 
@@ -394,9 +389,6 @@ async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
         if len(payload.cached_messages) > 5:
             lines.append(f'...and {len(payload.cached_messages) - 5} more')
         embed.add_field(name='Preview', value='\n'.join(lines), inline=False)
-
-    embed.set_footer(text=f'guild: {payload.guild_id}')
-    embed.timestamp = datetime.now(tz=UTC)
 
     try:
         await channel.send(embed=embed)

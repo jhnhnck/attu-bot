@@ -9,11 +9,11 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import discord
-from discord import Color, Embed, Guild, GuildEmoji, Member, Role, User
+from discord import Color, Guild, GuildEmoji, Member, Role, User
 
 from attubot import bot, config
+from attubot.embeds import make_embed
 from attubot.logging import get_logger
-from attubot.util import theme_color
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ async def _get_logs_channel(guild_id: int) -> discord.TextChannel | None:
     return guild.get_channel(channel_id)  # type: ignore[return-value]
 
 
-async def _send_embed(guild_id: int, embed: Embed) -> None:
+async def _send_embed(guild_id: int, embed: discord.Embed) -> None:
     channel = await _get_logs_channel(guild_id)
     if channel is None:
         return
@@ -76,34 +76,30 @@ async def _is_bot_audit_action(guild: Guild, action: discord.AuditLogAction, tar
     return False
 
 
-def _build_member_join_embed(member: Member) -> Embed:
+def _build_member_join_embed(member: Member) -> discord.Embed:
     created_at = member.created_at.replace(tzinfo=UTC) if member.created_at.tzinfo is None else member.created_at
     now = datetime.now(tz=UTC)
     age_days = (now - created_at).days
     age_str = f'{age_days // 365}y {age_days % 365}d' if age_days >= 365 else f'{age_days}d'
 
-    embed = Embed(title='Member Joined', color=theme_color())
+    embed = make_embed(
+        'Member Joined',
+        footer=f'user id: {member.id}',
+        thumbnail=member.display_avatar.url if member.display_avatar else None,
+    )
     embed.add_field(name='Mention', value=member.mention, inline=True)
     embed.add_field(name='Username', value=member.name, inline=True)
     embed.add_field(name='Account Created', value=_format_dt(created_at), inline=False)
     embed.add_field(name='Account Age', value=age_str, inline=True)
-
-    if member.display_avatar:
-        embed.set_thumbnail(url=member.display_avatar.url)
-
-    embed.set_footer(text=f'user id: {member.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     return embed
 
 
-def _build_member_leave_embed(member: Member) -> Embed:
-    embed = Embed(title='Member Left', color=Color.red().value)
+def _build_member_leave_embed(member: Member) -> discord.Embed:
+    embed = make_embed('Member Left', color=Color.red(), footer=f'user id: {member.id}')
     embed.add_field(name='Mention', value=member.mention, inline=True)
     embed.add_field(name='Username', value=member.name, inline=True)
     embed.add_field(name='Joined', value=_format_dt(member.joined_at), inline=True)
     embed.add_field(name='Roles', value=_role_mentions(list(member.roles)), inline=False)
-    embed.set_footer(text=f'user id: {member.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     return embed
 
 
@@ -127,10 +123,8 @@ async def on_member_remove(member: Member):
 async def on_member_ban(guild: Guild, user: User | Member):
     if guild.id not in config.valid_guilds or user.bot:
         return
-    embed = Embed(title='Member Banned', color=Color.red().value)
+    embed = make_embed('Member Banned', color=Color.red(), footer=f'user id: {user.id}')
     embed.add_field(name='User', value=f'{user.mention} ({_member_display_name(user)})', inline=False)
-    embed.set_footer(text=f'user id: {user.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(guild.id, embed)
 
 
@@ -138,10 +132,8 @@ async def on_member_ban(guild: Guild, user: User | Member):
 async def on_member_unban(guild: Guild, user: User):
     if guild.id not in config.valid_guilds or user.bot:
         return
-    embed = Embed(title='Member Unbanned', color=theme_color())
+    embed = make_embed('Member Unbanned', footer=f'user id: {user.id}')
     embed.add_field(name='User', value=f'{user.mention} ({_member_display_name(user)})', inline=False)
-    embed.set_footer(text=f'user id: {user.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(guild.id, embed)
 
 
@@ -151,13 +143,11 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
         return
     if await _is_bot_audit_action(channel.guild, discord.AuditLogAction.channel_create, channel.id):
         return
-    embed = Embed(title='Channel Created', color=theme_color())
+    embed = make_embed('Channel Created', footer=f'channel id: {channel.id}')
     embed.add_field(name='Channel', value=channel.mention, inline=True)
     embed.add_field(name='Type', value=str(channel.type), inline=True)
     if channel.category:
         embed.add_field(name='Category', value=channel.category.name, inline=True)
-    embed.set_footer(text=f'channel id: {channel.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(channel.guild.id, embed)
 
 
@@ -167,13 +157,11 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
         return
     if await _is_bot_audit_action(channel.guild, discord.AuditLogAction.channel_delete, channel.id):
         return
-    embed = Embed(title='Channel Deleted', color=Color.red().value)
+    embed = make_embed('Channel Deleted', color=Color.red(), footer=f'channel id: {channel.id}')
     embed.add_field(name='Channel', value=channel.name, inline=True)
     embed.add_field(name='Type', value=str(channel.type), inline=True)
     if channel.category:
         embed.add_field(name='Category', value=channel.category.name, inline=True)
-    embed.set_footer(text=f'channel id: {channel.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(channel.guild.id, embed)
 
 
@@ -201,12 +189,10 @@ async def on_guild_channel_update(before: discord.abc.GuildChannel, after: disco
     if not changes:
         return
 
-    embed = Embed(title='Channel Updated', color=theme_color())
+    embed = make_embed('Channel Updated', footer=f'channel id: {after.id}')
     embed.add_field(name='Channel', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
-    embed.set_footer(text=f'channel id: {after.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(after.guild.id, embed)
 
 
@@ -216,11 +202,9 @@ async def on_guild_role_create(role: Role):
         return
     if await _is_bot_audit_action(role.guild, discord.AuditLogAction.role_create, role.id):
         return
-    embed = Embed(title='Role Created', color=theme_color())
+    embed = make_embed('Role Created', footer=f'role id: {role.id}')
     embed.add_field(name='Role', value=role.mention, inline=True)
     embed.add_field(name='Color', value=str(role.color), inline=True)
-    embed.set_footer(text=f'role id: {role.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(role.guild.id, embed)
 
 
@@ -230,11 +214,9 @@ async def on_guild_role_delete(role: Role):
         return
     if await _is_bot_audit_action(role.guild, discord.AuditLogAction.role_delete, role.id):
         return
-    embed = Embed(title='Role Deleted', color=Color.red().value)
+    embed = make_embed('Role Deleted', color=Color.red(), footer=f'role id: {role.id}')
     embed.add_field(name='Role', value=role.name, inline=True)
     embed.add_field(name='Color', value=str(role.color), inline=True)
-    embed.set_footer(text=f'role id: {role.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(role.guild.id, embed)
 
 
@@ -260,12 +242,10 @@ async def on_guild_role_update(before: Role, after: Role):
     if not changes:
         return
 
-    embed = Embed(title='Role Updated', color=theme_color())
+    embed = make_embed('Role Updated', footer=f'role id: {after.id}')
     embed.add_field(name='Role', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
-    embed.set_footer(text=f'role id: {after.id}')
-    embed.timestamp = datetime.now(tz=UTC)
     await _send_embed(after.guild.id, embed)
 
 
@@ -275,12 +255,10 @@ async def on_member_update(before: Member, after: Member):
         return
 
     if before.nick != after.nick:
-        embed = Embed(title='Nickname Changed', color=theme_color())
+        embed = make_embed('Nickname Changed', footer=f'user id: {after.id}')
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Before', value=before.nick or before.name, inline=True)
         embed.add_field(name='After', value=after.nick or after.name, inline=True)
-        embed.set_footer(text=f'user id: {after.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(after.guild.id, embed)
 
     before_roles = {role.id: role for role in before.roles if not role.is_default()}
@@ -289,30 +267,24 @@ async def on_member_update(before: Member, after: Member):
     removed = [before_roles[rid] for rid in before_roles.keys() - after_roles.keys()]
 
     if added:
-        embed = Embed(title='Member Role Added', color=theme_color())
+        embed = make_embed('Member Role Added', footer=f'user id: {after.id}')
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Roles', value=_role_mentions(added), inline=False)
-        embed.set_footer(text=f'user id: {after.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(after.guild.id, embed)
 
     if removed:
-        embed = Embed(title='Member Role Removed', color=Color.red().value)
+        embed = make_embed('Member Role Removed', color=Color.red(), footer=f'user id: {after.id}')
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Roles', value=_role_mentions(removed), inline=False)
-        embed.set_footer(text=f'user id: {after.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(after.guild.id, embed)
 
     before_timeout = getattr(before, 'communication_disabled_until', None)
     after_timeout = getattr(after, 'communication_disabled_until', None)
     if before_timeout != after_timeout:
-        embed = Embed(title='Member Timeout Updated', color=Color.orange().value)
+        embed = make_embed('Member Timeout Updated', color=Color.orange(), footer=f'user id: {after.id}')
         embed.add_field(name='Member', value=after.mention, inline=True)
         embed.add_field(name='Before', value=_format_dt(before_timeout), inline=True)
         embed.add_field(name='After', value=_format_dt(after_timeout), inline=True)
-        embed.set_footer(text=f'user id: {after.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(after.guild.id, embed)
 
 
@@ -336,20 +308,16 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
         emoji = after_map[emoji_id]
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_create, emoji_id):
             continue
-        embed = Embed(title='Emoji Created', color=theme_color())
+        embed = make_embed('Emoji Created', footer=f'emoji id: {emoji.id}')
         embed.add_field(name='Emoji', value=f'{emoji} ({emoji.name})', inline=True)
-        embed.set_footer(text=f'emoji id: {emoji.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(guild.id, embed)
 
     for emoji_id in deleted_ids:
         emoji = before_map[emoji_id]
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_delete, emoji_id):
             continue
-        embed = Embed(title='Emoji Deleted', color=Color.red().value)
+        embed = make_embed('Emoji Deleted', color=Color.red(), footer=f'emoji id: {emoji.id}')
         embed.add_field(name='Emoji', value=f'{emoji.name}', inline=True)
-        embed.set_footer(text=f'emoji id: {emoji.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(guild.id, embed)
 
     for emoji_id in shared_ids:
@@ -359,12 +327,10 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
             continue
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_update, emoji_id):
             continue
-        embed = Embed(title='Emoji Renamed', color=theme_color())
+        embed = make_embed('Emoji Renamed', footer=f'emoji id: {after_emoji.id}')
         embed.add_field(name='Before', value=before_emoji.name, inline=True)
         embed.add_field(name='After', value=after_emoji.name, inline=True)
         embed.add_field(name='Emoji', value=str(after_emoji), inline=True)
-        embed.set_footer(text=f'emoji id: {after_emoji.id}')
-        embed.timestamp = datetime.now(tz=UTC)
         await _send_embed(guild.id, embed)
 
 
