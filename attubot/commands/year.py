@@ -27,6 +27,7 @@ logger = get_logger(__name__)
 
 year_group = SlashCommandGroup('year', description='Utilities related to current, past or future years')
 
+
 @year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
 @discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
 async def year_check(ctx: ApplicationContext, year: int):
@@ -171,6 +172,7 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
         relative=(not marker.exact),
     )
 
+
 @year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=TextChannel)
@@ -199,7 +201,9 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
         link = await find_marker_link(year, channel)
         await ctx.respond(f'{year} PC: {link}')
 
+
 # --- Extension Def ---
+
 
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')

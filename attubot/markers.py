@@ -161,5 +161,3 @@ class YearMarker(BaseModel):
     async def exists(cls, channel: int, year: int) -> bool:
         """Check if a marker exists for the given channel and year"""
         return await _get_repo().exists(channel, year)
-
-

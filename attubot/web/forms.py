@@ -7,8 +7,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+
 class GuildChannelsForm(BaseModel):
     """Form validation for guild channels configuration"""
+
     activity: int = Field(default=0, ge=0)
     announcements: int = Field(default=0, ge=0)
     year_vc: int = Field(default=0, ge=0)
@@ -32,6 +34,7 @@ class GuildChannelsForm(BaseModel):
 
 class GuildEpochForm(BaseModel):
     """Form validation for guild epoch configuration"""
+
     time: int = Field(default=0, ge=0)
     year: int = Field(default=1, ge=1)
     length: int = Field(default=14, ge=1, le=365)
@@ -53,11 +56,13 @@ class GuildEpochForm(BaseModel):
 
 class GuildRolesForm(BaseModel):
     """Form validation for guild roles configuration"""
+
     announcements: int = Field(default=0, ge=0)
 
 
 class GuildUsersForm(BaseModel):
     """Form validation for guild users configuration"""
+
     markers: list[int] = Field(default_factory=list)
 
     @field_validator('markers', mode='before')
@@ -73,6 +78,7 @@ class GuildUsersForm(BaseModel):
 
 class GuildStarboardForm(BaseModel):
     """Form validation for guild starboard configuration"""
+
     channel_id: int = Field(default=0, ge=0)
     emojis: dict[str, str] = Field(default_factory=dict)  # emoji_str -> '#RRGGBB'
     valid_bots: list[int] = Field(default_factory=list)
@@ -83,6 +89,7 @@ class GuildStarboardForm(BaseModel):
         """ensure all color values are valid hex strings"""
         import json
         import re
+
         # serializeForm sends emojis as a JSON-encoded string from the hidden field
         if isinstance(v, str):
             if not v.strip():
@@ -112,6 +119,7 @@ class GuildStarboardForm(BaseModel):
 
 class GuildConfigForm(BaseModel):
     """Complete guild configuration form"""
+
     channels: GuildChannelsForm = Field(default_factory=GuildChannelsForm)
     epoch: GuildEpochForm = Field(default_factory=GuildEpochForm)
     roles: GuildRolesForm = Field(default_factory=GuildRolesForm)
@@ -159,6 +167,7 @@ class GuildConfigForm(BaseModel):
 
 class ThemeConfigForm(BaseModel):
     """Form validation for theme configuration"""
+
     rotation: float = Field(default=0.0)
     max_rate: float = Field(default=0.5, ge=0.0, le=1.0)
     bot_color: str = Field(default='#ff0000', pattern=r'^#[0-9a-fA-F]{6}$')
@@ -167,6 +176,7 @@ class ThemeConfigForm(BaseModel):
 
 class SystemConfigForm(BaseModel):
     """Form validation for system configuration"""
+
     primary_guild: int = Field(ge=0)
     error_log_guild: int = Field(default=0, ge=0)
     error_log_channel: int = Field(default=0, ge=0)

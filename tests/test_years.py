@@ -25,6 +25,7 @@ from tests.conftest import TEST_GUILD
 
 # --- Year Model Construction ---
 
+
 class TestYearModel:
     def test_basic_construction(self, make_year):
         y = make_year()
@@ -46,6 +47,7 @@ class TestYearModel:
 
 
 # --- to_span() ---
+
 
 class TestToSpan:
     def test_returns_attu_year_span(self, make_year):
@@ -69,6 +71,7 @@ class TestToSpan:
 
 
 # --- Navigation ---
+
 
 class TestNavigation:
     @pytest.mark.asyncio
@@ -113,14 +116,20 @@ class TestNavigation:
 
 # --- Persistence Methods ---
 
+
 class TestPersistence:
     @pytest.mark.asyncio
     async def test_save_calls_upsert(self, mock_year_repo, make_year):
         y = make_year(year=5, start_time=100, end_time=200, duration=1, formatted='test')
         await y.save()
         mock_year_repo.upsert.assert_called_once_with(
-            guild=TEST_GUILD, year=5, start_time=100,
-            end_time=200, duration=1, formatted='test', notes='',
+            guild=TEST_GUILD,
+            year=5,
+            start_time=100,
+            end_time=200,
+            duration=1,
+            formatted='test',
+            notes='',
         )
 
     @pytest.mark.asyncio
@@ -148,6 +157,7 @@ class TestPersistence:
 
 
 # --- Class Methods ---
+
 
 class TestClassMethods:
     @pytest.mark.asyncio
@@ -190,11 +200,13 @@ class TestClassMethods:
 
     @pytest.mark.asyncio
     async def test_all_for_guild(self, mock_year_repo, make_year_doc):
-        mock_year_repo.all_for_guild = AsyncMock(return_value=[
-            make_year_doc(year=1),
-            make_year_doc(year=2),
-            make_year_doc(year=3),
-        ])
+        mock_year_repo.all_for_guild = AsyncMock(
+            return_value=[
+                make_year_doc(year=1),
+                make_year_doc(year=2),
+                make_year_doc(year=3),
+            ]
+        )
         results = await Year.all_for_guild(TEST_GUILD)
         assert len(results) == 3
         assert all(isinstance(r, Year) for r in results)
@@ -222,6 +234,7 @@ class TestClassMethods:
 
 # --- Lifecycle Methods ---
 
+
 class TestLifecycle:
     @pytest.mark.asyncio
     async def test_create_from_rollover(self, mock_year_repo):
@@ -238,6 +251,7 @@ class TestLifecycle:
     @pytest.mark.asyncio
     async def test_create_from_rollover_formatted_matches_format_year_line(self, mock_year_repo):
         from attubot.calendar import format_year_line
+
         result = await Year.create_from_rollover(TEST_GUILD, 7, start_time=100)
         assert result.formatted == format_year_line(7).lstrip('# ')
 

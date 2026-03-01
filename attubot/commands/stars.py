@@ -24,11 +24,13 @@ stars_group = SlashCommandGroup('stars', description='Starboard browsing and lea
 
 def _get_sb_repo():
     from attubot.starboard import _get_repo
+
     return _get_repo()
 
 
 def _get_msg_repo():
     from attubot.messages import _get_repo
+
     return _get_repo()
 
 

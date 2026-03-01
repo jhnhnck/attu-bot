@@ -22,8 +22,9 @@ from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, Gui
 
 # Use a large integer that would lose precision in JS (MAX_SAFE_INTEGER is 9007199254740991)
 # Discord IDs are uint64, which can go up to 18446744073709551615
-LARGE_ID = 900719925474099200 # Larger than JS max safe integer
+LARGE_ID = 900719925474099200  # Larger than JS max safe integer
 TEST_GUILD = 1234567890
+
 
 @pytest_asyncio.fixture(scope='function')
 async def web_app():
@@ -35,7 +36,7 @@ async def web_app():
     guild1 = GuildConfig(
         id=TEST_GUILD,
         channels=GuildChannels(
-            activity=LARGE_ID, # Use large ID here
+            activity=LARGE_ID,  # Use large ID here
             announcements=222222,
         ),
         epoch=GuildEpoch(),
@@ -55,13 +56,14 @@ async def web_app():
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, LARGE_ID) # Use large ID here
+    web_app_module.config.error_log = (TEST_GUILD, LARGE_ID)  # Use large ID here
     web_app_module.config.error_hook = ''
     web_app_module.config.config_version = '2.2.0'
 
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
     from attubot.config import PathsConfig, WebConfig
+
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
     web_app_module.config._get_event('init').set()
@@ -72,10 +74,12 @@ async def web_app():
         app.config['TESTING'] = True
         yield app
 
+
 @pytest_asyncio.fixture(scope='function')
 async def client(web_app):
     """Create test client for the web app"""
     return web_app.test_client()
+
 
 class TestBigIntSupport:
     @pytest.mark.asyncio

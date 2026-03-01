@@ -30,11 +30,13 @@ def register_routes(app: Quart):  # noqa: PLR0915
         guilds = []
         for guild_id in config.authorized_guilds:
             guild_config = config.guilds.get(guild_id)
-            guilds.append({
-                'id': guild_id,
-                'name': str(guild_config) if guild_config else f'Guild {guild_id}',
-                'configured': guild_id in config.valid_guilds,
-            })
+            guilds.append(
+                {
+                    'id': guild_id,
+                    'name': str(guild_config) if guild_config else f'Guild {guild_id}',
+                    'configured': guild_id in config.valid_guilds,
+                }
+            )
         return await render_template('index.html', title='Dashboard', guilds=guilds)
 
     @app.route('/guild/<int:guild_id>')
@@ -167,11 +169,13 @@ def register_routes(app: Quart):  # noqa: PLR0915
         guilds = []
         for guild_id in config.authorized_guilds:
             guild_config = config.guilds.get(guild_id)
-            guilds.append({
-                'id': str(guild_id),  # Send as string to preserve precision
-                'name': str(guild_config) if guild_config else f'Guild {guild_id}',
-                'configured': guild_id in config.valid_guilds,
-            })
+            guilds.append(
+                {
+                    'id': str(guild_id),  # Send as string to preserve precision
+                    'name': str(guild_config) if guild_config else f'Guild {guild_id}',
+                    'configured': guild_id in config.valid_guilds,
+                }
+            )
         return jsonify({'guilds': guilds})
 
     @app.route('/api/guilds/<int:guild_id>')
@@ -209,51 +213,53 @@ def register_routes(app: Quart):  # noqa: PLR0915
                 return None
             return user_map.get(str(user_id))
 
-        return jsonify({
-            'guild_id': str(guild.id),  # Send as string to preserve precision
-            'name': str(guild),
-            'channels': {
-                'activity': str(guild.channels.activity) if guild.channels.activity else '0',
-                'activity_name': get_channel_name(guild.channels.activity),
-                'announcements': str(guild.channels.announcements) if guild.channels.announcements else '0',
-                'announcements_name': get_channel_name(guild.channels.announcements),
-                'year_vc': str(guild.channels.year_vc) if guild.channels.year_vc else '0',
-                'year_vc_name': get_channel_name(guild.channels.year_vc),
-                'year_links': str(guild.channels.year_links) if guild.channels.year_links else '0',
-                'year_links_name': get_channel_name(guild.channels.year_links),
-                'meta_chat': str(guild.channels.meta_chat) if guild.channels.meta_chat else '0',
-                'meta_chat_name': get_channel_name(guild.channels.meta_chat),
-                'general': str(guild.channels.general) if guild.channels.general else '0',
-                'general_name': get_channel_name(guild.channels.general),
-                'logs': str(guild.channels.logs) if guild.channels.logs else '0',
-                'logs_name': get_channel_name(guild.channels.logs),
-                'lore_channels': [str(ch) for ch in guild.channels.lore_channels],
-                'lore_channels_names': [get_channel_name(ch) for ch in guild.channels.lore_channels],
-                'canon_channels': [str(ch) for ch in guild.channels.canon_channels],
-                'canon_channels_names': [get_channel_name(ch) for ch in guild.channels.canon_channels],
-            },
-            'epoch': {
-                'time': guild.epoch.time,
-                'year': guild.epoch.year,
-                'length': guild.epoch.length,
-                'paused': guild.epoch.paused,
-                'rollover_minutes': guild.epoch.rollover_minutes,
-                'rollover_time': rollover_str,
-            },
-            'roles': {
-                'announcements': str(guild.roles.announcements) if guild.roles.announcements else '0',
-            },
-            'users': {
-                'markers': [str(user) for user in guild.users.markers],
-                'markers_names': [get_user_name(user) for user in guild.users.markers],
-            },
-            'starboard': {
-                'channel_id': str(guild.starboard.channel_id) if guild.starboard.channel_id else '0',
-                'channel_id_name': get_channel_name(guild.starboard.channel_id),
-                'emojis': guild.starboard.emojis,
-                'valid_bots': [str(b) for b in guild.starboard.valid_bots],
-            },
-        })
+        return jsonify(
+            {
+                'guild_id': str(guild.id),  # Send as string to preserve precision
+                'name': str(guild),
+                'channels': {
+                    'activity': str(guild.channels.activity) if guild.channels.activity else '0',
+                    'activity_name': get_channel_name(guild.channels.activity),
+                    'announcements': str(guild.channels.announcements) if guild.channels.announcements else '0',
+                    'announcements_name': get_channel_name(guild.channels.announcements),
+                    'year_vc': str(guild.channels.year_vc) if guild.channels.year_vc else '0',
+                    'year_vc_name': get_channel_name(guild.channels.year_vc),
+                    'year_links': str(guild.channels.year_links) if guild.channels.year_links else '0',
+                    'year_links_name': get_channel_name(guild.channels.year_links),
+                    'meta_chat': str(guild.channels.meta_chat) if guild.channels.meta_chat else '0',
+                    'meta_chat_name': get_channel_name(guild.channels.meta_chat),
+                    'general': str(guild.channels.general) if guild.channels.general else '0',
+                    'general_name': get_channel_name(guild.channels.general),
+                    'logs': str(guild.channels.logs) if guild.channels.logs else '0',
+                    'logs_name': get_channel_name(guild.channels.logs),
+                    'lore_channels': [str(ch) for ch in guild.channels.lore_channels],
+                    'lore_channels_names': [get_channel_name(ch) for ch in guild.channels.lore_channels],
+                    'canon_channels': [str(ch) for ch in guild.channels.canon_channels],
+                    'canon_channels_names': [get_channel_name(ch) for ch in guild.channels.canon_channels],
+                },
+                'epoch': {
+                    'time': guild.epoch.time,
+                    'year': guild.epoch.year,
+                    'length': guild.epoch.length,
+                    'paused': guild.epoch.paused,
+                    'rollover_minutes': guild.epoch.rollover_minutes,
+                    'rollover_time': rollover_str,
+                },
+                'roles': {
+                    'announcements': str(guild.roles.announcements) if guild.roles.announcements else '0',
+                },
+                'users': {
+                    'markers': [str(user) for user in guild.users.markers],
+                    'markers_names': [get_user_name(user) for user in guild.users.markers],
+                },
+                'starboard': {
+                    'channel_id': str(guild.starboard.channel_id) if guild.starboard.channel_id else '0',
+                    'channel_id_name': get_channel_name(guild.starboard.channel_id),
+                    'emojis': guild.starboard.emojis,
+                    'valid_bots': [str(b) for b in guild.starboard.valid_bots],
+                },
+            }
+        )
 
     @app.route('/api/guilds/<int:guild_id>', methods=['POST'])
     async def api_save_guild(guild_id: int):
@@ -318,10 +324,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             logger.info(f'Guild {guild_id} configuration saved')
 
-            return jsonify({
-                'success': True,
-                'message': 'Configuration saved successfully',
-            })
+            return jsonify(
+                {
+                    'success': True,
+                    'message': 'Configuration saved successfully',
+                }
+            )
 
         except ValidationError as e:
             logger.error(f'Validation error for guild {guild_id}: {e}')
@@ -340,10 +348,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     error_message=f'Validation error: {e!s}',
                 )
 
-            return jsonify({
-                'error': 'Validation failed',
-                'details': e.errors(),
-            }), 400
+            return jsonify(
+                {
+                    'error': 'Validation failed',
+                    'details': e.errors(),
+                }
+            ), 400
         except Exception as e:
             logger.error(f'Error saving guild {guild_id}: {e}')
 
@@ -377,18 +387,22 @@ def register_routes(app: Quart):  # noqa: PLR0915
             # Validate with Pydantic
             validated = GuildConfigForm(**form_data)
 
-            return jsonify({
-                'valid': True,
-                'message': 'Configuration is valid',
-                'data': validated.model_dump(),
-            })
+            return jsonify(
+                {
+                    'valid': True,
+                    'message': 'Configuration is valid',
+                    'data': validated.model_dump(),
+                }
+            )
 
         except ValidationError as e:
-            return jsonify({
-                'valid': False,
-                'error': 'Validation failed',
-                'details': e.errors(),
-            }), 400
+            return jsonify(
+                {
+                    'valid': False,
+                    'error': 'Validation failed',
+                    'details': e.errors(),
+                }
+            ), 400
 
     @app.route('/api/guilds/<int:guild_id>/reset', methods=['POST'])
     async def api_reset_guild(guild_id: int):
@@ -399,10 +413,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
         try:
             success = await config.load_guild(guild_id)
             if success:
-                return jsonify({
-                    'success': True,
-                    'message': 'Configuration reloaded from database',
-                })
+                return jsonify(
+                    {
+                        'success': True,
+                        'message': 'Configuration reloaded from database',
+                    }
+                )
             else:
                 return jsonify({'error': 'Failed to reload configuration'}), 500
         except Exception as e:
@@ -457,12 +473,14 @@ def register_routes(app: Quart):  # noqa: PLR0915
         if not theme:
             return jsonify({'error': 'Theme not found'}), 404
 
-        return jsonify({
-            'rotation': theme.rotation,
-            'max_rate': theme.max_rate,
-            'bot_color': theme.bot_color,
-            'guild_color': theme.guild_color,
-        })
+        return jsonify(
+            {
+                'rotation': theme.rotation,
+                'max_rate': theme.max_rate,
+                'bot_color': theme.bot_color,
+                'guild_color': theme.guild_color,
+            }
+        )
 
     @app.route('/api/theme', methods=['POST'])
     async def api_save_theme():
@@ -515,10 +533,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             logger.info('Theme configuration saved')
 
-            return jsonify({
-                'success': True,
-                'message': 'Theme saved successfully',
-            })
+            return jsonify(
+                {
+                    'success': True,
+                    'message': 'Theme saved successfully',
+                }
+            )
 
         except ValidationError as e:
             logger.error(f'Validation error for theme: {e}')
@@ -536,10 +556,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     error_message=f'Validation error: {e!s}',
                 )
 
-            return jsonify({
-                'error': 'Validation failed',
-                'details': e.errors(),
-            }), 400
+            return jsonify(
+                {
+                    'error': 'Validation failed',
+                    'details': e.errors(),
+                }
+            ), 400
         except Exception as e:
             logger.error(f'Error saving theme: {e}')
 
@@ -563,13 +585,15 @@ def register_routes(app: Quart):  # noqa: PLR0915
     @app.route('/api/system')
     async def api_get_system():
         """Get system configuration"""
-        return jsonify({
-            'version': config.config_version,
-            'primary_guild': str(config.primary_guild),
-            'error_log_guild': str(config.error_log[0]) if config.error_log else '0',
-            'error_log_channel': str(config.error_log[1]) if config.error_log else '0',
-            'error_hook': config.error_hook or '',
-        })
+        return jsonify(
+            {
+                'version': config.config_version,
+                'primary_guild': str(config.primary_guild),
+                'error_log_guild': str(config.error_log[0]) if config.error_log else '0',
+                'error_log_channel': str(config.error_log[1]) if config.error_log else '0',
+                'error_hook': config.error_hook or '',
+            }
+        )
 
     @app.route('/api/system', methods=['POST'])
     async def api_save_system():
@@ -624,10 +648,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             logger.info('System configuration saved')
 
-            return jsonify({
-                'success': True,
-                'message': 'System configuration saved successfully',
-            })
+            return jsonify(
+                {
+                    'success': True,
+                    'message': 'System configuration saved successfully',
+                }
+            )
 
         except ValidationError as e:
             logger.error(f'Validation error for system config: {e}')
@@ -645,17 +671,19 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     error_message=f'Validation error: {e!s}',
                 )
 
-            return jsonify({
-                'error': 'Validation failed',
-                'details': [
-                    {
-                        'loc': list(err['loc']),
-                        'msg': err['msg'],
-                        'type': err['type'],
-                    }
-                    for err in e.errors()
-                ],
-            }), 400
+            return jsonify(
+                {
+                    'error': 'Validation failed',
+                    'details': [
+                        {
+                            'loc': list(err['loc']),
+                            'msg': err['msg'],
+                            'type': err['type'],
+                        }
+                        for err in e.errors()
+                    ],
+                }
+            ), 400
         except Exception as e:
             logger.error(f'Error saving system config: {e}')
 
@@ -711,10 +739,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     log['guild_id'] = str(log['guild_id'])
                 log['timestamp_formatted'] = datetime.fromtimestamp(log['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
 
-            return jsonify({
-                'logs': logs,
-                'count': len(logs),
-            })
+            return jsonify(
+                {
+                    'logs': logs,
+                    'count': len(logs),
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching audit logs: {e}')
@@ -751,14 +781,16 @@ def register_routes(app: Quart):  # noqa: PLR0915
             total = len(years_data)
             years_data = years_data[skip : skip + limit]
 
-            return jsonify({
-                'guild_id': str(guild_id),
-                'years': years_data,
-                'count': len(years_data),
-                'total': total,
-                'limit': limit,
-                'skip': skip,
-            })
+            return jsonify(
+                {
+                    'guild_id': str(guild_id),
+                    'years': years_data,
+                    'count': len(years_data),
+                    'total': total,
+                    'limit': limit,
+                    'skip': skip,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching years for guild {guild_id}: {e}')
@@ -777,15 +809,17 @@ def register_routes(app: Quart):  # noqa: PLR0915
             if not year_record:
                 return jsonify({'error': f'Year {year} not found'}), 404
 
-            return jsonify({
-                'guild': str(year_record.guild),
-                'year': year_record.year,
-                'start_time': year_record.start_time,
-                'end_time': year_record.end_time,
-                'duration': year_record.duration,
-                'formatted': year_record.formatted,
-                'notes': year_record.notes,
-            })
+            return jsonify(
+                {
+                    'guild': str(year_record.guild),
+                    'year': year_record.year,
+                    'start_time': year_record.start_time,
+                    'end_time': year_record.end_time,
+                    'duration': year_record.duration,
+                    'formatted': year_record.formatted,
+                    'notes': year_record.notes,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching year {year} for guild {guild_id}: {e}')
@@ -804,15 +838,17 @@ def register_routes(app: Quart):  # noqa: PLR0915
             if not year_record:
                 return jsonify({'error': 'No years found'}), 404
 
-            return jsonify({
-                'guild': str(year_record.guild),
-                'year': year_record.year,
-                'start_time': year_record.start_time,
-                'end_time': year_record.end_time,
-                'duration': year_record.duration,
-                'formatted': year_record.formatted,
-                'notes': year_record.notes,
-            })
+            return jsonify(
+                {
+                    'guild': str(year_record.guild),
+                    'year': year_record.year,
+                    'start_time': year_record.start_time,
+                    'end_time': year_record.end_time,
+                    'duration': year_record.duration,
+                    'formatted': year_record.formatted,
+                    'notes': year_record.notes,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching latest year for guild {guild_id}: {e}')
@@ -946,14 +982,16 @@ def register_routes(app: Quart):  # noqa: PLR0915
             total = len(markers_data)
             markers_data = markers_data[skip : skip + limit]
 
-            return jsonify({
-                'guild_id': str(guild_id),
-                'markers': markers_data,
-                'count': len(markers_data),
-                'total': total,
-                'limit': limit,
-                'skip': skip,
-            })
+            return jsonify(
+                {
+                    'guild_id': str(guild_id),
+                    'markers': markers_data,
+                    'count': len(markers_data),
+                    'total': total,
+                    'limit': limit,
+                    'skip': skip,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching markers for guild {guild_id}: {e}')
@@ -973,13 +1011,15 @@ def register_routes(app: Quart):  # noqa: PLR0915
             if not marker:
                 return jsonify({'error': f'Marker for year {year} not found'}), 404
 
-            return jsonify({
-                'channel': str(marker.channel),
-                'message': str(marker.message),
-                'year': marker.year,
-                'exact': marker.exact,
-                'wiki_page': marker.wiki_page,
-            })
+            return jsonify(
+                {
+                    'channel': str(marker.channel),
+                    'message': str(marker.message),
+                    'year': marker.year,
+                    'exact': marker.exact,
+                    'wiki_page': marker.wiki_page,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching marker for year {year} in guild {guild_id}: {e}')
@@ -998,10 +1038,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
             if timestamp is None:
                 return jsonify({'error': f'Marker for year {year} not found'}), 404
 
-            return jsonify({
-                'year': year,
-                'timestamp': timestamp,
-            })
+            return jsonify(
+                {
+                    'year': year,
+                    'timestamp': timestamp,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching marker timestamp for year {year} in guild {guild_id}: {e}')
@@ -1133,20 +1175,22 @@ def register_routes(app: Quart):  # noqa: PLR0915
             rollover_time = guild_config.epoch.get_rollover_time()
             rollover_str = rollover_time.strftime('%H:%M')
 
-            return jsonify({
-                'guild_id': str(guild_id),
-                'current_year': current_year,
-                'elapsed_days': elapsed_days,
-                'current_day': (elapsed_days % guild_config.epoch.length) + 1,
-                'next_rollover': int(next_rollover.timestamp()),
-                'next_rollover_formatted': next_rollover.strftime('%Y-%m-%d %H:%M:%S %Z'),
-                'paused': guild_config.epoch.paused,
-                'year_length': guild_config.epoch.length,
-                'rollover_time': rollover_str,
-                'rollover_minutes': guild_config.epoch.rollover_minutes,
-                'epoch_time': guild_config.epoch.time,
-                'epoch_year': guild_config.epoch.year,
-            })
+            return jsonify(
+                {
+                    'guild_id': str(guild_id),
+                    'current_year': current_year,
+                    'elapsed_days': elapsed_days,
+                    'current_day': (elapsed_days % guild_config.epoch.length) + 1,
+                    'next_rollover': int(next_rollover.timestamp()),
+                    'next_rollover_formatted': next_rollover.strftime('%Y-%m-%d %H:%M:%S %Z'),
+                    'paused': guild_config.epoch.paused,
+                    'year_length': guild_config.epoch.length,
+                    'rollover_time': rollover_str,
+                    'rollover_minutes': guild_config.epoch.rollover_minutes,
+                    'epoch_time': guild_config.epoch.time,
+                    'epoch_year': guild_config.epoch.year,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching time status for guild {guild_id}: {e}')
@@ -1163,13 +1207,15 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             span = await get_year_span(year, guild_id)
 
-            return jsonify({
-                'guild_id': str(guild_id),
-                'year': year,
-                'start_time': span.start_time,
-                'end_time': span.end_time,
-                'duration': span.duration,
-            })
+            return jsonify(
+                {
+                    'guild_id': str(guild_id),
+                    'year': year,
+                    'start_time': span.start_time,
+                    'end_time': span.end_time,
+                    'duration': span.duration,
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching year span for year {year} in guild {guild_id}: {e}')
@@ -1223,26 +1269,28 @@ def register_routes(app: Quart):  # noqa: PLR0915
 
             uptime_seconds = int(time.time() - config._init_time) if hasattr(config, '_init_time') else 0
 
-            return jsonify({
-                'guilds': {
-                    'total': total_guilds,
-                    'configured': configured_guilds,
-                    'authorized': list(str(g) for g in config.authorized_guilds),
-                },
-                'data': {
-                    'total_years': total_years,
-                    'total_markers': total_markers,
-                    'total_starred_messages': total_starred_messages,
-                    'total_stars': total_stars,
-                },
-                'system': {
-                    'db_connected': db_connected,
-                    'config_loaded': config_loaded,
-                    'uptime_seconds': uptime_seconds,
-                    'primary_guild': str(config.primary_guild),
-                    'config_version': config.config_version,
-                },
-            })
+            return jsonify(
+                {
+                    'guilds': {
+                        'total': total_guilds,
+                        'configured': configured_guilds,
+                        'authorized': list(str(g) for g in config.authorized_guilds),
+                    },
+                    'data': {
+                        'total_years': total_years,
+                        'total_markers': total_markers,
+                        'total_starred_messages': total_starred_messages,
+                        'total_stars': total_stars,
+                    },
+                    'system': {
+                        'db_connected': db_connected,
+                        'config_loaded': config_loaded,
+                        'uptime_seconds': uptime_seconds,
+                        'primary_guild': str(config.primary_guild),
+                        'config_version': config.config_version,
+                    },
+                }
+            )
 
         except Exception as e:
             logger.error(f'Error fetching admin stats: {e}')
@@ -1253,10 +1301,12 @@ def register_routes(app: Quart):  # noqa: PLR0915
     @app.route('/health')
     async def health():
         """Health check endpoint"""
-        return jsonify({
-            'status': 'ok',
-            'service': 'attu-bot-web',
-            'config_loaded': config._get_event('load').is_set(),
-        })
+        return jsonify(
+            {
+                'status': 'ok',
+                'service': 'attu-bot-web',
+                'config_loaded': config._get_event('load').is_set(),
+            }
+        )
 
     logger.info('Routes registered')

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 class ConfigRepository:
     """Repository for guild and global configuration documents"""
+
     GUILD_COLLECTION = 'guild_configs'
     GLOBAL_COLLECTION = 'global_config'
 
@@ -116,6 +117,7 @@ class ConfigRepository:
 
 class YearMarkerRepository:
     """Repository for year marker documents"""
+
     COLLECTION = 'year_markers'
 
     def __init__(self, db: AsyncDatabase):
@@ -206,6 +208,7 @@ class YearMarkerRepository:
 
 class YearRepository:
     """Repository for year documents"""
+
     COLLECTION = 'years'
 
     def __init__(self, db: AsyncDatabase):
@@ -218,12 +221,16 @@ class YearRepository:
         )
         await self.db[self.COLLECTION].create_index('guild')
 
-    async def create(self, guild: int, year: int, start_time: int,
-                     end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
+    async def create(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
         """Create new year record"""
         doc = YearDocument(
-            guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration, formatted=formatted, notes=notes,
+            guild=guild,
+            year=year,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            formatted=formatted,
+            notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].insert_one(doc)
 
@@ -241,12 +248,16 @@ class YearRepository:
             {'$set': kwargs},
         )
 
-    async def upsert(self, guild: int, year: int, start_time: int,
-                     end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
+    async def upsert(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
         """Insert or update year record (upsert)"""
         doc = YearDocument(
-            guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration, formatted=formatted, notes=notes,
+            guild=guild,
+            year=year,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            formatted=formatted,
+            notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].update_one(
             {'guild': guild, 'year': year},
@@ -290,6 +301,7 @@ class YearRepository:
 
 class MessageRepository:
     """Repository for stored Discord messages"""
+
     COLLECTION = 'messages'
 
     def __init__(self, db: AsyncDatabase):
@@ -345,9 +357,14 @@ class MessageRepository:
 
     async def get_latest_in_channel(self, guild_id: int, channel_id: int) -> int | None:
         """Return the highest message_id stored for a channel (used as backfill cursor)"""
-        cursor = self.db[self.COLLECTION].find(
-            {'guild_id': guild_id, 'channel_id': channel_id},
-        ).sort('message_id', -1).limit(1)
+        cursor = (
+            self.db[self.COLLECTION]
+            .find(
+                {'guild_id': guild_id, 'channel_id': channel_id},
+            )
+            .sort('message_id', -1)
+            .limit(1)
+        )
         docs = await cursor.to_list(length=1)
         if docs:
             return docs[0]['message_id']
@@ -383,6 +400,7 @@ class MessageRepository:
 
 class StarboardRepository:
     """Repository for starred message documents"""
+
     COLLECTION = 'starboard'
 
     def __init__(self, db: AsyncDatabase):
@@ -596,6 +614,7 @@ class ReloadSignalRepository:
     the web process writes signals here; the bot process polls and consumes them.
     documents are upserted by (signal_type, guild_id) so rapid saves coalesce.
     """
+
     COLLECTION = 'reload_signals'
 
     def __init__(self, db: AsyncDatabase):

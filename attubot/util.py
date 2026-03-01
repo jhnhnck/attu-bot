@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 
 # --- Permissions Check ---
 
+
 def is_bot_owner(ctx: Context) -> bool:
     from attubot import config
 
@@ -31,7 +32,9 @@ def is_authorized_guild(ctx: Context) -> bool:
 
     return ctx.guild.id in config.authorized_guilds
 
+
 # --- Decorators ---
+
 
 def webhook_logging(scope: Logger) -> Callable:
     def decorator(func: Callable) -> Callable:
@@ -43,19 +46,24 @@ def webhook_logging(scope: Logger) -> Callable:
                 await scope.send_to_webhook(error)
 
         return wrapper
+
     return decorator
 
+
 # --- Theme ---
+
 
 def theme_color() -> int:
     """return the bot theme color as an int, falling back to blurple"""
     from attubot import config
+
     if config.theme:
         return int(config.theme.bot_color.lstrip('#'), 16)
     return 0x5865F2  # discord blurple
 
 
 # --- Formatting ---
+
 
 # util to make discord message links
 def format_message_link(guild: int, channel: int, message: int, relative: bool = False) -> str:

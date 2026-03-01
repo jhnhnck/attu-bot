@@ -19,6 +19,7 @@ import pytest
 
 # --- /ping Command Tests ---
 
+
 class TestPingCommand:
     @pytest.mark.asyncio
     async def test_ping_responds_pong(self, mock_ctx):
@@ -34,6 +35,7 @@ class TestPingCommand:
 
 
 # --- /pong Command Tests ---
+
 
 class TestPongCommand:
     @pytest.mark.asyncio
@@ -66,9 +68,7 @@ class TestPongCommand:
         mock_scheduler = MagicMock()
 
         # Mock config.is_owner to return False and the tasks module scheduler
-        with patch('attubot.commands.debug.config.is_owner', return_value=False), \
-             patch.object(tasks_module, 'scheduler', mock_scheduler):
-
+        with patch('attubot.commands.debug.config.is_owner', return_value=False), patch.object(tasks_module, 'scheduler', mock_scheduler):
             await command_pong(ctx)
 
         ctx.respond.assert_called_once()

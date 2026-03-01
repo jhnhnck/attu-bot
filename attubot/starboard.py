@@ -96,7 +96,7 @@ def parse_starboard_content(content: str) -> tuple[dict[str, int], str | None]:
     url_match = _JUMP_URL_RE.search(content)
     jump_url = url_match.group(0) if url_match else None
 
-    pre = content[:url_match.start()] if url_match else content
+    pre = content[: url_match.start()] if url_match else content
 
     emoji_counts: dict[str, int] = {}
     for segment in pre.split(' | '):
@@ -393,6 +393,7 @@ async def handle_star_add(  # noqa: PLR0911
 
     # skip our own bot's reactions and any configured legacy bot IDs
     from attubot import bot as _bot
+
     if _bot.user and user_id == _bot.user.id:
         logger.debug(f'starboard: ignoring own bot reaction from {user_id}')
         return

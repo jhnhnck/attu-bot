@@ -23,6 +23,7 @@ logger = get_logger(__name__)
 
 marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utilities related to managing year markers (Admin Only)')
 
+
 @marker_group.command(name='save', description='Updates marker to point to a different message')
 @discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
@@ -120,7 +121,9 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
     else:
         await ctx.respond('Failed: Could not clear marker as it did not exist', ephemeral=True)
 
+
 # --- Extension Def ---
+
 
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')

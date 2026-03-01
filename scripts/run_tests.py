@@ -7,6 +7,7 @@ import sys
 
 from termcolor import colored
 
+
 def run(title: str, cmd: list[str], env: dict | None = None, quiet: bool = True) -> None:
     print(colored(f'running: {title}', 'cyan'))
 
@@ -29,4 +30,4 @@ if __name__ == '__main__':
     if '--coverage' in sys.argv:
         run('coverage report', ['coverage', 'report'], quiet=False)
 
-    print(colored('tests completed successfully.','light_green'))
+    print(colored('tests completed successfully.', 'light_green'))

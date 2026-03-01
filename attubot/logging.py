@@ -10,6 +10,7 @@ from os import environ
 
 from termcolor import colored
 
+
 class Logger:
     """
     Logger supports the following logging levels: trace, debug, info, warn, error, fatal

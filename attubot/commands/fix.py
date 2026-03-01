@@ -19,6 +19,7 @@ from attubot.util import is_bot_owner
 
 logger = get_logger(__name__)
 
+
 async def _safe_edit(status_msg: discord.Message | None, content: str) -> discord.Message | None:
     """edit the status message safely; returns None if the edit fails so callers can stop retrying."""
     if status_msg is None:
@@ -65,6 +66,7 @@ async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: disco
                 # check for starboard reactions on newly-discovered messages
                 try:
                     from attubot.starboard import backfill_message_reactions
+
                     await backfill_message_reactions(message, guild_id)
                 except Exception as err:
                     logger.warn(f'fix messages: reaction backfill failed for {message.id}: {err}')
@@ -229,6 +231,7 @@ async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None 
 
     # fetch all stored messages from the starboard channel
     from attubot.database.repositories import MessageRepository
+
     cursor = msg_repo.db[MessageRepository.COLLECTION].find({'guild_id': guild_id, 'channel_id': sb.channel_id})
     stored_msgs = await cursor.to_list(length=None)
 
@@ -269,6 +272,7 @@ async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None 
                 try:
                     from attubot import bot
                     from attubot.messages import build_message_doc
+
                     orig_channel = bot.get_channel(orig_channel_id)
                     if orig_channel is None:
                         orig_channel = await bot.fetch_channel(orig_channel_id)
@@ -289,7 +293,7 @@ async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None 
                 guild_id=guild_id,
                 author_id=author_id,
                 starboard_message_id=int(raw['message_id']),
-                reactions={},       # individual starrer IDs not available from legacy data
+                reactions={},  # individual starrer IDs not available from legacy data
                 total_reactions=total,
             )
             await sb_repo.upsert(doc)
@@ -310,6 +314,7 @@ async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None 
 async def fix_starboard(ctx: ApplicationContext):
     try:
         from attubot.starboard import _get_repo
+
         _get_repo()
     except RuntimeError:
         await ctx.respond('starboard repo not initialized yet', ephemeral=True)
@@ -437,6 +442,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
 async def fix_starboard_recount(ctx: ApplicationContext):
     try:
         from attubot.starboard import _get_repo
+
         _get_repo()
     except RuntimeError:
         await ctx.respond('starboard repo not initialized yet', ephemeral=True)

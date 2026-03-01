@@ -39,5 +39,3 @@ async def send_signal(signal_type: str, guild_id: int | None = None):
         logger.debug(f'Sent reload signal: type={signal_type} guild_id={guild_id}')
     except Exception as e:
         logger.error(f'Failed to send reload signal (type={signal_type} guild_id={guild_id}): {e}')
-
-

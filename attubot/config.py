@@ -135,9 +135,9 @@ class GuildUsers(BaseModel):
 
 
 class GuildStarboard(BaseModel):
-    channel_id: int = 0                  # channel where starboard posts are sent
-    emojis: dict[str, str] = {}          # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
-    valid_bots: list[int] = []           # bot IDs allowed to contribute legacy stars
+    channel_id: int = 0  # channel where starboard posts are sent
+    emojis: dict[str, str] = {}  # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
+    valid_bots: list[int] = []  # bot IDs allowed to contribute legacy stars
 
 
 class GuildConfig(BaseModel):

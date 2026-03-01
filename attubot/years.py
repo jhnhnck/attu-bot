@@ -23,14 +23,17 @@ def _get_repo() -> YearRepository:
     global _year_repo  # noqa: PLW0603
     if _year_repo is None:
         from attubot import db
+
         _year_repo = YearRepository(db.get_db())
     return _year_repo
 
 
 # --- Year Model ---
 
+
 class Year(BaseModel):
     """Year runtime model - represents a single calendar year for a guild"""
+
     guild: int
     year: int
     start_time: int
@@ -42,9 +45,12 @@ class Year(BaseModel):
     async def save(self):
         """Save this year to MongoDB"""
         await _get_repo().upsert(
-            guild=self.guild, year=self.year,
-            start_time=self.start_time, end_time=self.end_time,
-            duration=self.duration, formatted=self.formatted,
+            guild=self.guild,
+            year=self.year,
+            start_time=self.start_time,
+            end_time=self.end_time,
+            duration=self.duration,
+            formatted=self.formatted,
             notes=self.notes,
         )
 
@@ -62,6 +68,7 @@ class Year(BaseModel):
     def to_span(self):
         """Convert to AttuYearSpan for backward compatibility"""
         from attubot.calendar import AttuYearSpan
+
         return AttuYearSpan(
             start_time=self.start_time,
             end_time=self.end_time,
@@ -88,9 +95,12 @@ class Year(BaseModel):
         doc = await _get_repo().get(guild, year)
         if doc:
             return cls(
-                guild=doc.guild, year=doc.year,
-                start_time=doc.start_time, end_time=doc.end_time,
-                duration=doc.duration, formatted=doc.formatted,
+                guild=doc.guild,
+                year=doc.year,
+                start_time=doc.start_time,
+                end_time=doc.end_time,
+                duration=doc.duration,
+                formatted=doc.formatted,
                 notes=doc.notes,
             )
         return None
@@ -113,9 +123,12 @@ class Year(BaseModel):
         docs = await _get_repo().all_for_guild(guild)
         return [
             cls(
-                guild=doc.guild, year=doc.year,
-                start_time=doc.start_time, end_time=doc.end_time,
-                duration=doc.duration, formatted=doc.formatted,
+                guild=doc.guild,
+                year=doc.year,
+                start_time=doc.start_time,
+                end_time=doc.end_time,
+                duration=doc.duration,
+                formatted=doc.formatted,
                 notes=doc.notes,
             )
             for doc in docs
@@ -127,9 +140,12 @@ class Year(BaseModel):
         doc = await _get_repo().get_latest(guild)
         if doc:
             return cls(
-                guild=doc.guild, year=doc.year,
-                start_time=doc.start_time, end_time=doc.end_time,
-                duration=doc.duration, formatted=doc.formatted,
+                guild=doc.guild,
+                year=doc.year,
+                start_time=doc.start_time,
+                end_time=doc.end_time,
+                duration=doc.duration,
+                formatted=doc.formatted,
                 notes=doc.notes,
             )
         return None
@@ -139,9 +155,12 @@ class Year(BaseModel):
         """Create a new Year record during rollover with auto-computed formatted line"""
         formatted = format_year_line(year).lstrip('# ')
         new_year = cls(
-            guild=guild, year=year,
-            start_time=start_time, end_time=0,
-            duration=0, formatted=formatted,
+            guild=guild,
+            year=year,
+            start_time=start_time,
+            end_time=0,
+            duration=0,
+            formatted=formatted,
         )
         await new_year.save()
         return new_year
@@ -157,5 +176,3 @@ class Year(BaseModel):
         duration = round((end_time - existing.start_time) / SECONDS_PER_DAY)
         await existing.update(end_time=end_time, duration=duration)
         return existing
-
-

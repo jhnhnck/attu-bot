@@ -77,14 +77,16 @@ async def get_credential_by_id(db, credential_id_b64: str) -> dict | None:
 
 async def save_credential(db, credential_id_b64: str, public_key_b64: str, sign_count: int, name: str = 'Passkey'):
     """Insert a new credential."""
-    await _get_collection(db).insert_one({
-        'credential_id': credential_id_b64,
-        'public_key': public_key_b64,
-        'sign_count': sign_count,
-        'name': name,
-        'created_at': int(time.time()),
-        'last_used': int(time.time()),
-    })
+    await _get_collection(db).insert_one(
+        {
+            'credential_id': credential_id_b64,
+            'public_key': public_key_b64,
+            'sign_count': sign_count,
+            'name': name,
+            'created_at': int(time.time()),
+            'last_used': int(time.time()),
+        }
+    )
     logger.info(f'Passkey registered: {name}')
 
 

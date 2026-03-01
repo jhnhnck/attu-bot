@@ -255,6 +255,7 @@ async def on_application_command(ctx: ApplicationContext):
 
 logger.info('Registered event handlers')
 
+
 @bot.listen()
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
     logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')

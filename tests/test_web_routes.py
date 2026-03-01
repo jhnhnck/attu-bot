@@ -89,6 +89,7 @@ async def web_app():
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
     from attubot.config import PathsConfig, WebConfig
+
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
     web_app_module.config._get_event('init').set()
@@ -108,6 +109,7 @@ async def client(web_app):
 
 # ========== Health Check Tests ==========
 
+
 class TestHealthEndpoint:
     @pytest.mark.asyncio
     async def test_health_check(self, client):
@@ -122,6 +124,7 @@ class TestHealthEndpoint:
 
 
 # ========== Page Route Tests ==========
+
 
 class TestPageRoutes:
     @pytest.mark.asyncio
@@ -172,6 +175,7 @@ class TestPageRoutes:
 
 
 # ========== Guild API Tests ==========
+
 
 class TestGuildAPI:
     @pytest.mark.asyncio
@@ -432,6 +436,7 @@ class TestGuildAPI:
 
 # ========== Theme API Tests ==========
 
+
 class TestThemeAPI:
     @pytest.mark.asyncio
     async def test_get_theme(self, client):
@@ -504,6 +509,7 @@ class TestThemeAPI:
 
 # ========== System API Tests ==========
 
+
 class TestSystemAPI:
     @pytest.mark.asyncio
     async def test_get_system_config(self, client):
@@ -569,6 +575,7 @@ class TestSystemAPI:
 
 
 # ========== Audit Log Tests ==========
+
 
 class TestAuditLogAPI:
     @pytest.mark.asyncio
@@ -880,6 +887,7 @@ class TestAuditLogAPI:
 
 
 # ========== Error Handling Tests ==========
+
 
 class TestErrorHandling:
     @pytest.mark.asyncio

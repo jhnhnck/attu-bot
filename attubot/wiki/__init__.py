@@ -22,6 +22,7 @@ def get_wiki() -> WikiClient:
     global _wiki  # noqa: PLW0603
     if _wiki is None:
         from attubot import config
+
         _wiki = WikiClient(endpoint=config.wiki.endpoint)
     return _wiki
 

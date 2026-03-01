@@ -20,6 +20,7 @@ logger = get_logger(__name__)
 @dataclass
 class ConfigChange:
     """Represents a single field change"""
+
     field: str
     old_value: Any
     new_value: Any
@@ -28,6 +29,7 @@ class ConfigChange:
 @dataclass
 class AuditLogEntry:
     """Represents an audit log entry"""
+
     timestamp: int
     ip_address: str
     config_type: str  # "guild" | "theme" | "system"
@@ -107,9 +109,7 @@ class AuditLogger:
             await self.collection.insert_one(entry.to_dict())
 
             logger.info(
-                f'Audit log: {config_type} {action} by {ip_address}'
-                + (f' for guild {guild_id}' if guild_id else '')
-                + f' - {len(changes)} changes',
+                f'Audit log: {config_type} {action} by {ip_address}' + (f' for guild {guild_id}' if guild_id else '') + f' - {len(changes)} changes',
             )
 
         except Exception as e:
@@ -212,17 +212,21 @@ def compare_configs(old: dict, new: dict, prefix: str = '') -> list[ConfigChange
         # Handle lists (compare as sets for order-independence, but track actual change)
         elif isinstance(old_val, list) and isinstance(new_val, list):
             if set(old_val) != set(new_val):
-                changes.append(ConfigChange(
+                changes.append(
+                    ConfigChange(
+                        field=full_key,
+                        old_value=old_val,
+                        new_value=new_val,
+                    )
+                )
+        # Handle value changes
+        else:
+            changes.append(
+                ConfigChange(
                     field=full_key,
                     old_value=old_val,
                     new_value=new_val,
-                ))
-        # Handle value changes
-        else:
-            changes.append(ConfigChange(
-                field=full_key,
-                old_value=old_val,
-                new_value=new_val,
-            ))
+                )
+            )
 
     return changes

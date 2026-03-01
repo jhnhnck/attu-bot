@@ -10,12 +10,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+
 class GuildConfigDocument(BaseModel):
     """MongoDB document for guild configuration
 
     Note: epoch dict stores rollover_minutes (int) instead of rollover_time (str)
     for simpler storage and manipulation.
     """
+
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='ignore')
 
     guild_id: int
@@ -28,6 +30,7 @@ class GuildConfigDocument(BaseModel):
 
 class ThemeDocument(BaseModel):
     """MongoDB document for theme configuration"""
+
     model_config = ConfigDict(extra='ignore')
 
     config_type: Literal['theme'] = 'theme'
@@ -39,6 +42,7 @@ class ThemeDocument(BaseModel):
 
 class SystemConfigDocument(BaseModel):
     """MongoDB document for system configuration"""
+
     model_config = ConfigDict(extra='ignore')
 
     config_type: Literal['system'] = 'system'
@@ -50,6 +54,7 @@ class SystemConfigDocument(BaseModel):
 
 class YearMarkerDocument(BaseModel):
     """MongoDB document for year markers"""
+
     model_config = ConfigDict(extra='ignore')
 
     guild: int
@@ -62,6 +67,7 @@ class YearMarkerDocument(BaseModel):
 
 class YearDocument(BaseModel):
     """MongoDB document for year records"""
+
     model_config = ConfigDict(extra='ignore')
 
     guild: int
@@ -75,6 +81,7 @@ class YearDocument(BaseModel):
 
 class MessageDocument(BaseModel):
     """MongoDB document for a stored Discord message"""
+
     model_config = ConfigDict(extra='ignore')
 
     message_id: int
@@ -99,17 +106,18 @@ class MessageDocument(BaseModel):
 
 class StarredMessageDocument(BaseModel):
     """MongoDB document tracking stars earned by a message"""
+
     model_config = ConfigDict(extra='ignore')
 
     message_id: int
     channel_id: int
     guild_id: int
     author_id: int
-    starboard_message_id: int | None = None   # post in the starboard channel, if any
-    reactions: dict[str, list[int]] = {}      # emoji_str -> list of user_ids who normal-reacted
+    starboard_message_id: int | None = None  # post in the starboard channel, if any
+    reactions: dict[str, list[int]] = {}  # emoji_str -> list of user_ids who normal-reacted
     super_reactions: dict[str, list[int]] = {}  # emoji_str -> list of user_ids who super-reacted (1.5x weight)
-    total_reactions: int = 0                   # raw count of all reactors (normal + super); kept for range queries
-    weighted_total: float = 0.0                # weighted sum: normal = 1.0, super = 1.5
+    total_reactions: int = 0  # raw count of all reactors (normal + super); kept for range queries
+    weighted_total: float = 0.0  # weighted sum: normal = 1.0, super = 1.5
 
 
 class ReloadSignalDocument(BaseModel):
@@ -118,6 +126,7 @@ class ReloadSignalDocument(BaseModel):
     written by the web process; consumed and deleted by the bot process.
     upserted by (signal_type, guild_id) so rapid saves coalesce into one signal.
     """
+
     model_config = ConfigDict(extra='ignore')
 
     signal_type: Literal['guild', 'theme', 'system']

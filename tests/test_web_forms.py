@@ -23,6 +23,7 @@ from attubot.web.forms import (
 
 # ========== GuildChannelsForm Tests ==========
 
+
 class TestGuildChannelsForm:
     def test_valid_channels(self):
         """Test valid channel configuration"""
@@ -75,6 +76,7 @@ class TestGuildChannelsForm:
 
 
 # ========== GuildEpochForm Tests ==========
+
 
 class TestGuildEpochForm:
     def test_valid_epoch(self):
@@ -159,6 +161,7 @@ class TestGuildEpochForm:
 
 # ========== GuildRolesForm Tests ==========
 
+
 class TestGuildRolesForm:
     def test_valid_roles(self):
         """Test valid roles configuration"""
@@ -177,6 +180,7 @@ class TestGuildRolesForm:
 
 
 # ========== GuildUsersForm Tests ==========
+
 
 class TestGuildUsersForm:
     def test_valid_users(self):
@@ -202,6 +206,7 @@ class TestGuildUsersForm:
 
 # ========== GuildStarboardForm Tests ==========
 
+
 class TestGuildStarboardForm:
     def test_valid_unicode_emoji(self):
         """test a valid unicode emoji with a hex color"""
@@ -222,6 +227,7 @@ class TestGuildStarboardForm:
     def test_emojis_as_json_string(self):
         """test that a valid JSON string is parsed correctly (frontend serialization path)"""
         import json
+
         payload = json.dumps({'⭐': '#EEDD20'})
         form = GuildStarboardForm(emojis=payload)  # type: ignore[arg-type]
         assert form.emojis == {'⭐': '#EEDD20'}
@@ -229,6 +235,7 @@ class TestGuildStarboardForm:
     def test_custom_emoji_as_json_string(self):
         """test that a custom emoji key in a JSON string is preserved after parsing"""
         import json
+
         payload = json.dumps({'<:rockball:1308981475114225694>': '#FF0000'})
         form = GuildStarboardForm(emojis=payload)  # type: ignore[arg-type]
         assert form.emojis == {'<:rockball:1308981475114225694>': '#FF0000'}
@@ -280,6 +287,7 @@ class TestGuildStarboardForm:
 
 # ========== GuildConfigForm Tests ==========
 
+
 class TestGuildConfigForm:
     def test_valid_nested_config(self):
         """Test valid nested guild configuration"""
@@ -297,15 +305,17 @@ class TestGuildConfigForm:
 
     def test_flatten_form_data(self):
         """Test flattening of form data from flat keys"""
-        form = GuildConfigForm(**{
-            'channels.activity': 123456,
-            'channels.announcements': 789012,
-            'epoch.time': 1704067200,
-            'epoch.year': 5,
-            'epoch.rollover_minutes': 1020,
-            'roles.announcements': 555555,
-            'users.markers': '111,222',
-        })
+        form = GuildConfigForm(
+            **{
+                'channels.activity': 123456,
+                'channels.announcements': 789012,
+                'epoch.time': 1704067200,
+                'epoch.year': 5,
+                'epoch.rollover_minutes': 1020,
+                'roles.announcements': 555555,
+                'users.markers': '111,222',
+            }
+        )
         assert form.channels.activity == 123456
         assert form.channels.announcements == 789012
         assert form.epoch.time == 1704067200
@@ -335,6 +345,7 @@ class TestGuildConfigForm:
 
 
 # ========== ThemeConfigForm Tests ==========
+
 
 class TestThemeConfigForm:
     def test_valid_theme(self):
@@ -400,6 +411,7 @@ class TestThemeConfigForm:
 
 
 # ========== SystemConfigForm Tests ==========
+
 
 class TestSystemConfigForm:
     def test_valid_system(self):

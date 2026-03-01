@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 
 query_group = SlashCommandGroup('query', default_member_permissions=Permissions.all(), description="Performs searches for specific messages if that's your thing")
 
+
 @query_group.command(name='pins', description='Finds all the "pinned a message" messages in a channel')
 @discord.commands.option(name='channel', required=True, description='Channel', input_type=discord.TextChannel)
 @commands.check(is_bot_owner)
@@ -51,7 +52,9 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
         if len(pins) > 0:
             await ctx.channel.send(f'##{format_year_line(year)}\n' + '\n'.join(pins))
 
+
 # --- Extension Def ---
+
 
 def setup(bot: Bot):
     logger.info(f'Registered: {__name__}')

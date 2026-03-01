@@ -92,6 +92,7 @@ async def web_app():
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
     from attubot.config import PathsConfig, WebConfig
+
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
     web_app_module.config._get_event('init').set()

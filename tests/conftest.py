@@ -161,6 +161,7 @@ def mock_ctx(mock_ctx_factory):
 
 # --- Database and Repository Mocking Fixtures ---
 
+
 @pytest.fixture
 def mock_db():
     """Mock database instance for testing.
@@ -191,9 +192,7 @@ def mock_db_and_repos():
     """
     mock_database = MagicMock()
 
-    with patch('attubot.db.get_db', return_value=mock_database), \
-         patch('attubot.years._year_repo', None), \
-         patch('attubot.markers._marker_repo', None):
+    with patch('attubot.db.get_db', return_value=mock_database), patch('attubot.years._year_repo', None), patch('attubot.markers._marker_repo', None):
         yield mock_database
 
 
@@ -251,12 +250,12 @@ def mock_all_repos():
     year_repo = AsyncMock()
     marker_repo = AsyncMock()
 
-    with patch('attubot.years._get_repo', return_value=year_repo), \
-         patch('attubot.markers._get_repo', return_value=marker_repo):
+    with patch('attubot.years._get_repo', return_value=year_repo), patch('attubot.markers._get_repo', return_value=marker_repo):
         yield {'year': year_repo, 'marker': marker_repo}
 
 
 # --- Year Model Fixtures ---
+
 
 @pytest.fixture
 def make_year_doc():
@@ -267,15 +266,20 @@ def make_year_doc():
             doc = make_year_doc(year=5, start_time=1700000000)
             assert doc.year == 5
     """
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200,
-              end_time=1705276800, duration=14,
-              formatted='# === Year 1 PC ===', notes=''):
+
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, formatted='# === Year 1 PC ===', notes=''):
         from attubot.database.models import YearDocument
+
         return YearDocument(
-            guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration,
-            formatted=formatted, notes=notes,
+            guild=guild,
+            year=year,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            formatted=formatted,
+            notes=notes,
         )
+
     return _make
 
 
@@ -288,13 +292,18 @@ def make_year():
             year = make_year(year=5, start_time=1700000000)
             assert year.year == 5
     """
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200,
-              end_time=1705276800, duration=14,
-              formatted='# === Year 1 PC ===', notes=''):
+
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, formatted='# === Year 1 PC ===', notes=''):
         from attubot.years import Year
+
         return Year(
-            guild=guild, year=year, start_time=start_time,
-            end_time=end_time, duration=duration,
-            formatted=formatted, notes=notes,
+            guild=guild,
+            year=year,
+            start_time=start_time,
+            end_time=end_time,
+            duration=duration,
+            formatted=formatted,
+            notes=notes,
         )
+
     return _make

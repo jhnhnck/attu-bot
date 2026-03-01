@@ -441,8 +441,7 @@ class TestLogEdit:
         logs_ch = _make_logs_channel()
         payload = _make_raw_edit_payload()
 
-        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
             await log_edit(payload)
 
         embed = logs_ch.send.call_args[1]['embed']
@@ -458,8 +457,7 @@ class TestLogEdit:
         logs_ch = _make_logs_channel()
         payload = _make_raw_edit_payload()
 
-        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.messages._resolve_avatar', return_value=None):
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), patch('attubot.messages._resolve_avatar', return_value=None):
             await log_edit(payload)
 
         embed = logs_ch.send.call_args[1]['embed']
@@ -562,8 +560,7 @@ class TestLogDelete:
 
         logs_ch = _make_logs_channel()
 
-        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
             await log_delete(_make_raw_delete_payload())
 
         embed = logs_ch.send.call_args[1]['embed']
@@ -577,8 +574,7 @@ class TestLogDelete:
 
         logs_ch = _make_logs_channel()
 
-        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
+        with patch('attubot.messages._get_logs_channel', return_value=logs_ch), patch('attubot.messages._resolve_avatar', return_value='https://example.com/avatar.png'):
             await log_delete(_make_raw_delete_payload())
 
         embed = logs_ch.send.call_args[1]['embed']
@@ -654,8 +650,7 @@ class TestOnMessage:
         from attubot.events import on_message
 
         msg = _make_mock_message()
-        with patch('attubot.messages.store_message', new=AsyncMock()) as mock_store, \
-             patch('attubot.messages._is_archive_channel', return_value=False):
+        with patch('attubot.messages.store_message', new=AsyncMock()) as mock_store, patch('attubot.messages._is_archive_channel', return_value=False):
             await on_message(msg)
             mock_store.assert_called_once_with(msg)
 
@@ -684,6 +679,7 @@ class TestOnMessage:
     async def test_skips_logs_channel(self, mock_message_repo, make_guild):
         from attubot.config import GuildChannels
         from attubot.events import on_message
+
         gc = make_guild()
         gc.channels = GuildChannels(logs=TEST_LOGS)
 
@@ -728,6 +724,7 @@ class TestOnRawMessageEdit:
     async def test_skips_logs_channel(self, mock_message_repo, make_guild):
         from attubot.config import GuildChannels
         from attubot.events import on_raw_message_edit
+
         gc = make_guild()
         gc.channels = GuildChannels(logs=TEST_LOGS)
 
@@ -772,6 +769,7 @@ class TestOnRawMessageDelete:
     async def test_skips_logs_channel(self, mock_message_repo, make_guild):
         from attubot.config import GuildChannels
         from attubot.events import on_raw_message_delete
+
         gc = make_guild()
         gc.channels = GuildChannels(logs=TEST_LOGS)
 
@@ -816,6 +814,7 @@ class TestOnRawBulkMessageDelete:
     async def test_skips_logs_channel(self, mock_message_repo, make_guild):
         from attubot.config import GuildChannels
         from attubot.events import on_raw_bulk_message_delete
+
         gc = make_guild()
         gc.channels = GuildChannels(logs=TEST_LOGS)
 

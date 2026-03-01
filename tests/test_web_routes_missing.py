@@ -23,6 +23,7 @@ from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, Gui
 TEST_GUILD = 1234567890
 TEST_GUILD_2 = 9876543210
 
+
 @pytest_asyncio.fixture(scope='function')
 async def web_app():
     """Create a test Quart web app with mocked config"""
@@ -88,6 +89,7 @@ async def web_app():
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
     from attubot.config import PathsConfig, WebConfig
+
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
     web_app_module.config._get_event('init').set()
@@ -98,18 +100,22 @@ async def web_app():
         app.config['TESTING'] = True
         yield app
 
+
 @pytest_asyncio.fixture(scope='function')
 async def client(web_app):
     """Create test client for the web app"""
     return web_app.test_client()
 
+
 # ========== New Test Cases ==========
+
 
 class TestMissingGuildRoutes:
     @pytest.mark.asyncio
     async def test_get_guild_not_found(self, client):
         """Test GET /api/guilds/<id> when guild is authorized but not in config"""
         from attubot.web.app import config
+
         # Simulate guild being in authorized_guilds but missing from config.guilds
         # (This shouldn't happen in normal operation but good to test handling)
         with patch.dict(config.guilds, {}, clear=False):
@@ -123,6 +129,7 @@ class TestMissingGuildRoutes:
     async def test_save_guild_not_found(self, client):
         """Test POST /api/guilds/<id> when guild is authorized but not in config"""
         from attubot.web.app import config
+
         with patch.dict(config.guilds, {}, clear=False):
             del config.guilds[TEST_GUILD]
             response = await client.post(f'/api/guilds/{TEST_GUILD}', json={})
@@ -134,6 +141,7 @@ class TestMissingGuildRoutes:
     async def test_guild_config_page_not_found(self, client):
         """Test guild config page for authorized but missing guild"""
         from attubot.web.app import config
+
         with patch.dict(config.guilds, {}, clear=False):
             del config.guilds[TEST_GUILD]
             response = await client.get(f'/guild/{TEST_GUILD}')
@@ -141,16 +149,19 @@ class TestMissingGuildRoutes:
             html = await response.get_data(as_text=True)
             assert 'Not Found' in html
 
+
 class TestMissingThemeRoutes:
     @pytest.mark.asyncio
     async def test_get_theme_not_found(self, client):
         """Test GET /api/theme when theme is missing from config"""
         from attubot.web.app import config
+
         with patch.object(config, 'theme', None):
             response = await client.get('/api/theme')
             assert response.status_code == 404
             data = await response.get_json()
             assert 'error' in data
+
 
 class TestMissingSystemRoutes:
     @pytest.mark.asyncio
@@ -158,7 +169,7 @@ class TestMissingSystemRoutes:
         """Test POST /api/system validation details structure"""
         # Sending invalid data to check error details format
         payload = {
-            'primary_guild': -1, # Invalid
+            'primary_guild': -1,  # Invalid
         }
         response = await client.post('/api/system', json=payload)
         assert response.status_code == 400
@@ -168,6 +179,7 @@ class TestMissingSystemRoutes:
         assert 'loc' in data['details'][0]
         assert 'msg' in data['details'][0]
         assert 'type' in data['details'][0]
+
 
 class TestMissingAuditRoutes:
     @pytest.mark.asyncio
@@ -190,16 +202,20 @@ class TestMissingAuditRoutes:
         """Test timestamp formatting in audit logs"""
         from attubot.web import app as web_app_module
 
-        timestamp = 1704067200 # 2024-01-01 00:00:00 UTC
+        timestamp = 1704067200  # 2024-01-01 00:00:00 UTC
 
         mock_audit_logger = MagicMock()
-        mock_audit_logger.get_logs = AsyncMock(return_value=[{
-            'timestamp': timestamp,
-            '_id': 'some-id',
-            'config_type': 'test',
-            'action': 'test',
-            'success': True,
-        }])
+        mock_audit_logger.get_logs = AsyncMock(
+            return_value=[
+                {
+                    'timestamp': timestamp,
+                    '_id': 'some-id',
+                    'config_type': 'test',
+                    'action': 'test',
+                    'success': True,
+                }
+            ]
+        )
         web_app_module.audit_logger = mock_audit_logger
 
         response = await client.get('/api/audit')
@@ -208,6 +224,7 @@ class TestMissingAuditRoutes:
         assert len(data['logs']) == 1
         assert data['logs'][0]['timestamp_formatted'] == '2024-01-01 00:00:00'
         assert data['logs'][0]['_id'] == 'some-id'
+
 
 class TestMissingAuthorization:
     @pytest.mark.asyncio

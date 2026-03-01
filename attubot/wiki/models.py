@@ -7,8 +7,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel, Field, model_validator
 
+
 class SearchResult(BaseModel):
     """a single result from the wiki REST search api"""
+
     title: str
     key: str
     excerpt: str | None = None
@@ -18,6 +20,7 @@ class SearchResult(BaseModel):
 
 class SiteInfo(BaseModel):
     """general site info returned by mediawiki action=siteinfo"""
+
     server: str
     article_path: str = Field(alias='articlepath')
     site_name: str = Field(alias='sitename', default='')
@@ -32,6 +35,7 @@ class SiteInfo(BaseModel):
 
 class PageThumbnail(BaseModel):
     """thumbnail image data returned by the pageimages prop"""
+
     source: str
     width: int
     height: int
@@ -39,6 +43,7 @@ class PageThumbnail(BaseModel):
 
 class PageSummary(BaseModel):
     """intro extract and optional thumbnail for a single page"""
+
     title: str
     extract: str = ''
     thumbnail: PageThumbnail | None = None

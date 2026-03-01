@@ -20,6 +20,7 @@ import pytest
 
 from attubot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
 
+
 def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSummary | None = None, title_pages: list[dict] | None = None):
     """build a mock WikiClient whose search api returns the given pages"""
     if site is None:
@@ -40,6 +41,7 @@ def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSu
 
 
 # --- /wiki lookup Command Tests ---
+
 
 class TestWikiLookupCommand:
     @pytest.mark.asyncio
@@ -85,10 +87,13 @@ class TestWikiLookupCommand:
         from attubot.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='First Page', extract='text')
-        mock_wiki = _make_mock_wiki([
-            {'title': 'First Page', 'key': 'First_Page'},
-            {'title': 'Second Page', 'key': 'Second_Page'},
-        ], summary=summary)
+        mock_wiki = _make_mock_wiki(
+            [
+                {'title': 'First Page', 'key': 'First_Page'},
+                {'title': 'Second Page', 'key': 'Second_Page'},
+            ],
+            summary=summary,
+        )
 
         with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
@@ -137,10 +142,13 @@ class TestWikiLookupCommand:
         from attubot.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Test Page', extract='some text')
-        mock_wiki = _make_mock_wiki([
-            {'title': 'Test Page', 'key': 'Test_Page'},
-            {'title': 'Other Page', 'key': 'Other_Page'},
-        ], summary=summary)
+        mock_wiki = _make_mock_wiki(
+            [
+                {'title': 'Test Page', 'key': 'Test_Page'},
+                {'title': 'Other Page', 'key': 'Other_Page'},
+            ],
+            summary=summary,
+        )
 
         with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
@@ -251,6 +259,7 @@ class TestWikiLookupCommand:
 
 # --- SiteInfo Model Tests ---
 
+
 class TestSiteInfoModel:
     def test_page_url_replaces_placeholder(self):
         info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1')
@@ -267,6 +276,7 @@ class TestSiteInfoModel:
 
 
 # --- SearchResult Model Tests ---
+
 
 class TestSearchResultModel:
     def test_required_fields(self):
@@ -287,6 +297,7 @@ class TestSearchResultModel:
 
 
 # --- PageSummary / PageThumbnail Model Tests ---
+
 
 class TestPageSummaryModel:
     def test_basic_fields(self):
@@ -424,6 +435,7 @@ class TestBuildWikiEmbed:
 
 
 # --- /wiki random Command Tests ---
+
 
 class TestWikiRandomCommand:
     @pytest.mark.asyncio

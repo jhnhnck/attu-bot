@@ -27,6 +27,7 @@ UTC = ZoneInfo('UTC')
 
 # --- GuildEpoch.get_rollover_time() ---
 
+
 class TestGetRolloverTime:
     def test_default_rollover(self, guild):
         """Default 1020 minutes = 17:00"""
@@ -56,6 +57,7 @@ class TestGetRolloverTime:
 
 # --- GuildEpoch legacy validator ---
 
+
 class TestEpochValidator:
     def test_legacy_rollover_time_string(self):
         """Old rollover_time string format should be converted to rollover_minutes"""
@@ -72,6 +74,7 @@ class TestEpochValidator:
 
 
 # --- get_year_status() ---
+
 
 class TestGetYearStatus:
     @freeze_time('2024-01-08 12:00:00')
@@ -166,6 +169,7 @@ class TestGetYearStatus:
 
 # --- get_next_year() ---
 
+
 class TestGetNextYear:
     @freeze_time('2024-01-08 12:00:00')
     def test_mid_year(self, guild):
@@ -224,6 +228,7 @@ class TestGetNextYear:
 
 
 # --- format_year_line() ---
+
 
 class TestFormatYearLine:
     def test_contains_year_number(self):

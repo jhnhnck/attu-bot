@@ -23,6 +23,7 @@ from tests.conftest import TEST_GUILD
 
 # --- /year check Command Tests ---
 
+
 class TestYearCheckCommand:
     @pytest.mark.asyncio
     @freeze_time('2024-01-08 12:00:00')
@@ -34,15 +35,13 @@ class TestYearCheckCommand:
         # Mock get_year_span to return a completed year
         mock_span_obj = AttuYearSpan(
             start_time=1704067200,  # 2024-01-01
-            end_time=1705276800,    # 2024-01-15
+            end_time=1705276800,  # 2024-01-15
             duration=14,
         )
 
         # Current year is 2, so year 1 is prior
         # Also need to patch Year.get to avoid database access
-        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), \
-             patch('attubot.commands.year.get_year_status', return_value=(7, 2)), \
-             patch('attubot.years.Year.get', new_callable=AsyncMock, return_value=None):
+        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 2)), patch('attubot.years.Year.get', new_callable=AsyncMock, return_value=None):
             await year_check(mock_ctx, year=1)
 
         mock_ctx.respond.assert_called_once()
@@ -126,8 +125,7 @@ class TestYearCheckCommand:
 
         mock_span_obj = AttuYearSpan(start_time=999999999, end_time=0, duration=0)
 
-        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), \
-             patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
+        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 1)):
             await year_check(mock_ctx, year=3000)
 
         mock_ctx.respond.assert_called_once()
@@ -183,6 +181,7 @@ class TestYearCheckCommand:
 
 
 # --- /year search Command Tests ---
+
 
 class TestYearSearchCommand:
     @pytest.mark.asyncio
@@ -252,6 +251,7 @@ class TestYearSearchCommand:
 
 
 # --- /year link Command Tests ---
+
 
 class TestYearLinkCommand:
     @pytest.mark.asyncio
