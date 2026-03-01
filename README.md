@@ -1,6 +1,6 @@
 # AttuBot
 
-A Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related server utilities. See [AGENTS.md](AGENTS.md) for full architecture, coding conventions, and contributor guidelines.
+A Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related server utilities.
 
 ## Features
 
@@ -8,43 +8,6 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 - retrieves year info and links to specific years in lore channels
 - manages a starboard, message backfill, and moderation logging
 - provides an admin web interface for runtime configuration
-
-## Run Modes
-
-Both modes are launched from `attu-bot.py`:
-
-- `bot` - the Discord bot (pycord)
-- `web` - a Quart-based admin web interface
-
-## Setup
-
-### Configuration
-
-AttuBot uses a three-tier configuration system. See [AGENTS.md - Configuration System](AGENTS.md#configuration-system-three-tiers) for a full description.
-
-1. copy `config/sample.env` to `.env` and set `ATTU_CONFIG_FILE`
-2. copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.)
-3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands or the web interface
-
-### Docker (recommended)
-
-```bash
-git clone https://github.com/jhnhnck/attu-bot.git && cd attu-bot
-cp config/attu-bot.sample.toml assets/attu-bot.toml
-vim assets/attu-bot.toml
-docker compose up --build -d
-docker compose logs -f
-```
-
-### Local development
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-npm install
-cp config/attu-bot.sample.toml assets/attu-bot.toml
-python attu-bot.py bot   # or: python attu-bot.py web
-```
 
 ## Commands
 
@@ -105,9 +68,45 @@ python attu-bot.py bot   # or: python attu-bot.py web
   - **/fix starboard**: backfills the starboard channel and ingests entries into the database
   - **/fix starboard_recount**: re-fetches live Discord reactions and updates starboard counts
 
+## Setup
+
+### Configuration
+
+1. copy `config/sample.env` to `.env` and set `ATTU_CONFIG_FILE`
+2. copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.)
+3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands or the web interface
+
+### Docker (recommended)
+
+```bash
+git clone https://github.com/jhnhnck/attu-bot.git && cd attu-bot
+cp config/attu-bot.sample.toml assets/attu-bot.toml
+vim assets/attu-bot.toml
+docker compose up --build -d
+docker compose logs -f
+```
+
+### Local development
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+npm install
+cp config/attu-bot.sample.toml assets/attu-bot.toml
+python attu-bot.py bot   # or: python attu-bot.py web
+```
+
+## Run Modes
+
+Both modes are launched from `attu-bot.py`:
+
+- `bot` - the Discord bot (pycord)
+- `web` - a Quart-based admin web interface
+
+
 ## Development
 
-See [AGENTS.md](AGENTS.md) for full coding conventions and architecture details.
+See [AGENTS.md](AGENTS.md) for full architecture, coding conventions, and contributor guidelines.
 
 ### Tests
 
