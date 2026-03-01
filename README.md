@@ -1,223 +1,127 @@
-# Doom Bot
+# AttuBot
 
-DoomBot was designed for the Attu Project to assist with essential timekeeping features and various other utilities
+A Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related server utilities. See [AGENTS.md](AGENTS.md) for full architecture, coding conventions, and contributor guidelines.
 
 ## Features
 
-- Keep track of time progression and automate the tasks needed upon a new year transition such as making announcements, updating channel names, and editing the wiki homepage
-- Retrieve information about specific years and link to certain points in time within lore channels
-- Provide administrative tools and debug commands for server and wiki management
+- tracks in-universe time and automates year transitions - announcements, channel name updates, wiki edits
+- retrieves year info and links to specific years in lore channels
+- manages a starboard, message backfill, and moderation logging
+- provides an admin web interface for runtime configuration
 
-## Timekeeping Process
+## Run Modes
 
-The bot maintains a timekeeping system that calculates the current year and determines the transition to the next year based on a defined epoch and its length
+Both modes are launched from `attu-bot.py`:
 
-- The starting point for in-universe time is defined in the configuration, including the initial year and the length of each year in days
-- The current year is calculated by determining the number of days that have passed since the epoch and adding this to the initial year
-- The bot monitors total days passed to accurately handle transitions to the next year based on a defined trigger time
-- A timestamp for each passed year is stored in Discord snowflake format to reference past years and link to specific moments within the lore channels
+- `bot` - the Discord bot (pycord)
+- `web` - a Quart-based admin web interface
 
-### Simplified Formula
+## Setup
 
-```
-current_year = epoch_year + (days_since_epoch // epoch_length) - (1 IF (days_since_epoch MOD epoch_length) == 0 AND current_time < trigger_time ELSE 0)
-```
+### Configuration
 
-## Configuration
+AttuBot uses a three-tier configuration system. See [AGENTS.md - Configuration System](AGENTS.md#configuration-system-three-tiers) for a full description.
 
-AttuBot uses a **three-tier configuration system**:
+1. copy `config/sample.env` to `.env` and set `ATTU_CONFIG_FILE`
+2. copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.)
+3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands or the web interface
 
-### Tier 1 — Environment Variables (`.env`)
-
-Only two values belong here. Copy `config/sample.env` to `.env`:
-
-| Variable | Purpose |
-|---|---|
-| `ATTU_CONFIG_FILE` | Path to the TOML config file (default: `./assets/attu-bot.toml`) |
-| `BUILD_TIME` | Stamped automatically at container build time — do not set manually |
-
-Everything else that was previously in `.env` has been moved into the TOML file.
-
-### Tier 2 — TOML Config File (secrets + read-only config)
-
-The TOML file holds all **secrets and static configuration** that must be present before the bot can start. Copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values:
-
-```toml
-config_version = "2.1.0"
-
-[paths]
-# Path to assets directory (templates, static files, favicon)
-assets = "./assets"
-
-[database]
-# MongoDB connection settings
-url = "mongodb://localhost:27017"
-name = "doombot"
-
-[auth.bot]
-# Discord bot token — from the Discord Developer Portal
-token = "TOKEN_GOES_HERE"
-
-[auth.web]
-# Secret key for session signing — generate with:
-#   python -c "import secrets; print(secrets.token_hex(32))"
-secret_key = "your-secret-key-here"
-
-[auth.webauthn]
-# WebAuthn / Passkey settings for the web interface
-rp_id = "localhost"              # domain only, e.g. "example.com"
-rp_name = "AttuBot Configurator"
-origin = "http://localhost:5000" # full origin, e.g. "https://example.com"
-
-[auth.wiki]
-key = "KEY_GOES_HERE"
-page = "Example:Home"
-user = "WikiBot@WikiBot"
-endpoint = "https://example.org"
-
-[discord.guilds]
-authorized = [1000000000000000000]
-```
-
-### Tier 3 — MongoDB (configurable runtime settings)
-
-Guild-level and system-level settings that can be changed at runtime are stored in MongoDB. These include epoch configuration, channel/role IDs, theme, and other values that may be updated via bot commands or the web interface. See [Configuration Keys](#configuration-keys) below for the full list.
-
----
-
-## Build / Setup
-
-1. Clone the repository:
+### Docker (recommended)
 
 ```bash
-$ git clone https://github.com/jhnhnck/attu-bot.git
-
-$ cd attu-bot
+git clone https://github.com/jhnhnck/attu-bot.git && cd attu-bot
+cp config/attu-bot.sample.toml assets/attu-bot.toml
+vim assets/attu-bot.toml
+docker compose up --build -d
+docker compose logs -f
 ```
 
-2. Make a copy of the sample configuration file and replace the placeholders with your Discord bot token, wiki API details and authorized guilds:
+### Local development
+
 ```bash
-$ cp ./config/attu-bot.sample.toml ./assets/attu-bot.toml
-
-$ vim ./assets/attu-bot.toml
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+npm install
+cp config/attu-bot.sample.toml assets/attu-bot.toml
+python attu-bot.py bot   # or: python attu-bot.py web
 ```
 
-3. Run the following command to build the Docker image and start the bot:
-```bash
-$ docker compose up --build -d
-```
-
-## Usage
-
-Once the bot is running, invite it to your Discord server with the link printed to the console (use `docker compose logs` to view)
-
-Use the following commands to interact with the bot:
+## Commands
 
 ### Users
 
-- **/ping**: Simple command to test if the bot is online
+- **/ping**: checks if the bot is online
 
-- **/year**: Utilities related to current, past or future years
-  - **/year check <year>**: Prints out information related to a specified year such as the start date, end date, and year duration; if not specified, year defaults to the next year
-  - **/year link <year> [channel]**: Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news
-  - **/year search <year>**: Prints search query for timlining
+- **/year**: utilities related to current, past, or future years
+  - **/year check [year]**: prints year info (start date, end date, duration); defaults to next year if omitted
+  - **/year link \<year\> [channel]**: links to the specified year in a lore channel; defaults to #lore-news
+  - **/year search \<year\>**: prints a search query for timelining
 
-- **/wiki**: Utilities for managing and querying the wiki
-  - **/wiki lookup <query> [limit]**: Search the wiki for relevent pages; if not specified, limit defaults to 1
+- **/wiki**: wiki lookup and management
+  - **/wiki random**: gets a random page from the wiki
+  - **/wiki lookup \<query\>**: searches the wiki for relevant pages
+
+- **/stars**: starboard browsing and leaderboards
+  - **/stars random**: shows a random message with 2 or more stars
+  - **/stars lost**: shows a random message with exactly 1 star
+  - **/stars recheck \<message_link\>**: force-updates the starboard post for a specific message
+  - **/stars most-stars**: top users by total stars received
+  - **/stars most-starred**: top users by number of messages on the starboard
+  - **/stars most-given**: top users by total stars given
 
 ### Admin
 
-- **/debug**: Prints information for testing and troubleshooting purposes (Admin only)
-  - **/debug dump_config**: Prints currently loaded config values to console
-  - **/debug force_error**: Causes an internal error to be thrown
-  - **/debug message <link>**: Print information about a specific message (warning: not very user readable)
-  - **/debug version**: Displays the current version and container build time
-  - **/debug year_stats**: Returns the current state of time tracking calculations
+- **/time**: controls passage of in-universe time (admin only; see [notes/timekeeping.md](notes/timekeeping.md))
+  - **/time advance**: manually advances to the next year, ignoring all checks
+  - **/time pause**: pauses the passage of time
+  - **/time resume**: resumes the passage of time
+  - **/time dilate \<days\>**: adjusts the year length
 
-- **/marker**: Utilities related to managing year markers (Admin Only)
-  - **/marker save <year> <link> [force]**: Updates marker to point to a different message
-  - **/marker set <year> <snowflake>**: Sets marker timestamp for when a specifc year starts (channel=guild)
-  - **/marker clear <year> <channel>**: Removes marker for a specific channel and year (will attempt to locate again next time /year link is ran)
+- **/marker**: manages year marker messages (admin only)
+  - **/marker save \<year\> \<link\> [force]**: updates a marker to point to a different message
+  - **/marker set \<year\> \<snowflake\>**: sets the marker timestamp for when a specific year starts
+  - **/marker clear \<year\> \<channel\>**: removes a marker for a specific channel and year
 
-- **/query**: Performs searches for specific messages
-  - **/query pins <channel>**: Finds all the "pinned a message" messages in a channel (Resource Intensive)
+- **/wiki block \<user\> \<reason\>**: blocks a user from the wiki (admin only)
 
-- **/time**: Modify various options controlling the passage of time (Admin only)
-  - **/time advance**: Manually advance to the next year, ignoring all checks
-  - **/time dilate <days>**: Adjust the rate at which time progresses
-  - **/time pause**: Pause the passage of time
-  - **/time resume**: Resume the passage of time
+- **/query**: message searches (admin only)
+  - **/query pins \<channel\>**: finds all "pinned a message" system messages in a channel
 
-- **/wiki**: Utilities for managing and querying the wiki
-  - **/wiki block <user> <reason>**: Blocks a specified user from the wiki (Admin only)
+- **/debug**: diagnostic info (admin only)
+  - **/debug version**: current version and container build time
+  - **/debug scheduler**: currently running background tasks
+  - **/debug year_stats**: current state of timekeeping calculations
+  - **/debug message_stats [channel]**: count of stored messages for a channel or the whole guild
+  - **/debug message \<link\>**: raw info about a specific message
+  - **/debug dump_config**: prints loaded config to console
+  - **/debug dump_starboard**: dumps 50 random starboard bot messages to a file
+  - **/debug force_error**: throws an internal error (for testing)
 
-## Configuration Keys
-
-### Global
-
-- **0/error_log**: [1000000000000000000, 1000000000000000000]
-- **0/error_hook**: 'https://discord.com/api/webhooks/1000000000000000000/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-- **0/primary_guild**: 1000000000000000000
-
-### Guild Specific
-
-If using the `[Import]` directive within the config file, use the following format: `<guild id>/<key name>`
-
-- Channels:
-  - **channels.activity**: 1000000000000000000
-  - **channels.announcements**: 1000000000000000000
-  - **channels.lore_channels**: [1000000000000000000, 1000000000000000000, 1000000000000000000, 1000000000000000000, 1000000000000000000]
-  - **channels.meta_chat**: 1000000000000000000
-  - **channels.year_links**: 1000000000000000000
-  - **channels.year_vc**: 1000000000000000000
-
-- Epoch:
-  - **epoch.length**: 14
-  - **epoch.paused**: false
-  - **epoch.rollover_time**: "17:00"
-  - **epoch.time**: 1660101177
-  - **epoch.year**: 1
-
-- Roles:
-  - **roles.announcements**: 1000000000000000000
-
-- Users:
-  - **users.markers**: [1000000000000000000, 1000000000000000000]
-
-
+- **/fix**: repair and rebuild commands (bot owner only)
+  - **/fix logo**: forces the logo update task to run immediately
+  - **/fix year_links**: forces the year links channel to be rebuilt
+  - **/fix messages \<channel\>**: verifies and backfills any missing stored messages in a channel
+  - **/fix author_names [user]**: re-resolves usernames and updates all stored messages
+  - **/fix starboard**: backfills the starboard channel and ingests entries into the database
+  - **/fix starboard_recount**: re-fetches live Discord reactions and updates starboard counts
 
 ## Development
 
-### Setup
+See [AGENTS.md](AGENTS.md) for full coding conventions and architecture details.
 
-1. Create a Python 3.13+ virtual environment:
-
-Using [pyenv](https://github.com/pyenv/pyenv):
-```bash
-$ pyenv virtualenv 3.13 doom-bot
-$ pyenv activate doom-bot
-```
-
-Or using the built-in `venv` module:
-```bash
-$ python3.13 -m venv .venv
-$ source .venv/bin/activate
-```
-
-2. Install dependencies:
-```bash
-$ pip install -r requirements.txt -r requirements-dev.txt
-```
-
-### Running Tests
+### Tests
 
 ```bash
-$ pytest
+docker compose run --build --rm --quiet-build tests scripts/run_tests.py
 ```
 
-Tests are located in `tests/` and configured via `pyproject.toml`. The test suite uses [freezegun](https://github.com/spulec/freezegun) to pin wall-clock time for deterministic calendar calculations.
+### Linting
 
-Tests marked with `xfail` document known bugs that are expected to fail until the underlying issue is fixed. When a fix lands, these tests will automatically flag as `XPASS` (unexpected pass), indicating the marker should be removed.
+```bash
+ruff check .
+ruff format --check .
+npm run lint
+```
 
 ## License
 
