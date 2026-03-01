@@ -6,7 +6,7 @@ RUN set -eux; \
 # git-info stage: stamps version and build time into __init__.py via sed
 FROM python:3.13-bookworm AS git-info
 ENV TZ="America/New_York"
-RUN apt-get update -qq && apt-get install -y -qq git
+RUN apt-get update -qq && apt-get install -qq git
 WORKDIR /src
 COPY . .
 RUN set -eux; \
@@ -21,6 +21,7 @@ FROM python:3.13-bookworm AS doombox
 ENV TZ="America/New_York"
 ENV FORCE_COLOR=1
 ARG DOOM_HOME="/home/doom"
+ENV PATH="$DOOM_HOME/.local/bin:$PATH"
 
 # setup runtime
 RUN mkdir -p $DOOM_HOME/
@@ -32,7 +33,7 @@ RUN useradd --home-dir /home/doom --uid 1000 doom; \
 RUN --mount=type=cache,target=/var/lib/apt \
     set -eux; \
     apt-get update -qq; \
-    apt-get install -qq -y \
+    apt-get install -qq \
     curl \
     neovim \
     zsh;
@@ -72,9 +73,10 @@ USER root
 
 # Install Node.js for JavaScript tests
 RUN --mount=type=cache,target=/var/lib/apt \
-    curl -fsSL "https://deb.nodesource.com/setup_22.x" -o "/tmp/setup_22.x"; \
-    bash /tmp/setup_22.x > /dev/null; \
-    apt-get install -y -qq nsolid;
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg; \
+    printf 'Types: deb\nURIs: https://deb.nodesource.com/node_22.x\nSuites: nodistro\nComponents: main\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/nodesource.gpg\n' > /etc/apt/sources.list.d/nodesource.sources; \
+    apt-get update -qq; \
+    apt-get install -qq nsolid;
 
 USER doom
 WORKDIR /home/doom

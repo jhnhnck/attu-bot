@@ -179,11 +179,12 @@ Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. `trace`/`d
 ---
 
 ## Testing
+Run all tests:
+```
+docker compose run --build --rm --quiet-build tests
+```
 
 ### Python Tests
-```bash
-pytest                 # run all tests
-```
 - Tests live in `tests/`; configured via `[tool.pytest.ini_options]` in `pyproject.toml`
 - `asyncio_mode = "auto"` - async tests work without explicit `@pytest.mark.asyncio`
 - All tests run with `TZ=UTC` (set in `conftest.py` before any imports)
@@ -207,10 +208,6 @@ pytest                 # run all tests
 - Test constants: `TEST_GUILD = 1234567890`, `TEST_USER = 9876543210`, `TEST_CHANNEL = 5555555555`
 
 ### JavaScript Tests
-```bash
-npm test               # vitest run (single pass)
-npm run test:watch     # vitest watch mode
-```
 - Test files: `tests/*.test.js`
 - Uses `jsdom` environment for DOM tests
 
@@ -220,12 +217,6 @@ ruff check .           # Python lint
 ruff format --check .  # Python format check
 npm run lint           # JS lint
 ```
-
-## Combined Tests
-```bash
-docker compose run --build --rm --remove-orphans tests
-```
-
 ---
 
 ## Running Locally

@@ -85,7 +85,7 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
     user: doom:doom
-    command: zsh -c /home/doom/scripts/run_tests.zsh
+    command: python /home/doom/scripts/run_tests.py
     depends_on:
       mongo:
         condition: service_healthy
