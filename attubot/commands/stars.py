@@ -105,8 +105,8 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
     await ctx.defer()
 
     from attubot import bot as _bot
-    from attubot.messages import build_message_doc
     from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.messages import build_message_doc
 
     try:
         channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)

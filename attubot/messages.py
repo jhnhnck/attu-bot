@@ -34,7 +34,6 @@ def _get_repo() -> MessageRepository:
 # --- Helpers ---
 
 
-
 def _is_archive_channel(channel_id: int, guild_id: int, parent_channel_id: int | None = None) -> bool:
     """Return True if the channel (or its thread parent) is a lore or canon channel."""
     try:
@@ -262,10 +261,7 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
 
 def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> discord.Embed:
     """Build the edit log embed from context and payload."""
-    if ctx.author_id is not None:
-        description = f'<@{ctx.author_id}> edited a message in <#{payload.channel_id}>'
-    else:
-        description = f'a message was edited in <#{payload.channel_id}>'
+    description = f'<@{ctx.author_id}> edited a message in <#{payload.channel_id}>' if ctx.author_id is not None else f'a message was edited in <#{payload.channel_id}>'
 
     embed = make_embed(
         'Message Edited',
@@ -363,10 +359,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if channel is None:
         return
 
-    if stored:
-        description = f'<@{stored.author_id}>\'s message was deleted in <#{payload.channel_id}>'
-    else:
-        description = f'a message was deleted in <#{payload.channel_id}>'
+    description = f"<@{stored.author_id}>'s message was deleted in <#{payload.channel_id}>" if stored else f'a message was deleted in <#{payload.channel_id}>'
 
     avatar_url = _resolve_avatar(payload.guild_id, stored.author_id) if stored else None
     embed = make_embed(

@@ -31,7 +31,7 @@ async def _safe_edit(status_msg: discord.Message | None, content: str) -> discor
         return None
 
 
-async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912
+async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: discord.Message | None = None):
     """scan a channel and backfill any messages not already stored."""
     from attubot import bot
     from attubot.messages import _get_repo, build_message_doc
@@ -198,7 +198,7 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     scheduler.add_job(coro, label)
 
 
-async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
+async def job_learn_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0915
     """two-step ingestion: backfill the starboard channel, then parse stored messages into starboard documents."""
     from attubot import config
     from attubot.messages import _get_repo as _get_msg_repo

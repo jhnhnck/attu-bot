@@ -7,11 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import UTC, datetime
 
-import discord
 from discord import Color, Embed
 
 from attubot.util import theme_color
-
 
 def make_embed(
     title: str | None = None,

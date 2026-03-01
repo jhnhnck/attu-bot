@@ -139,7 +139,7 @@ def test_parse_starboard_content_multiple_emojis():
 
 
 def test_parse_starboard_content_no_url():
-    counts, url = parse_starboard_content(f'{EMOJI_STAR} **3** | no url here')
+    _, url = parse_starboard_content(f'{EMOJI_STAR} **3** | no url here')
     assert url is None
 
 
@@ -193,7 +193,7 @@ def _make_star_doc(**kwargs) -> StarredMessageDocument:
         'author_id': TEST_AUTHOR,
     }
     defaults.update(kwargs)
-    return StarredMessageDocument(**defaults)
+    return StarredMessageDocument(**defaults)  # pyright: ignore[reportArgumentType]
 
 
 # ---- handle_star_add integration tests ----
@@ -216,11 +216,14 @@ def mock_sb_and_msg_repos(mock_sb_repo):
 @pytest.fixture
 def make_starboard_guild(make_guild):
     """Create a guild with a configured starboard."""
+
     def _make(**kwargs):
         cfg = make_guild()
         from attubot.config import GuildStarboard
+
         cfg.starboard = GuildStarboard(channel_id=TEST_STARBOARD_CHANNEL, emojis={EMOJI_STAR: EMOJI_COLOR})
         return cfg
+
     return _make
 
 
@@ -259,7 +262,7 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
 
     msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
     msg_repo.get = AsyncMock(return_value=msg_doc)
-    sb_repo.get = AsyncMock(return_value=None)   # no existing document
+    sb_repo.get = AsyncMock(return_value=None)  # no existing document
 
     updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
@@ -361,7 +364,7 @@ class TestRecountStarboard:
         doc = _make_star_doc(
             reactions={EMOJI_STAR: [USER_A, USER_B]},
             total_reactions=2,
-            starboard_message_id=0,    # no sb post - skips the second fetch
+            starboard_message_id=0,  # no sb post - skips the second fetch
         )
         mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
 
@@ -373,8 +376,7 @@ class TestRecountStarboard:
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         # bot and _sync_starboard_post are imported inside the function, so patch at source
-        with patch('attubot.bot') as mock_bot, \
-             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
@@ -405,8 +407,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('attubot.bot') as mock_bot, \
-             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
@@ -415,8 +416,9 @@ class TestRecountStarboard:
 
     async def test_skip_when_message_not_found(self, make_starboard_guild, mock_sb_repo):
         """discord.NotFound on the original message should not raise - just count as skipped"""
-        import discord
         from unittest.mock import AsyncMock, MagicMock, patch
+
+        import discord
 
         from attubot.commands.fix import job_recount_starboard
 
@@ -428,17 +430,17 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
 
-        with patch('attubot.bot') as mock_bot, \
-             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
-            await job_recount_starboard(TEST_GUILD)   # must not raise
+            await job_recount_starboard(TEST_GUILD)  # must not raise
 
         mock_sync.assert_not_called()
 
     async def test_safe_edit_returns_none_on_http_exception(self):
         """_safe_edit should return None and log a warning rather than raising"""
-        import discord
         from unittest.mock import AsyncMock, MagicMock
+
+        import discord
 
         from attubot.commands.fix import _safe_edit
 
@@ -492,8 +494,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('attubot.bot') as mock_bot, \
-             patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
@@ -524,9 +525,7 @@ class TestStarboardChannelFallthrough:
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
         with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_add(
-                TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR
-            )
+            await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         # should NOT have been dropped - add_reaction must have been called
         sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -551,9 +550,7 @@ class TestStarboardChannelFallthrough:
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
         with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_add(
-                TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR
-            )
+            await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         # should have been redirected to the original message ID
         sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -576,6 +573,6 @@ def test_parse_real_dump_samples():
         counts, url = parse_starboard_content(content)
         assert '⭐' in counts, f'expected ⭐ in counts for: {content!r}'
         assert counts['⭐'] == exp_count
-        parsed = parse_jump_url(url)
+        parsed = parse_jump_url(url)  # pyright: ignore[reportArgumentType]
         assert parsed is not None
         assert parsed[2] == exp_msg_id
