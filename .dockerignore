@@ -1,10 +1,6 @@
-.aws
 .env
 .venv**
-*.db
-*.keytab
 *.sample.*
-*.sql
 attu-bot.toml
 **/__pycache__/
 **/*.wip.py
@@ -17,7 +13,7 @@ config/
 wip/
 notes/
 
-# Allow package files for test runner
+# allow package files for test runner
 !package.json
 !package-lock.json
 !pyproject.toml
