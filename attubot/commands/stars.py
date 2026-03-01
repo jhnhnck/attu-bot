@@ -12,6 +12,7 @@ from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGro
 
 from attubot import config
 from attubot.logging import get_logger
+from attubot.util import theme_color
 
 logger = get_logger(__name__)
 
@@ -65,7 +66,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
     sb = guild_config.starboard
     jump_url = f'https://discord.com/channels/{guild_id}/{msg_doc.channel_id}/{msg_doc.message_id}'
     content = build_content(doc.reactions, jump_url, sb.emojis) if doc.reactions else f'⭐ **{doc.total_reactions}** | {jump_url}'
-    color = dominant_color(doc.reactions, sb.emojis) if doc.reactions else 0xEEDD20
+    color = dominant_color(doc.reactions, sb.emojis) if doc.reactions else theme_color()
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     await ctx.respond(content=content, embeds=embeds)
@@ -138,7 +139,7 @@ async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_ke
         value = row[value_key]
         lines.append(f'**{i}.** <@{user_id}> - **{value}** {value_label}')
 
-    embed = discord.Embed(title=title, description='\n'.join(lines), color=0xEEDD20)
+    embed = discord.Embed(title=title, description='\n'.join(lines), color=theme_color())
     await ctx.respond(embed=embed)
 
 

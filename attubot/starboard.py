@@ -55,14 +55,16 @@ def _fmt_count(value: float) -> str:
 def dominant_color(
     reactions: dict[str, list[int]],
     emoji_colors: dict[str, str],
-    fallback: int = 0xEEDD20,
+    fallback: int | None = None,
     super_reactions: dict[str, list[int]] | None = None,
 ) -> int:
     """return the color for the emoji with the highest weighted reaction count"""
+    from attubot.util import theme_color
+
     super_reactions = super_reactions or {}
     configured = {e for e in emoji_colors if (reactions.get(e) or super_reactions.get(e))}
     if not configured:
-        return fallback
+        return fallback if fallback is not None else theme_color()
     best = max(configured, key=lambda e: _weighted_count(e, reactions, super_reactions))
     return _parse_color(emoji_colors[best])
 
