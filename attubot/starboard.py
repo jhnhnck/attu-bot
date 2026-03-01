@@ -42,24 +42,45 @@ def _parse_color(hex_str: str) -> int:
     return int(hex_str.lstrip('#'), 16)
 
 
-def dominant_color(reactions: dict[str, list[int]], emoji_colors: dict[str, str], fallback: int = 0xEEDD20) -> int:
-    """return the color for the emoji with the highest reaction count"""
-    configured = {e: reactions[e] for e in reactions if e in emoji_colors and reactions[e]}
+def _weighted_count(emoji: str, reactions: dict[str, list[int]], super_reactions: dict[str, list[int]]) -> float:
+    """return the weighted reaction count for one emoji: normal = 1.0, super = 1.5"""
+    return len(reactions.get(emoji, [])) + len(super_reactions.get(emoji, [])) * 1.5
+
+
+def _fmt_count(value: float) -> str:
+    """format a weighted count - omit decimal if it's a whole number"""
+    return str(int(value)) if value == int(value) else str(value)
+
+
+def dominant_color(
+    reactions: dict[str, list[int]],
+    emoji_colors: dict[str, str],
+    fallback: int = 0xEEDD20,
+    super_reactions: dict[str, list[int]] | None = None,
+) -> int:
+    """return the color for the emoji with the highest weighted reaction count"""
+    super_reactions = super_reactions or {}
+    configured = {e for e in emoji_colors if (reactions.get(e) or super_reactions.get(e))}
     if not configured:
         return fallback
-    best = max(configured, key=lambda e: len(configured[e]))
+    best = max(configured, key=lambda e: _weighted_count(e, reactions, super_reactions))
     return _parse_color(emoji_colors[best])
 
 
-def build_content(reactions: dict[str, list[int]], jump_url: str, emoji_colors: dict[str, str]) -> str:
-    """build the starboard message content string - e.g. '⭐ **4** | 🌟 **1** | https://...'"""
+def build_content(
+    reactions: dict[str, list[int]],
+    jump_url: str,
+    emoji_colors: dict[str, str],
+    super_reactions: dict[str, list[int]] | None = None,
+) -> str:
+    """build the starboard message content string - e.g. '⭐ **4** | 🌟 **1.5** | https://...'"""
+    super_reactions = super_reactions or {}
     parts = []
-    # only include configured emojis with at least one reaction, sorted by count desc
-    for emoji, users in sorted(
-        ((e, reactions[e]) for e in reactions if e in emoji_colors and reactions[e]),
-        key=lambda x: -len(x[1]),
-    ):
-        parts.append(f'{emoji} **{len(users)}**')
+    # all configured emojis with any reaction (normal or super), sorted by weighted count desc
+    active = {e for e in emoji_colors if (reactions.get(e) or super_reactions.get(e))}
+    for emoji in sorted(active, key=lambda e: -_weighted_count(e, reactions, super_reactions)):
+        wc = _weighted_count(emoji, reactions, super_reactions)
+        parts.append(f'{emoji} **{_fmt_count(wc)}**')
     parts.append(jump_url)
     return ' | '.join(parts)
 
@@ -345,10 +366,12 @@ async def handle_star_add(  # noqa: PLR0911
     message_id: int,
     user_id: int,
     emoji_str: str,
+    is_burst: bool = False,
 ) -> None:
     """process a new star reaction on either an original message or a starboard message.
 
     creates the starboard document if needed, then posts or updates the starboard entry.
+    super reactions (is_burst=True) count as 1.5 stars; a user can only have one type per emoji.
     """
     from attubot import config
     from attubot.messages import _get_repo as _get_msg_repo
@@ -411,12 +434,17 @@ async def handle_star_add(  # noqa: PLR0911
         )
         await repo.upsert(doc)
 
-    # add the reaction (deduplication handled by $addToSet)
-    updated = await repo.add_reaction(real_message_id, emoji_str, user_id)
+    # add the reaction - super reactions take priority and remove any existing normal reaction
+    if is_burst:
+        updated = await repo.add_super_reaction(real_message_id, emoji_str, user_id)
+        reaction_kind = 'super'
+    else:
+        updated = await repo.add_reaction(real_message_id, emoji_str, user_id)
+        reaction_kind = 'normal'
     if updated is None:
         return
 
-    logger.info(f'starboard: {emoji_str} from user {user_id} on message {real_message_id} - total now {updated.total_reactions}')
+    logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
 
     await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -427,6 +455,7 @@ async def handle_star_remove(
     message_id: int,
     user_id: int,
     emoji_str: str,
+    is_burst: bool = False,
 ) -> None:
     """process a star removal; updates the starboard post if it exists."""
     from attubot import config
@@ -449,11 +478,14 @@ async def handle_star_remove(
             return
         real_message_id = existing.message_id
 
-    updated = await repo.remove_reaction(real_message_id, emoji_str, user_id)
+    if is_burst:
+        updated = await repo.remove_super_reaction(real_message_id, emoji_str, user_id)
+    else:
+        updated = await repo.remove_reaction(real_message_id, emoji_str, user_id)
     if updated is None:
         return
 
-    logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - total now {updated.total_reactions}')
+    logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
 
     await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -477,13 +509,13 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         return
 
     jump_url = f'https://discord.com/channels/{guild_id}/{msg_doc.channel_id}/{msg_doc.message_id}'
-    content = build_content(doc.reactions, jump_url, sb.emojis)
-    color = dominant_color(doc.reactions, sb.emojis)
+    content = build_content(doc.reactions, jump_url, sb.emojis, super_reactions=doc.super_reactions)
+    color = dominant_color(doc.reactions, sb.emojis, super_reactions=doc.super_reactions)
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     if doc.starboard_message_id is None:
-        # only create a new post when threshold is met (>= 2 total reactions)
-        if doc.total_reactions < 2:
+        # only create a new post when weighted threshold is met (>= 2.0)
+        if doc.weighted_total < 2:
             return
         try:
             sb_msg = await channel.send(content=content, embeds=embeds)

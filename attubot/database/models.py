@@ -105,9 +105,11 @@ class StarredMessageDocument(BaseModel):
     channel_id: int
     guild_id: int
     author_id: int
-    starboard_message_id: int | None = None  # post in the starboard channel, if any
-    reactions: dict[str, list[int]] = {}     # emoji_str -> list of user_ids who reacted
-    total_reactions: int = 0                  # sum of all reaction list lengths; kept in sync for fast range queries
+    starboard_message_id: int | None = None   # post in the starboard channel, if any
+    reactions: dict[str, list[int]] = {}      # emoji_str -> list of user_ids who normal-reacted
+    super_reactions: dict[str, list[int]] = {}  # emoji_str -> list of user_ids who super-reacted (1.5x weight)
+    total_reactions: int = 0                   # raw count of all reactors (normal + super); kept for range queries
+    weighted_total: float = 0.0                # weighted sum: normal = 1.0, super = 1.5
 
 
 class ReloadSignalDocument(BaseModel):

@@ -11,8 +11,10 @@ import pytest
 
 from attubot.database.models import MessageDocument, StarredMessageDocument
 from attubot.starboard import (
+    _fmt_count,
     _is_image,
     _parse_color,
+    _weighted_count,
     build_content,
     dominant_color,
     parse_jump_url,
@@ -554,6 +556,133 @@ class TestStarboardChannelFallthrough:
 
         # should have been redirected to the original message ID
         sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+
+
+# ---- super reaction (burst) tests ----
+
+
+def test_weighted_count_normal_only():
+    assert _weighted_count(EMOJI_STAR, {EMOJI_STAR: [USER_A, USER_B]}, {}) == 2.0
+
+
+def test_weighted_count_super_only():
+    assert _weighted_count(EMOJI_STAR, {}, {EMOJI_STAR: [USER_A, USER_B]}) == 3.0
+
+
+def test_weighted_count_mixed():
+    # 2 normal (2.0) + 1 super (1.5) = 3.5
+    assert _weighted_count(EMOJI_STAR, {EMOJI_STAR: [USER_A, USER_B]}, {EMOJI_STAR: [USER_C]}) == 3.5
+
+
+def test_weighted_count_missing_emoji():
+    assert _weighted_count(EMOJI_STAR, {}, {}) == 0.0
+
+
+def test_fmt_count_whole_number():
+    assert _fmt_count(4.0) == '4'
+
+
+def test_fmt_count_fractional():
+    assert _fmt_count(4.5) == '4.5'
+
+
+def test_fmt_count_one_and_half():
+    assert _fmt_count(1.5) == '1.5'
+
+
+def test_build_content_super_only():
+    """one super reactor should display as 1.5"""
+    result = build_content({}, JUMP_URL, EMOJI_MAP, super_reactions={EMOJI_STAR: [USER_A]})
+    assert f'{EMOJI_STAR} **1.5**' in result
+    assert JUMP_URL in result
+
+
+def test_build_content_normal_and_super_no_double_count():
+    """two normal + one super should display as 3.5, not 3"""
+    reactions = {EMOJI_STAR: [USER_A, USER_B]}
+    super_reactions = {EMOJI_STAR: [USER_C]}
+    result = build_content(reactions, JUMP_URL, EMOJI_MAP, super_reactions=super_reactions)
+    assert f'{EMOJI_STAR} **3.5**' in result
+
+
+def test_build_content_super_reaction_sorts_correctly():
+    """emoji with higher weighted count (via super) should sort before one with more raw reactors"""
+    emoji2 = '🌟'
+    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
+    # star: 1 normal + 1 super = 2.5; emoji2: 2 normal = 2.0 - star should win
+    reactions = {EMOJI_STAR: [USER_A], emoji2: [USER_A, USER_B]}
+    super_reactions = {EMOJI_STAR: [USER_B]}
+    result = build_content(reactions, JUMP_URL, emoji_map, super_reactions=super_reactions)
+    assert result.index(EMOJI_STAR) < result.index(emoji2)
+
+
+def test_dominant_color_super_reaction_wins():
+    """emoji with lower raw count but higher weighted count should win dominant color"""
+    emoji2 = '🌟'
+    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
+    # star: 0 normal + 2 super = 3.0; emoji2: 2 normal = 2.0
+    reactions = {emoji2: [USER_A, USER_B]}
+    super_reactions = {EMOJI_STAR: [USER_A, USER_B]}
+    assert dominant_color(reactions, emoji_map, super_reactions=super_reactions) == 0xEEDD20
+
+
+async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
+    """is_burst=True must call add_super_reaction, not add_reaction"""
+    from attubot.starboard import handle_star_add
+
+    sb_repo, msg_repo = mock_sb_and_msg_repos
+    make_starboard_guild()
+
+    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_repo.get = AsyncMock(return_value=msg_doc)
+    sb_repo.get = AsyncMock(return_value=None)
+
+    updated = _make_star_doc(super_reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.5)
+    sb_repo.add_super_reaction = AsyncMock(return_value=updated)
+
+    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
+
+    sb_repo.add_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.add_reaction.assert_not_called()
+
+
+async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, mock_sb_and_msg_repos):
+    """is_burst=False must call add_reaction, not add_super_reaction"""
+    from attubot.starboard import handle_star_add
+
+    sb_repo, msg_repo = mock_sb_and_msg_repos
+    make_starboard_guild()
+
+    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_repo.get = AsyncMock(return_value=msg_doc)
+    sb_repo.get = AsyncMock(return_value=None)
+
+    updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.0)
+    sb_repo.add_reaction = AsyncMock(return_value=updated)
+
+    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=False)
+
+    sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.add_super_reaction.assert_not_called()
+
+
+async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
+    """is_burst=True on remove must call remove_super_reaction"""
+    from attubot.starboard import handle_star_remove
+
+    sb_repo, _ = mock_sb_and_msg_repos
+    make_starboard_guild()
+
+    updated = _make_star_doc(super_reactions={EMOJI_STAR: []}, total_reactions=0, weighted_total=0.0)
+    sb_repo.remove_super_reaction = AsyncMock(return_value=updated)
+
+    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        await handle_star_remove(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
+
+    sb_repo.remove_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.remove_reaction.assert_not_called()
 
 
 # ---- parse_starboard_content against real dump samples ----

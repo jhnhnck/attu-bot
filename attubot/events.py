@@ -270,6 +270,7 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
         message_id=payload.message_id,
         user_id=payload.user_id,
         emoji_str=str(payload.emoji),
+        is_burst=payload.burst,
     )
 
 
@@ -288,6 +289,7 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         message_id=payload.message_id,
         user_id=payload.user_id,
         emoji_str=str(payload.emoji),
+        is_burst=payload.burst,
     )
 
 

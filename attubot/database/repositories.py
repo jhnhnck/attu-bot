@@ -418,31 +418,71 @@ class StarboardRepository:
             upsert=True,
         )
 
+    def _compute_totals(self, doc: StarredMessageDocument) -> tuple[int, float]:
+        """return (total_reactions, weighted_total) from a doc's reaction dicts"""
+        normal = sum(len(v) for v in doc.reactions.values())
+        super_ = sum(len(v) for v in doc.super_reactions.values())
+        return normal + super_, normal + super_ * 1.5
+
+    async def _sync_totals(self, message_id: int, doc: StarredMessageDocument) -> StarredMessageDocument:
+        """recompute and persist total_reactions and weighted_total if they drifted; returns the updated doc"""
+        total, weighted = self._compute_totals(doc)
+        if total != doc.total_reactions or weighted != doc.weighted_total:
+            await self.db[self.COLLECTION].update_one(
+                {'message_id': message_id},
+                {'$set': {'total_reactions': total, 'weighted_total': weighted}},
+            )
+            doc.total_reactions = total
+            doc.weighted_total = weighted
+        return doc
+
     async def add_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
-        """add a user to an emoji's reaction list; returns the updated doc or None if not found"""
+        """add a user to the normal reaction list; skips if they already super-reacted for this emoji.
+
+        returns the updated doc or None if the document was not found.
+        """
+        from pymongo import ReturnDocument
+
+        # only update if the user is NOT already in super_reactions for this emoji
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id, f'super_reactions.{emoji}': {'$ne': user_id}},
+            {'$addToSet': {f'reactions.{emoji}': user_id}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            # either doc not found or user already has a super reaction - fetch to distinguish
+            existing = await self.db[self.COLLECTION].find_one({'message_id': message_id})
+            if existing is None:
+                return None
+            existing.pop('_id', None)
+            return StarredMessageDocument(**existing)
+        result.pop('_id', None)
+        doc = StarredMessageDocument(**result)
+        return await self._sync_totals(message_id, doc)
+
+    async def add_super_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
+        """add a user to the super reaction list; removes them from normal reactions if present.
+
+        returns the updated doc or None if the document was not found.
+        """
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
             {'message_id': message_id},
-            {'$addToSet': {f'reactions.{emoji}': user_id}},
+            {
+                '$addToSet': {f'super_reactions.{emoji}': user_id},
+                '$pull': {f'reactions.{emoji}': user_id},
+            },
             return_document=ReturnDocument.AFTER,
         )
         if result is None:
             return None
         result.pop('_id', None)
         doc = StarredMessageDocument(**result)
-        # recompute and persist total_reactions
-        total = sum(len(v) for v in doc.reactions.values())
-        if total != doc.total_reactions:
-            await self.db[self.COLLECTION].update_one(
-                {'message_id': message_id},
-                {'$set': {'total_reactions': total}},
-            )
-            doc.total_reactions = total
-        return doc
+        return await self._sync_totals(message_id, doc)
 
     async def remove_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
-        """remove a user from an emoji's reaction list; returns the updated doc or None if not found"""
+        """remove a user from the normal reaction list; returns the updated doc or None if not found"""
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
@@ -454,14 +494,22 @@ class StarboardRepository:
             return None
         result.pop('_id', None)
         doc = StarredMessageDocument(**result)
-        total = sum(len(v) for v in doc.reactions.values())
-        if total != doc.total_reactions:
-            await self.db[self.COLLECTION].update_one(
-                {'message_id': message_id},
-                {'$set': {'total_reactions': total}},
-            )
-            doc.total_reactions = total
-        return doc
+        return await self._sync_totals(message_id, doc)
+
+    async def remove_super_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
+        """remove a user from the super reaction list; returns the updated doc or None if not found"""
+        from pymongo import ReturnDocument
+
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            {'$pull': {f'super_reactions.{emoji}': user_id}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        doc = StarredMessageDocument(**result)
+        return await self._sync_totals(message_id, doc)
 
     async def set_starboard_message(self, message_id: int, starboard_message_id: int | None):
         """link or unlink a starboard channel post to this document"""
