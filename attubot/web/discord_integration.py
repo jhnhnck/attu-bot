@@ -65,33 +65,29 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
         for c in [*channels, *threads]:
             # We only care about text, voice, and category channels for config
             if isinstance(c, discord.TextChannel | discord.VoiceChannel | discord.CategoryChannel | discord.StageChannel | discord.ForumChannel):
-                result.append(
-                    {
-                        'id': str(c.id),
-                        'name': c.name,
-                        'type': c.type.name if hasattr(c.type, 'name') else str(c.type),
-                        'position': c.position,
-                        'category_id': str(c.category_id) if hasattr(c, 'category_id') and c.category_id else None,
-                        'is_thread': False,
-                    }
-                )
+                result.append({
+                    'id': str(c.id),
+                    'name': c.name,
+                    'type': c.type.name if hasattr(c.type, 'name') else str(c.type),
+                    'position': c.position,
+                    'category_id': str(c.category_id) if hasattr(c, 'category_id') and c.category_id else None,
+                    'is_thread': False,
+                })
             # Handle thread types (public threads, private threads, announcement threads)
             elif isinstance(c, discord.Thread):
                 parent_channel = next((ch for ch in channels if hasattr(ch, 'id') and str(ch.id) == str(c.parent_id)), None)
                 parent_name = parent_channel.name if parent_channel else 'Unknown'
                 thread_type = c.type.name if hasattr(c.type, 'name') else str(c.type)
-                threads_result.append(
-                    {
-                        'id': str(c.id),
-                        'name': c.name,
-                        'type': thread_type,
-                        'position': None,
-                        'category_id': None,
-                        'parent_id': str(c.parent_id) if c.parent_id else None,
-                        'parent_name': parent_name,
-                        'is_thread': True,
-                    }
-                )
+                threads_result.append({
+                    'id': str(c.id),
+                    'name': c.name,
+                    'type': thread_type,
+                    'position': None,
+                    'category_id': None,
+                    'parent_id': str(c.parent_id) if c.parent_id else None,
+                    'parent_name': parent_name,
+                    'is_thread': True,
+                })
 
         # Sort channels by position
         result.sort(key=lambda x: x['position'])

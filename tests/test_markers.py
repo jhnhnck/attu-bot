@@ -122,7 +122,6 @@ class TestResolveMarkerOverride:
             mock_msg_repo_fn.return_value = msg_repo
 
             # give it a year record so the window is valid
-            from attubot.database.models import YearDocument
 
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
 

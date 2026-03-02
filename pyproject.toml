@@ -2,12 +2,14 @@
 exclude = ["*.wip.py", "wip/"]
 target-version = "py313"
 line-length = 320
+preview = true
 
 [tool.ruff.lint]
 select = [
   # "E4",
   # "E7",
   # "E9",
+  # pycodestyle
   "E",
   "F",
   "Q",
@@ -26,6 +28,27 @@ select = [
 
 # select = ["ALL"]
 ignore = [
+  # preview rules we explicitly don't want enabled yet
+  "E111",    # indentation not multiple of 4 (conflicts with formatter)
+  "E114",    # indentation not multiple of 4 (comment)
+  "E117",    # over-indented
+  "E303",    # too many blank lines (stricter in preview)
+  "PLC1901", # compare-to-empty-string
+  "PLC2701", # import private name
+  "PLR0904", # too many public methods
+  "PLR0914", # too many locals
+  "PLR0917", # too many positional arguments
+  "PLR1702", # too many nested blocks
+  "PLR6104", # non-augmented assignment
+  "PLR6201", # literal membership
+  "PLR6301", # no self use
+  "PLW1514", # unspecified encoding
+  "RUF029",  # unused async
+  "RUF052",  # used dummy variable
+  "RUF067",  # non-empty __init__ module
+  "RUF069",  # float equality comparison
+  "S404",    # suspicious subprocess import
+  # existing ignores
   "E501",    # line-length violations
   "PLC0415", # imports at top of file
   "PLR0913", # too many arguments

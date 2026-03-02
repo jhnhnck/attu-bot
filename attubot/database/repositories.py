@@ -356,7 +356,8 @@ class MessageRepository:
     async def get_latest_in_channel(self, guild_id: int, channel_id: int) -> int | None:
         """Return the highest message_id stored for a channel (used as backfill cursor)"""
         cursor = (
-            self.db[self.COLLECTION]
+            self
+            .db[self.COLLECTION]
             .find(
                 {'guild_id': guild_id, 'channel_id': channel_id},
             )
@@ -401,17 +402,16 @@ class MessageRepository:
         `after` and `before` are inclusive/exclusive unix timestamps respectively.
         """
         cursor = (
-            self.db[self.COLLECTION]
-            .find(
-                {
-                    'guild_id': guild_id,
-                    'channel_id': channel_id,
-                    'author_bot': True,
-                    'content': {'$regex': f'^{content_prefix}'},
-                    'created_at': {'$gte': after, '$lt': before},
-                    'deleted': {'$ne': True},
-                }
-            )
+            self
+            .db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'author_bot': True,
+                'content': {'$regex': f'^{content_prefix}'},
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
             .sort('created_at', 1)
             .limit(1)
         )
@@ -423,16 +423,15 @@ class MessageRepository:
         if not author_ids:
             return None
         cursor = (
-            self.db[self.COLLECTION]
-            .find(
-                {
-                    'guild_id': guild_id,
-                    'channel_id': channel_id,
-                    'author_id': {'$in': author_ids},
-                    'created_at': {'$gte': after, '$lt': before},
-                    'deleted': {'$ne': True},
-                }
-            )
+            self
+            .db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'author_id': {'$in': author_ids},
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
             .sort('created_at', 1)
             .limit(1)
         )
@@ -442,15 +441,14 @@ class MessageRepository:
     async def find_first_message(self, guild_id: int, channel_id: int, after: int, before: int) -> int | None:
         """Return the message_id of the chronologically first message in the time window."""
         cursor = (
-            self.db[self.COLLECTION]
-            .find(
-                {
-                    'guild_id': guild_id,
-                    'channel_id': channel_id,
-                    'created_at': {'$gte': after, '$lt': before},
-                    'deleted': {'$ne': True},
-                }
-            )
+            self
+            .db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
             .sort('created_at', 1)
             .limit(1)
         )

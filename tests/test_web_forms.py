@@ -305,17 +305,15 @@ class TestGuildConfigForm:
 
     def test_flatten_form_data(self):
         """Test flattening of form data from flat keys"""
-        form = GuildConfigForm(
-            **{
-                'channels.activity': 123456,
-                'channels.announcements': 789012,
-                'epoch.time': 1704067200,
-                'epoch.year': 5,
-                'epoch.rollover_minutes': 1020,
-                'roles.announcements': 555555,
-                'users.markers': '111,222',
-            }
-        )
+        form = GuildConfigForm(**{
+            'channels.activity': 123456,
+            'channels.announcements': 789012,
+            'epoch.time': 1704067200,
+            'epoch.year': 5,
+            'epoch.rollover_minutes': 1020,
+            'roles.announcements': 555555,
+            'users.markers': '111,222',
+        })
         assert form.channels.activity == 123456
         assert form.channels.announcements == 789012
         assert form.epoch.time == 1704067200

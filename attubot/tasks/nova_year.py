@@ -54,11 +54,7 @@ async def job_construct_year_links(guild_id: int):
 
         span = await get_year_span(year, guild_id)
 
-        return (
-            f'{year_str}\n'
-            f'<t:{span.start_time}:f> - <t:{span.end_time}:f>\n'
-            f'{"\n".join(marker_links)}'
-        )
+        return f'{year_str}\n<t:{span.start_time}:f> - <t:{span.end_time}:f>\n{"\n".join(marker_links)}'
 
     thread = guild.get_channel_or_thread(cfg.channels.year_links)
 

@@ -265,15 +265,13 @@ async def debug_dump_starboard(ctx: ApplicationContext):
     found = []
     async for msg in channel.history(limit=None):
         if msg.author.id == _STARBOARD_BOT_ID:
-            found.append(
-                {
-                    'id': str(msg.id),
-                    'timestamp': msg.created_at.isoformat(),
-                    'content': msg.content,
-                    'embeds': [e.to_dict() for e in msg.embeds],
-                    'attachments': [{'id': str(a.id), 'filename': a.filename, 'url': a.url} for a in msg.attachments],
-                }
-            )
+            found.append({
+                'id': str(msg.id),
+                'timestamp': msg.created_at.isoformat(),
+                'content': msg.content,
+                'embeds': [e.to_dict() for e in msg.embeds],
+                'attachments': [{'id': str(a.id), 'filename': a.filename, 'url': a.url} for a in msg.attachments],
+            })
 
     picked = sample(found, min(50, len(found)))
     picked.sort(key=lambda m: m['timestamp'])
