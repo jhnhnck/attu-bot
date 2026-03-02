@@ -1,5 +1,7 @@
-coverage
+coverage[toml]
 pytest
 pytest-asyncio
+pytest-cov
+respx
 freezegun
 ruff

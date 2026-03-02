@@ -402,14 +402,16 @@ class MessageRepository:
         """
         cursor = (
             self.db[self.COLLECTION]
-            .find({
-                'guild_id': guild_id,
-                'channel_id': channel_id,
-                'author_bot': True,
-                'content': {'$regex': f'^{content_prefix}'},
-                'created_at': {'$gte': after, '$lt': before},
-                'deleted': {'$ne': True},
-            })
+            .find(
+                {
+                    'guild_id': guild_id,
+                    'channel_id': channel_id,
+                    'author_bot': True,
+                    'content': {'$regex': f'^{content_prefix}'},
+                    'created_at': {'$gte': after, '$lt': before},
+                    'deleted': {'$ne': True},
+                }
+            )
             .sort('created_at', 1)
             .limit(1)
         )
@@ -422,13 +424,15 @@ class MessageRepository:
             return None
         cursor = (
             self.db[self.COLLECTION]
-            .find({
-                'guild_id': guild_id,
-                'channel_id': channel_id,
-                'author_id': {'$in': author_ids},
-                'created_at': {'$gte': after, '$lt': before},
-                'deleted': {'$ne': True},
-            })
+            .find(
+                {
+                    'guild_id': guild_id,
+                    'channel_id': channel_id,
+                    'author_id': {'$in': author_ids},
+                    'created_at': {'$gte': after, '$lt': before},
+                    'deleted': {'$ne': True},
+                }
+            )
             .sort('created_at', 1)
             .limit(1)
         )
@@ -439,12 +443,14 @@ class MessageRepository:
         """Return the message_id of the chronologically first message in the time window."""
         cursor = (
             self.db[self.COLLECTION]
-            .find({
-                'guild_id': guild_id,
-                'channel_id': channel_id,
-                'created_at': {'$gte': after, '$lt': before},
-                'deleted': {'$ne': True},
-            })
+            .find(
+                {
+                    'guild_id': guild_id,
+                    'channel_id': channel_id,
+                    'created_at': {'$gte': after, '$lt': before},
+                    'deleted': {'$ne': True},
+                }
+            )
             .sort('created_at', 1)
             .limit(1)
         )

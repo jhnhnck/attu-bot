@@ -34,6 +34,7 @@ ignore = [
   "RUF012",  # ClassVar decorators
   "S311",    # random not for crypto
   "UP037",   # forward typedefs
+  "COM812",  # conflicts with formatter
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -74,3 +75,21 @@ exclude = ["*.wip.py", "wip/"]
 testpaths = ["tests"]
 addopts = "-v"
 asyncio_mode = "auto"
+markers = [
+    "unit: isolated unit tests; no external services",
+    "component: tests against real MongoDB; requires a running mongod",
+    "integration: full startup or cross-process tests",
+]
+
+[tool.coverage.run]
+source = ["attubot"]
+branch = true
+omit = ["wip/*", "*.wip.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+]
