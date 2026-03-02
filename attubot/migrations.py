@@ -130,7 +130,7 @@ async def migration_2_2_0():
 async def migration_backfill_years():
     """Backfill Year documents from existing YearMarker timestamps"""
     from attubot import db
-    from attubot.calendar import SECONDS_PER_DAY, format_year_line, get_year_status
+    from attubot.calendar import SECONDS_PER_DAY, get_year_status
     from attubot.database.repositories import YearRepository
     from attubot.markers import YearMarker
 
@@ -156,7 +156,6 @@ async def migration_backfill_years():
 
             end_ts = await YearMarker.timestamp(yr + 1, guild_id) or 0 if yr < current_year else 0
             duration = round((end_ts - start_ts) / SECONDS_PER_DAY) if end_ts > 0 else 0
-            formatted = format_year_line(yr)
 
             await year_repo.upsert(
                 guild=guild_id,
@@ -164,7 +163,6 @@ async def migration_backfill_years():
                 start_time=start_ts,
                 end_time=end_ts,
                 duration=duration,
-                formatted=formatted,
             )
             count += 1
 
@@ -182,7 +180,7 @@ async def migration_2_2_1():
 async def migration_fix_year_data():
     """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
     from attubot import db
-    from attubot.calendar import SECONDS_PER_DAY, format_year_line, get_year_status
+    from attubot.calendar import SECONDS_PER_DAY, get_year_status
     from attubot.database.repositories import YearRepository
 
     logger.info('Running migration to 2.2.4: fixing year data')
@@ -203,13 +201,7 @@ async def migration_fix_year_data():
         for year_doc in all_years:
             updates = {}
 
-            # Fix 1: Strip markdown heading prefix and regenerate missing symbols
-            if not year_doc.formatted or not year_doc.formatted.strip():
-                updates['formatted'] = format_year_line(year_doc.year).lstrip('# ')
-            elif year_doc.formatted.lstrip().startswith('#'):
-                updates['formatted'] = year_doc.formatted.lstrip('# ')
-
-            # Fix 2: Finalize past years that are still ongoing
+            # Finalize past years that are still ongoing
             if year_doc.year < current_year and year_doc.end_time == 0:
                 next_year = years_by_num.get(year_doc.year + 1)
                 if next_year and next_year.start_time > 0:
@@ -379,6 +371,46 @@ async def migration_fix_thread_parent_ids():
         logger.debug(f'Set parent_channel_id={ch.parent_id} on {result.modified_count} messages in thread {channel_id}')
 
     logger.info(f'Migration 2.4.3 complete: updated={fixed} skipped={skipped}')
+
+
+# Version 2.5.0
+@migration(old='2.4.4', new='2.5.0')
+async def migration_drop_formatted():
+    """Remove the `formatted` field from all Year documents.
+
+    `formatted` was the pre-computed year header string (e.g. '<<< Year 5 PC <<<').
+    It is now generated on demand via `format_year_line(year)` wherever needed, so
+    storing it is redundant and makes the schema harder to maintain.
+    """
+    from attubot import db
+
+    logger.info('Running migration to 2.5.0: removing formatted field from year documents')
+
+    database = db.get_db()
+    result = await database['years'].update_many(
+        {'formatted': {'$exists': True}},
+        {'$unset': {'formatted': ''}},
+    )
+    logger.info(f'Migration 2.5.0: unset formatted on {result.modified_count} year documents')
+
+
+# Version 2.5.1
+@migration(old='2.5.0', new='2.5.1')
+async def migration_purge_markers():
+    """Remove all existing year marker overrides.
+
+    The new marker resolver derives markers dynamically from stored messages,
+    so persisted overrides are no longer needed as a baseline. Any overrides
+    that still need to exist can be re-created via /marker save or the web UI.
+    """
+    from attubot import db
+    from attubot.database.repositories import YearMarkerRepository
+
+    logger.info('Running migration to 2.5.1: purging all year marker overrides')
+
+    database = db.get_db()
+    result = await database[YearMarkerRepository.COLLECTION].delete_many({})
+    logger.info(f'Migration 2.5.1: deleted {result.deleted_count} year marker documents')
 
 
 # Version 2.4.4

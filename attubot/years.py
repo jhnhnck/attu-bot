@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from pydantic import BaseModel
 
 from attubot import config
-from attubot.calendar import SECONDS_PER_DAY, format_year_line
+from attubot.calendar import SECONDS_PER_DAY
 from attubot.database.repositories import YearRepository
 from attubot.logging import get_logger
 
@@ -39,7 +39,6 @@ class Year(BaseModel):
     start_time: int
     end_time: int = 0
     duration: int = 0
-    formatted: str = ''
     notes: str = ''
 
     async def save(self):
@@ -50,7 +49,6 @@ class Year(BaseModel):
             start_time=self.start_time,
             end_time=self.end_time,
             duration=self.duration,
-            formatted=self.formatted,
             notes=self.notes,
         )
 
@@ -100,7 +98,6 @@ class Year(BaseModel):
                 start_time=doc.start_time,
                 end_time=doc.end_time,
                 duration=doc.duration,
-                formatted=doc.formatted,
                 notes=doc.notes,
             )
         return None
@@ -128,7 +125,6 @@ class Year(BaseModel):
                 start_time=doc.start_time,
                 end_time=doc.end_time,
                 duration=doc.duration,
-                formatted=doc.formatted,
                 notes=doc.notes,
             )
             for doc in docs
@@ -145,22 +141,19 @@ class Year(BaseModel):
                 start_time=doc.start_time,
                 end_time=doc.end_time,
                 duration=doc.duration,
-                formatted=doc.formatted,
                 notes=doc.notes,
             )
         return None
 
     @classmethod
     async def create_from_rollover(cls, guild: int, year: int, start_time: int) -> 'Year':
-        """Create a new Year record during rollover with auto-computed formatted line"""
-        formatted = format_year_line(year).lstrip('# ')
+        """Create a new Year record during rollover"""
         new_year = cls(
             guild=guild,
             year=year,
             start_time=start_time,
             end_time=0,
             duration=0,
-            formatted=formatted,
         )
         await new_year.save()
         return new_year

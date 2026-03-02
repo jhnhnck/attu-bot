@@ -773,7 +773,6 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     'start_time': y.start_time,
                     'end_time': y.end_time,
                     'duration': y.duration,
-                    'formatted': y.formatted,
                     'notes': y.notes,
                 }
                 for y in years
@@ -816,7 +815,6 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     'start_time': year_record.start_time,
                     'end_time': year_record.end_time,
                     'duration': year_record.duration,
-                    'formatted': year_record.formatted,
                     'notes': year_record.notes,
                 }
             )
@@ -845,7 +843,6 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     'start_time': year_record.start_time,
                     'end_time': year_record.end_time,
                     'duration': year_record.duration,
-                    'formatted': year_record.formatted,
                     'notes': year_record.notes,
                 }
             )
@@ -880,7 +877,6 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     start_time=data.get('start_time', existing.start_time),
                     end_time=data.get('end_time', existing.end_time),
                     duration=data.get('duration', existing.duration),
-                    formatted=data.get('formatted', existing.formatted),
                     notes=data.get('notes', existing.notes),
                 )
                 message = f'Year {year} updated successfully'
@@ -892,7 +888,6 @@ def register_routes(app: Quart):  # noqa: PLR0915
                     start_time=data['start_time'],
                     end_time=data.get('end_time', 0),
                     duration=data.get('duration', 0),
-                    formatted=data.get('formatted', f'Year {year} PC'),
                     notes=data.get('notes', ''),
                 )
                 await new_year.save()
@@ -997,22 +992,22 @@ def register_routes(app: Quart):  # noqa: PLR0915
             logger.error(f'Error fetching markers for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch markers'}), 500
 
-    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>')
-    async def api_get_marker(guild_id: int, year: int):
-        """Get specific marker for a year"""
+    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>')
+    async def api_get_marker(guild_id: int, year: int, channel: int):
+        """Get specific override marker for a (year, channel) pair"""
         if guild_id not in config.authorized_guilds:
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
             from attubot.markers import YearMarker
 
-            # Note: markers use channel field as guild reference
-            marker = await YearMarker.get(guild_id, year)
+            marker = await YearMarker.get(channel, year)
             if not marker:
-                return jsonify({'error': f'Marker for year {year} not found'}), 404
+                return jsonify({'error': f'Marker for year {year} channel {channel} not found'}), 404
 
             return jsonify(
                 {
+                    'guild': str(marker.guild),
                     'channel': str(marker.channel),
                     'message': str(marker.message),
                     'year': marker.year,
@@ -1022,7 +1017,7 @@ def register_routes(app: Quart):  # noqa: PLR0915
             )
 
         except Exception as e:
-            logger.error(f'Error fetching marker for year {year} in guild {guild_id}: {e}')
+            logger.error(f'Error fetching marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch marker'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/timestamp')
@@ -1049,9 +1044,9 @@ def register_routes(app: Quart):  # noqa: PLR0915
             logger.error(f'Error fetching marker timestamp for year {year} in guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch marker timestamp'}), 500
 
-    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>', methods=['POST'])
-    async def api_create_marker(guild_id: int, year: int):
-        """Create/update marker"""
+    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>', methods=['POST'])
+    async def api_create_marker(guild_id: int, year: int, channel: int):
+        """Create/update override marker for a (year, channel) pair"""
         if guild_id not in config.authorized_guilds:
             return jsonify({'error': 'Unauthorized guild'}), 403
 
@@ -1062,39 +1057,32 @@ def register_routes(app: Quart):  # noqa: PLR0915
             if not data:
                 return jsonify({'error': 'No data provided'}), 400
 
-            # Validate required fields
             if 'message' not in data:
                 return jsonify({'error': 'message (Discord message ID) is required'}), 400
 
-            # Channel defaults to guild_id (as per markers.py convention)
-            channel = int(data.get('channel', guild_id))
             message = int(data['message'])
 
-            # Get existing marker or create new
             existing = await YearMarker.get(channel, year)
 
             if existing:
-                # Update existing marker
                 await existing.update(
                     message=message,
                     exact=data.get('exact', existing.exact),
                     wiki_page=data.get('wiki_page', existing.wiki_page),
                 )
-                msg = f'Marker for year {year} updated successfully'
+                msg = f'Marker for year {year} channel {channel} updated successfully'
             else:
-                # Create new marker
                 new_marker = YearMarker(
                     channel=channel,
                     message=message,
                     guild=guild_id,
                     year=year,
-                    exact=data.get('exact', False),
+                    exact=data.get('exact', True),
                     wiki_page=data.get('wiki_page', False),
                 )
                 await new_marker.save()
-                msg = f'Marker for year {year} created successfully'
+                msg = f'Marker for year {year} channel {channel} created successfully'
 
-            # Audit log
             from attubot.web import app as web_app
 
             if web_app.audit_logger:
@@ -1111,46 +1099,41 @@ def register_routes(app: Quart):  # noqa: PLR0915
             return jsonify({'success': True, 'message': msg})
 
         except Exception as e:
-            logger.error(f'Error creating/updating marker for year {year} in guild {guild_id}: {e}')
+            logger.error(f'Error creating/updating marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
-    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>', methods=['DELETE'])
-    async def api_delete_marker(guild_id: int, year: int):
-        """Delete marker"""
+    @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>', methods=['DELETE'])
+    async def api_delete_marker(guild_id: int, year: int, channel: int):
+        """Delete override marker for a (year, channel) pair"""
         if guild_id not in config.authorized_guilds:
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
             from attubot.markers import YearMarker
 
-            # Note: markers use channel field as guild reference
-            # Channel defaults to guild_id if not provided (matching POST behavior)
-            channel_str = request.args.get('channel')
-            channel = int(channel_str) if channel_str else guild_id
             existing = await YearMarker.get(channel, year)
             if not existing:
-                return jsonify({'error': f'Marker for year {year} not found'}), 404
+                return jsonify({'error': f'Marker for year {year} channel {channel} not found'}), 404
 
             await existing.delete()
 
-            # Audit log
             from attubot.web import app as web_app
 
             if web_app.audit_logger:
                 await web_app.audit_logger.log_change(
                     config_type='marker',
                     action='delete',
-                    changes=[ConfigChange(field='marker', old_value=year, new_value=None)],
+                    changes=[ConfigChange(field='marker', old_value=f'year={year} channel={channel}', new_value=None)],
                     ip_address=get_client_ip(),
                     guild_id=guild_id,
                     success=True,
                 )
 
-            logger.info(f'Marker for year {year} deleted for guild {guild_id}')
-            return jsonify({'success': True, 'message': f'Marker for year {year} deleted successfully'})
+            logger.info(f'Marker for year {year} channel {channel} deleted for guild {guild_id}')
+            return jsonify({'success': True, 'message': f'Marker for year {year} channel {channel} deleted successfully'})
 
         except Exception as e:
-            logger.error(f'Error deleting marker for year {year} in guild {guild_id}: {e}')
+            logger.error(f'Error deleting marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Time/Calendar ==========

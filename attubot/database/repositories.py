@@ -221,7 +221,7 @@ class YearRepository:
         )
         await self.db[self.COLLECTION].create_index('guild')
 
-    async def create(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
+    async def create(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, notes: str = ''):
         """Create new year record"""
         doc = YearDocument(
             guild=guild,
@@ -229,7 +229,6 @@ class YearRepository:
             start_time=start_time,
             end_time=end_time,
             duration=duration,
-            formatted=formatted,
             notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].insert_one(doc)
@@ -248,7 +247,7 @@ class YearRepository:
             {'$set': kwargs},
         )
 
-    async def upsert(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, formatted: str = '', notes: str = ''):
+    async def upsert(self, guild: int, year: int, start_time: int, end_time: int = 0, duration: int = 0, notes: str = ''):
         """Insert or update year record (upsert)"""
         doc = YearDocument(
             guild=guild,
@@ -256,7 +255,6 @@ class YearRepository:
             start_time=start_time,
             end_time=end_time,
             duration=duration,
-            formatted=formatted,
             notes=notes,
         ).model_dump()
         await self.db[self.COLLECTION].update_one(
@@ -396,6 +394,62 @@ class MessageRepository:
             {'$set': {'author_name': author_name}},
         )
         return result.modified_count
+
+    async def find_bot_header(self, guild_id: int, channel_id: int, content_prefix: str, after: int, before: int) -> int | None:
+        """Return the message_id of the earliest bot message starting with content_prefix in the time window.
+
+        `after` and `before` are inclusive/exclusive unix timestamps respectively.
+        """
+        cursor = (
+            self.db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'author_bot': True,
+                'content': {'$regex': f'^{content_prefix}'},
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
+            .sort('created_at', 1)
+            .limit(1)
+        )
+        docs = await cursor.to_list(length=1)
+        return docs[0]['message_id'] if docs else None
+
+    async def find_author_message(self, guild_id: int, channel_id: int, author_ids: list[int], after: int, before: int) -> int | None:
+        """Return the message_id of the earliest message by any of the given author_ids in the time window."""
+        if not author_ids:
+            return None
+        cursor = (
+            self.db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'author_id': {'$in': author_ids},
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
+            .sort('created_at', 1)
+            .limit(1)
+        )
+        docs = await cursor.to_list(length=1)
+        return docs[0]['message_id'] if docs else None
+
+    async def find_first_message(self, guild_id: int, channel_id: int, after: int, before: int) -> int | None:
+        """Return the message_id of the chronologically first message in the time window."""
+        cursor = (
+            self.db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': channel_id,
+                'created_at': {'$gte': after, '$lt': before},
+                'deleted': {'$ne': True},
+            })
+            .sort('created_at', 1)
+            .limit(1)
+        )
+        docs = await cursor.to_list(length=1)
+        return docs[0]['message_id'] if docs else None
 
 
 class StarboardRepository:

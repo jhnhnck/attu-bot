@@ -75,7 +75,6 @@ class YearDocument(BaseModel):
     start_time: int
     end_time: int = 0
     duration: int = 0
-    formatted: str = ''
     notes: str = ''
 
 

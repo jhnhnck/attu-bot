@@ -267,7 +267,7 @@ def make_year_doc():
             assert doc.year == 5
     """
 
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, formatted='# === Year 1 PC ===', notes=''):
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
         from attubot.database.models import YearDocument
 
         return YearDocument(
@@ -276,7 +276,6 @@ def make_year_doc():
             start_time=start_time,
             end_time=end_time,
             duration=duration,
-            formatted=formatted,
             notes=notes,
         )
 
@@ -293,7 +292,7 @@ def make_year():
             assert year.year == 5
     """
 
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, formatted='# === Year 1 PC ===', notes=''):
+    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
         from attubot.years import Year
 
         return Year(
@@ -302,7 +301,6 @@ def make_year():
             start_time=start_time,
             end_time=end_time,
             duration=duration,
-            formatted=formatted,
             notes=notes,
         )
 

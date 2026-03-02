@@ -5,19 +5,17 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import re
 from datetime import datetime, timedelta
 from typing import cast
 
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
 from discord.enums import ChannelType
-from discord.utils import snowflake_time
 
 from attubot import config
-from attubot.calendar import SECONDS_PER_DAY, get_year_span, get_year_status
+from attubot.calendar import get_year_span, get_year_status
 from attubot.logging import get_logger
-from attubot.markers import YearMarker
+from attubot.markers import resolve_marker
 from attubot.util import format_message_link
 from attubot.years import Year
 
@@ -112,59 +110,15 @@ async def year_search(ctx: ApplicationContext, year: int):
 
 
 async def find_marker_link(year: int, channel: TextChannel) -> str:
+    """Resolve and format the jump link to the year marker in a channel.
+
+    delegates all search and resolution logic to markers.py.
+    """
     cfg = config.guild(channel.guild.id)
-    marker = None
+    marker = await resolve_marker(guild=cfg.id, channel=channel.id, year=year)
 
-    # look for {year} or 'pc' or 'year' in message contents
-    def has_year_marker(year: int, content: str) -> bool:
-        content = content.lower().partition('\n')[0]
+    logger.debug(f'Resolved marker: year={year} channel={channel.id} source={marker.source} exact={marker.exact} message={marker.message}')
 
-        if re.search(rf'\b{year}\b', content) or (year < 10 and re.search(rf'\b{year - 1}\b', content)):
-            return 'pc' in content or 'year' in content
-        else:
-            return False
-
-    # Check if its in the db
-    if await YearMarker.exists(channel=channel.id, year=year):
-        logger.debug(f'Hit cache for {year} PC in {channel.id}')
-        marker = await YearMarker.get(channel=channel.id, year=year)
-
-    else:
-        # Fetch stored marker for that year
-        guild_marker = await YearMarker.get_any(guild=cfg.id, year=year)
-        if guild_marker is None:
-            logger.error(f'No guild marker found for year {year} in {cfg.id}')
-            return format_message_link(guild=cfg.id, channel=channel.id, message=0, relative=True)
-        timestamp = snowflake_time(guild_marker.message)
-        marker = YearMarker(guild=cfg.id, channel=channel.id, message=0, year=year)
-        logger.debug(f'Searching for {year} PC in {channel.id}')
-        closest = SECONDS_PER_DAY
-
-        # Search Channel History
-        async for message in channel.history(around=timestamp, limit=15):
-            # aim for closet message
-            distance = abs((snowflake_time(message.id) - timestamp).total_seconds())
-
-            if distance < closest:
-                logger.debug(f'Closest found: {message.id} (off by {distance}s)')
-                marker.message = message.id
-                closest = distance
-
-            # skip finding perfect match for meta-chat
-            if channel.id not in cfg.channels.lore_channels:
-                continue
-
-            # try to find perfect match
-            if message.author.id in cfg.users.markers and has_year_marker(year, message.content):
-                logger.debug(f'Exact found: {message.id}')
-                marker.message = message.id
-                marker.exact = True
-                break
-
-        # were at our best guess, save here
-        await marker.save()
-
-    # Send message link
     return format_message_link(
         guild=cfg.id,
         channel=channel.id,

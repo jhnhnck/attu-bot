@@ -39,11 +39,7 @@ class TestYearModel:
         y = Year(guild=TEST_GUILD, year=1, start_time=1704067200)
         assert y.end_time == 0
         assert y.duration == 0
-        assert y.formatted == ''
-
-    def test_formatted_field(self, make_year):
-        y = make_year(formatted='# <<< Year 1 PC >>>')
-        assert y.formatted == '# <<< Year 1 PC >>>'
+        assert not hasattr(y, 'formatted')
 
 
 # --- to_span() ---
@@ -120,7 +116,7 @@ class TestNavigation:
 class TestPersistence:
     @pytest.mark.asyncio
     async def test_save_calls_upsert(self, mock_year_repo, make_year):
-        y = make_year(year=5, start_time=100, end_time=200, duration=1, formatted='test')
+        y = make_year(year=5, start_time=100, end_time=200, duration=1)
         await y.save()
         mock_year_repo.upsert.assert_called_once_with(
             guild=TEST_GUILD,
@@ -128,7 +124,6 @@ class TestPersistence:
             start_time=100,
             end_time=200,
             duration=1,
-            formatted='test',
             notes='',
         )
 
@@ -245,15 +240,7 @@ class TestLifecycle:
         assert result.start_time == 1704067200
         assert result.end_time == 0
         assert result.duration == 0
-        assert 'Year 5 PC' in result.formatted
         mock_year_repo.upsert.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_create_from_rollover_formatted_matches_format_year_line(self, mock_year_repo):
-        from attubot.calendar import format_year_line
-
-        result = await Year.create_from_rollover(TEST_GUILD, 7, start_time=100)
-        assert result.formatted == format_year_line(7).lstrip('# ')
 
     @pytest.mark.asyncio
     async def test_finalize_sets_end_time_and_duration(self, mock_year_repo, make_year_doc):

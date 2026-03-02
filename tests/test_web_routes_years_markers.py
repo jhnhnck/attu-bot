@@ -138,7 +138,6 @@ class TestYearsAPI:
         mock_year1.start_time = 1704067200
         mock_year1.end_time = 1705708800
         mock_year1.duration = 19
-        mock_year1.formatted = '### Year 1 PC'
         mock_year1.notes = 'First year'
 
         mock_year2 = MagicMock()
@@ -147,7 +146,6 @@ class TestYearsAPI:
         mock_year2.start_time = 1705708800
         mock_year2.end_time = 0
         mock_year2.duration = 0
-        mock_year2.formatted = '### Year 2 PC'
         mock_year2.notes = ''
 
         with patch('attubot.years.Year') as mock_year_class:
@@ -172,7 +170,6 @@ class TestYearsAPI:
         mock_year.start_time = 1704067200
         mock_year.end_time = 1705708800
         mock_year.duration = 19
-        mock_year.formatted = '### Year 5 PC'
         mock_year.notes = 'Fifth year'
 
         with patch('attubot.years.Year') as mock_year_class:
@@ -206,7 +203,6 @@ class TestYearsAPI:
         mock_year.start_time = 1750000000
         mock_year.end_time = 0
         mock_year.duration = 0
-        mock_year.formatted = '### Year 10 PC'
         mock_year.notes = ''
 
         with patch('attubot.years.Year') as mock_year_class:
@@ -349,11 +345,14 @@ class TestMarkersAPI:
             assert len(data['markers']) == 2
             assert data['markers'][0]['year'] == 1
 
+    TEST_CHANNEL_ID = 666666
+
     @pytest.mark.asyncio
     async def test_get_marker_specific(self, client):
-        """Test GET /api/guilds/<id>/markers/<year> returns specific marker"""
+        """Test GET /api/guilds/<id>/markers/<year>/<channel> returns specific marker"""
         mock_marker = MagicMock()
-        mock_marker.channel = TEST_GUILD
+        mock_marker.guild = TEST_GUILD
+        mock_marker.channel = self.TEST_CHANNEL_ID
         mock_marker.message = 123456789012345678
         mock_marker.year = 5
         mock_marker.exact = True
@@ -362,7 +361,7 @@ class TestMarkersAPI:
         with patch('attubot.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=mock_marker)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5')
+            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -371,11 +370,11 @@ class TestMarkersAPI:
 
     @pytest.mark.asyncio
     async def test_get_marker_not_found(self, client):
-        """Test GET /api/guilds/<id>/markers/<year> returns 404 for missing marker"""
+        """Test GET /api/guilds/<id>/markers/<year>/<channel> returns 404 for missing marker"""
         with patch('attubot.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999')
+            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -401,8 +400,8 @@ class TestMarkersAPI:
 
     @pytest.mark.asyncio
     async def test_create_marker_missing_message(self, client):
-        """Test POST /api/guilds/<id>/markers/<year> returns 400 when message missing"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5', json={'channel': str(TEST_GUILD)})
+        """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 400 when message missing"""
+        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}', json={})
         assert response.status_code == 400
 
         data = await response.get_json()
@@ -410,32 +409,32 @@ class TestMarkersAPI:
 
     @pytest.mark.asyncio
     async def test_create_marker_no_data(self, client):
-        """Test POST /api/guilds/<id>/markers/<year> returns 400 when no body"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5')
+        """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 400 when no body"""
+        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
         assert response.status_code == 400
 
     @pytest.mark.asyncio
     async def test_create_marker_db_error(self, client):
-        """Test POST /api/guilds/<id>/markers/<year> returns 500 on DB error"""
+        """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 500 on DB error"""
         with patch('attubot.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5', json={'message': '123456789012345678'})
+            response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}', json={'message': '123456789012345678'})
             assert response.status_code == 500
 
     @pytest.mark.asyncio
     async def test_create_marker_unauthorized(self, client):
-        """Test POST /api/guilds/<id>/markers/<year> returns 403 for unauthorized guild"""
-        response = await client.post('/api/guilds/999999/markers/5', json={'message': '123456789012345678'})
+        """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 403 for unauthorized guild"""
+        response = await client.post(f'/api/guilds/999999/markers/5/{self.TEST_CHANNEL_ID}', json={'message': '123456789012345678'})
         assert response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_delete_marker_not_found(self, client):
-        """Test DELETE /api/guilds/<id>/markers/<year> returns 404 when marker missing"""
+        """Test DELETE /api/guilds/<id>/markers/<year>/<channel> returns 404 when marker missing"""
         with patch('attubot.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/999')
+            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 404
 
             data = await response.get_json()
@@ -443,17 +442,17 @@ class TestMarkersAPI:
 
     @pytest.mark.asyncio
     async def test_delete_marker_db_error(self, client):
-        """Test DELETE /api/guilds/<id>/markers/<year> returns 500 on DB error"""
+        """Test DELETE /api/guilds/<id>/markers/<year>/<channel> returns 500 on DB error"""
         with patch('attubot.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/5')
+            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 500
 
     @pytest.mark.asyncio
     async def test_delete_marker_unauthorized(self, client):
-        """Test DELETE /api/guilds/<id>/markers/<year> returns 403 for unauthorized guild"""
-        response = await client.delete('/api/guilds/999999/markers/5')
+        """Test DELETE /api/guilds/<id>/markers/<year>/<channel> returns 403 for unauthorized guild"""
+        response = await client.delete(f'/api/guilds/999999/markers/5/{self.TEST_CHANNEL_ID}')
         assert response.status_code == 403
 
 
