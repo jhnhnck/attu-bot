@@ -20,7 +20,6 @@ import pytest
 
 from attubot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
 
-
 def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSummary | None = None, title_pages: list[dict] | None = None):
     """build a mock WikiClient whose search api returns the given pages"""
     if site is None:

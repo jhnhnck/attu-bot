@@ -10,7 +10,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-
 class GuildConfigDocument(BaseModel):
     """MongoDB document for guild configuration
 

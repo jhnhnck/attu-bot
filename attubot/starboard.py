@@ -362,7 +362,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def handle_star_add(  # noqa: PLR0911
+async def handle_star_add(  # noqa: PLR0911, PLR0912
     guild_id: int,
     channel_id: int,
     message_id: int,

@@ -10,7 +10,6 @@ from freezegun import freeze_time
 
 from attubot.calendar import move_epoch
 
-
 class TestMoveEpochYearUpdates:
     """Test that move_epoch updates Year records with notes"""
 

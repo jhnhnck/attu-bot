@@ -307,7 +307,7 @@ def register_auth_routes(app):  # noqa: PLR0915
             return jsonify({'success': True})
 
         except Exception as e:
-            logger.warning(f'Passkey login failed from {request.remote_addr}: {e}')
+            logger.warn(f'Passkey login failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': 'Passkey verification failed'}), 403
 
@@ -418,7 +418,7 @@ def register_auth_routes(app):  # noqa: PLR0915
             return jsonify({'success': True, 'message': f'Passkey "{name}" registered successfully'})
 
         except Exception as e:
-            logger.warning(f'Passkey setup failed from {request.remote_addr}: {e}')
+            logger.warn(f'Passkey setup failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 
@@ -510,7 +510,7 @@ def register_auth_routes(app):  # noqa: PLR0915
             return jsonify({'success': True, 'message': f'Passkey "{name}" registered successfully'})
 
         except Exception as e:
-            logger.warning(f'Passkey registration failed from {request.remote_addr}: {e}')
+            logger.warn(f'Passkey registration failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 

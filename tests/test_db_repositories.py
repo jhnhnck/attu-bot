@@ -44,7 +44,7 @@ def _read_db_config() -> tuple[str, str]:
     if config_path.exists():
         with config_path.open() as f:
             raw = tomlkit.load(f)
-        return raw['database']['url'], raw['database']['name']
+        return str(raw['database']['url']), str(raw['database']['name'])  # pyright: ignore[reportIndexIssue]
     return 'mongodb://mongo:27017', 'doombot'
 
 

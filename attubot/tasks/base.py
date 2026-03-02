@@ -8,7 +8,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
-
 class BaseTask(ABC):
     """Abstract base for all recurring tasks.
 

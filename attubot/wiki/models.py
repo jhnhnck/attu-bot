@@ -7,7 +7,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel, Field, model_validator
 
-
 class SearchResult(BaseModel):
     """a single result from the wiki REST search api"""
 
