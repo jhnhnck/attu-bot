@@ -67,7 +67,7 @@ def theme_color() -> int:
 
 # util to make discord message links
 def format_message_link(guild: int, channel: int, message: int, relative: bool = False) -> str:
-    return f'https://discord.com/channels/{guild}/{channel}/{message}{" [~]" if relative else ""}'
+    return f'https://discord.com/channels/{guild}/{channel}/{message}' + ('[~]' if relative else '')
 
 
 # for trimming to discord character length
