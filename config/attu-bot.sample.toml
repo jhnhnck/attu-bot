@@ -1,4 +1,4 @@
-config_version = "2.4.3"
+config_version = "2.5.1"
 
 [paths]
 # Path to the assets directory (templates, static files, favicon)

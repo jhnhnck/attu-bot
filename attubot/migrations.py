@@ -77,6 +77,8 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable:
 
 
 # --- Migration Steps ---
+# load-stage migrations run before the bot connects; ready-stage run after on_ready().
+# migrations must be defined in strict chronological order within each stage.
 
 
 # Bootstrap: fresh database with no prior version
@@ -95,34 +97,19 @@ async def migration_full_release():
 # Version 2.0.0
 @migration(old='1.8.0', new='2.0.0')
 async def migration_2_0_0():
-    """Migration to schema version 2.0.0
-
-    No structural changes needed - this is a version bump only.
-    The version update is handled automatically by the @migration decorator.
-    """
-    logger.info('Running migration to 2.0.0')
+    pass
 
 
 # Version 2.1.0
 @migration(old='2.0.0', new='2.1.0')
 async def migration_2_1_0():
-    """Migration to schema version 2.1.0
-
-    No structural changes needed - this is a version bump only.
-    The version update is handled automatically by the @migration decorator.
-    """
-    logger.info('Running migration to 2.1.0')
+    pass
 
 
 # Version 2.2.0
 @migration(old='2.1.0', new='2.2.0')
 async def migration_2_2_0():
-    """Migration to schema version 2.2.0
-
-    No structural changes needed - this is a version bump only.
-    The version update is handled automatically by the @migration decorator.
-    """
-    logger.info('Running migration to 2.2.0')
+    pass
 
 
 # Version 2.2.1
@@ -169,13 +156,13 @@ async def migration_backfill_years():
         logger.info(f'Backfilled {count} year records for guild {guild_id}')
 
 
-# Version 2.2.1
+# Version 2.2.3 - no-op; version bump only
 @migration(old='2.2.1', new='2.2.3')
-async def migration_2_2_1():
+async def migration_2_2_3():
     pass
 
 
-# Version 2.2.2
+# Version 2.2.4
 @migration(old='2.2.3', new='2.2.4')
 async def migration_fix_year_data():
     """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
@@ -201,7 +188,7 @@ async def migration_fix_year_data():
         for year_doc in all_years:
             updates = {}
 
-            # Finalize past years that are still ongoing
+            # finalize past years that are still marked as ongoing
             if year_doc.year < current_year and year_doc.end_time == 0:
                 next_year = years_by_num.get(year_doc.year + 1)
                 if next_year and next_year.start_time > 0:
@@ -255,7 +242,7 @@ async def migration_add_guild_to_markers():
             channel = doc.get('channel')
 
             if channel in guild_ids:
-                # Guild-proxy marker (channel field holds a guild ID) — no longer needed
+                # guild-proxy marker (channel field holds a guild ID) — no longer needed
                 await collection.delete_one({'_id': doc['_id']})
                 deleted += 1
 
@@ -273,7 +260,7 @@ async def migration_add_guild_to_markers():
 
         logger.info(f'Migration 2.2.5 complete: updated={updated} deleted={deleted} skipped={skipped}')
 
-        # Re-initialize indexes to add the new guild index
+        # re-initialize indexes to add the new guild index
         marker_repo = YearMarkerRepository(database)
         await marker_repo.init_indexes()
 
@@ -286,30 +273,14 @@ async def migration_add_guild_to_markers():
 # Version 2.3.0
 @migration(old='2.2.5', new='2.3.0')
 async def migration_2_3_0():
-    """Migration to schema version 2.3.0
-
-    Config file format updated: secrets and connection settings (assets path,
-    MongoDB URL/name, web secret key, WebAuthn settings) moved from environment
-    variables into the TOML config file under [paths], [database], [auth.web],
-    and [auth.webauthn] sections.
-
-    No structural database changes needed — this is a version bump only.
-    The version update is handled automatically by the @migration decorator.
-    """
+    """Config file format updated: secrets and connection settings moved from env vars into TOML."""
     logger.info('Running migration to 2.3.0')
 
 
 # Version 2.4.0
 @migration(old='2.3.0', new='2.4.0')
 async def migration_2_4_0():
-    """Migration to schema version 2.4.0
-
-    Adds weekly database backup task. Backup settings (path, day, time) are
-    configured in the [backup] section of the TOML config file.
-
-    No structural database changes needed — this is a version bump only.
-    The version update is handled automatically by the @migration decorator.
-    """
+    """Adds weekly database backup task."""
     logger.info('Running migration to 2.4.0')
 
 
@@ -325,7 +296,7 @@ async def migration_2_4_2():
     pass
 
 
-# Version 2.4.3
+# Version 2.4.3 (ready)
 @migration(old='2.4.2', new='2.4.3', stage='ready')
 async def migration_fix_thread_parent_ids():
     """Backfill parent_channel_id on stored messages that were sent in threads.
@@ -373,47 +344,7 @@ async def migration_fix_thread_parent_ids():
     logger.info(f'Migration 2.4.3 complete: updated={fixed} skipped={skipped}')
 
 
-# Version 2.5.0
-@migration(old='2.4.4', new='2.5.0')
-async def migration_drop_formatted():
-    """Remove the `formatted` field from all Year documents.
-
-    `formatted` was the pre-computed year header string (e.g. '<<< Year 5 PC <<<').
-    It is now generated on demand via `format_year_line(year)` wherever needed, so
-    storing it is redundant and makes the schema harder to maintain.
-    """
-    from attubot import db
-
-    logger.info('Running migration to 2.5.0: removing formatted field from year documents')
-
-    database = db.get_db()
-    result = await database['years'].update_many(
-        {'formatted': {'$exists': True}},
-        {'$unset': {'formatted': ''}},
-    )
-    logger.info(f'Migration 2.5.0: unset formatted on {result.modified_count} year documents')
-
-
-# Version 2.5.1
-@migration(old='2.5.0', new='2.5.1')
-async def migration_purge_markers():
-    """Remove all existing year marker overrides.
-
-    The new marker resolver derives markers dynamically from stored messages,
-    so persisted overrides are no longer needed as a baseline. Any overrides
-    that still need to exist can be re-created via /marker save or the web UI.
-    """
-    from attubot import db
-    from attubot.database.repositories import YearMarkerRepository
-
-    logger.info('Running migration to 2.5.1: purging all year marker overrides')
-
-    database = db.get_db()
-    result = await database[YearMarkerRepository.COLLECTION].delete_many({})
-    logger.info(f'Migration 2.5.1: deleted {result.deleted_count} year marker documents')
-
-
-# Version 2.4.4
+# Version 2.4.4 (ready)
 @migration(old='2.4.3', new='2.4.4', stage='ready')
 async def migration_fix_thread_parent_ids_archived():
     """Backfill parent_channel_id for messages in archived threads.
@@ -504,3 +435,43 @@ async def migration_fix_thread_parent_ids_archived():
         logger.debug(f'Set parent_channel_id={parent_id} on {result.modified_count} messages in thread {channel_id}')
 
     logger.info(f'Migration 2.4.4 complete: updated={fixed} unresolvable={still_missing}')
+
+
+# Version 2.5.0 (ready)
+@migration(old='2.4.4', new='2.5.0', stage='ready')
+async def migration_drop_formatted():
+    """Remove the `formatted` field from all Year documents.
+
+    `formatted` was the pre-computed year header string (e.g. '<<< Year 5 PC <<<').
+    It is now generated on demand via `format_year_line(year)` wherever needed, so
+    storing it is redundant and makes the schema harder to maintain.
+    """
+    from attubot import db
+
+    logger.info('Running migration to 2.5.0: removing formatted field from year documents')
+
+    database = db.get_db()
+    result = await database['years'].update_many(
+        {'formatted': {'$exists': True}},
+        {'$unset': {'formatted': ''}},
+    )
+    logger.info(f'Migration 2.5.0: unset formatted on {result.modified_count} year documents')
+
+
+# Version 2.5.1 (ready)
+@migration(old='2.5.0', new='2.5.1', stage='ready')
+async def migration_purge_markers():
+    """Remove all existing year marker overrides.
+
+    The new marker resolver derives markers dynamically from stored messages,
+    so persisted overrides are no longer needed as a baseline. Any overrides
+    that still need to exist can be re-created via /marker save or the web UI.
+    """
+    from attubot import db
+    from attubot.database.repositories import YearMarkerRepository
+
+    logger.info('Running migration to 2.5.1: purging all year marker overrides')
+
+    database = db.get_db()
+    result = await database[YearMarkerRepository.COLLECTION].delete_many({})
+    logger.info(f'Migration 2.5.1: deleted {result.deleted_count} year marker documents')

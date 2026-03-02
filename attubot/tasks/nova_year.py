@@ -12,7 +12,6 @@ from attubot import bot, config
 from attubot.calendar import format_year_line, get_next_year, get_year_status
 from attubot.config import GuildConfig
 from attubot.logging import get_logger
-from attubot.markers import YearMarker
 from attubot.tasks.base import BaseTask
 from attubot.util import webhook_logging
 from attubot.wiki import get_wiki
@@ -179,8 +178,6 @@ class NovaYearTask(BaseTask):
         for channel_id in cfg.channels.lore_channels:
             channel = guild.get_channel_or_thread(channel_id)
             message = await channel.send(year_str)
-
-            await YearMarker.mark(year, message.id, channel=channel_id, guild=cfg.id)
             message_links.append(message.jump_url)
 
         # --- Increase Year VC ---
