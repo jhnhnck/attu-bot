@@ -13,11 +13,12 @@ from quart import Quart, g
 
 from attubot import config
 from attubot.logging import get_logger
+from attubot.web.audit import AuditLogger
 
 logger = get_logger(__name__)
 
 # Initialize audit logger (will be set up after DB connection)
-audit_logger = None
+audit_logger: AuditLogger | None = None
 
 
 def _ensure_config() -> None:
