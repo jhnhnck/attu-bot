@@ -33,63 +33,48 @@ async def _safe_edit(status_msg: discord.Message | None, content: str) -> discor
         return None
 
 
-async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: discord.Message | None = None):
+async def job_backfill_channel(
+    channel_id: int,
+    guild_id: int,
+    status_msg: discord.Message | None = None,
+    *,
+    reconcile_recent: bool = False,
+    task: MessageBackfillTask | None = None,
+):
     """scan a channel and backfill any messages not already stored."""
     from attubot import bot
-    from attubot.messages import build_message_doc
 
-    repo = messages._get_repo()
     channel = bot.get_channel(channel_id)
 
     if channel is None:
         logger.error(f'fix messages: channel {channel_id} not found in cache')
-        status_msg = await _safe_edit(status_msg, f'Error: channel {channel_id} not found')
-        return
+        await _safe_edit(status_msg, f'Error: channel {channel_id} not found')
+        return 0, 0
 
-    # fetch all known ids upfront to avoid a db roundtrip per message
-    stored_ids = await repo.get_all_message_ids_in_channel(guild_id, channel.id)
-    stored = 0
+    backfill_task = task or MessageBackfillTask()
     backfilled = 0
+    reconciled = 0
 
     try:
-        async for message in channel.history(oldest_first=True, limit=None):
-            if message.id in stored_ids:
-                stored += 1
-            else:
-                try:
-                    doc = await build_message_doc(message)
-                    await repo.upsert(doc)
-                    backfilled += 1
-                except Exception as err:
-                    logger.warn(f'fix messages: failed to store message {message.id}: {err}')
-                    continue
-
-                # check for starboard reactions on newly-discovered messages
-                try:
-                    from attubot.starboard import backfill_message_reactions
-
-                    await backfill_message_reactions(message, guild_id)
-                except Exception as err:
-                    logger.warn(f'fix messages: reaction backfill failed for {message.id}: {err}')
-
-            total = stored + backfilled
-            if total % 1000 == 0:
-                logger.debug(f'fix messages #{channel.name}: scanned {total:,} messages, {backfilled:,} backfilled so far')
-
-    except discord.Forbidden:
-        logger.warn(f'fix messages: no permission to read history in #{channel.name} ({channel_id})')
-        status_msg = await _safe_edit(status_msg, f'No permission to read history in <#{channel_id}>')
-        return
+        backfilled = await backfill_task._backfill_channel(guild_id, channel)
     except Exception as err:
         logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
-        status_msg = await _safe_edit(status_msg, f'Error scanning <#{channel_id}> - check logs')
-        return
+        await _safe_edit(status_msg, f'Error scanning <#{channel_id}> - check logs')
+        return 0, 0
 
-    total = stored + backfilled
-    logger.info(f'fix messages #{channel.name}: done - {total:,} scanned, {backfilled:,} backfilled')
+    if reconcile_recent:
+        try:
+            reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel)
+        except Exception as err:
+            logger.warn(f'fix messages: recent reconcile failed for {channel_id}: {err}')
 
-    await _safe_edit(status_msg, f'Done! Scanned {total:,} messages in <#{channel_id}>: {stored:,} already stored, {backfilled:,} backfilled')
+    summary = f'Done! Backfilled {backfilled:,} messages in <#{channel_id}>'
+    if reconcile_recent:
+        summary += f', reconciled {reconciled:,} recent entries'
 
+    await _safe_edit(status_msg, summary)
+
+    return backfilled or 0, reconciled or 0
 
 async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
     """resolve current global usernames and bulk-update author_name on all stored messages."""
@@ -342,11 +327,15 @@ async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None 
 
     for channel in channels:
         status_msg = await _safe_edit(status_msg, f'Scanning <#{channel.id}>...')
-        backfilled = await job_backfill_channel(channel.id, guild_id)
-        backfilled = backfilled or 0
-        reconciled = await task._reconcile_recent_channel(guild_id, channel)
-        total_backfilled += backfilled
-        total_reconciled += reconciled
+        backfilled, reconciled = await job_backfill_channel(
+            channel.id,
+            guild_id,
+            status_msg=status_msg,
+            reconcile_recent=True,
+            task=task,
+        )
+        total_backfilled += backfilled or 0
+        total_reconciled += reconciled or 0
 
     summary = f'Reconcile complete: {total_backfilled} backfilled, {total_reconciled} reconciled'
     await _safe_edit(status_msg, summary)

@@ -13,6 +13,7 @@ import pytest
 from attubot.commands.fix import fix_reconcile, job_reconcile_guild
 from tests.conftest import TEST_GUILD
 
+
 class TestReconcileComponents:
     @pytest.mark.asyncio
     async def test_reconcile_recent_channel_deletes_missing_and_replays_messages(self):
@@ -50,11 +51,12 @@ class TestReconcileComponents:
         status = MagicMock()
 
         make_guild(guild_id=TEST_GUILD)
-        with patch('attubot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=[MagicMock()]), \
-                patch('attubot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=None), \
-                patch('attubot.commands.fix.MessageBackfillTask._reconcile_recent_channel', new_callable=AsyncMock, return_value=1), \
-                patch('attubot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit, \
-                patch('attubot.commands.fix.bot.get_guild', return_value=MagicMock(me=MagicMock())):
+        with (
+            patch('attubot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=[MagicMock()]),
+            patch('attubot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(None, 0)),
+            patch('attubot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
+            patch('attubot.commands.fix.bot.get_guild', return_value=MagicMock(me=MagicMock())),
+        ):
             await job_reconcile_guild(TEST_GUILD, status_msg=status)
 
         final_call = mock_edit.call_args_list[-1][0]
@@ -99,10 +101,14 @@ async def test_job_reconcile_guild_scans_channels(make_guild):
     fake_guild = MagicMock()
     fake_guild.me = MagicMock()
 
-    with patch('attubot.commands.fix.bot.get_guild', return_value=fake_guild), patch('attubot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=fake_channels) as mock_collect, patch('attubot.commands.fix.MessageBackfillTask._reconcile_recent_channel', new_callable=AsyncMock, return_value=2) as mock_reconcile, patch('attubot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=1) as mock_backfill, patch('attubot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit:
+    with (
+        patch('attubot.commands.fix.bot.get_guild', return_value=fake_guild),
+        patch('attubot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=fake_channels) as mock_collect,
+        patch('attubot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(1, 2)) as mock_backfill,
+        patch('attubot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
+    ):
         await job_reconcile_guild(TEST_GUILD, status_msg=status)
 
     mock_collect.assert_called_once()
     assert mock_backfill.call_count == len(fake_channels)
-    assert mock_reconcile.call_count == len(fake_channels)
     assert any('Reconcile complete' in c[0][1] for c in mock_edit.call_args_list)
