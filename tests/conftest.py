@@ -9,6 +9,8 @@ Tests run with TZ=UTC so that datetime.fromtimestamp() and _config.timezone are 
 
 import os
 import time as _time
+import uuid
+from pathlib import Path
 
 # Set timezone before any attubot imports (NovaConfig reads TZ in __init__)
 os.environ['TZ'] = 'UTC'
@@ -17,6 +19,8 @@ _time.tzset()
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
+import tomlkit
 
 from attubot import config
 from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
@@ -24,6 +28,66 @@ from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, G
 TEST_GUILD = 1234567890
 TEST_USER = 9876543210
 TEST_CHANNEL = 5555555555
+
+
+@pytest.fixture(autouse=True)
+def restore_config_state():
+    """Restore the config singleton state after each test.
+
+    Several fixtures mutate the global config singleton (replacing load_guild,
+    load_globals, config_repo, guilds, authorized_guilds, setting the init event)
+    without teardown. This fixture prevents those mutations from bleeding into
+    later tests (notably test_startup_integration and test_task_reload_watcher_component).
+    """
+    # shallow snapshot of instance attrs
+    # avoid restoring loop-bound repo/client objects across tests
+    skip_restore_keys = {'config_repo'}
+    saved_attrs = {k: v for k, v in vars(config).items() if k not in skip_restore_keys}
+    # copy mutable collections that many tests mutate in-place
+    saved_guilds = dict(config.guilds)
+    saved_authorized_guilds = set(config.authorized_guilds)
+    saved_valid_guilds = list(config.valid_guilds)
+    saved_owner_ids = set(config.owner_ids)
+    # event states must be saved separately - the events dict is mutated in-place
+    saved_events = {k: v.is_set() for k, v in config._events.items()}
+
+    yield
+
+    # remove any instance attrs added during the test (e.g. load_guild=AsyncMock())
+    for key in list(vars(config)):
+        if key not in saved_attrs and key not in skip_restore_keys:
+            delattr(config, key)
+
+    # restore any attrs that were replaced (identified by object identity)
+    for key, val in saved_attrs.items():
+        if vars(config).get(key) is not val:
+            setattr(config, key, val)
+
+    # restore in-place mutable state
+    config.guilds.clear()
+    config.guilds.update(saved_guilds)
+    config.authorized_guilds.clear()
+    config.authorized_guilds.update(saved_authorized_guilds)
+    config.valid_guilds[:] = saved_valid_guilds
+    config.owner_ids.clear()
+    config.owner_ids.update(saved_owner_ids)
+
+    # clear repo/db handles that may be bound to a different event loop
+    config.config_repo = None
+    from attubot import db
+
+    db.client = None
+    db.db = None
+
+    # restore event set/clear states
+    for k, was_set in saved_events.items():
+        ev = config._events.get(k)
+        if ev is None:
+            continue
+        if was_set and not ev.is_set():
+            ev.set()
+        elif not was_set and ev.is_set():
+            ev.clear()
 
 
 @pytest.fixture
@@ -280,6 +344,59 @@ def make_year_doc():
         )
 
     return _make
+
+
+# --- Component Test Infrastructure (real MongoDB, isolated per-test collections) ---
+
+
+def _read_db_config() -> tuple[str, str]:
+    """read database url and name from the toml config, falling back to localhost defaults."""
+    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './assets/attu-bot.toml'))
+    if config_path.exists():
+        with config_path.open() as f:
+            raw = tomlkit.load(f)
+        return str(raw['database']['url']), str(raw['database']['name'])  # pyright: ignore[reportIndexIssue]
+    return 'mongodb://mongo:27017', 'doombot'
+
+
+class _PrefixedDB:
+    """wraps a pymongo AsyncDatabase, prepending a per-test prefix to every collection name."""
+
+    def __init__(self, real_db, prefix: str):
+        self._db = real_db
+        self._prefix = prefix
+        self._used: list[str] = []
+
+    def __getitem__(self, name: str):
+        prefixed = f'{self._prefix}_{name}'
+        if prefixed not in self._used:
+            self._used.append(prefixed)
+        return self._db[prefixed]
+
+    def __getattr__(self, name: str):
+        return getattr(self._db, name)
+
+    async def cleanup(self):
+        for col in self._used:
+            await self._db[col].drop()
+
+
+@pytest_asyncio.fixture
+async def component_db():
+    """connect to the live mongodb and wrap it with a per-test collection prefix.
+
+    each test gets uniquely-named collections that are dropped at teardown.
+    mark tests that use this with pytest.mark.component.
+    """
+    from pymongo import AsyncMongoClient
+
+    url, db_name = _read_db_config()
+    client = AsyncMongoClient(url, serverSelectionTimeoutMS=5000)
+    prefix = f'test_{uuid.uuid4().hex[:10]}'
+    wrapped = _PrefixedDB(client[db_name], prefix)
+    yield wrapped
+    await wrapped.cleanup()
+    await client.close()
 
 
 @pytest.fixture

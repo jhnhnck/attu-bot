@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """AttuBot test runner."""
 
-import os
 import subprocess
 import sys
 
@@ -19,12 +18,11 @@ def run(title: str, cmd: list[str], env: dict | None = None, quiet: bool = True)
 
 
 if __name__ == '__main__':
-    run('python tests', ['coverage', 'run', '-m', 'pytest'])
+    run('python tests', ['coverage', 'run', '-m', 'pytest', '-m', 'not integration'])
 
     run('javascript tests', ['npm', 'test'])
 
-    env = {**os.environ, 'TEST_MODE': '1', 'DEBUG': '1'}
-    run('bot startup', ['coverage', 'run', '--append', './attu-bot.py'], env=env)
+    run('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', '-m', 'integration', '-v'])
 
     if '--coverage' in sys.argv:
         run('coverage report', ['coverage', 'report'], quiet=False)

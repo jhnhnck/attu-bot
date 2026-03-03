@@ -5,7 +5,6 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import asyncio
 from datetime import timedelta
 
 import discord
@@ -93,9 +92,6 @@ class MessageBackfillTask(BaseTask):
                 count = await self._backfill_channel(guild_id, channel)
                 total_new += count
                 total_channels += 1
-                # small pause between channels - pycord handles per-request 429s internally
-                # but this reduces pressure on the global rate limit across many channels
-                await asyncio.sleep(0.1)
 
         logger.info(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
 

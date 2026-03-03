@@ -9,7 +9,6 @@ import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import anyio
 from quart import Quart, g
 
 from attubot import config
@@ -21,7 +20,7 @@ logger = get_logger(__name__)
 audit_logger = None
 
 
-def create_app() -> Quart:  # noqa: PLR0915
+def create_app() -> Quart:
     """Application factory for Quart app"""
 
     # Load config file synchronously — needed before building the app so that
@@ -40,6 +39,8 @@ def create_app() -> Quart:  # noqa: PLR0915
     @app.before_serving
     async def startup():
         """Initialize configuration before starting the web server"""
+        global audit_logger  # noqa: PLW0603
+
         try:
             from attubot.logo import generate_png
             from attubot.web.audit import AuditLogger
@@ -58,6 +59,8 @@ def create_app() -> Quart:  # noqa: PLR0915
             logger.info('Generating favicon...')
             static_dir = _assets_dir / 'static' / 'img'
             favicon_path = static_dir / 'favicon.png'
+            import anyio
+
             await anyio.Path(static_dir).mkdir(parents=True, exist_ok=True)
 
             theme = config.theme
@@ -88,7 +91,6 @@ def create_app() -> Quart:  # noqa: PLR0915
             logger.info('Initializing audit logger...')
             from attubot import db
 
-            global audit_logger  # noqa: PLW0603
             audit_logger = AuditLogger(db.get_db())
             logger.info('Audit logger initialized')
 

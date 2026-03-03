@@ -57,42 +57,72 @@ async def command_ping(ctx: ApplicationContext):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
 
 
+# --- Startup Helpers ---
+
+# extensions loaded by start_bot_loop; ordered list for deterministic loading
+_EXTENSIONS = [
+    'attubot.commands.debug',
+    'attubot.commands.fix',
+    'attubot.commands.marker',
+    'attubot.commands.query',
+    'attubot.commands.stars',
+    'attubot.commands.time',
+    'attubot.commands.wiki',
+    'attubot.commands.year',
+]
+
+
+def _check_deps():
+    """check required system dependencies; raises Exception if any are missing"""
+    for cmd in ('resvg', 'mongodump'):
+        where = shutil.which(cmd)
+        if where is None:
+            raise Exception(f'missing dependency: {cmd}')
+        logger.info(f'found dependency: {where}')
+
+
+def _load_event_handlers():
+    """import events module to register all bot event handlers"""
+    import attubot.events  # noqa: F401
+
+
+def _register_core_commands():
+    """register top-level slash commands that are not part of any extension"""
+    logger.info('Loading Commands')
+    bot.add_application_command(cast(ApplicationCommand, command_ping))
+
+
+def _load_extensions():
+    """load all slash command extensions in order; raises Exception on first failure"""
+    logger.info('Loading Extensions')
+    for ext in _EXTENSIONS:
+        bot.load_extension(ext)
+
+
 # --- Bot Entry Point ---
 
 
 def start_bot_loop():
     logger.info('Starting DoomBot!')
     config.on_init()
-
-    def dep_check(cmd: str):
-        where = shutil.which(cmd)
-        if where is None:
-            raise Exception(f'missing dependency: {cmd}')
-        else:
-            logger.info(f'found dependency: {where}')
-
-    dep_check('resvg')
-    dep_check('mongodump')
-
-    # import events module to register all bot event handlers
-    import attubot.events  # noqa: F401
-
-    logger.info('Loading Commands')
-    bot.add_application_command(cast(ApplicationCommand, command_ping))
-
-    logger.info('Loading Extensions')
+    _check_deps()
+    _load_event_handlers()
+    _register_core_commands()
     try:
-        bot.load_extension('attubot.commands.debug')
-        bot.load_extension('attubot.commands.fix')
-        bot.load_extension('attubot.commands.marker')
-        bot.load_extension('attubot.commands.query')
-        bot.load_extension('attubot.commands.stars')
-        bot.load_extension('attubot.commands.time')
-        bot.load_extension('attubot.commands.wiki')
-        bot.load_extension('attubot.commands.year')
+        _load_extensions()
     except Exception as e:
         logger.fatal(f'Failed to load extensions, cannot start bot: {e}')
         sys.exit(1)
-
+        return  # defensive; stops execution when sys.exit is mocked in tests
     logger.info('Starting Bot')
     bot.run(config.bot_token)
+
+
+# --- Web Entry Point ---
+
+
+def start_bot_loop_web():
+    """Alias for web process use; not intended to be called directly"""
+    from attubot.web.app import start_web
+
+    start_web()

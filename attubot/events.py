@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import contextlib
 import sys
 
 import anyio
@@ -19,16 +20,13 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-# --- Helpers ---
-
-
 _READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108
 
 
-async def _shutdown(exit_code: int = 1):
-    """close db connections and stop the event loop cleanly"""
-    import contextlib
+# --- Shutdown ---
 
+
+async def _shutdown(exit_code: int = 1):
     from attubot import db
 
     if db.client:
@@ -39,6 +37,59 @@ async def _shutdown(exit_code: int = 1):
 
     asyncio.get_running_loop().stop()
     sys.exit(exit_code)
+
+
+# --- Ready Path ---
+
+
+async def _do_ready_init():
+    """inner ready path; extracted from on_ready() for testability"""
+    try:
+        logger.info('Connecting to database and initializing repositories...')
+        from attubot.database import init_database
+
+        await init_database(config.database.url, config.database.name)
+
+        logger.info('Loading configuration from database...')
+        await config.on_load()
+    except Exception as err:
+        logger.fatal('Exception caught initializing database; exiting', err)
+        await logger.send_to_webhook(err)
+        await _shutdown(exit_code=1)
+        return
+
+    try:
+        await config.on_ready()
+    except Exception as err:
+        logger.fatal('Exception caught in on_ready() event; exiting', err)
+        await logger.send_to_webhook(err)
+        await _shutdown(exit_code=1)
+        return
+
+    if config.test_mode:
+        logger.fatal('Reached ready state')
+        await _shutdown(exit_code=0)
+        return
+
+    # start task scheduler
+    try:
+        from attubot.tasks import scheduler
+
+        await scheduler.start_all()
+    except Exception as err:
+        logger.fatal('Exception caught starting task scheduler; exiting', err)
+        await logger.send_to_webhook(err)
+        await _shutdown(exit_code=1)
+        return
+
+    # signal healthcheck: bot is fully ready
+    try:
+        await anyio.Path(_READY_SENTINEL).write_text('ready\n')
+    except Exception as err:
+        logger.warn(f'Could not write ready sentinel: {err}')
+
+    logger.info('Pushing commands to Discord')
+    await bot.sync_commands()
 
 
 # --- Events ---
@@ -87,52 +138,7 @@ async def on_ready():
         logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
         logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
-        try:
-            logger.info('Connecting to database and initializing repositories...')
-            from attubot.database import init_database
-
-            await init_database(config.database.url, config.database.name)
-
-            logger.info('Loading configuration from database...')
-            await config.on_load()
-        except Exception as err:
-            logger.fatal('Exception caught initializing database; exiting', err)
-            await logger.send_to_webhook(err)
-            await _shutdown(exit_code=1)
-            return
-
-        try:
-            await config.on_ready()
-        except Exception as err:
-            logger.fatal('Exception caught in on_ready() event; exiting', err)
-            await logger.send_to_webhook(err)
-            await _shutdown(exit_code=1)
-            return
-
-        if config.test_mode:
-            logger.fatal('Reached ready state')
-            await _shutdown(exit_code=0)
-            return
-
-        # start task scheduler
-        try:
-            from attubot.tasks import scheduler
-
-            await scheduler.start_all()
-        except Exception as err:
-            logger.fatal('Exception caught starting task scheduler; exiting', err)
-            await logger.send_to_webhook(err)
-            await _shutdown(exit_code=1)
-            return
-
-        # signal healthcheck: bot is fully ready
-        try:
-            await anyio.Path(_READY_SENTINEL).write_text('ready\n')
-        except Exception as err:
-            logger.warn(f'Could not write ready sentinel: {err}')
-
-        logger.info('Pushing commands to Discord')
-        await bot.sync_commands()
+        await _do_ready_init()
 
     else:
         logger.info(f'Reconnected as {bot.user} (ID: {bot.user.id})!')
