@@ -14,7 +14,7 @@ describe('ApiClient BigInt Handling', () => {
     beforeEach(async () => {
         vi.resetAllMocks();
         // Import the module fresh for each test
-        const module = await import('../assets/static/js/modules/api.js');
+        const module = await import('../../../assets/static/js/modules/api.js');
         ApiClient = module.ApiClient;
     });
 
@@ -213,7 +213,7 @@ describe('ApiClient fetch', () => {
 
     beforeEach(async () => {
         vi.resetAllMocks();
-        const module = await import('../assets/static/js/modules/api.js');
+        const module = await import('../../../assets/static/js/modules/api.js');
         ApiClient = module.ApiClient;
     });
 

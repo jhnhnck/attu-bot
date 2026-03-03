@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // mock api module so config.js can be imported without a real server
-vi.mock('../assets/static/js/modules/api.js', () => ({
+vi.mock('/assets/static/js/modules/api.js', () => ({
     api: {
         getGuild: vi.fn(),
         saveGuild: vi.fn(),
@@ -22,7 +22,7 @@ describe('GuildConfig', () => {
 
     beforeEach(async () => {
         vi.resetAllMocks();
-        const module = await import('../assets/static/js/modules/config.js');
+        const module = await import('/assets/static/js/modules/config.js');
         GuildConfig = module.GuildConfig;
     });
 
@@ -132,7 +132,7 @@ describe('ThemeConfig', () => {
 
     beforeEach(async () => {
         vi.resetAllMocks();
-        const module = await import('../assets/static/js/modules/config.js');
+        const module = await import('/assets/static/js/modules/config.js');
         ThemeConfig = module.ThemeConfig;
     });
 
@@ -164,7 +164,7 @@ describe('SystemConfig', () => {
 
     beforeEach(async () => {
         vi.resetAllMocks();
-        const module = await import('../assets/static/js/modules/config.js');
+        const module = await import('/assets/static/js/modules/config.js');
         SystemConfig = module.SystemConfig;
     });
 

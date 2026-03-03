@@ -213,7 +213,7 @@ class TestLoginChallengeLifecycle:
         with (
             patch('attubot.web.auth._get_collection', return_value=db._collection),
             patch('attubot.db.get_db', return_value=db),
-            patch('webauthn.generate_authentication_options', return_value=fake_options),
+            patch('attubot.web.auth.webauthn.generate_authentication_options', return_value=fake_options, create=True),
             patch('attubot.web.auth.options_to_json', return_value='{"type":"options"}', create=True),
             patch('webauthn.helpers.options_to_json.options_to_json', return_value='{"type":"auth"}'),
         ):
@@ -276,7 +276,7 @@ class TestLoginChallengeLifecycle:
         with (
             patch('attubot.web.auth._get_collection', return_value=db._collection),
             patch('attubot.db.get_db', return_value=db),
-            patch('webauthn.verify_authentication_response', side_effect=Exception('bad signature')),
+            patch('attubot.web.auth.webauthn.verify_authentication_response', side_effect=Exception('bad signature'), create=True),
         ):
             response = await client.post('/auth/login/complete', json={'id': 'Y2Fh', 'rawId': 'Y2Fh'})
 
@@ -318,7 +318,7 @@ class TestSetupFlow:
         with (
             patch('attubot.web.auth._get_collection', return_value=db._collection),
             patch('attubot.db.get_db', return_value=db),
-            patch('webauthn.generate_registration_options', return_value=fake_options),
+            patch('attubot.web.auth.webauthn.generate_registration_options', return_value=fake_options, create=True),
             patch('webauthn.helpers.options_to_json.options_to_json', return_value='{}'),
         ):
             response = await client.post('/auth/setup/begin', json={'name': 'My Key'})
@@ -358,7 +358,7 @@ class TestSetupFlow:
         with (
             patch('attubot.web.auth._get_collection', return_value=db._collection),
             patch('attubot.db.get_db', return_value=db),
-            patch('webauthn.verify_registration_response', side_effect=Exception('bad attestation')),
+            patch('attubot.web.auth.webauthn.verify_registration_response', side_effect=Exception('bad attestation'), create=True),
         ):
             response = await client.post('/auth/setup/complete', json={'id': 'abc'})
 
