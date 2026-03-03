@@ -183,7 +183,7 @@ class TestBackfillChannel:
         async def _forbidden_gen():
             raise discord.Forbidden(MagicMock(), 'missing permissions')
             # unreachable - just to make it an async generator
-            yield  # noqa: unreachable
+            yield
 
         ch.history = MagicMock(return_value=_forbidden_gen())
 

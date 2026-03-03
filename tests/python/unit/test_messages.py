@@ -39,9 +39,9 @@ def message_repo():
 
 @pytest.fixture
 def mock_message_repo():
-    """Patch attubot.messages._get_repo to return an AsyncMock repo."""
+    """Patch attubot.messages._get_repo and attubot.commands.fix.messages._get_repo to return an AsyncMock repo."""
     repo = AsyncMock()
-    with patch('attubot.messages._get_repo', return_value=repo):
+    with patch('attubot.messages._get_repo', return_value=repo), patch('attubot.commands.fix.messages._get_repo', return_value=repo):
         yield repo
 
 

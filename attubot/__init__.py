@@ -16,6 +16,7 @@ __description__ = 'A discord bot designed for automating tasks for the Attu Proj
 __version__ = '26.2.22'
 __build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
 
+import importlib
 import shutil
 import sys
 from typing import cast
@@ -83,7 +84,7 @@ def _check_deps():
 
 def _load_event_handlers():
     """import events module to register all bot event handlers"""
-    import attubot.events  # noqa: F401
+    importlib.import_module('attubot.events')
 
 
 def _register_core_commands():

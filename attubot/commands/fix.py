@@ -5,17 +5,14 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from datetime import timedelta
 from typing import cast
 
 import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 
-from attubot import config, bot
+from attubot import bot, config, messages
 from attubot.logging import get_logger
-from attubot.messages import _get_repo
-from attubot.starboard import backfill_message_reactions
 from attubot.tasks import LogoUpdateTask, scheduler
 from attubot.tasks.message_backfill import MessageBackfillTask
 from attubot.tasks.nova_year import job_construct_year_links
@@ -39,9 +36,9 @@ async def _safe_edit(status_msg: discord.Message | None, content: str) -> discor
 async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: discord.Message | None = None):
     """scan a channel and backfill any messages not already stored."""
     from attubot import bot
-    from attubot.messages import _get_repo, build_message_doc
+    from attubot.messages import build_message_doc
 
-    repo = _get_repo()
+    repo = messages._get_repo()
     channel = bot.get_channel(channel_id)
 
     if channel is None:
@@ -97,9 +94,9 @@ async def job_backfill_channel(channel_id: int, guild_id: int, status_msg: disco
 async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
     """resolve current global usernames and bulk-update author_name on all stored messages."""
     from attubot import bot
-    from attubot.messages import _get_repo, _global_username
+    from attubot.messages import _global_username
 
-    repo = _get_repo()
+    repo = messages._get_repo()
 
     if user_id is not None:
         author_ids = [user_id]
@@ -165,10 +162,9 @@ async def fix_year_links(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 @discord.commands.option(name='channel', required=True, description='Channel to verify', input_type=discord.TextChannel)
 async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
-    from attubot.messages import _get_repo
 
     try:
-        _get_repo()
+        messages._get_repo()
     except RuntimeError:
         await ctx.respond('message repo not initialized yet', ephemeral=True)
         return
@@ -182,10 +178,9 @@ async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
 @commands.check(is_bot_owner)
 @discord.commands.option(name='user', required=False, description='Only update messages from this user', input_type=discord.User)
 async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = None):
-    from attubot.messages import _get_repo
 
     try:
-        _get_repo()
+        messages._get_repo()
     except RuntimeError:
         await ctx.respond('message repo not initialized yet', ephemeral=True)
         return
@@ -485,10 +480,9 @@ async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None 
 @fix_group.command(name='reconcile', description='Scans the guild and reconciles recent history and starboard state')
 @commands.check(is_bot_owner)
 async def fix_reconcile(ctx: ApplicationContext):
-    from attubot.messages import _get_repo
 
     try:
-        _get_repo()
+        messages._get_repo()
     except RuntimeError:
         await ctx.respond('message repo not initialized yet', ephemeral=True)
         return

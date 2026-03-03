@@ -13,7 +13,6 @@ import pytest
 from attubot.commands.fix import fix_reconcile, job_reconcile_guild
 from tests.conftest import TEST_GUILD
 
-
 class TestReconcileComponents:
     @pytest.mark.asyncio
     async def test_reconcile_recent_channel_deletes_missing_and_replays_messages(self):
@@ -33,6 +32,7 @@ class TestReconcileComponents:
         fake_msgs = [FakeMessage(1), FakeMessage(2)]
 
         fake_channel = MagicMock()
+
         async def history(**kwargs):
             for msg in fake_msgs:
                 yield msg
@@ -47,7 +47,6 @@ class TestReconcileComponents:
 
     @pytest.mark.asyncio
     async def test_job_reconcile_handles_none_backfill_count(self, mock_ctx_factory, make_guild):
-        ctx = mock_ctx_factory()
         status = MagicMock()
 
         make_guild(guild_id=TEST_GUILD)
@@ -67,7 +66,7 @@ async def test_fix_reconcile_requires_repo(mock_ctx_factory):
     """fix_reconcile replies with an error when the message repo is unavailable"""
     ctx = mock_ctx_factory()
 
-    with patch('attubot.commands.fix._get_repo', side_effect=RuntimeError('no repo')):
+    with patch('attubot.commands.fix.messages._get_repo', side_effect=RuntimeError('no repo')):
         await fix_reconcile(ctx)
 
     assert ctx._responses

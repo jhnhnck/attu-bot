@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import discord
 from discord import Object
@@ -161,7 +161,7 @@ class MessageBackfillTask(BaseTask):
         count = 0
 
         channel_label = f'#{channel.name} ({channel.id})'
-        since = datetime.now(tz=timezone.utc) - lookback
+        since = datetime.now(tz=UTC) - lookback
         logger.info(f'backfill: reconciling recent activity in {channel_label} (last {lookback})')
         after = Object(id=time_snowflake(since))
 
@@ -177,10 +177,10 @@ class MessageBackfillTask(BaseTask):
         except Exception as err:
             logger.warn(f'backfill: error reconciling {channel_label}: {err}')
 
-        stored_window_ids = await repo.get_message_ids_in_window(guild_id, channel.id, int(since.timestamp()), int(datetime.now(tz=timezone.utc).timestamp()))
+        stored_window_ids = await repo.get_message_ids_in_window(guild_id, channel.id, int(since.timestamp()), int(datetime.now(tz=UTC).timestamp()))
         missing = [mid for mid in stored_window_ids if mid not in seen_ids]
         if missing:
-            deleted_at = int(datetime.now(tz=timezone.utc).timestamp())
+            deleted_at = int(datetime.now(tz=UTC).timestamp())
             await repo.mark_bulk_deleted(missing, deleted_at)
         if count > 0 or missing:
             logger.info(f'backfill: reconciled {count} recent messages from {channel_label}')

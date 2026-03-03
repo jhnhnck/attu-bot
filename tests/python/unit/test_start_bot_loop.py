@@ -8,6 +8,7 @@ Fast, offline tests for the pre-network startup pipeline in attubot/__init__.py.
 No real Discord connection, no MongoDB, no filesystem access needed.
 """
 
+import secrets
 from unittest.mock import call, patch
 
 import pytest
@@ -97,8 +98,8 @@ class TestStartBotLoopPipeline:
 
     def test_bot_run_called_with_token(self):
         """bot.run() receives config.bot_token"""
-        sentinel_token = 'test-sentinel-token-xyz'
-        attubot.config.bot_token = sentinel_token
+        run_value = secrets.token_hex(16)
+        attubot.config.bot_token = run_value
 
         with (
             patch.object(attubot.config, 'on_init'),
@@ -110,7 +111,7 @@ class TestStartBotLoopPipeline:
         ):
             attubot.start_bot_loop()
 
-        mock_run.assert_called_once_with(sentinel_token)
+        mock_run.assert_called_once_with(run_value)
 
 
 # ============================================================
