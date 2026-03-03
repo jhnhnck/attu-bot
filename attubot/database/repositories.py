@@ -455,6 +455,17 @@ class MessageRepository:
         docs = await cursor.to_list(length=1)
         return docs[0]['message_id'] if docs else None
 
+    async def get_message_ids_in_window(self, guild_id: int, channel_id: int, after: int, before: int) -> list[int]:
+        """Return message ids created within [after, before) that are not already deleted."""
+        cursor = self.db[self.COLLECTION].find({
+            'guild_id': guild_id,
+            'channel_id': channel_id,
+            'created_at': {'$gte': after, '$lt': before},
+            'deleted': {'$ne': True},
+        }, {'_id': 0, 'message_id': 1})
+        docs = await cursor.to_list(length=None)
+        return [doc['message_id'] for doc in docs]
+
 
 class StarboardRepository:
     """Repository for starred message documents"""

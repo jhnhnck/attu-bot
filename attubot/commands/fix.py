@@ -5,15 +5,19 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from datetime import timedelta
 from typing import cast
 
 import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 
-from attubot import config
+from attubot import config, bot
 from attubot.logging import get_logger
+from attubot.messages import _get_repo
+from attubot.starboard import backfill_message_reactions
 from attubot.tasks import LogoUpdateTask, scheduler
+from attubot.tasks.message_backfill import MessageBackfillTask
 from attubot.tasks.nova_year import job_construct_year_links
 from attubot.util import is_bot_owner
 
@@ -435,6 +439,63 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
     logger.info(f'recount_starboard: {summary} (guild {guild_id})')
 
     await _safe_edit(status_msg, summary)
+
+
+async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None = None):
+    """Run a full reconciliation pass across all readable channels and threads."""
+    task = MessageBackfillTask()
+
+    guild_obj = bot.get_guild(guild_id)
+    if guild_obj is None:
+        await _safe_edit(status_msg, 'Guild not in cache')
+        return
+
+    me = guild_obj.me
+    if me is None:
+        await _safe_edit(status_msg, 'Bot member not ready')
+        return
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception as err:
+        await _safe_edit(status_msg, f'Error: {err}')
+        return
+
+    try:
+        channels = await task._collect_channels(guild_obj, guild_config.channels.logs, me)
+    except Exception as err:
+        await _safe_edit(status_msg, f'Unable to collect channels: {err}')
+        return
+
+    total_backfilled = 0
+    total_reconciled = 0
+
+    for channel in channels:
+        status_msg = await _safe_edit(status_msg, f'Scanning <#{channel.id}>...')
+        backfilled = await job_backfill_channel(channel.id, guild_id)
+        backfilled = backfilled or 0
+        reconciled = await task._reconcile_recent_channel(guild_id, channel)
+        total_backfilled += backfilled
+        total_reconciled += reconciled
+
+    summary = f'Reconcile complete: {total_backfilled} backfilled, {total_reconciled} reconciled'
+    await _safe_edit(status_msg, summary)
+
+
+@fix_group.command(name='reconcile', description='Scans the guild and reconciles recent history and starboard state')
+@commands.check(is_bot_owner)
+async def fix_reconcile(ctx: ApplicationContext):
+    from attubot.messages import _get_repo
+
+    try:
+        _get_repo()
+    except RuntimeError:
+        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        return
+
+    await ctx.respond('Starting full reconciliation...', ephemeral=True)
+    status_msg = await ctx.channel.send('Starting full reconciliation...')
+    scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg), 'Job[fix_reconcile]')
 
 
 @fix_group.command(name='starboard_recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')

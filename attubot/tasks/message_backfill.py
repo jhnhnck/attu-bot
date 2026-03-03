@@ -5,13 +5,16 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import discord
+from discord import Object
+from discord.utils import time_snowflake
 
 from attubot import bot, config
 from attubot.logging import get_logger
 from attubot.messages import _get_repo, build_message_doc
+from attubot.starboard import backfill_message_reactions
 from attubot.tasks.base import BaseTask
 
 logger = get_logger(__name__)
@@ -28,6 +31,9 @@ class MessageBackfillTask(BaseTask):
     name: str = 'MessageBackfillTask'
     interval: timedelta | None = None  # dynamic schedule - run once then idle
     run_immediately: bool = True
+
+    RECENT_LOOKBACK: timedelta = timedelta(minutes=30)
+    RECENT_HISTORY_LIMIT: int | None = None
 
     async def on_start(self) -> None:
         await config.wait_for_load()
@@ -92,6 +98,7 @@ class MessageBackfillTask(BaseTask):
                 count = await self._backfill_channel(guild_id, channel)
                 total_new += count
                 total_channels += 1
+                await self._reconcile_recent_channel(guild_id, channel)
 
         logger.info(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
 
@@ -145,6 +152,52 @@ class MessageBackfillTask(BaseTask):
             logger.debug(f'backfill: {channel_label} is up to date')
 
         return count
+
+    async def _reconcile_recent_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread, lookback: timedelta | None = None) -> int:
+        """Force a recent lookback on a channel to pick up edits and reactions."""
+
+        lookback = lookback or self.RECENT_LOOKBACK
+        repo = _get_repo()
+        count = 0
+
+        channel_label = f'#{channel.name} ({channel.id})'
+        since = datetime.now(tz=timezone.utc) - lookback
+        logger.info(f'backfill: reconciling recent activity in {channel_label} (last {lookback})')
+        after = Object(id=time_snowflake(since))
+
+        seen_ids: set[int] = set()
+        try:
+            history = channel.history(after=after, oldest_first=True, limit=self.RECENT_HISTORY_LIMIT)
+            async for message in history:
+                seen_ids.add(message.id)
+                if await self._reconcile_message(guild_id, message):
+                    count += 1
+        except discord.Forbidden:
+            logger.debug(f'backfill: no permission to read recent history in {channel_label}')
+        except Exception as err:
+            logger.warn(f'backfill: error reconciling {channel_label}: {err}')
+
+        stored_window_ids = await repo.get_message_ids_in_window(guild_id, channel.id, int(since.timestamp()), int(datetime.now(tz=timezone.utc).timestamp()))
+        missing = [mid for mid in stored_window_ids if mid not in seen_ids]
+        if missing:
+            deleted_at = int(datetime.now(tz=timezone.utc).timestamp())
+            await repo.mark_bulk_deleted(missing, deleted_at)
+        if count > 0 or missing:
+            logger.info(f'backfill: reconciled {count} recent messages from {channel_label}')
+
+        return count
+
+    async def _reconcile_message(self, guild_id: int, message: discord.Message) -> bool:
+        """Fetches a single message, persists it, and refreshes starboard reactions."""
+
+        try:
+            doc = await build_message_doc(message)
+            await _get_repo().upsert(doc)
+            await backfill_message_reactions(message, guild_id)
+            return True
+        except Exception as err:
+            logger.warn(f'backfill: failed to reconcile message {message.id} in channel {message.channel.id}: {err}')
+            return False
 
 
 # singleton instance for registration
