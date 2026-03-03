@@ -29,6 +29,8 @@ Only emojis listed in `emojis` are tracked. Any other reaction is silently ignor
 - the bot reacts to its own starboard post with all active emojis
 - if the starboard post was created by an old bot (can't edit it), the bot sends a reply with the updated content and tracks that as the new post
 - if a starboard post is deleted externally, the reference is cleared so a new post can be created next time the count changes
+- a star should only ever be removed when explicitly received as a reaction remove event
+- a reaction on the response to a /star random or /star lost command should count towards the message it refers to.
 
 ---
 

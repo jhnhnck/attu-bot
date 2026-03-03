@@ -558,6 +558,48 @@ class TestStarboardChannelFallthrough:
         sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
 
 
+class TestStarReferenceRedirect:
+    async def test_handle_star_add_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
+        from unittest.mock import AsyncMock, patch
+
+        from attubot.starboard import handle_star_add
+
+        sb_repo, msg_repo = mock_sb_and_msg_repos
+        make_starboard_guild()
+
+        response_id = TEST_STARBOARD_MSG + 1
+        response_doc = _make_msg_doc(message_id=response_id, channel_id=TEST_CHANNEL, starboard_reference_id=TEST_MESSAGE)
+        original_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+        msg_repo.get = AsyncMock(side_effect=[response_doc, original_doc, original_doc])
+        sb_repo.get = AsyncMock(return_value=None)
+
+        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        sb_repo.add_reaction = AsyncMock(return_value=updated)
+
+        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+            await handle_star_add(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
+
+        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+
+    async def test_handle_star_remove_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
+        from unittest.mock import AsyncMock, patch
+
+        from attubot.starboard import handle_star_remove
+
+        sb_repo, msg_repo = mock_sb_and_msg_repos
+        make_starboard_guild()
+
+        response_id = TEST_STARBOARD_MSG + 2
+        response_doc = _make_msg_doc(message_id=response_id, starboard_reference_id=TEST_MESSAGE)
+        msg_repo.get = AsyncMock(return_value=response_doc)
+        sb_repo.remove_reaction = AsyncMock(return_value=_make_star_doc(reactions={EMOJI_STAR: []}, total_reactions=0))
+
+        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+            await handle_star_remove(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
+
+        sb_repo.remove_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+
+
 # ---- super reaction (burst) tests ----
 
 

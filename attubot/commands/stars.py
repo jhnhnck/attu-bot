@@ -72,6 +72,18 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     await ctx.respond(content=content, embeds=embeds)
+    try:
+        from attubot.messages import build_message_doc
+
+        interaction = ctx.interaction
+        if interaction is None:
+            raise RuntimeError('missing interaction for random starboard response')
+        response_msg = await interaction.original_response()
+        response_doc = await build_message_doc(response_msg)
+        response_doc.starboard_reference_id = doc.message_id
+        await msg_repo.upsert(response_doc)
+    except Exception as err:
+        logger.warn(f'starboard: could not store random response message - {err}')
 
 
 @stars_group.command(name='random', description='Shows a random message with 2 or more stars')

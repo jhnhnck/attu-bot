@@ -56,7 +56,7 @@ async def job_backfill_channel(
     reconciled = 0
 
     try:
-        backfilled = await backfill_task._backfill_channel(guild_id, channel)
+        backfilled = await backfill_task._backfill_channel(guild_id, channel)  # pyright: ignore[reportArgumentType]
     except Exception as err:
         logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
         await _safe_edit(status_msg, f'Error scanning <#{channel_id}> - check logs')
@@ -64,7 +64,7 @@ async def job_backfill_channel(
 
     if reconcile_recent:
         try:
-            reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel)
+            reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel)  # pyright: ignore[reportArgumentType]
         except Exception as err:
             logger.warn(f'fix messages: recent reconcile failed for {channel_id}: {err}')
 
@@ -75,6 +75,7 @@ async def job_backfill_channel(
     await _safe_edit(status_msg, summary)
 
     return backfilled or 0, reconciled or 0
+
 
 async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
     """resolve current global usernames and bulk-update author_name on all stored messages."""

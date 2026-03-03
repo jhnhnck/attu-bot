@@ -94,6 +94,7 @@ class MessageDocument(BaseModel):
     embeds: list[dict] = []
     sticker_ids: list[int] = []
     reference_id: int | None = None
+    starboard_reference_id: int | None = None
     pinned: bool = False
     public: bool = True  # readable by @everyone
     created_at: int  # unix timestamp

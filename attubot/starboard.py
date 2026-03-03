@@ -402,10 +402,21 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912
         return
 
     repo = _get_repo()
+    msg_repo = _get_msg_repo()
+
+    stored_doc = await msg_repo.get(message_id)
+    if isinstance(stored_doc, MessageDocument) and stored_doc.starboard_reference_id:
+        message_id = stored_doc.starboard_reference_id
+        stored_doc = await msg_repo.get(message_id)  # may return None if not cached
+
+    real_channel_id = stored_doc.channel_id if stored_doc else channel_id
+    if stored_doc is None:
+        existing_star_doc = await repo.get(message_id)
+        if existing_star_doc:
+            real_channel_id = existing_star_doc.channel_id
 
     # determine if the reaction is on a starboard post or a regular message in the starboard channel
     real_message_id = message_id
-    real_channel_id = channel_id
     if channel_id == sb.channel_id:
         existing = await repo.get_by_starboard_message(message_id)
         if existing is not None:
@@ -462,6 +473,7 @@ async def handle_star_remove(
 ) -> None:
     """process a star removal; updates the starboard post if it exists."""
     from attubot import config
+    from attubot.messages import _get_repo as _get_msg_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -473,6 +485,11 @@ async def handle_star_remove(
         return
 
     repo = _get_repo()
+    msg_repo = _get_msg_repo()
+
+    stored_doc = await msg_repo.get(message_id)
+    if isinstance(stored_doc, MessageDocument) and stored_doc.starboard_reference_id:
+        message_id = stored_doc.starboard_reference_id
 
     real_message_id = message_id
     if channel_id == sb.channel_id:

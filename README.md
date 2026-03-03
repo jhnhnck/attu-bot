@@ -65,7 +65,6 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
   - **/fix year_links**: forces the year links channel to be rebuilt
   - **/fix messages \<channel\>**: verifies and backfills any missing stored messages in a channel
   - **/fix author_names [user]**: re-resolves usernames and updates all stored messages
-  - **/fix starboard**: backfills the starboard channel and ingests entries into the database
   - **/fix starboard_recount**: re-fetches live Discord reactions and updates starboard counts
 
 ## Setup
