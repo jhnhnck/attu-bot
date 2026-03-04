@@ -18,9 +18,10 @@ from attubot import bot, config
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
-_READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108
+_READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108 - intentional healthcheck sentinel path in docker container
 
 
 # --- Shutdown ---
@@ -298,7 +299,3 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         emoji_str=str(payload.emoji),
         is_burst=payload.burst,
     )
-
-
-# register moderation log handlers
-import attubot.modlog  # noqa: E402,F401

@@ -12,6 +12,7 @@ import time as _time
 import uuid
 from pathlib import Path
 
+
 # Set timezone before any attubot imports (NovaConfig reads TZ in __init__)
 os.environ['TZ'] = 'UTC'
 _time.tzset()
@@ -24,6 +25,7 @@ import tomlkit
 
 from attubot import config
 from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+
 
 TEST_GUILD = 1234567890
 TEST_USER = 9876543210

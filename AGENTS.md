@@ -19,6 +19,8 @@ There are two runnable modes, both launched from `attu-bot.py`:
 
 1. Do not edit the rules.
 1. Do not perform any interactions with Discord without asking.
+1. All noqa comments must include a valid reason
+
 
 ## Architecture
 

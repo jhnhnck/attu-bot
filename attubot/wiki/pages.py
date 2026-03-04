@@ -11,6 +11,7 @@ from attubot.logging import get_logger
 from attubot.wiki.auth import AuthApi
 from attubot.wiki.models import PageSummary
 
+
 logger = get_logger(__name__)
 
 

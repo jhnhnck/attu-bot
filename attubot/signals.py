@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from attubot.logging import get_logger
 
+
 if TYPE_CHECKING:
     from attubot.database.repositories import ReloadSignalRepository
 
@@ -19,7 +20,7 @@ _repo: 'ReloadSignalRepository | None' = None
 
 def _get_repo() -> 'ReloadSignalRepository':
     """Get or create the reload signal repository"""
-    global _repo  # noqa: PLW0603
+    global _repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _repo is None:
         from attubot import db
         from attubot.database.repositories import ReloadSignalRepository

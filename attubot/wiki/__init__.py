@@ -11,6 +11,7 @@ from attubot.logging import get_logger
 from attubot.wiki.client import WikiClient
 from attubot.wiki.models import SearchResult, SiteInfo
 
+
 logger = get_logger(__name__)
 
 # module-level singleton - initialized by setup()
@@ -19,7 +20,7 @@ _wiki: WikiClient | None = None
 
 def get_wiki() -> WikiClient:
     """get the global WikiClient instance; raises if not yet initialized"""
-    global _wiki  # noqa: PLW0603
+    global _wiki  # noqa: PLW0603 - lazy singleton initialization requires global
     if _wiki is None:
         from attubot import config
 

@@ -10,6 +10,7 @@ import httpx
 from attubot.logging import get_logger
 from attubot.wiki.models import SearchResult, SiteInfo
 
+
 logger = get_logger(__name__)
 
 

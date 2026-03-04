@@ -16,6 +16,7 @@ from attubot.wiki.auth import AuthApi
 from attubot.wiki.pages import PagesApi
 from attubot.wiki.search import SearchApi
 
+
 logger = get_logger(__name__)
 
 

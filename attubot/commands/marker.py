@@ -17,6 +17,7 @@ from attubot.logging import get_logger
 from attubot.markers import YearMarker
 from attubot.util import format_message_link, is_authorized_guild
 
+
 logger = get_logger(__name__)
 
 # --- Marker Commands ---

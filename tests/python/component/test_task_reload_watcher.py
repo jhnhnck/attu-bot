@@ -15,6 +15,7 @@ import pytest
 from attubot import config
 from attubot.database.repositories import ConfigRepository, ReloadSignalRepository
 
+
 pytestmark = pytest.mark.component
 
 TEST_GUILD = 1234567890

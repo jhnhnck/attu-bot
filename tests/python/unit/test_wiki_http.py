@@ -19,6 +19,7 @@ from attubot.wiki.auth import AuthApi
 from attubot.wiki.models import SearchResult, SiteInfo
 from attubot.wiki.search import SearchApi
 
+
 pytestmark = pytest.mark.unit
 
 ACTION = 'https://wiki.example.test/api.php'

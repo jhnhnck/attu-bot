@@ -14,6 +14,7 @@ verify the global CSRF guard in isolation.
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -22,6 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 from quart import Quart, jsonify
+
 
 pytestmark = pytest.mark.unit
 

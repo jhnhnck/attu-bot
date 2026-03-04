@@ -6,6 +6,7 @@ import sys
 
 from termcolor import colored
 
+
 def run(title: str, cmd: list[str], env: dict | None = None, quiet: bool = True) -> None:
     print(colored(f'running: {title}', 'cyan'))
 

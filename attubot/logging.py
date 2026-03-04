@@ -10,6 +10,7 @@ from os import environ
 
 from termcolor import colored
 
+
 class Logger:
     """
     Logger supports the following logging levels: trace, debug, info, warn, error, fatal
@@ -29,7 +30,9 @@ class Logger:
     def __init__(self, class_name: str):
         self.class_name = class_name or 'attubot.???'
         self.debug_mode = 'DEBUG' in environ
-        nop = lambda *a, **k: None  # noqa: E731
+
+        def nop(*a, **k):
+            return None
 
         self.alert = self._generate('alert', sys.stdout, 'yellow') if self.debug_mode else nop
         self.trace = self._generate('trace', sys.stdout, 'light_green') if self.debug_mode else nop

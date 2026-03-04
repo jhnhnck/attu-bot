@@ -10,6 +10,7 @@ from freezegun import freeze_time
 
 from attubot.calendar import move_epoch
 
+
 class TestMoveEpochYearUpdates:
     """Test that move_epoch updates Year records with notes"""
 
@@ -65,7 +66,6 @@ class TestMoveEpochYearUpdates:
         """When epoch is shortened, Year record should be updated with note"""
         guild_id = 1234567890
         current_year = 5
-
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
         with (
@@ -105,9 +105,7 @@ class TestMoveEpochYearUpdates:
         """When epoch is resumed from pause, Year record should be updated with note"""
         guild_id = 1234567890
         current_year = 5
-
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
-
         with (
             patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get,
             patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update,

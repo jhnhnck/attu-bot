@@ -22,6 +22,7 @@ from attubot.calendar import format_year_line, get_next_year, get_year_status
 from attubot.config import GuildEpoch
 from tests.conftest import TEST_GUILD
 
+
 UTC = ZoneInfo('UTC')
 
 

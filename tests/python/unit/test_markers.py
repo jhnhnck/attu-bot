@@ -11,6 +11,7 @@ All repository and config access is mocked.
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -21,6 +22,7 @@ import pytest
 from attubot.database.models import YearMarkerDocument
 from attubot.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
 from tests.conftest import TEST_GUILD
+
 
 TEST_CHANNEL = 666666
 TEST_CHANNEL_2 = 777777

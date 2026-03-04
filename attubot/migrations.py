@@ -10,6 +10,7 @@ from collections.abc import Callable
 from attubot import config
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 # load-stage migrations run during config.on_load() before bot is connected

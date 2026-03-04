@@ -16,10 +16,11 @@ from attubot.web.audit import ConfigChange, compare_configs, get_client_ip
 from attubot.web.discord_integration import get_guild_channels, get_guild_info, get_guild_roles, get_users_info, invalidate_guild_cache
 from attubot.web.forms import GuildConfigForm, SystemConfigForm, ThemeConfigForm
 
+
 logger = get_logger(__name__)
 
 
-def register_routes(app: Quart):  # noqa: PLR0915
+def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines many routes inline by design
     """Register all routes with the Quart app"""
 
     # ========== Page Routes ==========

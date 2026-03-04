@@ -15,6 +15,7 @@ from attubot import config
 from attubot.logging import get_logger
 from attubot.web.audit import AuditLogger
 
+
 logger = get_logger(__name__)
 
 # Initialize audit logger (will be set up after DB connection)
@@ -179,7 +180,7 @@ def start_web():
     logger.info('Starting Web Server')
     app = create_app()
     app.run(
-        host='0.0.0.0',  # noqa: S104
+        host='0.0.0.0',  # noqa: S104 - listening on all interfaces is intentional inside the container
         port=5000,
         debug=False,
         use_reloader=False,

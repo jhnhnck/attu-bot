@@ -13,6 +13,7 @@ from discord.ext.commands import Context
 
 from attubot.logging import Logger, get_logger
 
+
 # --- Initialization ---
 
 logger = get_logger(__name__)

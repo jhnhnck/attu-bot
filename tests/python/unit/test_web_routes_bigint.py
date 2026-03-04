@@ -10,6 +10,7 @@ Integration tests ensuring the backend correctly handles large integers (BigInts
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -19,6 +20,7 @@ import pytest
 import pytest_asyncio
 
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+
 
 # Use a large integer that would lose precision in JS (MAX_SAFE_INTEGER is 9007199254740991)
 # Discord IDs are uint64, which can go up to 18446744073709551615

@@ -20,6 +20,7 @@ from attubot.util import is_authorized_guild
 from attubot.wiki import get_wiki
 from attubot.wiki.models import PageSummary, SearchResult, SiteInfo
 
+
 # embed description is capped at 4096 chars; leave room for ellipsis
 _EMBED_DESC_LIMIT = 4000
 

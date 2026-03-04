@@ -16,6 +16,7 @@ from attubot.calendar import format_year_line, get_year_span, get_year_status
 from attubot.logging import get_logger
 from attubot.util import format_message_link, is_bot_owner
 
+
 logger = get_logger(__name__)
 
 # --- Query Commands ---

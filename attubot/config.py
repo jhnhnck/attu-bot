@@ -20,6 +20,7 @@ from attubot import __schema__
 from attubot.database.repositories import ConfigRepository
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 # config object double for this file to avoid import loop
@@ -238,7 +239,7 @@ class NovaConfig:
 
     def __init__(self):
         # Assign to module-level singleton
-        global _config  # noqa: PLW0603
+        global _config  # noqa: PLW0603 - lazy singleton initialization requires global
         _config = self
 
         # Core attributes

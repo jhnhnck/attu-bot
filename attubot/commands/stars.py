@@ -14,6 +14,7 @@ from attubot import config
 from attubot.logging import get_logger
 from attubot.util import theme_color
 
+
 logger = get_logger(__name__)
 
 # page size for leaderboard commands

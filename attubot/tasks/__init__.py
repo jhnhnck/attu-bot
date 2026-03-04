@@ -15,6 +15,7 @@ from attubot.tasks.nova_year import NovaYearTask, nova_year_task
 from attubot.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
 from attubot.tasks.scheduler import TaskScheduler, scheduler
 
+
 logger = get_logger(__name__)
 
 # register all tasks

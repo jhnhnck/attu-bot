@@ -16,7 +16,6 @@ from attubot.starboard import (
     _hydrate_stored_embed,
     _is_image,
     _looks_like_image_url,
-    _merge_stored_embed,
     _parse_color,
     _should_merge_stored_embed,
     _weighted_count,
@@ -26,6 +25,7 @@ from attubot.starboard import (
     parse_jump_url,
     parse_starboard_content,
 )
+
 
 # ---- constants ----
 

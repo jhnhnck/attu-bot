@@ -19,6 +19,7 @@ from attubot.database.repositories import MessageRepository
 from attubot.embeds import make_embed
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
@@ -112,7 +113,7 @@ async def _build_attachments(message: Message, save_files: bool) -> list[dict]:
     ]
 
 
-def _serialize_embeds(message: Message) -> list[dict]:
+def _serialize_embeds(message: Message) -> list[dict]:  # noqa: PLR0912 - embed serialization requires checking many optional fields
     """Convert message embeds to plain dicts for storage."""
     out = []
     for embed in message.embeds:

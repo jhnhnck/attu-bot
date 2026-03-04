@@ -28,6 +28,7 @@ from attubot.config import NovaConfig
 from attubot.database import MongoStorage
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 logger.info('Initializing...')
 

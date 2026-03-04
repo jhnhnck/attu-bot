@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -17,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from attubot.database.models import MessageDocument
+
 
 TEST_GUILD = 1234567890
 TEST_USER = 9876543210

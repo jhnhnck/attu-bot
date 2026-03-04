@@ -17,6 +17,7 @@ import pytest_asyncio
 from attubot.database.models import MessageDocument, StarredMessageDocument
 from attubot.database.repositories import MessageRepository, StarboardRepository
 
+
 pytestmark = pytest.mark.component
 
 TEST_GUILD = 1234567890

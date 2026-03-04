@@ -108,7 +108,6 @@ async def test_job_reconcile_guild_scans_channels(make_guild):
         patch('attubot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
     ):
         await job_reconcile_guild(TEST_GUILD, status_msg=status)
-
     mock_collect.assert_called_once()
     assert mock_backfill.call_count == len(fake_channels)
     assert any('Reconcile complete' in c[0][1] for c in mock_edit.call_args_list)

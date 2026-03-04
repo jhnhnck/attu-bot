@@ -17,6 +17,7 @@ from attubot import config
 from attubot.database.models import MessageDocument
 from attubot.database.repositories import MessageRepository
 
+
 pytestmark = pytest.mark.component
 
 TEST_GUILD = 1234567890

@@ -23,6 +23,7 @@ from webauthn.helpers.structs import (
 
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -169,7 +170,7 @@ def login_required(f):
 # ---------------------------------------------------------------------------
 
 
-def register_auth_routes(app):  # noqa: PLR0915
+def register_auth_routes(app):  # noqa: PLR0915 - auth route registration defines many routes and lifecycle hooks inline
     """Register all /auth/* routes and the before_request guard."""
 
     @app.before_request

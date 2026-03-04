@@ -31,6 +31,7 @@ from attubot.database.repositories import (
     YearRepository,
 )
 
+
 pytestmark = pytest.mark.component
 
 

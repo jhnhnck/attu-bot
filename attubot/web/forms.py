@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+
 class GuildChannelsForm(BaseModel):
     """Form validation for guild channels configuration"""
 

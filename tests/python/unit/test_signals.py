@@ -8,6 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -18,6 +19,7 @@ import pytest
 import pytest_asyncio
 
 from attubot.database.models import ReloadSignalDocument
+
 
 TEST_GUILD = 1234567890
 TEST_GUILD_2 = 9876543210
@@ -329,6 +331,7 @@ class TestReloadWatcher:
 # --- Web route signal emission ---
 
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+
 
 @pytest_asyncio.fixture(scope='function')
 async def web_app_with_signals():

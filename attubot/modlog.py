@@ -15,6 +15,7 @@ from attubot import bot, config
 from attubot.embeds import make_embed
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 

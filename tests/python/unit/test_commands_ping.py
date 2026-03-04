@@ -10,12 +10,14 @@ Integration tests for the /ping and /pong commands
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
 from unittest.mock import patch
 
 import pytest
+
 
 # --- /ping Command Tests ---
 
@@ -44,7 +46,6 @@ class TestPongCommand:
         from attubot.commands.debug import command_pong
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
-
         # Mock config.is_owner to return True
         with patch('attubot.commands.debug.config.is_owner', return_value=True):
             await command_pong(ctx)

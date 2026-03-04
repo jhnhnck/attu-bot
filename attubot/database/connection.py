@@ -12,6 +12,7 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 
@@ -24,7 +25,7 @@ class MongoStorage:
         self.mongo_url: str | None = None
         self.db_name: str | None = None
 
-    async def connect(self, url: str, name: str, timeout: int = 10000) -> AsyncDatabase:  # noqa: ASYNC109
+    async def connect(self, url: str, name: str, timeout: int = 10000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
         """Initialize MongoDB connection with timeout
 
         Args:

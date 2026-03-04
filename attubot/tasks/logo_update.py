@@ -17,6 +17,7 @@ from attubot.logo import generate_png
 from attubot.tasks.base import BaseTask
 from attubot.util import webhook_logging
 
+
 logger = get_logger(__name__)
 
 

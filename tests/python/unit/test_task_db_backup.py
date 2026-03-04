@@ -12,6 +12,7 @@ from freezegun import freeze_time
 
 from attubot.tasks.db_backup import DatabaseBackupTask, _next_weekday_at
 
+
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------

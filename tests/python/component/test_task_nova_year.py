@@ -18,6 +18,7 @@ from attubot import config
 from attubot.config import GuildChannels
 from attubot.database.repositories import YearRepository
 
+
 pytestmark = pytest.mark.component
 
 TEST_GUILD = 1234567890

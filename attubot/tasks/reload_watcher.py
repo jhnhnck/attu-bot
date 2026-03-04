@@ -11,13 +11,14 @@ from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
 from attubot.util import webhook_logging
 
+
 logger = get_logger(__name__)
 
 _repo = None
 
 
 def _get_repo():
-    global _repo  # noqa: PLW0603
+    global _repo  # noqa: PLW0603 - lazy singleton initialization requires global
 
     if _repo is None:
         from attubot import db

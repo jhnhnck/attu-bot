@@ -12,6 +12,7 @@ to_span() conversion without requiring a real MongoDB connection.
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -22,6 +23,7 @@ import pytest
 from attubot.calendar import SECONDS_PER_DAY, AttuYearSpan
 from attubot.years import Year
 from tests.conftest import TEST_GUILD
+
 
 # --- Year Model Construction ---
 

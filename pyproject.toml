@@ -70,8 +70,8 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
-# Use a single line after each import block.
-lines-after-imports = 1
+# Let ruff format control blank lines after imports to avoid formatter/isort conflicts.
+lines-after-imports = 2
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

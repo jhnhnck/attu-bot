@@ -10,6 +10,7 @@ Integration tests for the new years, markers, time, and admin stats API endpoint
 import os
 import time as _time
 
+
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -19,6 +20,7 @@ import pytest
 import pytest_asyncio
 
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+
 
 TEST_GUILD = 1234567890
 TEST_GUILD_2 = 9876543210

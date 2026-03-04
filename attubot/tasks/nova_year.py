@@ -17,6 +17,7 @@ from attubot.util import webhook_logging
 from attubot.wiki import get_wiki
 from attubot.years import Year
 
+
 logger = get_logger(__name__)
 
 

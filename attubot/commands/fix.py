@@ -20,6 +20,7 @@ from attubot.tasks.message_backfill import MessageBackfillTask
 from attubot.tasks.nova_year import job_construct_year_links
 from attubot.util import is_bot_owner
 
+
 logger = get_logger(__name__)
 
 
@@ -187,7 +188,7 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     scheduler.add_job(coro, label)
 
 
-async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
+async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - live discord fetch loop with many error/skip branches
     """fetch live reaction counts from discord for all starred messages and rebuild per-user reaction lists."""
     from attubot import bot, config
     from attubot.database.models import StarredMessageDocument
@@ -298,7 +299,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
     await _safe_edit(status_msg, summary)
 
 
-async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
+async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None = None):
     from attubot import config
     from attubot.starboard import _sync_starboard_post
 

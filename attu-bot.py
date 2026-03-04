@@ -18,6 +18,7 @@ from os import environ
 from attubot import __build_time__
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 logger.info(f'Container Build Time: {__build_time__}')

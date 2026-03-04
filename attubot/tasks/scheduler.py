@@ -12,6 +12,7 @@ from datetime import datetime
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
 
+
 logger = get_logger(__name__)
 
 

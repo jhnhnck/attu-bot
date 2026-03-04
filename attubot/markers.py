@@ -16,6 +16,7 @@ from attubot import config
 from attubot.database.repositories import MessageRepository, YearMarkerRepository
 from attubot.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 # Module-level repository instances
@@ -25,7 +26,7 @@ _message_repo: MessageRepository | None = None
 
 def _get_repo() -> YearMarkerRepository:
     """Get or create the marker override repository"""
-    global _marker_repo  # noqa: PLW0603
+    global _marker_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _marker_repo is None:
         from attubot import db
 
@@ -35,7 +36,7 @@ def _get_repo() -> YearMarkerRepository:
 
 def _get_message_repo() -> MessageRepository:
     """Get or create the message repository for resolver queries"""
-    global _message_repo  # noqa: PLW0603
+    global _message_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _message_repo is None:
         from attubot import db
 

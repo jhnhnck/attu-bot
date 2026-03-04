@@ -12,6 +12,7 @@ import pytest
 
 from attubot.config import GuildChannels
 
+
 TEST_GUILD = 1234567890
 TEST_USER = 9876543210
 TEST_LOGS = 1111111111

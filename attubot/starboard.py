@@ -5,15 +5,16 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-import os
 import re
 from datetime import UTC, datetime
+from pathlib import Path
 
 import discord
 
 from attubot.database.models import MessageDocument, StarredMessageDocument
 from attubot.database.repositories import StarboardRepository
 from attubot.logging import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -53,14 +54,14 @@ def _looks_like_image_url(url: str) -> bool:
     if not url:
         return False
     path = _strip_query(url)
-    _, ext = os.path.splitext(path.lower())
+    ext = Path(path.lower()).suffix
     return ext in _IMAGE_EXTENSIONS
 
 
 def _should_merge_stored_embed(stored: dict) -> bool:
     if not stored.get('description'):
         return False
-    if stored.get('title') or stored.get('fields') or stored.get('author_name') or stored.get('footer_text'):
+    if stored.get('title') or stored.get('fields') or stored.get('author_name') or stored.get('footer_text'):  # noqa: SIM103 - multi-condition early return is more readable than a negated compound expression
         return False
     return True
 
@@ -104,7 +105,7 @@ def _hydrate_stored_embed(stored: dict) -> discord.Embed:
         )
     timestamp = stored.get('timestamp')
     if timestamp:
-        try:
+        try:  # noqa: SIM105 - inline try/except is clearer than contextlib.suppress for a single-line value assignment
             embed.timestamp = datetime.fromisoformat(timestamp)
         except ValueError:
             pass
@@ -191,7 +192,7 @@ def parse_jump_url(url: str) -> tuple[int, int, int] | None:
 # --- Embed Builder ---
 
 
-async def build_embeds(  # noqa: PLR0912
+async def build_embeds(
     message_doc: 'MessageDocument',
     guild_id: int,
     color: int,
@@ -347,7 +348,7 @@ async def _fetch_store_and_backfill(
     return doc
 
 
-async def backfill_message_reactions(message: discord.Message, guild_id: int) -> None:  # noqa: PLR0912
+async def backfill_message_reactions(message: discord.Message, guild_id: int) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
     """process all existing reactions on a discord message for starboard backfill.
 
     intended to be called during channel backfill for messages we hadn't seen before.
@@ -432,7 +433,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def handle_star_add(  # noqa: PLR0911, PLR0912
+async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branchy star event handler with many early-exit guard conditions
     guild_id: int,
     channel_id: int,
     message_id: int,
@@ -580,7 +581,7 @@ async def handle_star_remove(
     await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915
+async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
     """create or update (or do nothing for) the starboard channel post for a starred message."""
     from attubot import bot
     from attubot.messages import _get_repo as _get_msg_repo

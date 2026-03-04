@@ -12,6 +12,7 @@ import httpx
 from attubot.logging import get_logger
 from attubot.wiki.auth import AuthApi
 
+
 logger = get_logger(__name__)
 
 
