@@ -131,6 +131,18 @@ def _serialize_embeds(message: Message) -> list[dict]:
             d['thumbnail_url'] = embed.thumbnail.url
         if embed.fields:
             d['fields'] = [{'name': f.name, 'value': f.value, 'inline': f.inline} for f in embed.fields]
+        if embed.footer and embed.footer.text:
+            d['footer_text'] = embed.footer.text
+            if embed.footer.icon_url:
+                d['footer_icon_url'] = embed.footer.icon_url
+        if embed.author and embed.author.name:
+            d['author_name'] = embed.author.name
+            if embed.author.url:
+                d['author_url'] = embed.author.url
+            if embed.author.icon_url:
+                d['author_icon_url'] = embed.author.icon_url
+        if embed.timestamp:
+            d['timestamp'] = embed.timestamp.isoformat()
         out.append(d)
     return out
 

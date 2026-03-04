@@ -13,6 +13,8 @@ from discord.ext import commands
 
 from attubot import bot, config, messages
 from attubot.logging import get_logger
+from attubot.starboard import _get_repo as _get_sb_repo
+from attubot.starboard import _sync_starboard_post
 from attubot.tasks import LogoUpdateTask, scheduler
 from attubot.tasks.message_backfill import MessageBackfillTask
 from attubot.tasks.nova_year import job_construct_year_links
@@ -190,7 +192,6 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
     from attubot import bot, config
     from attubot.database.models import StarredMessageDocument
     from attubot.starboard import _get_repo as _get_sb_repo
-    from attubot.starboard import _sync_starboard_post
 
     try:
         guild_config = config.guild(guild_id)
@@ -297,6 +298,50 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
     await _safe_edit(status_msg, summary)
 
 
+async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915
+    from attubot import config
+    from attubot.starboard import _sync_starboard_post
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception as err:
+        await _safe_edit(status_msg, f'Error: {err}')
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id:
+        await _safe_edit(status_msg, 'No starboard channel configured')
+        return
+
+    sb_repo = _get_sb_repo()
+    all_docs = await sb_repo.all_for_guild(guild_id)
+
+    if not all_docs:
+        await _safe_edit(status_msg, 'No starred messages found - run /fix starboard first')
+        return
+
+    processed = 0
+    errors = 0
+
+    for i, doc in enumerate(all_docs):
+        try:
+            await _sync_starboard_post(guild_id, doc, guild_config)
+            processed += 1
+        except Exception as err:
+            logger.warn(f'regen_starboard: failed for message {doc.message_id}: {err}')
+            errors += 1
+        finally:
+            if (i + 1) % 25 == 0:
+                status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(all_docs)} posts regenerated...')
+
+    summary = f'Done - {processed} posts regenerated'
+    if errors:
+        summary += f', {errors} errors'
+    logger.info(f'regen_starboard: {summary} (guild {guild_id})')
+
+    await _safe_edit(status_msg, summary)
+
+
 async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None = None):
     """Run a full reconciliation pass across all readable channels and threads."""
     task = MessageBackfillTask()
@@ -371,6 +416,20 @@ async def fix_starboard_recount(ctx: ApplicationContext):
     await ctx.respond('Starting starboard recount...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting starboard recount...')
     scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
+
+
+@fix_group.command(name='starboard_regen', description='Rebuilds every starboard post for this guild')
+@commands.check(is_bot_owner)
+async def fix_starboard_regen(ctx: ApplicationContext):
+    try:
+        _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        return
+
+    await ctx.respond('Starting starboard regeneration...', ephemeral=True)
+    status_msg = await ctx.channel.send('Regenerating starboard posts...')
+    scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_regen]')
 
 
 # --- Extension Def ---

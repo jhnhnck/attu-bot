@@ -65,7 +65,11 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 1. quoted/replied-to message: `color = 0x2B2D31` (discord dark background), `author.name = "Replying to <name>"`, `author.url` = link to referenced message; `description` = referenced content; first attachment as `image` if present
 2. the starred message: normal author + description + color from dominant emoji
 
-**link preview** - if the message has no content but has stored embeds, the first embed's `description`, `url`, `image_url`, and `fields` are merged onto the main embed
+**link preview** - if the message has no content but has stored embeds, the first embed's description/url/fields are merged onto the main embed unless the embed contains richer metadata (title, fields, author, footer) in which case it is rendered as a second embed
+
+**stored embed hydration** - the stored embed blob now preserves `title`, `description`, `url`, `color`, `image_url`, `thumbnail_url`, `fields`, `footer`, `author`, and `timestamp`. When the original message already included text or attachments, we merge only the description/url/image unless the stored embed is more complex, in which case the hydrated embed is pushed as a secondary embed so the full structured payload survives in the starboard post.
+
+**attachment heuristics** - attachments lacking a Discord `content_type` are now detected by filename/URL extensions (`.png`, `.jpg`, `.gif`, etc.) so images still surface on the starboard when Discord omits the MIME type.
 
 ---
 

@@ -260,11 +260,11 @@ docker compose logs -f
 
 Notes in `notes/` with relevant implementation details:
 
-- [`notes/button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
-- [`notes/comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
-- [`notes/embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
-- [`notes/starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
-
+- [button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
+- [comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
+- [embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
+- [starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
+- [testing.md`](notes/testing.md) - Test cases
 ---
 
 ## File & Directory Layout

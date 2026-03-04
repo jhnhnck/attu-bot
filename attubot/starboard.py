@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import os
 import re
 from datetime import UTC, datetime
 
@@ -18,6 +19,8 @@ logger = get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
 _starboard_repo: StarboardRepository | None = None
+
+_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.apng'}
 
 # regex to extract per-emoji counts and the jump url from a starboard content string
 # e.g. "⭐ **4** | 🌟 **1** | https://discord.com/channels/g/c/m"
@@ -40,6 +43,72 @@ def _get_repo() -> StarboardRepository:
 def _parse_color(hex_str: str) -> int:
     """convert '#RRGGBB' hex string to int"""
     return int(hex_str.lstrip('#'), 16)
+
+
+def _strip_query(url: str) -> str:
+    return url.split('?', 1)[0]
+
+
+def _looks_like_image_url(url: str) -> bool:
+    if not url:
+        return False
+    path = _strip_query(url)
+    _, ext = os.path.splitext(path.lower())
+    return ext in _IMAGE_EXTENSIONS
+
+
+def _should_merge_stored_embed(stored: dict) -> bool:
+    if not stored.get('description'):
+        return False
+    if stored.get('title') or stored.get('fields') or stored.get('author_name') or stored.get('footer_text'):
+        return False
+    return True
+
+
+def _merge_stored_embed(embed: discord.Embed, stored: dict, has_attachment_image: bool) -> None:
+    if stored.get('description') and not embed.description:
+        embed.description = stored['description']
+    if stored.get('title'):
+        embed.title = stored['title']
+    if stored.get('url'):
+        embed.url = stored['url']
+    image_url = stored.get('image_url') or stored.get('thumbnail_url')
+    if image_url and not has_attachment_image:
+        embed.set_image(url=image_url)
+    for field in stored.get('fields', []):
+        embed.add_field(name=field['name'], value=field['value'], inline=field.get('inline', False))
+
+
+def _hydrate_stored_embed(stored: dict) -> discord.Embed:
+    color = stored.get('color')
+    embed = discord.Embed(color=color if color is not None else discord.Embed.Empty)
+    if stored.get('title'):
+        embed.title = stored['title']
+    if stored.get('description'):
+        embed.description = stored['description']
+    if stored.get('url'):
+        embed.url = stored['url']
+    image_url = stored.get('image_url') or stored.get('thumbnail_url')
+    if image_url:
+        embed.set_image(url=image_url)
+    if stored.get('fields'):
+        for field in stored['fields']:
+            embed.add_field(name=field['name'], value=field['value'], inline=field.get('inline', False))
+    if stored.get('footer_text'):
+        embed.set_footer(text=stored['footer_text'], icon_url=stored.get('footer_icon_url'))
+    if stored.get('author_name'):
+        embed.set_author(
+            name=stored['author_name'],
+            url=stored.get('author_url'),
+            icon_url=stored.get('author_icon_url'),
+        )
+    timestamp = stored.get('timestamp')
+    if timestamp:
+        try:
+            embed.timestamp = datetime.fromisoformat(timestamp)
+        except ValueError:
+            pass
+    return embed
 
 
 def _weighted_count(emoji: str, reactions: dict[str, list[int]], super_reactions: dict[str, list[int]]) -> float:
@@ -175,25 +244,21 @@ async def build_embeds(  # noqa: PLR0912
     if message_doc.content:
         main_embed.description = message_doc.content
 
-    # first image attachment goes on the main embed
     image_attachments = [a for a in message_doc.attachments if _is_image(a)]
     if image_attachments:
         main_embed.set_image(url=image_attachments[0]['url'])
 
-    # stored discord embeds (link previews) - reconstruct from simplified data
-    # we handle this by copying description/url/fields onto the main embed if it has no content
-    if not message_doc.content and message_doc.embeds:
+    hydrated_embed: discord.Embed | None = None
+    if message_doc.embeds:
         stored = message_doc.embeds[0]
-        if stored.get('description') and not main_embed.description:
-            main_embed.description = stored['description']
-        if stored.get('url'):
-            main_embed.url = stored['url']
-        if stored.get('image_url') and not image_attachments:
-            main_embed.set_image(url=stored['image_url'])
-        for field in stored.get('fields', []):
-            main_embed.add_field(name=field['name'], value=field['value'], inline=field.get('inline', False))
+        if not message_doc.content and _should_merge_stored_embed(stored):
+            _merge_stored_embed(main_embed, stored, has_attachment_image=bool(image_attachments))
+        else:
+            hydrated_embed = _hydrate_stored_embed(stored)
 
     embeds.append(main_embed)
+    if hydrated_embed is not None:
+        embeds.append(hydrated_embed)
 
     # --- extra image attachments as separate embeds ---
     for att in image_attachments[1:]:
@@ -205,9 +270,14 @@ async def build_embeds(  # noqa: PLR0912
 
 
 def _is_image(attachment: dict) -> bool:
-    """return True if the attachment is an image type with a usable URL"""
+    """return True if the attachment is an image or otherwise looks like one"""
+    url = attachment.get('url')
+    if not url:
+        return False
     ct = attachment.get('content_type', '')
-    return bool(attachment.get('url')) and ct.startswith('image/')
+    if ct.startswith('image/'):
+        return True
+    return _looks_like_image_url(url)
 
 
 # --- Reaction Processing ---

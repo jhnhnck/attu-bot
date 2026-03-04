@@ -5,17 +5,23 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from unittest.mock import AsyncMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from attubot.database.models import MessageDocument, StarredMessageDocument
 from attubot.starboard import (
     _fmt_count,
+    _hydrate_stored_embed,
     _is_image,
+    _looks_like_image_url,
+    _merge_stored_embed,
     _parse_color,
+    _should_merge_stored_embed,
     _weighted_count,
     build_content,
+    build_embeds,
     dominant_color,
     parse_jump_url,
     parse_starboard_content,
@@ -168,6 +174,63 @@ def test_is_image_false_non_image():
 
 def test_is_image_false_empty_content_type():
     assert not _is_image({'url': 'https://cdn.example.com/file', 'content_type': ''})
+
+
+def test_is_image_true_without_content_type_ext():
+    assert _is_image({'url': 'https://cdn.example.com/file.png', 'content_type': ''})
+
+
+def test_looks_like_image_url_false_without_ext():
+    assert not _looks_like_image_url('https://cdn.example.com/file?size=1')
+
+
+def test_should_merge_stored_embed_description_only():
+    stored = {'description': 'preview', 'image_url': 'https://cdn.example.com/1.png'}
+    assert _should_merge_stored_embed(stored)
+
+
+def test_should_not_merge_when_title_present():
+    stored = {'description': 'preview', 'title': 'Title'}
+    assert not _should_merge_stored_embed(stored)
+
+
+def test_hydrate_stored_embed_populates_all_fields():
+    stored = {
+        'title': 'Title',
+        'description': 'desc',
+        'url': 'https://example.com',
+        'color': 0xFF00FF,
+        'image_url': 'https://example.com/img.png',
+        'fields': [{'name': 'Field', 'value': 'Value', 'inline': True}],
+        'footer_text': 'Footer',
+        'footer_icon_url': 'https://example.com/icon.png',
+        'author_name': 'Author',
+        'author_url': 'https://example.com/author',
+        'author_icon_url': 'https://example.com/avatar.png',
+        'timestamp': datetime.now(tz=UTC).isoformat(),
+    }
+    embed = _hydrate_stored_embed(stored)
+    assert embed.title == 'Title'
+    assert embed.description == 'desc'
+    assert embed.url == 'https://example.com'
+    assert embed.color.value == 0xFF00FF
+    assert embed.image.url == 'https://example.com/img.png'
+    assert embed.fields[0].name == 'Field'
+    assert embed.footer.text == 'Footer'
+    assert embed.author.name == 'Author'
+
+
+@pytest.mark.asyncio
+async def test_build_embeds_merges_link_preview_with_empty_content(monkeypatch):
+    msg_doc = _make_msg_doc(content='', embeds=[{'description': 'preview text'}])
+    mock_user = MagicMock()
+    mock_avatar = MagicMock()
+    mock_avatar.__str__.return_value = 'avatar_url'
+    mock_user.display_avatar = mock_avatar
+    monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+
+    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    assert embeds[0].description == 'preview text'
 
 
 # ---- make_message_doc helper ----
