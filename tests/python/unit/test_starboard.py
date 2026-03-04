@@ -472,7 +472,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.commands.fix._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
