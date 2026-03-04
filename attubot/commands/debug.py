@@ -20,10 +20,11 @@ from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, Sl
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot import __build_time__, __schema__, __title__, __version__, config
+from attubot import config
 from attubot.calendar import get_year_span, get_year_status
 from attubot.embeds import make_embed
 from attubot.logging import get_logger
+from attubot.meta import __build_time__, __schema__, __title__, __version__
 from attubot.tasks import scheduler
 from attubot.util import is_bot_owner
 

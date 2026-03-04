@@ -5,17 +5,6 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-__title__ = 'AttuBot'
-__author__ = 'jhnhnck'
-__license__ = 'Apache License, Version 2.0'
-__copyright__ = 'Copyright (c) 2026 John Hancock, The Attu Project'
-__schema__ = '2.5.1'  # previously __version__
-__email__ = 'doom@attuproject.org'
-__description__ = 'A discord bot designed for automating tasks for the Attu Project'
-
-__version__ = '26.2.22'
-__build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
-
 import importlib
 import shutil
 import sys
@@ -32,7 +21,7 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 logger.info('Initializing...')
 
-# Create bot instance
+# create bot instance
 logger.debug('Creating bot instance')
 intents = Intents.default()
 intents.message_content = True
@@ -42,11 +31,11 @@ intents.moderation = True
 
 bot = discord.Bot(intents=intents)
 
-# Create config instance
+# create config instance
 logger.debug('Creating config instance')
 config = NovaConfig()
 
-# Create database instance
+# create database instance
 logger.debug('Creating database instance')
 db: MongoStorage = MongoStorage()
 
@@ -124,7 +113,7 @@ def start_bot_loop():
 
 
 def start_bot_loop_web():
-    """Alias for web process use; not intended to be called directly"""
+    """alias for web process use; not intended to be called directly"""
     from attubot.web.app import start_web
 
     start_web()

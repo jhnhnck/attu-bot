@@ -16,9 +16,9 @@ import anyio
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
-from attubot import __schema__
 from attubot.database.repositories import ConfigRepository
 from attubot.logging import get_logger
+from attubot.meta import __schema__
 
 
 logger = get_logger(__name__)
