@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from discord import Bot
 
+from attubot.core import config
 from attubot.logging import get_logger
 from attubot.wiki.client import WikiClient
 from attubot.wiki.models import SearchResult, SiteInfo
@@ -22,8 +23,6 @@ def get_wiki() -> WikiClient:
     """get the global WikiClient instance; raises if not yet initialized"""
     global _wiki  # noqa: PLW0603 - lazy singleton initialization requires global
     if _wiki is None:
-        from attubot import config
-
         _wiki = WikiClient(endpoint=config.wiki.endpoint)
     return _wiki
 

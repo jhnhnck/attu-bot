@@ -21,6 +21,7 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 
+from attubot.core import db as _db_store
 from attubot.logging import get_logger
 
 
@@ -185,9 +186,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
         db = None
         try:
-            from attubot import db as db_module
-
-            db = db_module.get_db()
+            db = _db_store.get_db()
         except Exception:
             # DB not ready yet — let it through so startup can proceed
             return
@@ -228,9 +227,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     @app.route('/auth/login/begin', methods=['POST'])
     @rate_limit(10, timedelta(minutes=1))
     async def auth_login_begin():
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         creds = await list_credentials(db)
         if not creds:
@@ -259,9 +256,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     @app.route('/auth/login/complete', methods=['POST'])
     @rate_limit(10, timedelta(minutes=1))
     async def auth_login_complete():
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         challenge_b64 = session.get(CHALLENGE_KEY)
         if not challenge_b64:
@@ -323,10 +318,8 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
     @app.route('/auth/setup')
     async def auth_setup():
-        from attubot import db as db_module
-
         try:
-            db = db_module.get_db()
+            db = _db_store.get_db()
             n = await count_credentials(db)
             if n > 0 and not is_authenticated():
                 return redirect(url_for('auth_login'))
@@ -338,9 +331,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
     @app.route('/auth/setup/begin', methods=['POST'])
     async def auth_setup_begin():
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         # Only allow setup when no credentials exist OR already authenticated
         n = await count_credentials(db)
@@ -377,9 +368,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     @app.route('/auth/setup/complete', methods=['POST'])
     @rate_limit(10, timedelta(minutes=1))
     async def auth_setup_complete():
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         n = await count_credentials(db)
         if n > 0 and not is_authenticated():
@@ -429,9 +418,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     async def auth_passkeys():
         if not is_authenticated():
             return redirect(url_for('auth_login'))
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
         creds = await list_credentials(db)
         return await render_template('passkeys.html', title='Manage Passkeys', passkeys=creds)
 
@@ -475,9 +462,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
         if not is_authenticated():
             return jsonify({'error': 'Not authenticated'}), 401
 
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         challenge_b64 = session.get(CHALLENGE_KEY)
         if not challenge_b64:
@@ -522,9 +507,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
         if not is_authenticated():
             return jsonify({'error': 'Not authenticated'}), 401
 
-        from attubot import db as db_module
-
-        db = db_module.get_db()
+        db = _db_store.get_db()
 
         # Safety: don't allow deleting the last passkey
         n = await count_credentials(db)

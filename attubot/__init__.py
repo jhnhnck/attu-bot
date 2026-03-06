@@ -11,33 +11,14 @@ import sys
 from typing import cast
 
 import discord
-from discord import ApplicationCommand, ApplicationContext, Intents
+from discord import ApplicationCommand, ApplicationContext
 
-from attubot.config import NovaConfig
-from attubot.database import MongoStorage
+from attubot.core import bot, config, db  # noqa: F401 - re-exported so existing `from attubot import db` and `patch('attubot.db', ...)` calls continue to work until phase 4
 from attubot.logging import get_logger
 
 
 logger = get_logger(__name__)
 logger.info('Initializing...')
-
-# create bot instance
-logger.debug('Creating bot instance')
-intents = Intents.default()
-intents.message_content = True
-intents.members = True
-intents.emojis_and_stickers = True
-intents.moderation = True
-
-bot = discord.Bot(intents=intents)
-
-# create config instance
-logger.debug('Creating config instance')
-config = NovaConfig()
-
-# create database instance
-logger.debug('Creating database instance')
-db: MongoStorage = MongoStorage()
 
 
 # --- Commands ---

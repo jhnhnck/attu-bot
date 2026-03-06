@@ -514,7 +514,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats(self, client):
         """Test GET /api/admin/stats returns system statistics"""
-        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(side_effect=[10, 5])  # Called twice for 2 guilds
             mock_marker.total = AsyncMock(side_effect=[20, 8])
             mock_db.get_db.side_effect = RuntimeError('not connected')
@@ -532,7 +532,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats_db_not_connected(self, client):
         """Test GET /api/admin/stats handles disconnected database"""
-        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(return_value=0)
             mock_marker.total = AsyncMock(return_value=0)
             mock_db.get_db.side_effect = RuntimeError('not connected')

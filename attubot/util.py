@@ -11,6 +11,7 @@ from typing import Any, cast
 import discord
 from discord.ext.commands import Context
 
+from attubot.core import config
 from attubot.logging import Logger, get_logger
 
 
@@ -22,15 +23,11 @@ logger = get_logger(__name__)
 
 
 def is_bot_owner(ctx: Context) -> bool:
-    from attubot import config
-
     user_id = cast(discord.ApplicationContext, ctx).user.id
     return config.is_owner(user_id)
 
 
 def is_authorized_guild(ctx: Context) -> bool:
-    from attubot import config
-
     return ctx.guild.id in config.authorized_guilds
 
 
@@ -56,8 +53,6 @@ def webhook_logging(scope: Logger) -> Callable:
 
 def theme_color() -> int:
     """return the bot theme color as an int, falling back to blurple"""
-    from attubot import config
-
     if config.theme:
         return int(config.theme.bot_color.lstrip('#'), 16)
     return 0x5865F2  # discord blurple

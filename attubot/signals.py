@@ -5,26 +5,20 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from typing import TYPE_CHECKING
-
+from attubot.core import db
+from attubot.database.repositories import ReloadSignalRepository
 from attubot.logging import get_logger
 
 
-if TYPE_CHECKING:
-    from attubot.database.repositories import ReloadSignalRepository
-
 logger = get_logger(__name__)
 
-_repo: 'ReloadSignalRepository | None' = None
+_repo: ReloadSignalRepository | None = None
 
 
-def _get_repo() -> 'ReloadSignalRepository':
+def _get_repo() -> ReloadSignalRepository:
     """Get or create the reload signal repository"""
     global _repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _repo is None:
-        from attubot import db
-        from attubot.database.repositories import ReloadSignalRepository
-
         _repo = ReloadSignalRepository(db.get_db())
     return _repo
 

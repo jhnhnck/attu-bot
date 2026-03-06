@@ -7,6 +7,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import timedelta
 
+from attubot.core import config, db
+from attubot.database.repositories import ReloadSignalRepository
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
 from attubot.util import webhook_logging
@@ -14,25 +16,15 @@ from attubot.util import webhook_logging
 
 logger = get_logger(__name__)
 
-_repo = None
+_repo: ReloadSignalRepository | None = None
 
 
-def _get_repo():
+def _get_repo() -> ReloadSignalRepository:
     global _repo  # noqa: PLW0603 - lazy singleton initialization requires global
 
     if _repo is None:
-        from attubot import db
-        from attubot.database.repositories import ReloadSignalRepository
-
         _repo = ReloadSignalRepository(db.get_db())
     return _repo
-
-
-def _get_config():
-    """Lazy import config to allow mocking in tests."""
-    from attubot import config
-
-    return config
 
 
 class ReloadWatcherTask(BaseTask):
@@ -42,13 +34,11 @@ class ReloadWatcherTask(BaseTask):
     interval = timedelta(seconds=5)
 
     async def on_start(self) -> None:
-        cfg = _get_config()
-        await cfg.wait_for_load()
+        await config.wait_for_load()
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
         """Poll for and process reload signals."""
-        cfg = _get_config()
         repo = _get_repo()
 
         try:
@@ -69,15 +59,15 @@ class ReloadWatcherTask(BaseTask):
                         logger.warn('Received guild reload signal with no guild_id; skipping')
                         continue
                     logger.info(f'Reloading guild config for {signal.guild_id} (web-triggered)')
-                    await cfg.load_guild(signal.guild_id)
+                    await config.load_guild(signal.guild_id)
 
                 elif signal.signal_type == 'theme':
                     logger.info('Reloading theme config (web-triggered)')
-                    await cfg.load_theme()
+                    await config.load_theme()
 
                 elif signal.signal_type == 'system':
                     logger.info('Reloading system globals (web-triggered)')
-                    await cfg.load_globals()
+                    await config.load_globals()
 
                 else:
                     logger.warn(f'Unknown reload signal type: {signal.signal_type!r}')

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from quart import Quart, g
 
-from attubot import config
+from attubot.core import config, db
 from attubot.logging import get_logger
 from attubot.web.audit import AuditLogger
 
@@ -99,8 +99,6 @@ async def _initialize_startup(assets_dir: Path):
     await config.on_ready()
 
     logger.info('Initializing audit logger...')
-    from attubot import db
-
     audit_logger = AuditLogger(db.get_db())
     logger.info('Audit logger initialized')
     return audit_logger

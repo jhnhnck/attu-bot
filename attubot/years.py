@@ -7,8 +7,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel
 
-from attubot import config
 from attubot.calendar import SECONDS_PER_DAY
+from attubot.core import config, db
 from attubot.database.repositories import YearRepository
 from attubot.logging import get_logger
 
@@ -23,8 +23,6 @@ def _get_repo() -> YearRepository:
     """Get or create the year repository"""
     global _year_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _year_repo is None:
-        from attubot import db
-
         _year_repo = YearRepository(db.get_db())
     return _year_repo
 

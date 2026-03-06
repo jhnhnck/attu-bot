@@ -203,13 +203,13 @@ class TestSendSignalHelper:
 
 @pytest.fixture
 def mock_cfg():
-    """Patch attubot.tasks.reload_watcher._get_config with async load methods."""
+    """Patch attubot.tasks.reload_watcher.config with async load methods."""
     cfg = MagicMock()
     cfg.load_guild = AsyncMock()
     cfg.load_theme = AsyncMock()
     cfg.load_globals = AsyncMock()
     cfg.wait_for_load = AsyncMock()
-    with patch('attubot.tasks.reload_watcher._get_config', return_value=cfg):
+    with patch('attubot.tasks.reload_watcher.config', cfg):
         yield cfg
 
 

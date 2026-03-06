@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from discord.utils import snowflake_time
 from pydantic import BaseModel
 
-from attubot import config
+from attubot.core import config, db
 from attubot.database.repositories import MessageRepository, YearMarkerRepository
 from attubot.logging import get_logger
 
@@ -28,8 +28,6 @@ def _get_repo() -> YearMarkerRepository:
     """Get or create the marker override repository"""
     global _marker_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _marker_repo is None:
-        from attubot import db
-
         _marker_repo = YearMarkerRepository(db.get_db())
     return _marker_repo
 
@@ -38,8 +36,6 @@ def _get_message_repo() -> MessageRepository:
     """Get or create the message repository for resolver queries"""
     global _message_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _message_repo is None:
-        from attubot import db
-
         _message_repo = MessageRepository(db.get_db())
     return _message_repo
 

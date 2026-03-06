@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from quart import Quart, jsonify, render_template, request
 
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+from attubot.core import db
 from attubot.logging import get_logger
 from attubot.signals import send_signal
 from attubot.web.app import config
@@ -1165,7 +1166,6 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
     async def api_get_admin_stats():
         """Get system statistics"""
         try:
-            from attubot import db
             from attubot.markers import YearMarker
             from attubot.years import Year
 
