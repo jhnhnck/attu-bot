@@ -145,7 +145,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
         sb_doc = await _get_sb_repo().get(message_id)
         if sb_doc and sb_doc.starboard_message_id:
             sb_link = f'https://discord.com/channels/{ctx.guild.id}/{guild_config.starboard.channel_id}/{sb_doc.starboard_message_id}'
-            await ctx.respond(f'recheck complete — {sb_link}')
+            await ctx.respond(f'recheck complete - {sb_link}')
             return
     except Exception as err:
         logger.warn(f'recheck: could not resolve starboard post link for message {message_id}: {err}')
