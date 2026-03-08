@@ -21,8 +21,11 @@ _family_repo: FamilyRepository | None = None
 
 FAMILYECHO_API = 'https://www.familyecho.com/api/'
 
-# matches the first three lines of any FamilyScript file; \r? handles windows line endings
+# matches the first three lines of a FamilyScript (.txt) file; \r? handles windows line endings
 _FAMILYSCRIPT_HEADER_RE = re.compile(r'^# .+\r?\n#\r?\n# FamilyScript downloaded by ')
+
+# matches the first two lines of a GEDCOM (.ged) file exported from Family Echo
+_GEDCOM_HEADER_RE = re.compile(r'^0 HEAD\r?\n1 SOUR Family Echo')
 
 
 def _get_repo() -> FamilyRepository:
@@ -31,12 +34,12 @@ def _get_repo() -> FamilyRepository:
     return _family_repo
 
 
-def is_familyscript(content: str) -> bool:
-    """Return True if content starts with the FamilyScript header."""
-    if _FAMILYSCRIPT_HEADER_RE.match(content):
+def is_family_file(content: str) -> bool:
+    """Return True if content is a FamilyScript or Family Echo GEDCOM file."""
+    if _FAMILYSCRIPT_HEADER_RE.match(content) or _GEDCOM_HEADER_RE.match(content):
         return True
     header = content[:200].splitlines()[:5]
-    logger.debug(f'familyscript header mismatch - first lines: {header!r}')
+    logger.debug(f'family file header mismatch - first lines: {header!r}')
     return False
 
 
