@@ -12,12 +12,15 @@ import pytest
 
 from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
 from attubot.starboard import (
+    _check_and_announce_sweep,
+    _count_streak,
     _fmt_count,
     _hydrate_stored_embed,
     _is_image,
     _looks_like_image_url,
     _parse_color,
     _should_merge_stored_embed,
+    _sweep_message,
     _weighted_count,
     build_content,
     build_embeds,
@@ -849,3 +852,261 @@ def test_parse_real_dump_samples():
         parsed = parse_jump_url(url)  # pyright: ignore[reportArgumentType]
         assert parsed is not None
         assert parsed[2] == exp_msg_id
+
+
+# ---- _count_streak pure function tests ----
+
+
+def test_count_streak_empty_list():
+    assert _count_streak([], TEST_AUTHOR) == 0
+
+
+def test_count_streak_single_match():
+    docs = [_make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001)]
+    assert _count_streak(docs, TEST_AUTHOR) == 1
+
+
+def test_count_streak_single_mismatch():
+    docs = [_make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001)]
+    assert _count_streak(docs, TEST_AUTHOR) == 0
+
+
+def test_count_streak_three_in_a_row():
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    assert _count_streak(docs, TEST_AUTHOR) == 3
+
+
+def test_count_streak_five_in_a_row():
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(5)]
+    assert _count_streak(docs, TEST_AUTHOR) == 5
+
+
+def test_count_streak_eleven_in_a_row():
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(11)]
+    assert _count_streak(docs, TEST_AUTHOR) == 11
+
+
+def test_count_streak_broken_by_other_author():
+    # 2 by TEST_AUTHOR at tail, 1 by USER_A before, then TEST_AUTHOR earlier - streak is 2
+    docs = [
+        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=USER_A, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=2003),
+        _make_star_doc(message_id=1004, author_id=TEST_AUTHOR, starboard_message_id=2004),
+    ]
+    assert _count_streak(docs, TEST_AUTHOR) == 2
+
+
+def test_count_streak_other_author_at_tail():
+    docs = [
+        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=USER_A, starboard_message_id=2003),
+    ]
+    assert _count_streak(docs, TEST_AUTHOR) == 0
+
+
+def test_count_streak_unordered_input():
+    # same docs as three_in_a_row but reversed - should still return 3
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    assert _count_streak(list(reversed(docs)), TEST_AUTHOR) == 3
+
+
+def test_count_streak_author_in_middle_only():
+    docs = [
+        _make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=USER_B, starboard_message_id=2003),
+    ]
+    assert _count_streak(docs, TEST_AUTHOR) == 0
+
+
+# ---- _sweep_message pure function tests ----
+
+
+def test_sweep_message_streak_3():
+    result = _sweep_message(3, TEST_AUTHOR)
+    assert result is not None
+    assert f'<@{TEST_AUTHOR}>' in result
+    assert 'sweeps!' in result
+    assert ':broom:' in result
+
+
+def test_sweep_message_streak_5():
+    result = _sweep_message(5, TEST_AUTHOR)
+    assert result is not None
+    assert 'sweeps more!' in result
+    assert ':silver_medal:' in result
+
+
+def test_sweep_message_streak_11():
+    result = _sweep_message(11, TEST_AUTHOR)
+    assert result is not None
+    assert 'sweeps even more!' in result
+    assert ':gold_medal:' in result
+
+
+def test_sweep_message_streak_0_is_none():
+    assert _sweep_message(0, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_1_is_none():
+    assert _sweep_message(1, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_2_is_none():
+    assert _sweep_message(2, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_4_is_none():
+    assert _sweep_message(4, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_6_is_none():
+    assert _sweep_message(6, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_10_is_none():
+    assert _sweep_message(10, TEST_AUTHOR) is None
+
+
+def test_sweep_message_streak_12_is_none():
+    assert _sweep_message(12, TEST_AUTHOR) is None
+
+
+def test_sweep_message_mention_format():
+    result = _sweep_message(3, TEST_AUTHOR)
+    assert result is not None
+    assert result.startswith(f'<@{TEST_AUTHOR}>')
+
+
+# ---- _check_and_announce_sweep integration tests ----
+
+
+@pytest.fixture
+def mock_sb_repo_for_sweep():
+    """patch _starboard_repo with a fresh MagicMock for sweep tests"""
+    repo = MagicMock()
+    repo.all_for_guild = AsyncMock()
+    with patch('attubot.starboard._starboard_repo', repo):
+        yield repo
+
+
+async def test_check_and_announce_sweep_sends_on_streak_3(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_called_once()
+    text = channel.send.call_args.kwargs['content']
+    assert f'<@{TEST_AUTHOR}>' in text
+    assert 'sweeps!' in text
+    assert ':broom:' in text
+
+
+async def test_check_and_announce_sweep_sends_on_streak_5(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(5)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_called_once()
+    text = channel.send.call_args.kwargs['content']
+    assert 'sweeps more!' in text
+    assert ':silver_medal:' in text
+
+
+async def test_check_and_announce_sweep_sends_on_streak_11(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(11)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_called_once()
+    text = channel.send.call_args.kwargs['content']
+    assert 'sweeps even more!' in text
+    assert ':gold_medal:' in text
+
+
+async def test_check_and_announce_sweep_no_send_on_streak_2(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(2)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_not_called()
+
+
+async def test_check_and_announce_sweep_no_send_on_streak_4(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(4)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_not_called()
+
+
+async def test_check_and_announce_sweep_no_send_when_streak_broken(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    # 2 by TEST_AUTHOR at tail, then USER_A breaks the streak
+    docs = [
+        _make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=2003),
+    ]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_not_called()
+
+
+async def test_check_and_announce_sweep_ignores_unposted_docs(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    # 3 docs by TEST_AUTHOR but one lacks starboard_message_id - only 2 are "posted"
+    docs = [
+        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=None),
+    ]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    # streak of 2 posted docs - no announce
+    channel.send.assert_not_called()
+
+
+async def test_check_and_announce_sweep_swallows_repo_error(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    repo.all_for_guild = AsyncMock(side_effect=RuntimeError('db error'))
+    channel = AsyncMock()
+
+    # must not raise
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+
+    channel.send.assert_not_called()
+
+
+async def test_check_and_announce_sweep_swallows_send_error(mock_sb_repo_for_sweep):
+    repo = mock_sb_repo_for_sweep
+    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    repo.all_for_guild = AsyncMock(return_value=docs)
+    channel = AsyncMock()
+    channel.send = AsyncMock(side_effect=RuntimeError('discord error'))
+
+    # must not raise
+    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)

@@ -126,6 +126,59 @@ def _fmt_count(value: float) -> str:
     return str(int(value)) if value == int(value) else str(value)
 
 
+def _count_streak(posted: list[StarredMessageDocument], author_id: int) -> int:
+    """count consecutive entries at the chronological tail of posted that are by author_id.
+
+    posted must contain only docs with a starboard post (starboard_message_id is not None).
+    returns 0 if posted is empty or the most recent entry is not by author_id.
+    """
+    if not posted:
+        return 0
+    ordered = sorted(posted, key=lambda d: d.message_id)
+    count = 0
+    for doc in reversed(ordered):
+        if doc.author_id != author_id:
+            break
+        count += 1
+    return count
+
+
+def _sweep_message(streak: int, author_id: int) -> str | None:
+    """return the sweeps announcement string for the given streak, or None for no announcement.
+
+    only announces at exactly 3, 5, and 11.
+    """
+    mention = f'<@{author_id}>'
+    if streak == 3:
+        return f'{mention} sweeps! :broom:'
+    if streak == 5:
+        return f'{mention} sweeps more! :broom: :silver_medal:'
+    if streak == 11:
+        return f'{mention} sweeps even more! :broom: :gold_medal:'
+    return None
+
+
+async def _check_and_announce_sweep(guild_id: int, author_id: int, channel) -> None:
+    """check for a sweeps milestone and announce it in the starboard channel if earned.
+
+    fetches all posted starboard docs for the guild, counts the tail streak for author_id,
+    and sends an announcement at streak lengths of exactly 3, 5, or 11.
+    swallows all errors so a sweep failure never disrupts the post creation path.
+    """
+    try:
+        repo = _get_repo()
+        all_docs = await repo.all_for_guild(guild_id)
+        posted = [d for d in all_docs if d.starboard_message_id is not None]
+        streak = _count_streak(posted, author_id)
+        text = _sweep_message(streak, author_id)
+        if text is None:
+            return
+        await channel.send(content=text)
+        logger.info(f'starboard: sweep announced for author {author_id} - streak {streak}')
+    except Exception as err:
+        logger.error(f'starboard: sweep announcement failed for author {author_id}: {err}')
+
+
 def dominant_color(
     reactions: dict[str, list[int]],
     emoji_colors: dict[str, str],
@@ -640,6 +693,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                     logger.info(f'starboard: created post {sb_msg.id} for message {fresh.message_id} ({fresh.total_reactions} reactions)')
                 except Exception as err:
                     logger.error(f'starboard: failed to create post for message {fresh.message_id}: {err}')
+                await _check_and_announce_sweep(guild_id, fresh.author_id, channel)
                 return
             # concurrent call already created the post - fall through to update it
             doc = fresh
