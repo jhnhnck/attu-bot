@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,6 +21,9 @@ logger = get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
 _starboard_repo: StarboardRepository | None = None
+
+# per-message locks to prevent concurrent creation of duplicate starboard posts
+_post_creation_locks: dict[int, asyncio.Lock] = {}
 
 _IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.apng'}
 
@@ -396,14 +400,16 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
     existing = await repo.get(message.id)
     if existing is None:
         msg_doc = await msg_repo.get(message.id)
-        author_id = msg_doc.author_id if msg_doc else message.author.id
+        author_id = msg_doc.author.id if msg_doc else message.author.id
+        total_new = sum(len(v) for v in new_reactions.values())
         doc = StarredMessageDocument(
             message_id=message.id,
             channel_id=message.channel.id,
             guild_id=guild_id,
             author_id=author_id,
             reactions=new_reactions,
-            total_reactions=sum(len(v) for v in new_reactions.values()),
+            total_reactions=total_new,
+            weighted_total=float(total_new),  # backfill only counts normal reactions
         )
         await repo.upsert(doc)
     else:
@@ -413,7 +419,8 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
             current = set(merged.get(emoji, []))
             current.update(users)
             merged[emoji] = list(current)
-        total = sum(len(v) for v in merged.values())
+        total_normal = sum(len(v) for v in merged.values())
+        total_super = sum(len(v) for v in existing.super_reactions.values())
         doc = StarredMessageDocument(
             message_id=existing.message_id,
             channel_id=existing.channel_id,
@@ -421,7 +428,9 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
             author_id=existing.author_id,
             starboard_message_id=existing.starboard_message_id,
             reactions=merged,
-            total_reactions=total,
+            super_reactions=existing.super_reactions,
+            total_reactions=total_normal + total_super,
+            weighted_total=float(total_normal) + float(total_super) * 1.5,
         )
         await repo.upsert(doc)
 
@@ -605,53 +614,63 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     if doc.starboard_message_id is None:
-        # only create a new post when weighted threshold is met (>= 2.0)
-        if doc.weighted_total < 2:
-            return
+        lock = _post_creation_locks.setdefault(doc.message_id, asyncio.Lock())
+        async with lock:
+            # re-fetch inside the lock; a concurrent call may have already created the post
+            fresh = await repo.get(doc.message_id)
+            if fresh is None:
+                return
+            if fresh.starboard_message_id is None:
+                # still no post - we are responsible for creating it
+                if fresh.weighted_total < 2:
+                    return
+                try:
+                    sb_msg = await channel.send(content=content, embeds=embeds)
+                    await repo.set_starboard_message(fresh.message_id, sb_msg.id)
+                    # bot reacts to its own starboard post with all active emojis
+                    for emoji in fresh.reactions:
+                        if fresh.reactions[emoji] and emoji in sb.emojis:
+                            try:
+                                await sb_msg.add_reaction(emoji)
+                            except Exception as err:
+                                logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
+                    logger.info(f'starboard: created post {sb_msg.id} for message {fresh.message_id} ({fresh.total_reactions} reactions)')
+                except Exception as err:
+                    logger.error(f'starboard: failed to create post for message {fresh.message_id}: {err}')
+                return
+            # concurrent call already created the post - fall through to update it
+            doc = fresh
+
+    # update existing post
+    try:
+        sb_msg = await channel.fetch_message(doc.starboard_message_id)
+        await sb_msg.edit(content=content, embeds=embeds)
+        logger.debug(f'starboard: updated post {doc.starboard_message_id} ({doc.total_reactions} reactions)')
+    except discord.NotFound:
+        # old post was deleted - clear the reference so we can create a new one
+        logger.warn(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
+        await repo.set_starboard_message(doc.message_id, None)
+    except discord.Forbidden:
+        # not our message (old bot) - send a reply to the old post so it's easy to jump to
+        logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
         try:
-            sb_msg = await channel.send(content=content, embeds=embeds)
-            await repo.set_starboard_message(doc.message_id, sb_msg.id)
-            # bot reacts to its own starboard post with all active emojis
+            try:
+                old_msg = await channel.fetch_message(doc.starboard_message_id)
+                new_msg = await channel.send(content=content, embeds=embeds, reference=old_msg)
+            except discord.NotFound:
+                new_msg = await channel.send(content=content, embeds=embeds)
+            await repo.set_starboard_message(doc.message_id, new_msg.id)
             for emoji in doc.reactions:
                 if doc.reactions[emoji] and emoji in sb.emojis:
                     try:
-                        await sb_msg.add_reaction(emoji)
-                    except Exception as err:
-                        logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
-            logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
+                        await new_msg.add_reaction(emoji)
+                    except Exception as react_err:
+                        logger.warn(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
+            logger.info(f'starboard: replaced uneditable post {doc.starboard_message_id} with {new_msg.id} for message {doc.message_id}')
         except Exception as err:
-            logger.error(f'starboard: failed to create post for message {doc.message_id}: {err}')
-    else:
-        # update existing post
-        try:
-            sb_msg = await channel.fetch_message(doc.starboard_message_id)
-            await sb_msg.edit(content=content, embeds=embeds)
-            logger.debug(f'starboard: updated post {doc.starboard_message_id} ({doc.total_reactions} reactions)')
-        except discord.NotFound:
-            # old post was deleted - clear the reference so we can create a new one
-            logger.warn(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
-            await repo.set_starboard_message(doc.message_id, None)
-        except discord.Forbidden:
-            # not our message (old bot) - send a reply to the old post so it's easy to jump to
-            logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
-            try:
-                try:
-                    old_msg = await channel.fetch_message(doc.starboard_message_id)
-                    new_msg = await channel.send(content=content, embeds=embeds, reference=old_msg)
-                except discord.NotFound:
-                    new_msg = await channel.send(content=content, embeds=embeds)
-                await repo.set_starboard_message(doc.message_id, new_msg.id)
-                for emoji in doc.reactions:
-                    if doc.reactions[emoji] and emoji in sb.emojis:
-                        try:
-                            await new_msg.add_reaction(emoji)
-                        except Exception as react_err:
-                            logger.warn(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
-                logger.info(f'starboard: replaced uneditable post {doc.starboard_message_id} with {new_msg.id} for message {doc.message_id}')
-            except Exception as err:
-                logger.error(f'starboard: failed to send replacement for post {doc.starboard_message_id}: {err}')
-        except Exception as err:
-            logger.error(f'starboard: failed to update post {doc.starboard_message_id}: {err}')
+            logger.error(f'starboard: failed to send replacement for post {doc.starboard_message_id}: {err}')
+    except Exception as err:
+        logger.error(f'starboard: failed to update post {doc.starboard_message_id}: {err}')
 
 
 logger.info('Registered: starboard module')

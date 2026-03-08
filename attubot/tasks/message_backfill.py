@@ -139,6 +139,8 @@ class MessageBackfillTask(BaseTask):
                     doc = await build_message_doc(message)
                     await repo.upsert(doc)
                     count += 1
+                    if message.reactions:
+                        await backfill_message_reactions(message, guild_id)
                 except Exception as err:
                     logger.warn(f'backfill: failed to store message {message.id} in channel {channel.id}: {err}')
 

@@ -209,7 +209,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
     all_docs = await sb_repo.all_for_guild(guild_id)
 
     if not all_docs:
-        await _safe_edit(status_msg, 'No starred messages found - run /fix starboard first')
+        await _safe_edit(status_msg, 'No starred messages found')
         return
 
     updated = 0

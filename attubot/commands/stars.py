@@ -139,6 +139,16 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
         logger.warn(f'recheck: failed to store message {message_id}: {err}')
 
     await backfill_message_reactions(discord_msg, ctx.guild.id)
+
+    try:
+        guild_config = config.guild(ctx.guild.id)
+        sb_doc = await _get_sb_repo().get(message_id)
+        if sb_doc and sb_doc.starboard_message_id:
+            sb_link = f'https://discord.com/channels/{ctx.guild.id}/{guild_config.starboard.channel_id}/{sb_doc.starboard_message_id}'
+            await ctx.respond(f'recheck complete — {sb_link}')
+            return
+    except Exception:
+        pass
     await ctx.respond('recheck complete')
 
 
