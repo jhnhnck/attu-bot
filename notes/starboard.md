@@ -69,6 +69,8 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 
 **stored embed hydration** - the stored embed blob now preserves `title`, `description`, `url`, `color`, `image_url`, `thumbnail_url`, `fields`, `footer`, `author`, and `timestamp`. When the original message already included text or attachments, we merge only the description/url/image unless the stored embed is more complex, in which case the hydrated embed is pushed as a secondary embed so the full structured payload survives in the starboard post.
 
+**forwarded message** - same as a standard text/image embed but with a footer set to `"forwarded message"`; content, attachments, and embeds are sourced from `message.snapshots[0].message` (a `ForwardedMessage`) rather than the forwarding message itself, which has no content of its own
+
 **attachment heuristics** - attachments lacking a Discord `content_type` are now detected by filename/URL extensions (`.png`, `.jpg`, `.gif`, etc.) so images still surface on the starboard when Discord omits the MIME type.
 
 ---

@@ -196,7 +196,7 @@ def parse_jump_url(url: str) -> tuple[int, int, int] | None:
 # --- Embed Builder ---
 
 
-async def build_embeds(
+async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many optional message content types
     message_doc: 'MessageDocument',
     guild_id: int,
     color: int,
@@ -260,6 +260,9 @@ async def build_embeds(
             _merge_stored_embed(main_embed, stored, has_attachment_image=bool(image_attachments))
         else:
             hydrated_embed = _hydrate_stored_embed(stored)
+
+    if message_doc.content.forwarded:
+        main_embed.set_footer(text='forwarded message')
 
     embeds.append(main_embed)
     if hydrated_embed is not None:

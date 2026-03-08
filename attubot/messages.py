@@ -89,16 +89,22 @@ async def _save_attachment(attachment: discord.Attachment, message_id: int, guil
     return meta
 
 
-async def _build_attachments(message: Message, save_files: bool) -> list[dict]:
-    """Serialize all attachments from a message.
+async def _build_attachments(
+    attachments: list[discord.Attachment],
+    message_id: int,
+    guild_id: int,
+    channel_id: int,
+    save_files: bool,
+) -> list[dict]:
+    """Serialize a list of attachments.
 
     Downloads file contents only when save_files is True (i.e. lore/canon channels).
     """
-    if not message.attachments:
+    if not attachments:
         return []
 
     if save_files:
-        tasks = [_save_attachment(a, message.id, message.guild.id, message.channel.id) for a in message.attachments]
+        tasks = [_save_attachment(a, message_id, guild_id, channel_id) for a in attachments]
         return list(await asyncio.gather(*tasks))
 
     return [
@@ -109,14 +115,14 @@ async def _build_attachments(message: Message, save_files: bool) -> list[dict]:
             'size': a.size,
             'saved_path': None,
         }
-        for a in message.attachments
+        for a in attachments
     ]
 
 
-def _serialize_embeds(message: Message) -> list[dict]:  # noqa: PLR0912 - embed serialization requires checking many optional fields
-    """Convert message embeds to plain dicts for storage."""
+def _serialize_embeds(embeds: list[discord.Embed]) -> list[dict]:  # noqa: PLR0912 - embed serialization requires checking many optional fields
+    """Convert a list of embeds to plain dicts for storage."""
     out = []
-    for embed in message.embeds:
+    for embed in embeds:
         d: dict = {}
         if embed.title:
             d['title'] = embed.title
@@ -171,8 +177,26 @@ async def build_message_doc(message: Message) -> MessageDocument:
     parent_channel_id: int | None = message.channel.parent_id if isinstance(message.channel, Thread) else None
 
     save_files = _is_archive_channel(channel_id, guild_id, parent_channel_id)
-    attachments = await _build_attachments(message, save_files)
-    embeds = _serialize_embeds(message)
+
+    # forwarded messages carry their content in snapshots, not on the message itself
+    forwarded = False
+    snapshot_msg = getattr(message.snapshots[0], 'message', None) if message.snapshots else None
+
+    if snapshot_msg is not None:
+        forwarded = True
+        raw_text = snapshot_msg.content or ''
+        raw_attachments = snapshot_msg.attachments
+        raw_embeds = snapshot_msg.embeds
+        raw_sticker_ids = [s.id for s in snapshot_msg.stickers]
+    else:
+        raw_text = message.content or ''
+        raw_attachments = message.attachments
+        raw_embeds = message.embeds
+        raw_sticker_ids = [s.id for s in message.stickers]
+
+    # never download snapshot attachments - original channel context is unavailable
+    attachments = await _build_attachments(raw_attachments, message.id, guild_id, channel_id, save_files and not forwarded)
+    embeds = _serialize_embeds(raw_embeds)
 
     return MessageDocument(
         message_id=message.id,
@@ -185,10 +209,11 @@ async def build_message_doc(message: Message) -> MessageDocument:
             bot=message.author.bot,
         ),
         content=MessageContent(
-            text=message.content or '',
+            text=raw_text,
             attachments=attachments,
             embeds=embeds,
-            sticker_ids=[s.id for s in message.stickers],
+            sticker_ids=raw_sticker_ids,
+            forwarded=forwarded,
         ),
         refs=MessageRefs(
             reply_to=message.reference.message_id if message.reference else None,

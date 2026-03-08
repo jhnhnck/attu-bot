@@ -107,6 +107,7 @@ def _make_mock_message(
     msg.attachments = []
     msg.embeds = []
     msg.stickers = []
+    msg.snapshots = []
     msg.reference = None
     msg.pinned = False
     msg.created_at = datetime(2024, 1, 1, tzinfo=UTC)
@@ -352,6 +353,56 @@ class TestStoreMessage:
         with patch('attubot.messages._is_archive_channel', return_value=False):
             # should not raise
             await store_message(msg)
+
+
+# --- build_message_doc forwarded messages ---
+
+
+class TestBuildMessageDocForwarded:
+    async def test_no_snapshots_forwarded_false(self, mock_message_repo, guild):
+        from attubot.messages import build_message_doc
+
+        msg = _make_mock_message(content='normal text')
+        msg.snapshots = []
+        with patch('attubot.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.forwarded is False
+        assert doc.content.text == 'normal text'
+
+    async def test_snapshot_uses_snapshot_content(self, mock_message_repo, guild):
+        from attubot.messages import build_message_doc
+
+        snapshot_msg = MagicMock()
+        snapshot_msg.content = 'forwarded text'
+        snapshot_msg.attachments = []
+        snapshot_msg.embeds = []
+        snapshot_msg.stickers = []
+
+        snapshot = MagicMock()
+        snapshot.message = snapshot_msg
+
+        msg = _make_mock_message(content='')
+        msg.snapshots = [snapshot]
+        with patch('attubot.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.forwarded is True
+        assert doc.content.text == 'forwarded text'
+
+    async def test_snapshot_message_none_falls_through(self, mock_message_repo, guild):
+        from attubot.messages import build_message_doc
+
+        snapshot = MagicMock()
+        snapshot.message = None
+
+        msg = _make_mock_message(content='')
+        msg.snapshots = [snapshot]
+        with patch('attubot.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.forwarded is False
+        assert doc.content.text == ''
 
 
 # --- log_edit ---

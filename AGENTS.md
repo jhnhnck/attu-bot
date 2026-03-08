@@ -290,7 +290,7 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 # Personality
 
 - use semicolons or regular dashes (-); never em-dashes
-- do not include any extranous punctuation
+- do not include any extraneous punctuation
 - write code comments in all lowercase including at the beginning of sentences, except where it would be unclear; prefer to be brief
 - use american english spelling and grammar
 - Use spaces for indentation always; avoid formats that require tabs

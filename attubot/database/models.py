@@ -97,6 +97,7 @@ class MessageContent(BaseModel):
     attachments: list[dict] = []  # [{filename, url, content_type, size, saved_path}]
     embeds: list[dict] = []
     sticker_ids: list[int] = []
+    forwarded: bool = False  # true when content was extracted from message.snapshots
 
 
 class MessageRefs(BaseModel):

@@ -233,6 +233,32 @@ async def test_build_embeds_merges_link_preview_with_empty_content(monkeypatch):
     assert embeds[0].description == 'preview text'
 
 
+@pytest.mark.asyncio
+async def test_build_embeds_forwarded_sets_footer(monkeypatch):
+    msg_doc = _make_msg_doc(content='this was forwarded', forwarded=True)
+    mock_user = MagicMock()
+    mock_avatar = MagicMock()
+    mock_avatar.__str__.return_value = 'avatar_url'
+    mock_user.display_avatar = mock_avatar
+    monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+
+    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    assert embeds[0].footer.text == 'forwarded message'
+
+
+@pytest.mark.asyncio
+async def test_build_embeds_not_forwarded_no_footer(monkeypatch):
+    msg_doc = _make_msg_doc(content='regular message', forwarded=False)
+    mock_user = MagicMock()
+    mock_avatar = MagicMock()
+    mock_avatar.__str__.return_value = 'avatar_url'
+    mock_user.display_avatar = mock_avatar
+    monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+
+    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    assert embeds[0].footer is None
+
+
 # ---- make_message_doc helper ----
 
 
@@ -252,6 +278,7 @@ def _make_msg_doc(**kwargs) -> MessageDocument:
             attachments=kwargs.pop('attachments', []),
             embeds=kwargs.pop('embeds', []),
             sticker_ids=kwargs.pop('sticker_ids', []),
+            forwarded=kwargs.pop('forwarded', False),
         ),
         refs=MessageRefs(
             reply_to=kwargs.pop('reference_id', None),
