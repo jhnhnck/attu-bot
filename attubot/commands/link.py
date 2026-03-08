@@ -15,7 +15,7 @@ from discord.ext import commands
 
 from attubot import bot, config
 from attubot.database.models import FamilyDocument
-from attubot.families import get_family, get_viewer_url, is_familyscript, save_family
+from attubot.families import get_family, get_viewer_url, is_family_file, list_families, save_family
 from attubot.logging import get_logger
 from attubot.util import has_announcements_role
 
@@ -29,6 +29,19 @@ _MESSAGE_LINK_RE = re.compile(r'https://discord\.com/channels/(\d+)/(\d+)/(\d+)'
 
 link_group = SlashCommandGroup('link', description='Link utilities')
 family_group = link_group.create_subgroup('family', description='FamilyEcho family tree commands')
+
+
+@family_group.command(name='list', description='List all registered family trees')
+async def family_list(ctx: ApplicationContext):
+    config.guild(ctx.guild.id)  # ensures guild is authorized
+
+    families = await list_families(ctx.guild.id)
+    if not families:
+        await ctx.respond('no families registered yet - use `/link family set` or `/link family upload` to add one')
+        return
+
+    lines = [f.display_name for f in sorted(families, key=lambda f: f.name)]
+    await ctx.respond('**registered families:**\n' + '\n'.join(f'- {n}' for n in lines))
 
 
 @family_group.command(name='view', description='Get a temporary FamilyEcho viewer link for a registered family')
@@ -78,22 +91,22 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         await ctx.respond('could not fetch that message - check the link and that I have access to that channel', ephemeral=True)
         return
 
-    txt_attachments = [a for a in msg.attachments if a.filename.lower().endswith('.txt')]
-    if not txt_attachments:
-        await ctx.respond('no .txt file found on that message', ephemeral=True)
+    family_attachments = [a for a in msg.attachments if a.filename.lower().endswith(('.txt', '.ged'))]
+    if not family_attachments:
+        await ctx.respond('no .txt or .ged file found on that message', ephemeral=True)
         return
 
     # download and validate
     try:
-        raw = await txt_attachments[0].read()
+        raw = await family_attachments[0].read()
         content = raw.decode('utf-8')
     except Exception as err:
         logger.warn(f'family_set: failed to read attachment: {err}')
         await ctx.respond('failed to read the file from that message', ephemeral=True)
         return
 
-    if not is_familyscript(content):
-        await ctx.respond('the file on that message does not look like a FamilyScript file - check that it was downloaded from familyecho.com', ephemeral=True)
+    if not is_family_file(content):
+        await ctx.respond('the file on that message does not look like a FamilyScript or GEDCOM file from familyecho.com', ephemeral=True)
         return
 
     normalized = name.strip().lower()
@@ -115,12 +128,12 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         await ctx.respond('failed to save the family record', ephemeral=True)
         return
 
-    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link', ephemeral=True)
+    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link')
 
 
 @family_group.command(name='upload', description='Register a FamilyEcho family tree by uploading the file directly')
 @discord.commands.option(name='name', required=True, description='Family name')
-@discord.commands.option(name='file', required=True, description='FamilyScript .txt file downloaded from familyecho.com', input_type=discord.Attachment)
+@discord.commands.option(name='file', required=True, description='FamilyScript .txt or GEDCOM .ged file downloaded from familyecho.com', input_type=discord.Attachment)
 @commands.check(has_announcements_role)
 async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attachment):
     config.guild(ctx.guild.id)  # ensures guild is authorized
@@ -134,9 +147,9 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         await ctx.respond('failed to read the attached file', ephemeral=True)
         return
 
-    # validate it's a FamilyScript file
-    if not is_familyscript(content):
-        await ctx.respond('the attached file does not look like a FamilyScript file - check that it was downloaded from familyecho.com', ephemeral=True)
+    # validate it's a FamilyScript or GEDCOM file
+    if not is_family_file(content):
+        await ctx.respond('the attached file does not look like a FamilyScript or GEDCOM file from familyecho.com', ephemeral=True)
         return
 
     normalized = name.strip().lower()
@@ -156,7 +169,7 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         await ctx.respond('failed to save the family record', ephemeral=True)
         return
 
-    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link', ephemeral=True)
+    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link')
 
 
 # --- Extension Def ---
