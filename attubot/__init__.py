@@ -35,6 +35,7 @@ async def command_ping(ctx: ApplicationContext):
 _EXTENSIONS = [
     'attubot.commands.debug',
     'attubot.commands.fix',
+    'attubot.commands.link',
     'attubot.commands.marker',
     'attubot.commands.query',
     'attubot.commands.stars',

@@ -31,6 +31,19 @@ def is_authorized_guild(ctx: Context) -> bool:
     return ctx.guild.id in config.authorized_guilds
 
 
+def has_announcements_role(ctx: Context) -> bool:
+    """Return True if the invoking member holds the configured announcements role."""
+    try:
+        gc = config.guild(ctx.guild.id)
+    except Exception:
+        return False
+    role_id = gc.roles.announcements
+    if role_id == 0:
+        return False
+    app_ctx = cast(discord.ApplicationContext, ctx)
+    return isinstance(app_ctx.author, discord.Member) and any(r.id == role_id for r in app_ctx.author.roles)
+
+
 # --- Decorators ---
 
 

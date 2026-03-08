@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from attubot.database.connection import MongoStorage
 from attubot.database.models import (
+    FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
     ReloadSignalDocument,
@@ -18,6 +19,7 @@ from attubot.database.models import (
 )
 from attubot.database.repositories import (
     ConfigRepository,
+    FamilyRepository,
     MessageRepository,
     ReloadSignalRepository,
     StarboardRepository,
@@ -71,12 +73,18 @@ async def init_database(url: str, name: str):
     await starboard_repo.init_indexes()
     logger.debug('starboard indexes ready')
 
+    family_repo = FamilyRepository(database)
+    await family_repo.init_indexes()
+    logger.debug('family indexes ready')
+
+    import attubot.families as _families
     import attubot.markers as _markers
     import attubot.messages as _messages
     import attubot.signals as _signals
     import attubot.starboard as _starboard
     import attubot.years as _years
 
+    _families._family_repo = family_repo
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
     _signals._repo = signal_repo
@@ -88,6 +96,8 @@ async def init_database(url: str, name: str):
 
 __all__ = [
     'ConfigRepository',
+    'FamilyDocument',
+    'FamilyRepository',
     'GuildConfigDocument',
     'MessageDocument',
     'MessageRepository',
