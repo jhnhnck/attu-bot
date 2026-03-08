@@ -409,7 +409,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
             author_id=author_id,
             reactions=new_reactions,
             total_reactions=total_new,
-            weighted_total=float(total_new),  # backfill only counts normal reactions
+            weighted_total=float(total_new),
         )
         await repo.upsert(doc)
     else:
@@ -641,7 +641,9 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             # concurrent call already created the post - fall through to update it
             doc = fresh
 
-    # update existing post
+    # update existing post (starboard_message_id is guaranteed non-None here)
+    if doc.starboard_message_id is None:
+        return
     try:
         sb_msg = await channel.fetch_message(doc.starboard_message_id)
         await sb_msg.edit(content=content, embeds=embeds)

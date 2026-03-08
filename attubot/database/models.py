@@ -104,7 +104,7 @@ class MessageRefs(BaseModel):
 
     model_config = ConfigDict(extra='ignore')
 
-    reply_to: int | None = None       # reply-to message id (was: reference_id)
+    reply_to: int | None = None  # reply-to message id (was: reference_id)
     starboard_post: int | None = None  # linked starboard post id (was: starboard_reference_id)
 
 

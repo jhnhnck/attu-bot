@@ -21,7 +21,6 @@ from attubot.database.models import (
     MessageAuthor,
     MessageContent,
     MessageDocument,
-    MessageRefs,
     StarredMessageDocument,
     SystemConfigDocument,
 )

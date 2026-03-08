@@ -504,29 +504,38 @@ async def migration_restructure_messages():
         result = await collection.update_many(
             {},
             [
-                {'$set': {
-                    'author': {
-                        'id': '$author_id',
-                        'name': '$author_name',
-                        'bot': {'$ifNull': ['$author_bot', False]},
-                    },
-                    'content': {
-                        'text': {'$ifNull': ['$content', '']},
-                        'attachments': {'$ifNull': ['$attachments', []]},
-                        'embeds': {'$ifNull': ['$embeds', []]},
-                        'sticker_ids': {'$ifNull': ['$sticker_ids', []]},
-                    },
-                    'refs': {
-                        'reply_to': '$reference_id',
-                        'starboard_post': '$starboard_reference_id',
-                    },
-                }},
-                {'$unset': [
-                    'author_id', 'author_name', 'author_bot',
-                    'attachments', 'embeds', 'sticker_ids',
-                    'reference_id', 'starboard_reference_id',
-                    # 'content' is overwritten above with the sub-document, not unset separately
-                ]},
+                {
+                    '$set': {
+                        'author': {
+                            'id': '$author_id',
+                            'name': '$author_name',
+                            'bot': {'$ifNull': ['$author_bot', False]},
+                        },
+                        'content': {
+                            'text': {'$ifNull': ['$content', '']},
+                            'attachments': {'$ifNull': ['$attachments', []]},
+                            'embeds': {'$ifNull': ['$embeds', []]},
+                            'sticker_ids': {'$ifNull': ['$sticker_ids', []]},
+                        },
+                        'refs': {
+                            'reply_to': '$reference_id',
+                            'starboard_post': '$starboard_reference_id',
+                        },
+                    }
+                },
+                {
+                    '$unset': [
+                        'author_id',
+                        'author_name',
+                        'author_bot',
+                        'attachments',
+                        'embeds',
+                        'sticker_ids',
+                        'reference_id',
+                        'starboard_reference_id',
+                        # 'content' is overwritten above with the sub-document, not unset separately
+                    ]
+                },
             ],
         )
         logger.info(f'Migration 2.5.2: restructured {result.modified_count} message documents')
