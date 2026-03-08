@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from attubot.database.models import MessageDocument, StarredMessageDocument
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
 from attubot.database.repositories import MessageRepository, StarboardRepository
 
 
@@ -54,9 +54,8 @@ def _msg_doc(message_id: int, author_id: int = AUTHOR_A) -> MessageDocument:
         message_id=message_id,
         guild_id=TEST_GUILD,
         channel_id=MSG_CHANNEL,
-        author_id=author_id,
-        author_name='testuser',
-        content=f'message {message_id}',
+        author=MessageAuthor(id=author_id, name='testuser'),
+        content=MessageContent(text=f'message {message_id}'),
         created_at=1704067200,
     )
 

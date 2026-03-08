@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.database.models import MessageDocument, StarredMessageDocument
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
 from attubot.starboard import (
     _fmt_count,
     _hydrate_stored_embed,
@@ -237,17 +237,29 @@ async def test_build_embeds_merges_link_preview_with_empty_content(monkeypatch):
 
 
 def _make_msg_doc(**kwargs) -> MessageDocument:
-    defaults = {
-        'message_id': TEST_MESSAGE,
-        'guild_id': TEST_GUILD,
-        'channel_id': TEST_CHANNEL,
-        'author_id': TEST_AUTHOR,
-        'author_name': 'TestUser',
-        'content': 'hello world',
-        'created_at': 1704067200,
-    }
-    defaults.update(kwargs)
-    return MessageDocument(**defaults)
+    return MessageDocument(
+        message_id=kwargs.pop('message_id', TEST_MESSAGE),
+        guild_id=kwargs.pop('guild_id', TEST_GUILD),
+        channel_id=kwargs.pop('channel_id', TEST_CHANNEL),
+        parent_channel_id=kwargs.pop('parent_channel_id', None),
+        author=MessageAuthor(
+            id=kwargs.pop('author_id', TEST_AUTHOR),
+            name=kwargs.pop('author_name', 'TestUser'),
+            bot=kwargs.pop('author_bot', False),
+        ),
+        content=MessageContent(
+            text=kwargs.pop('content', 'hello world'),
+            attachments=kwargs.pop('attachments', []),
+            embeds=kwargs.pop('embeds', []),
+            sticker_ids=kwargs.pop('sticker_ids', []),
+        ),
+        refs=MessageRefs(
+            reply_to=kwargs.pop('reference_id', None),
+            starboard_post=kwargs.pop('starboard_reference_id', None),
+        ),
+        created_at=kwargs.pop('created_at', 1704067200),
+        **kwargs,
+    )
 
 
 def _make_star_doc(**kwargs) -> StarredMessageDocument:

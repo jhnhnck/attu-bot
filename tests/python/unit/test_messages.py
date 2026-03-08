@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.database.models import MessageDocument
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 
 
 TEST_GUILD = 1234567890
@@ -25,6 +25,32 @@ TEST_USER = 9876543210
 TEST_CHANNEL = 5555555555
 TEST_LOGS = 1111111111
 TEST_MESSAGE = 2222222222
+
+
+def _make_msg_doc(**kwargs) -> MessageDocument:
+    """Build a MessageDocument from flat-style kwargs (matching the old field names) for testing convenience."""
+    return MessageDocument(
+        message_id=kwargs.pop('message_id', TEST_MESSAGE),
+        guild_id=kwargs.pop('guild_id', TEST_GUILD),
+        channel_id=kwargs.pop('channel_id', TEST_CHANNEL),
+        parent_channel_id=kwargs.pop('parent_channel_id', None),
+        author=MessageAuthor(
+            id=kwargs.pop('author_id', TEST_USER),
+            name=kwargs.pop('author_name', 'TestUser'),
+            bot=kwargs.pop('author_bot', False),
+        ),
+        content=MessageContent(
+            text=kwargs.pop('content', ''),
+            attachments=kwargs.pop('attachments', []),
+            embeds=kwargs.pop('embeds', []),
+            sticker_ids=kwargs.pop('sticker_ids', []),
+        ),
+        refs=MessageRefs(
+            reply_to=kwargs.pop('reference_id', None),
+            starboard_post=kwargs.pop('starboard_reference_id', None),
+        ),
+        **kwargs,
+    )
 
 
 # --- Fixtures ---
@@ -135,24 +161,24 @@ def _make_raw_bulk_delete_payload(
 
 class TestMessageDocument:
     def test_defaults(self):
-        doc = MessageDocument(message_id=1, guild_id=2, channel_id=3, author_id=4, author_name='test', created_at=1000)
+        doc = _make_msg_doc(message_id=1, guild_id=2, channel_id=3, author_id=4, author_name='test', created_at=1000)
         assert doc.public is True
         assert doc.deleted is False
         assert doc.deleted_at is None
         assert doc.edited_at is None
-        assert doc.attachments == []
-        assert doc.embeds == []
-        assert doc.sticker_ids == []
-        assert doc.reference_id is None
-        assert doc.author_bot is False
-        assert doc.content == ''
+        assert doc.content.attachments == []
+        assert doc.content.embeds == []
+        assert doc.content.sticker_ids == []
+        assert doc.refs.reply_to is None
+        assert doc.author.bot is False
+        assert doc.content.text == ''
 
     def test_extra_fields_ignored(self):
-        doc = MessageDocument(message_id=1, guild_id=2, channel_id=3, author_id=4, author_name='test', created_at=1000, unknown='x')  # pyright: ignore[reportCallIssue]
+        doc = _make_msg_doc(message_id=1, guild_id=2, channel_id=3, author_id=4, author_name='test', created_at=1000)
         assert doc.message_id == 1
 
     def test_roundtrip(self):
-        doc = MessageDocument(
+        doc = _make_msg_doc(
             message_id=TEST_MESSAGE,
             guild_id=TEST_GUILD,
             channel_id=TEST_CHANNEL,
@@ -179,7 +205,7 @@ class TestMessageRepository:
 
     async def test_upsert_calls_update_one(self, message_repo):
         message_repo.db[message_repo.COLLECTION].update_one = AsyncMock()
-        doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='test', created_at=1000)
+        doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='test', created_at=1000)
         await message_repo.upsert(doc)
         message_repo.db[message_repo.COLLECTION].update_one.assert_called_once()
         call_args = message_repo.db[message_repo.COLLECTION].update_one.call_args
@@ -187,7 +213,7 @@ class TestMessageRepository:
         assert call_args[1]['upsert'] is True
 
     async def test_get_found(self, message_repo):
-        raw = {'message_id': TEST_MESSAGE, 'guild_id': TEST_GUILD, 'channel_id': TEST_CHANNEL, 'author_id': TEST_USER, 'author_name': 'test', 'created_at': 1000, '_id': 'x'}
+        raw = {'message_id': TEST_MESSAGE, 'guild_id': TEST_GUILD, 'channel_id': TEST_CHANNEL, 'author': {'id': TEST_USER, 'name': 'test', 'bot': False}, 'content': {'text': '', 'attachments': [], 'embeds': [], 'sticker_ids': []}, 'refs': {'reply_to': None, 'starboard_post': None}, 'created_at': 1000, '_id': 'x'}
         message_repo.db[message_repo.COLLECTION].find_one = AsyncMock(return_value=raw)
         result = await message_repo.get(TEST_MESSAGE)
         assert result is not None
@@ -203,7 +229,7 @@ class TestMessageRepository:
         await message_repo.mark_edited(TEST_MESSAGE, 'new content', 9999)
         call_args = message_repo.db[message_repo.COLLECTION].update_one.call_args
         assert call_args[0][0] == {'message_id': TEST_MESSAGE}
-        assert call_args[0][1]['$set']['content'] == 'new content'
+        assert call_args[0][1]['$set']['content.text'] == 'new content'
         assert call_args[0][1]['$set']['edited_at'] == 9999
 
     async def test_mark_deleted(self, message_repo):
@@ -258,7 +284,7 @@ class TestMessageRepository:
         message_repo.db[message_repo.COLLECTION].distinct = AsyncMock(return_value=[TEST_USER, TEST_USER + 1])
         result = await message_repo.distinct_author_ids(TEST_GUILD)
         assert result == [TEST_USER, TEST_USER + 1]
-        message_repo.db[message_repo.COLLECTION].distinct.assert_called_once_with('author_id', {'guild_id': TEST_GUILD})
+        message_repo.db[message_repo.COLLECTION].distinct.assert_called_once_with('author.id', {'guild_id': TEST_GUILD})
 
     async def test_update_author_name(self, message_repo):
         mock_result = MagicMock()
@@ -267,8 +293,8 @@ class TestMessageRepository:
         count = await message_repo.update_author_name(TEST_USER, 'NewName')
         assert count == 5
         call_args = message_repo.db[message_repo.COLLECTION].update_many.call_args
-        assert call_args[0][0] == {'author_id': TEST_USER}
-        assert call_args[0][1] == {'$set': {'author_name': 'NewName'}}
+        assert call_args[0][0] == {'author.id': TEST_USER}
+        assert call_args[0][1] == {'$set': {'author.name': 'NewName'}}
 
 
 # --- store_message ---
@@ -296,7 +322,7 @@ class TestStoreMessage:
             await store_message(msg)
 
         doc = mock_message_repo.upsert.call_args[0][0]
-        assert doc.content == 'test content here'
+        assert doc.content.text == 'test content here'
 
     async def test_stores_public_flag_true(self, mock_message_repo, guild):
         from attubot.messages import store_message
@@ -341,7 +367,7 @@ class TestLogEdit:
     async def test_sends_embed_to_logs(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_edited = AsyncMock()
 
@@ -358,7 +384,7 @@ class TestLogEdit:
     async def test_includes_old_content(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='old text', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='old text', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_edited = AsyncMock()
 
@@ -418,7 +444,7 @@ class TestLogEdit:
     async def test_skips_log_embed_for_bot_author(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='BotUser', content='original', created_at=1000, author_bot=True)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='BotUser', content='original', created_at=1000, author_bot=True)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_edited = AsyncMock()
 
@@ -436,7 +462,7 @@ class TestLogEdit:
     async def test_edit_embed_has_author_icon_url(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_edited = AsyncMock()
 
@@ -452,7 +478,7 @@ class TestLogEdit:
     async def test_edit_embed_no_icon_url_when_avatar_unavailable(self, mock_message_repo, guild):
         from attubot.messages import log_edit
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='original', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_edited = AsyncMock()
 
@@ -492,7 +518,7 @@ class TestLogDelete:
     async def test_sends_embed_to_logs(self, mock_message_repo, guild):
         from attubot.messages import log_delete
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='deleted msg', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='deleted msg', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_deleted = AsyncMock()
 
@@ -509,7 +535,7 @@ class TestLogDelete:
     async def test_shows_content_from_db(self, mock_message_repo, guild):
         from attubot.messages import log_delete
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='the message', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='the message', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_deleted = AsyncMock()
 
@@ -556,7 +582,7 @@ class TestLogDelete:
     async def test_delete_embed_has_author_icon_url(self, mock_message_repo, guild):
         from attubot.messages import log_delete
 
-        stored_doc = MessageDocument(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='deleted msg', created_at=1000)
+        stored_doc = _make_msg_doc(message_id=TEST_MESSAGE, guild_id=TEST_GUILD, channel_id=TEST_CHANNEL, author_id=TEST_USER, author_name='Tester', content='deleted msg', created_at=1000)
         mock_message_repo.get = AsyncMock(return_value=stored_doc)
         mock_message_repo.mark_deleted = AsyncMock()
 

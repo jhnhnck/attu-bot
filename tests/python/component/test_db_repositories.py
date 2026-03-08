@@ -18,7 +18,10 @@ import pytest_asyncio
 import tomlkit
 
 from attubot.database.models import (
+    MessageAuthor,
+    MessageContent,
     MessageDocument,
+    MessageRefs,
     StarredMessageDocument,
     SystemConfigDocument,
 )
@@ -117,9 +120,8 @@ def _make_message_doc(message_id=1, guild_id=2222222222, channel_id=3333333333, 
         message_id=message_id,
         guild_id=guild_id,
         channel_id=channel_id,
-        author_id=author_id,
-        author_name='TestUser',
-        content='hello world',
+        author=MessageAuthor(id=author_id, name='TestUser'),
+        content=MessageContent(text='hello world'),
         created_at=created_at or int(time.time()),
     )
 
@@ -484,7 +486,7 @@ class TestMessageRepository:
         await repo.upsert(doc)
         result = await repo.get(1)
         assert result is not None
-        assert result.content == 'hello world'
+        assert result.content.text == 'hello world'
 
     async def test_get_missing_returns_none(self, db):
         repo = MessageRepository(db)
@@ -496,10 +498,10 @@ class TestMessageRepository:
         await repo.init_indexes()
         doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL)
         await repo.upsert(doc)
-        doc.content = 'updated'
+        doc.content.text = 'updated'
         await repo.upsert(doc)
         result = await repo.get(1)
-        assert result.content == 'updated'
+        assert result.content.text == 'updated'
 
     async def test_mark_edited(self, db):
         repo = MessageRepository(db)
@@ -508,7 +510,7 @@ class TestMessageRepository:
         await repo.upsert(doc)
         await repo.mark_edited(1, content='edited text', edited_at=9999)
         result = await repo.get(1)
-        assert result.content == 'edited text'
+        assert result.content.text == 'edited text'
         assert result.edited_at == 9999
 
     async def test_mark_deleted(self, db):
@@ -578,7 +580,7 @@ class TestMessageRepository:
         count = await repo.update_author_name(100, 'NewName')
         assert count == 2
         result = await repo.get(1)
-        assert result.author_name == 'NewName'
+        assert result.author.name == 'NewName'
 
     async def test_find_bot_header(self, db):
         repo = MessageRepository(db)
@@ -588,10 +590,8 @@ class TestMessageRepository:
             message_id=1,
             guild_id=MSG_GUILD,
             channel_id=MSG_CHANNEL,
-            author_id=0,
-            author_name='Bot',
-            author_bot=True,
-            content='Year 5 begins',
+            author=MessageAuthor(id=0, name='Bot', bot=True),
+            content=MessageContent(text='Year 5 begins'),
             created_at=t,
         )
         await repo.upsert(doc)

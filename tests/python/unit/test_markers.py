@@ -173,15 +173,14 @@ class TestResolveMarkerAuthorHeader:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
-            from attubot.database.models import MessageDocument
+            from attubot.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
                 message_id=TEST_MSG_ID,
                 guild_id=TEST_GUILD,
                 channel_id=TEST_CHANNEL,
-                author_id=999,
-                author_name='marker-person',
-                content=f'=== Year {TEST_YEAR} PC ===',
+                author=MessageAuthor(id=999, name='marker-person'),
+                content=MessageContent(text=f'=== Year {TEST_YEAR} PC ==='),
                 created_at=1_700_000_001,
             )
             msg_repo = AsyncMock()
@@ -207,15 +206,14 @@ class TestResolveMarkerAuthorHeader:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
-            from attubot.database.models import MessageDocument
+            from attubot.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
                 message_id=TEST_MSG_ID,
                 guild_id=TEST_GUILD,
                 channel_id=TEST_CHANNEL,
-                author_id=999,
-                author_name='marker-person',
-                content='hello there, nothing to do with years',
+                author=MessageAuthor(id=999, name='marker-person'),
+                content=MessageContent(text='hello there, nothing to do with years'),
                 created_at=1_700_000_001,
             )
             msg_repo = AsyncMock()
