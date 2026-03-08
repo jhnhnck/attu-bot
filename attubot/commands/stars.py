@@ -81,7 +81,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
             raise RuntimeError('missing interaction for random starboard response')
         response_msg = await interaction.original_response()
         response_doc = await build_message_doc(response_msg)
-        response_doc.starboard_reference_id = doc.message_id
+        response_doc.refs.starboard_post = doc.message_id
         await msg_repo.upsert(response_doc)
     except Exception as err:
         logger.warn(f'starboard: could not store random response message - {err}')

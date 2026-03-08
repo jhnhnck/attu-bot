@@ -476,3 +476,62 @@ async def migration_purge_markers():
     database = db.get_db()
     result = await database[YearMarkerRepository.COLLECTION].delete_many({})
     logger.info(f'Migration 2.5.1: deleted {result.deleted_count} year marker documents')
+
+
+# Version 2.5.2
+@migration(old='2.5.1', new='2.5.2')
+async def migration_restructure_messages():
+    """Reshape MessageDocument flat fields into sub-documents.
+
+    Groups the previously flat author, content, and cross-reference fields
+    into nested sub-documents for a more organized and extensible schema:
+      - author_id, author_name, author_bot  ->  author: {id, name, bot}
+      - content (str), attachments, embeds, sticker_ids  ->  content: {text, attachments, embeds, sticker_ids}
+      - reference_id, starboard_reference_id  ->  refs: {reply_to, starboard_post}
+    """
+    from attubot import db
+    from attubot.database.repositories import MessageRepository
+
+    logger.info('Running migration to 2.5.2: restructuring MessageDocument into sub-documents')
+
+    database = db.get_db()
+    collection = database[MessageRepository.COLLECTION]
+
+    backup = await _backup_collection(database, MessageRepository.COLLECTION)
+    logger.info(f'Snapshotted {len(backup)} message documents for rollback')
+
+    try:
+        result = await collection.update_many(
+            {},
+            [
+                {'$set': {
+                    'author': {
+                        'id': '$author_id',
+                        'name': '$author_name',
+                        'bot': {'$ifNull': ['$author_bot', False]},
+                    },
+                    'content': {
+                        'text': {'$ifNull': ['$content', '']},
+                        'attachments': {'$ifNull': ['$attachments', []]},
+                        'embeds': {'$ifNull': ['$embeds', []]},
+                        'sticker_ids': {'$ifNull': ['$sticker_ids', []]},
+                    },
+                    'refs': {
+                        'reply_to': '$reference_id',
+                        'starboard_post': '$starboard_reference_id',
+                    },
+                }},
+                {'$unset': [
+                    'author_id', 'author_name', 'author_bot',
+                    'attachments', 'embeds', 'sticker_ids',
+                    'reference_id', 'starboard_reference_id',
+                    # 'content' is overwritten above with the sub-document, not unset separately
+                ]},
+            ],
+        )
+        logger.info(f'Migration 2.5.2: restructured {result.modified_count} message documents')
+
+    except Exception:
+        logger.error('Migration 2.5.2 failed — restoring messages collection from snapshot')
+        await _restore_collection(database, MessageRepository.COLLECTION, backup)
+        raise

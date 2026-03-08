@@ -78,6 +78,36 @@ class YearDocument(BaseModel):
     notes: str = ''
 
 
+class MessageAuthor(BaseModel):
+    """Author info snapshot embedded in a MessageDocument"""
+
+    model_config = ConfigDict(extra='ignore')
+
+    id: int
+    name: str
+    bot: bool = False
+
+
+class MessageContent(BaseModel):
+    """Message body and media embedded in a MessageDocument"""
+
+    model_config = ConfigDict(extra='ignore')
+
+    text: str = ''
+    attachments: list[dict] = []  # [{filename, url, content_type, size, saved_path}]
+    embeds: list[dict] = []
+    sticker_ids: list[int] = []
+
+
+class MessageRefs(BaseModel):
+    """Cross-references to other messages embedded in a MessageDocument"""
+
+    model_config = ConfigDict(extra='ignore')
+
+    reply_to: int | None = None       # reply-to message id (was: reference_id)
+    starboard_post: int | None = None  # linked starboard post id (was: starboard_reference_id)
+
+
 class MessageDocument(BaseModel):
     """MongoDB document for a stored Discord message"""
 
@@ -87,15 +117,9 @@ class MessageDocument(BaseModel):
     guild_id: int
     channel_id: int  # thread id if in a thread
     parent_channel_id: int | None = None  # set only when channel_id is a thread
-    author_id: int
-    author_name: str
-    author_bot: bool = False
-    content: str = ''
-    attachments: list[dict] = []  # [{filename, url, content_type, size, saved_path}]
-    embeds: list[dict] = []
-    sticker_ids: list[int] = []
-    reference_id: int | None = None
-    starboard_reference_id: int | None = None
+    author: MessageAuthor
+    content: MessageContent = MessageContent()
+    refs: MessageRefs = MessageRefs()
     pinned: bool = False
     public: bool = True  # readable by @everyone
     created_at: int  # unix timestamp

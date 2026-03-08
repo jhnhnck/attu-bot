@@ -121,7 +121,7 @@ async def resolve_marker(guild: int, channel: int, year: int) -> ResolvedMarker:
         if author_msg:
             # verify content looks like a year header before accepting
             msg_doc = await _get_message_repo().get(author_msg)
-            if msg_doc and has_year_marker(year, msg_doc.content):
+            if msg_doc and has_year_marker(year, msg_doc.content.text):
                 return ResolvedMarker(guild=guild, channel=channel, year=year, message=author_msg, exact=True, source='author')
 
     # 4 - first message in channel during the year

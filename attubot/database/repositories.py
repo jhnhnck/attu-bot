@@ -337,7 +337,7 @@ class MessageRepository:
         """Update content and edited timestamp on an existing message"""
         await self.db[self.COLLECTION].update_one(
             {'message_id': message_id},
-            {'$set': {'content': content, 'edited_at': edited_at}},
+            {'$set': {'content.text': content, 'edited_at': edited_at}},
         )
 
     async def mark_deleted(self, message_id: int, deleted_at: int):
@@ -386,14 +386,14 @@ class MessageRepository:
         return {doc['message_id'] for doc in docs}
 
     async def distinct_author_ids(self, guild_id: int) -> list[int]:
-        """Return all unique author_ids stored for a guild."""
-        return await self.db[self.COLLECTION].distinct('author_id', {'guild_id': guild_id})
+        """Return all unique author ids stored for a guild."""
+        return await self.db[self.COLLECTION].distinct('author.id', {'guild_id': guild_id})
 
     async def update_author_name(self, author_id: int, author_name: str) -> int:
-        """Set author_name on every message by this author; returns modified count."""
+        """Set author.name on every message by this author; returns modified count."""
         result = await self.db[self.COLLECTION].update_many(
-            {'author_id': author_id},
-            {'$set': {'author_name': author_name}},
+            {'author.id': author_id},
+            {'$set': {'author.name': author_name}},
         )
         return result.modified_count
 
@@ -408,8 +408,8 @@ class MessageRepository:
             .find({
                 'guild_id': guild_id,
                 'channel_id': channel_id,
-                'author_bot': True,
-                'content': {'$regex': f'^{content_prefix}'},
+                'author.bot': True,
+                'content.text': {'$regex': f'^{content_prefix}'},
                 'created_at': {'$gte': after, '$lt': before},
                 'deleted': {'$ne': True},
             })
@@ -429,7 +429,7 @@ class MessageRepository:
             .find({
                 'guild_id': guild_id,
                 'channel_id': channel_id,
-                'author_id': {'$in': author_ids},
+                'author.id': {'$in': author_ids},
                 'created_at': {'$gte': after, '$lt': before},
                 'deleted': {'$ne': True},
             })

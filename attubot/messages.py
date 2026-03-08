@@ -14,7 +14,7 @@ import discord
 from discord import Color, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 
 from attubot import bot, config
-from attubot.database.models import MessageDocument
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from attubot.database.repositories import MessageRepository
 from attubot.embeds import make_embed
 from attubot.logging import get_logger
@@ -179,14 +179,20 @@ async def build_message_doc(message: Message) -> MessageDocument:
         guild_id=guild_id,
         channel_id=channel_id,
         parent_channel_id=parent_channel_id,
-        author_id=message.author.id,
-        author_name=_global_username(message.author),
-        author_bot=message.author.bot,
-        content=message.content or '',
-        attachments=attachments,
-        embeds=embeds,
-        sticker_ids=[s.id for s in message.stickers],
-        reference_id=message.reference.message_id if message.reference else None,
+        author=MessageAuthor(
+            id=message.author.id,
+            name=_global_username(message.author),
+            bot=message.author.bot,
+        ),
+        content=MessageContent(
+            text=message.content or '',
+            attachments=attachments,
+            embeds=embeds,
+            sticker_ids=[s.id for s in message.stickers],
+        ),
+        refs=MessageRefs(
+            reply_to=message.reference.message_id if message.reference else None,
+        ),
         pinned=message.pinned,
         public=_is_public(message),
         created_at=int(message.created_at.timestamp()),
@@ -254,13 +260,13 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
         stored = await _get_repo().get(payload.message_id)
         logger.debug(f'log_edit: db lookup result - found={stored is not None}')
         if stored:
-            logger.debug(f'log_edit: stored record - author={stored.author_name!r} author_id={stored.author_id} bot={stored.author_bot} content={stored.content!r}')
-            avatar_url = _resolve_avatar(payload.guild_id, stored.author_id) if payload.guild_id else None
+            logger.debug(f'log_edit: stored record - author={stored.author.name!r} author_id={stored.author.id} bot={stored.author.bot} content={stored.content.text!r}')
+            avatar_url = _resolve_avatar(payload.guild_id, stored.author.id) if payload.guild_id else None
             return _EditContext(
-                old_content=stored.content,
-                author_name=stored.author_name,
-                author_id=stored.author_id,
-                author_bot=stored.author_bot,
+                old_content=stored.content.text,
+                author_name=stored.author.name,
+                author_id=stored.author.id,
+                author_bot=stored.author.bot,
                 author_avatar_url=avatar_url,
             )
     except Exception as err:
@@ -372,23 +378,23 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if channel is None:
         return
 
-    description = f"<@{stored.author_id}>'s message was deleted in <#{payload.channel_id}>" if stored else f'a message was deleted in <#{payload.channel_id}>'
+    description = f"<@{stored.author.id}>'s message was deleted in <#{payload.channel_id}>" if stored else f'a message was deleted in <#{payload.channel_id}>'
 
-    avatar_url = _resolve_avatar(payload.guild_id, stored.author_id) if stored else None
+    avatar_url = _resolve_avatar(payload.guild_id, stored.author.id) if stored else None
     embed = make_embed(
         'Message Deleted',
         description=description,
         color=Color.red(),
         footer=f'message id: {payload.message_id}',
-        author_name=stored.author_name if stored else None,
+        author_name=stored.author.name if stored else None,
         author_icon_url=avatar_url,
     )
 
-    if stored and stored.content:
-        embed.add_field(name='Content', value=_truncate(stored.content), inline=False)
+    if stored and stored.content.text:
+        embed.add_field(name='Content', value=_truncate(stored.content.text), inline=False)
 
-    if stored and stored.attachments:
-        names = ', '.join(a.get('filename', '?') for a in stored.attachments)
+    if stored and stored.content.attachments:
+        names = ', '.join(a.get('filename', '?') for a in stored.content.attachments)
         embed.add_field(name='Attachments', value=names, inline=False)
 
     try:

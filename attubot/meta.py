@@ -23,7 +23,7 @@ __title__ = 'AttuBot'
 __author__ = 'jhnhnck'
 __license__ = 'Apache License, Version 2.0'
 __copyright__ = 'Copyright (c) 2026 John Hancock, The Attu Project'
-__schema__ = '2.5.1'  # previously __version__
+__schema__ = '2.5.2'  # previously __version__
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'
 

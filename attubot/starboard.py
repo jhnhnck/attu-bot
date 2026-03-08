@@ -207,52 +207,52 @@ async def build_embeds(
     jump_url = f'https://discord.com/channels/{guild_id}/{message_doc.channel_id}/{message_doc.message_id}'
 
     # resolve author avatar
-    user = bot.get_user(message_doc.author_id)
+    user = bot.get_user(message_doc.author.id)
     avatar_url: str | None = str(user.display_avatar) if user else None
 
     embeds: list[discord.Embed] = []
 
     # --- reply context embed ---
-    if message_doc.reference_id:
+    if message_doc.refs.reply_to:
         try:
-            ref_doc = await _get_msg_repo().get(message_doc.reference_id)
+            ref_doc = await _get_msg_repo().get(message_doc.refs.reply_to)
         except Exception:
             ref_doc = None
 
         if ref_doc:
             ref_jump = f'https://discord.com/channels/{guild_id}/{ref_doc.channel_id}/{ref_doc.message_id}'
-            ref_user = bot.get_user(ref_doc.author_id)
+            ref_user = bot.get_user(ref_doc.author.id)
             ref_avatar: str | None = str(ref_user.display_avatar) if ref_user else None
 
             reply_embed = discord.Embed(color=_REPLY_COLOR)
             reply_embed.set_author(
-                name=f'Replying to {ref_doc.author_name}',
+                name=f'Replying to {ref_doc.author.name}',
                 url=ref_jump,
                 icon_url=ref_avatar,
             )
-            if ref_doc.content:
-                reply_embed.description = ref_doc.content
+            if ref_doc.content.text:
+                reply_embed.description = ref_doc.content.text
             # show first image attachment from the referenced message
-            if ref_doc.attachments and ref_doc.attachments[0].get('url'):
-                reply_embed.set_image(url=ref_doc.attachments[0]['url'])
+            if ref_doc.content.attachments and ref_doc.content.attachments[0].get('url'):
+                reply_embed.set_image(url=ref_doc.content.attachments[0]['url'])
             embeds.append(reply_embed)
 
     # --- main embed ---
     main_embed = discord.Embed(color=color)
-    main_embed.set_author(name=message_doc.author_name, url=jump_url, icon_url=avatar_url)
+    main_embed.set_author(name=message_doc.author.name, url=jump_url, icon_url=avatar_url)
     main_embed.timestamp = datetime.fromtimestamp(message_doc.created_at, tz=UTC)
 
-    if message_doc.content:
-        main_embed.description = message_doc.content
+    if message_doc.content.text:
+        main_embed.description = message_doc.content.text
 
-    image_attachments = [a for a in message_doc.attachments if _is_image(a)]
+    image_attachments = [a for a in message_doc.content.attachments if _is_image(a)]
     if image_attachments:
         main_embed.set_image(url=image_attachments[0]['url'])
 
     hydrated_embed: discord.Embed | None = None
-    if message_doc.embeds:
-        stored = message_doc.embeds[0]
-        if not message_doc.content and _should_merge_stored_embed(stored):
+    if message_doc.content.embeds:
+        stored = message_doc.content.embeds[0]
+        if not message_doc.content.text and _should_merge_stored_embed(stored):
             _merge_stored_embed(main_embed, stored, has_attachment_image=bool(image_attachments))
         else:
             hydrated_embed = _hydrate_stored_embed(stored)
@@ -326,7 +326,7 @@ async def _fetch_store_and_backfill(
         if emoji not in sb.emojis:
             continue
         async for user in reaction.users():
-            if user.id == doc.author_id or user.bot:
+            if user.id == doc.author.id or user.bot:
                 continue
             if user.id == skip_user and emoji == skip_emoji:
                 continue
@@ -335,7 +335,7 @@ async def _fetch_store_and_backfill(
                     message_id=message_id,
                     channel_id=doc.channel_id,
                     guild_id=guild_id,
-                    author_id=doc.author_id,
+                    author_id=doc.author.id,
                 )
                 await repo.upsert(existing_doc)
             await repo.add_reaction(message_id, emoji, user.id)
@@ -476,8 +476,8 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
     msg_repo = _get_msg_repo()
 
     stored_doc = await msg_repo.get(message_id)
-    if isinstance(stored_doc, MessageDocument) and stored_doc.starboard_reference_id:
-        message_id = stored_doc.starboard_reference_id
+    if isinstance(stored_doc, MessageDocument) and stored_doc.refs.starboard_post:
+        message_id = stored_doc.refs.starboard_post
         stored_doc = await msg_repo.get(message_id)  # may return None if not cached
 
     real_channel_id = stored_doc.channel_id if stored_doc else channel_id
@@ -505,7 +505,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
             return
 
     # self-stars don't count
-    if user_id == msg_doc.author_id:
+    if user_id == msg_doc.author.id:
         logger.debug(f'starboard: ignoring self-star from {user_id} on message {real_message_id}')
         return
 
@@ -515,7 +515,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
             message_id=real_message_id,
             channel_id=msg_doc.channel_id,
             guild_id=guild_id,
-            author_id=msg_doc.author_id,
+            author_id=msg_doc.author.id,
         )
         await repo.upsert(doc)
 
@@ -559,8 +559,8 @@ async def handle_star_remove(
     msg_repo = _get_msg_repo()
 
     stored_doc = await msg_repo.get(message_id)
-    if isinstance(stored_doc, MessageDocument) and stored_doc.starboard_reference_id:
-        message_id = stored_doc.starboard_reference_id
+    if isinstance(stored_doc, MessageDocument) and stored_doc.refs.starboard_post:
+        message_id = stored_doc.refs.starboard_post
 
     real_message_id = message_id
     if channel_id == sb.channel_id:
