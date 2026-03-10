@@ -125,6 +125,53 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     return result
 
 
+async def haracalnde_date(timestamp: int, guild: int | None = None) -> str:
+    """Convert a unix timestamp to a formatted Haracalnde date string.
+
+    Returns strings like '15-3 5 PC' (day-month year ERA). Uses actual year spans
+    from the database to handle historically variable year lengths. Returns
+    'Paused at N PC' when the calendar is paused.
+    """
+    epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
+
+    if epoch.paused:
+        _, current_year = get_year_status(guild)
+        return f'Paused at {current_year} PC'
+
+    ts_dt = datetime.fromtimestamp(timestamp).astimezone()
+    ts_at_rollover = datetime.combine(ts_dt.date(), epoch.get_rollover_time())
+    epoch_time = datetime.combine(datetime.fromtimestamp(epoch.time).astimezone(), epoch.get_rollover_time())
+    time_diff_sec = (ts_at_rollover - epoch_time).total_seconds()
+
+    elapsed_days = int(time_diff_sec / SECONDS_PER_DAY)
+    year = epoch.year + (elapsed_days // epoch.length)
+
+    if (elapsed_days % epoch.length) == 0 and ts_dt < ts_at_rollover:
+        year -= 1
+        day_of_year = epoch.length - 1
+    else:
+        day_of_year = elapsed_days % epoch.length
+
+    if year >= 1:
+        year_span = await get_year_span(year, guild)
+        if year_span.start_time > 0 and year_span.end_time > 0:
+            span_sec = year_span.end_time - year_span.start_time
+            haracalnde_pos = int((timestamp - year_span.start_time) / span_sec * 360)
+        else:
+            # fallback: no db record; approximate with current epoch.length
+            haracalnde_pos = int(day_of_year * 360 / epoch.length)
+        era = f'{year} PC'
+    else:
+        # tt era: no db records before 1 pc; approximate with current epoch.length
+        haracalnde_pos = int(day_of_year * 360 / epoch.length)
+        era = f'{1 - year} TT'
+
+    haracalnde_pos = max(0, min(359, haracalnde_pos))
+    month = haracalnde_pos // 30 + 1
+    day = haracalnde_pos % 30 + 1
+    return f'{day}-{month} {era}'
+
+
 # TODO: Shouldn't this be on the guild object
 async def move_epoch(length: int, guild: int | None = None):
     from attubot.years import Year

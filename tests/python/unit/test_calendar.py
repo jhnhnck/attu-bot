@@ -14,11 +14,13 @@ The test guild epoch starts at 2024-01-01 00:00:00 UTC with:
 """
 
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
 
+import pytest
 from freezegun import freeze_time
 
-from attubot.calendar import format_year_line, get_next_year, get_year_status
+from attubot.calendar import AttuYearSpan, format_year_line, get_next_year, get_year_status, haracalnde_date
 from attubot.config import GuildEpoch
 from tests.conftest import TEST_GUILD
 
@@ -260,3 +262,96 @@ class TestFormatYearLine:
         """Year 0 shouldn't crash"""
         result = format_year_line(0)
         assert 'Year 0 PC' in result
+
+
+# --- haracalnde_date() ---
+#
+# Epoch: time=1704067200 (2024-01-01 00:00 UTC), year=1, length=14, rollover=17:00 UTC
+# epoch_at_rollover = 1704128400 (Jan 1 2024 17:00 UTC)
+# year1_span: start=1704128400, end=1705338000 (Jan 15 17:00 UTC)
+# year2_span: start=1705338000, end=1706547600 (Jan 29 17:00 UTC)
+
+
+class TestHaracalndeDate:
+    EPOCH_ROLLOVER = 1704128400
+    YEAR1_SPAN = AttuYearSpan(start_time=1704128400, end_time=1705338000, duration=14)
+    YEAR2_SPAN = AttuYearSpan(start_time=1705338000, end_time=1706547600, duration=14)
+
+    @freeze_time('2024-01-08 12:00:00')
+    @pytest.mark.asyncio
+    async def test_paused(self, make_guild):
+        """Paused calendar returns 'Paused at N PC' regardless of timestamp"""
+        make_guild(paused=True)
+        result = await haracalnde_date(1704736800, TEST_GUILD)
+        assert result == 'Paused at 1 PC'
+
+    @pytest.mark.asyncio
+    async def test_epoch_start(self, guild):
+        """Exact epoch rollover timestamp maps to 1-1 1 PC"""
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = self.YEAR1_SPAN
+            result = await haracalnde_date(self.EPOCH_ROLLOVER, TEST_GUILD)
+        assert result == '1-1 1 PC'
+
+    @pytest.mark.asyncio
+    async def test_mid_year(self, guild):
+        """Jan 8 18:00 UTC: 7d 1h into year 1 → proportional position in month 7"""
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = self.YEAR1_SPAN
+            result = await haracalnde_date(1704736800, TEST_GUILD)
+        assert result == '2-7 1 PC'
+
+    @pytest.mark.asyncio
+    async def test_year_boundary_after_rollover(self, guild):
+        """Jan 15 18:00 UTC: just past year 2 rollover → early month 1 of year 2"""
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = self.YEAR2_SPAN
+            result = await haracalnde_date(1705341600, TEST_GUILD)
+        assert result == '2-1 2 PC'
+
+    @pytest.mark.asyncio
+    async def test_year_boundary_before_rollover(self, guild):
+        """Jan 15 12:00 UTC: boundary correction → still year 1, near end"""
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = self.YEAR1_SPAN
+            result = await haracalnde_date(1705320000, TEST_GUILD)
+        assert result == '25-12 1 PC'
+
+    @pytest.mark.asyncio
+    async def test_tt_before_epoch_rollover(self, guild):
+        """Jan 1 12:00 UTC: before epoch rollover → boundary correction → 1 TT"""
+        result = await haracalnde_date(1704110400, TEST_GUILD)
+        assert result == '5-12 1 TT'
+
+    @pytest.mark.asyncio
+    async def test_tt_one_year_before_epoch(self, guild):
+        """Dec 18 2023 18:00 UTC: 14 days before epoch, after rollover → 1-1 1 TT"""
+        result = await haracalnde_date(1702922400, TEST_GUILD)
+        assert result == '1-1 1 TT'
+
+    @pytest.mark.asyncio
+    async def test_tt_two_years_before_epoch(self, guild):
+        """Dec 4 2023 18:00 UTC: 28 days before epoch, after rollover → 1-1 2 TT"""
+        result = await haracalnde_date(1701712800, TEST_GUILD)
+        assert result == '1-1 2 TT'
+
+    @pytest.mark.asyncio
+    async def test_uses_year_span_not_epoch_length(self, guild):
+        """When year_span covers 30 real-world days, position scales to that length"""
+        span_30d = AttuYearSpan(start_time=1704128400, end_time=1706720400, duration=30)
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = span_30d
+            # Jan 8 17:00 UTC: exactly 7 days after epoch rollover
+            result = await haracalnde_date(1704733200, TEST_GUILD)
+        # 604800s / 2592000s * 360 = 84 → month 3, day 25
+        assert result == '25-3 1 PC'
+
+    @pytest.mark.asyncio
+    async def test_no_db_record_fallback(self, guild):
+        """When year_span has no data, fall back to epoch.length scaling"""
+        empty_span = AttuYearSpan(start_time=0, end_time=0, duration=0)
+        with patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+            mock_span.return_value = empty_span
+            # Jan 8 18:00 UTC: day_of_year=7, int(7*360/14)=180 → 1-7
+            result = await haracalnde_date(1704736800, TEST_GUILD)
+        assert result == '1-7 1 PC'
