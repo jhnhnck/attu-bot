@@ -86,7 +86,7 @@ def _merge_stored_embed(embed: discord.Embed, stored: dict, has_attachment_image
 
 def _hydrate_stored_embed(stored: dict) -> discord.Embed:
     color = stored.get('color')
-    embed = discord.Embed(color=color if color is not None else discord.Embed.Empty)
+    embed = discord.Embed(color=color)
     if stored.get('title'):
         embed.title = stored['title']
     if stored.get('description'):

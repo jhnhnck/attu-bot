@@ -157,6 +157,7 @@ Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. `trace`/`d
 - Each command module is a pycord **extension** with a `setup(bot: Bot)` function
 - Options use `@discord.commands.option()` decorators
 - Error handling: `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
+- **Ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument)
 
 ### MongoDB / Repository Pattern
 - All database access goes through the repository classes in `repositories.py`
@@ -262,11 +263,12 @@ docker compose logs -f
 
 Notes in `notes/` with relevant implementation details:
 
-- [button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
-- [comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
-- [embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
-- [starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
-- [testing.md`](notes/testing.md) - Test cases
+- [`button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
+- [`comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
+- [`embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
+- [`starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
+- [`testing.md`](notes/testing.md) - test cases
+- [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
 ---
 
 ## File & Directory Layout

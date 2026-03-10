@@ -96,7 +96,8 @@ COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
 # install python dev dependencies
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
-    pip install --user -r ./requirements-dev.txt --quiet;
+    pip install --user -r ./requirements-dev.txt --quiet; \
+    chmod a+x "$DOOM_HOME/scripts/run_tests.py";
 
 # Install npm dependencies
 RUN npm clean-install > /dev/null;
