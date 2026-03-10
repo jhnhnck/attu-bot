@@ -125,6 +125,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
+fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -403,7 +404,7 @@ async def fix_reconcile(ctx: ApplicationContext):
     scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg), 'Job[fix_reconcile]')
 
 
-@fix_group.command(name='starboard_recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
+@fix_starboard.command(name='recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
 @commands.check(is_bot_owner)
 async def fix_starboard_recount(ctx: ApplicationContext):
     try:
@@ -419,7 +420,7 @@ async def fix_starboard_recount(ctx: ApplicationContext):
     scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
 
 
-@fix_group.command(name='starboard_regen', description='Rebuilds every starboard post for this guild')
+@fix_starboard.command(name='regen', description='Rebuilds every starboard post for this guild')
 @commands.check(is_bot_owner)
 async def fix_starboard_regen(ctx: ApplicationContext):
     try:
@@ -431,6 +432,58 @@ async def fix_starboard_regen(ctx: ApplicationContext):
     await ctx.respond('Starting starboard regeneration...', ephemeral=True)
     status_msg = await ctx.channel.send('Regenerating starboard posts...')
     scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_regen]')
+
+
+@fix_starboard.command(name='purge', description='Removes a message from the starboard database given its message link')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
+async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
+    from attubot.starboard import parse_jump_url
+
+    parsed = parse_jump_url(message_link)
+    if parsed is None:
+        await ctx.respond('Invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        return
+
+    _guild_id, _channel_id, message_id = parsed
+
+    try:
+        sb_repo = _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        return
+
+    doc = await sb_repo.get(message_id)
+    if doc is None:
+        await ctx.respond(f'No starboard entry found for message {message_id}', ephemeral=True)
+        return
+
+    # try to delete the discord starboard post if one is linked
+    deleted_post = False
+    if doc.starboard_message_id:
+        try:
+            cfg = config.guild(ctx.guild.id)
+            sb_channel = bot.get_channel(cfg.starboard.channel_id)
+            if sb_channel:
+                sb_msg = await sb_channel.fetch_message(doc.starboard_message_id)
+                await sb_msg.delete()
+                deleted_post = True
+        except discord.NotFound:
+            pass  # post already gone
+        except Exception as err:
+            logger.warn(f'fix starboard purge: could not delete starboard post {doc.starboard_message_id}: {err}')
+
+    deleted = await sb_repo.delete(message_id)
+
+    if deleted:
+        parts = [f'Purged starboard entry for message {message_id}']
+        if deleted_post:
+            parts.append('and deleted the starboard post')
+        elif doc.starboard_message_id:
+            parts.append('(starboard post could not be deleted - may already be gone)')
+        await ctx.respond(', '.join(parts))
+    else:
+        await ctx.respond(f'No entry deleted (message {message_id} not found)', ephemeral=True)
 
 
 # --- Extension Def ---

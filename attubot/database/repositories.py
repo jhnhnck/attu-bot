@@ -610,6 +610,11 @@ class StarboardRepository:
             {'$set': {'starboard_message_id': starboard_message_id}},
         )
 
+    async def delete(self, message_id: int) -> bool:
+        """delete a starred message document by message_id; returns True if a document was deleted"""
+        result = await self.db[self.COLLECTION].delete_one({'message_id': message_id})
+        return result.deleted_count > 0
+
     async def get_random(self, guild_id: int, min_total: int, max_total: int | None = None) -> StarredMessageDocument | None:
         """return a random document matching the total_reactions range using $sample"""
         match: dict = {'guild_id': guild_id, 'total_reactions': {'$gte': min_total}}
