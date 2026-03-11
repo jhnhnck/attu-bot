@@ -1,0 +1,44 @@
+---
+# dev environment: tests-only, no live discord connection.
+# mongodb is ephemeral (tmpfs) and seeded from assets/doombot-seed.archive on each start.
+# usage: docker compose -f docker-compose.dev.yml run --build --rm tests
+name: doom-bot-dev
+
+services:
+  mongo:
+    image: mongo:8
+    restart: no
+    tmpfs:
+      - /data/db    # ephemeral - always starts empty, always re-runs init scripts
+    volumes:
+      - ./config/mongod.conf:/etc/mongod.conf
+      - ./scripts/mongo_init.sh:/docker-entrypoint-initdb.d/restore.sh:ro
+      - ./assets:/tmp/seeds:ro    # init script looks for doombot-seed.archive here
+    environment:
+      MONGO_INITDB_DATABASE: doombot
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tests:
+    build:
+      context: .
+      target: tester
+    restart: no
+    container_name: attu-dev-tests
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      TEST_MODE: "1"
+      DEBUG: "1"
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+    user: doom:doom
+    command: python /home/doom/scripts/run_tests.py
+    depends_on:
+      mongo:
+        condition: service_healthy

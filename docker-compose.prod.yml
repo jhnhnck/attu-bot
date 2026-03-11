@@ -1,0 +1,94 @@
+---
+services:
+  core:
+    build:
+      context: .
+      target: doombox
+    command: python -u attu-bot.py
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+    logging:
+      driver: journald
+    restart: always
+    user: doom:doom
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+      - /srv/backups/attu-bot:/home/doom/backups
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/bot-ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      target: doombox
+    command: python -u attu-bot.py web
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+    logging:
+      driver: journald
+    ports:
+      - "127.0.0.1:5000:5000"
+    restart: always
+    user: doom:doom
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+    depends_on:
+      mongo:
+        condition: service_healthy
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongo:
+    image: mongo:8
+    restart: always
+    # ports:
+      # - "172.17.0.1:5017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./config/mongod.conf:/etc/mongod.conf
+    environment:
+      MONGO_INITDB_DATABASE: doombot
+    env_file:
+    - ./.env
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tests:
+    build:
+      context: .
+      target: tester
+    restart: no
+    profiles:
+      - tests
+    container_name: attu-bot-tests
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      TEST_MODE: "1"
+      DEBUG: "1"
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+    user: doom:doom
+    command: python /home/doom/scripts/run_tests.py
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
