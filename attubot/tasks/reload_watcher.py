@@ -69,6 +69,10 @@ class ReloadWatcherTask(BaseTask):
                     logger.info('Reloading system globals (web-triggered)')
                     await config.load_globals()
 
+                elif signal.signal_type == 'chat':
+                    logger.info('Reloading chat runtime config (signal received)')
+                    await config.load_chat_runtime()
+
                 else:
                     logger.warn(f'Unknown reload signal type: {signal.signal_type!r}')
 

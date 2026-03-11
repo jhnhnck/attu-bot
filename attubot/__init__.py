@@ -33,6 +33,7 @@ async def command_ping(ctx: ApplicationContext):
 
 # extensions loaded by start_bot_loop; ordered list for deterministic loading
 _EXTENSIONS = [
+    'attubot.commands.chat',
     'attubot.commands.debug',
     'attubot.commands.fix',
     'attubot.commands.link',

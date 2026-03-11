@@ -16,7 +16,8 @@ import anyio
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
-from attubot.database.repositories import ConfigRepository
+from attubot.database.models import ChatConfigDocument
+from attubot.database.repositories import ChatConfigRepository, ConfigRepository
 from attubot.logging import get_logger
 from attubot.meta import __schema__
 
@@ -133,6 +134,18 @@ class GuildRoles(BaseModel):
 
 class GuildUsers(BaseModel):
     markers: list[int] = []  # user IDs authorized to create year markers
+
+
+class ChatConfig(BaseModel):
+    qdrant_url: str = 'http://qdrant:6333'
+    ingestor_api_url: str = 'http://ingestor:8001'
+    ingestor_token: str = ''
+    llm_primary_url: str = 'http://localhost:8080'
+    llm_fallback_url: str = 'http://llama-server:8080'
+    anthropic_api_key: str = ''
+    ask_cooldown_seconds: int = 30
+    embedding_model: str = 'all-MiniLM-L6-v2'
+    prompts_dir: str = 'assets/prompts'
 
 
 class GuildStarboard(BaseModel):
@@ -258,12 +271,17 @@ class NovaConfig:
 
         # MongoDB repositories
         self.config_repo: ConfigRepository = None
+        self.chat_config_repo: ChatConfigRepository = None
 
         # Config sections loaded from TOML
         self.paths: PathsConfig = None
         self.database: DatabaseConfig = None
         self.web: WebConfig = None
         self.webauthn: WebAuthnConfig = None
+        self.chat: ChatConfig = None
+
+        # Runtime config loaded from MongoDB
+        self.chat_runtime: ChatConfigDocument = None
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './assets/attu-bot.toml')).resolve()
@@ -271,6 +289,7 @@ class NovaConfig:
         self.guilds: dict[int, GuildConfig] = {}
         self.test_mode: bool = 'TEST_MODE' in environ
         self.web_mode: bool = False  # set by web app to skip migrations
+        self.ingestor_mode: bool = False  # set by ingestor to skip discord-specific migrations
 
         # Event system
         self._events = {
@@ -342,6 +361,12 @@ class NovaConfig:
             logger.error(f'Failed to validate backup configuration: {err!s}')
             raise ConfigLoadError('invalid backup configuration')
 
+        try:
+            self.chat = ChatConfig(**self._raw.get('chat', {}))
+        except ValidationError as err:
+            logger.error(f'Failed to validate chat configuration: {err!s}')
+            raise ConfigLoadError('invalid chat configuration')
+
         self._get_event('init').set()
 
     async def on_load(self):  # called after init_database() connects and sets up config_repo
@@ -370,6 +395,7 @@ class NovaConfig:
 
         # Load other configurations
         await self.load_theme()
+        await self.load_chat_runtime()
 
         # Load guild configs in parallel
         async def _load_guild_safe(guild_id: int) -> tuple[int, bool]:
@@ -395,8 +421,8 @@ class NovaConfig:
         if system_config.version != self.config_version:
             logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
 
-            if self.test_mode or self.web_mode:
-                logger.info('Skipping migrations (TEST_MODE or web_mode)')
+            if self.test_mode or self.web_mode or self.ingestor_mode:
+                logger.info('Skipping migrations (TEST_MODE, web_mode, or ingestor_mode)')
             else:
                 logger.info('Running migrations...')
 
@@ -616,6 +642,34 @@ class NovaConfig:
 
             if prev_state is not None:
                 self.theme = prev_state
+
+            return False
+
+    async def load_chat_runtime(self) -> bool:
+        prev_state = self.chat_runtime
+
+        try:
+            logger.info(f'{"Loading" if prev_state is None else "Reloading"} chat runtime config')
+
+            doc = await self.chat_config_repo.get()
+            if doc:
+                self.chat_runtime = doc
+            else:
+                # create defaults on first run
+                self.chat_runtime = ChatConfigDocument()
+                await self.chat_config_repo.save(self.chat_runtime)
+
+            # trigger event if this is a reload
+            if self._get_event('load').is_set():
+                self._get_event('reload').set()
+
+            return True
+
+        except ValidationError as err:
+            logger.error(f'Failed to validate chat runtime config: {err!s}')
+
+            if prev_state is not None:
+                self.chat_runtime = prev_state
 
             return False
 

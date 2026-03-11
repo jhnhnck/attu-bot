@@ -196,7 +196,6 @@ class ChatConfigDocument(BaseModel):
     ingest_wiki: bool = True
     ingest_documents: bool = True
     wiki_namespaces: list[str] = ['0']     # mediawiki namespace IDs permitted for ingestion ('0' = main)
-    meeting_thread_pattern: str = 'meeting'  # case-insensitive substring match for thread names; roleplay channels only
     character_log_channel_id: int | None = None  # channel with conversational 1st-person RP and world leader chit-chat
     chat_channels: dict[str, ChatChannelConfig] = {}  # snowflake (str key) -> channel config; channels absent from map are not ingested
     user_nations: dict[str, str] = {}      # user snowflake (str key) -> nation name (static; nations don't change)
@@ -219,7 +218,7 @@ Discord channels to ingest are defined by `chat_channels` - an explicit per-chan
 
 **Meeting threads (roleplay channels only):**
 
-A Discord thread is treated as a meeting scene if its parent channel has `channel_type = 'roleplay'` and its name contains `meeting_thread_pattern` (case-insensitive). Meeting scene handling in the summarizer:
+A Discord thread is treated as a meeting scene if its parent channel has `channel_type = 'roleplay'`. Thread in an RP channel = meeting scene; thread in any other channel type = not a meeting. No name matching needed. Meeting scene handling in the summarizer:
 - Prompt frames the content as a scripted scene, not a conversation - preserves character names, stage directions, and dialogue structure
 - Qdrant payload: `content_type: 'meeting_scene'` instead of `'discord_window'`
 
@@ -275,6 +274,8 @@ A helper `_load_prompt(name: str) -> str` reads from `config.chat.prompts_dir / 
 `async def haracalnde_date(timestamp: int, guild: int | None = None) -> str` is a pure function in `attubot/calendar.py` that converts a unix timestamp to a formatted Haracalnde date string (e.g., `"15-3 5 PC"`). It uses the same epoch math as `get_year_status()`.
 
 The Q&A handler substitutes `{current_date_pc}` immediately before the LLM call:
+
+> **Phase 1:** `{character_roster}` is substituted as an empty string — `ChatCharacterDocument` records don't exist until the Discord pipeline lands in Phase 2. The roster assembly below applies from Phase 2 onward.
 
 ```python
 from attubot.calendar import haracalnde_date
@@ -525,15 +526,10 @@ New `attubot/commands/chat.py` extension following the same pattern as all other
 
 ### Docker Compose Additions
 
-Four new services to add to the existing `docker-compose.yml`. The existing `core` service gains a shared volume mount for assets.
+Three new services to add to the existing `docker-compose.yml`. Prompt files are baked into the Docker image via `COPY` in the Dockerfile — no shared assets volume needed.
 
 ```yaml
 services:
-
-  # --- existing (add assets volume) ---
-  core:
-    volumes:
-      - assets:/app/assets
 
   # --- new ---
   qdrant:
@@ -549,7 +545,7 @@ services:
     command: python -u attu-bot.py ingestor
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
-      - assets:/home/doom/assets/uploads
+      # prompt files are baked into the image via Dockerfile COPY; no shared volume needed
     depends_on:
       mongo:
         condition: service_healthy
@@ -571,7 +567,6 @@ services:
 
 volumes:
   qdrant_data:
-  assets:
   models:
 ```
 

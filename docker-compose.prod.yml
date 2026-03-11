@@ -3,7 +3,7 @@ services:
   core:
     build:
       context: .
-      target: doombox
+      target: bot
     command: python -u attu-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
@@ -27,7 +27,7 @@ services:
   web:
     build:
       context: .
-      target: doombox
+      target: web
     command: python -u attu-bot.py web
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
@@ -90,5 +90,44 @@ services:
       mongo:
         condition: service_healthy
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  ingestor:
+    build:
+      context: .
+      target: ingestor
+    command: python -u attu-bot.py ingestor
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+    logging:
+      driver: journald
+    restart: unless-stopped
+    user: doom:doom
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+    depends_on:
+      mongo:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  llama-server:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    volumes:
+      - models:/models
+    command: >
+      -m /models/your-model-q4.gguf
+      --host 0.0.0.0
+      --port 8080
+      --ctx-size 4096
+      --threads 8
+    restart: unless-stopped
+
 volumes:
   mongo_data:
+  qdrant_data:
+  models:

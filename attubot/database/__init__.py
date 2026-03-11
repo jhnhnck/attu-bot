@@ -7,6 +7,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from attubot.database.connection import MongoStorage
 from attubot.database.models import (
+    ChatConfigDocument,
+    ChatSourceDocument,
     FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
@@ -18,6 +20,8 @@ from attubot.database.models import (
     YearMarkerDocument,
 )
 from attubot.database.repositories import (
+    ChatConfigRepository,
+    ChatSourceRepository,
     ConfigRepository,
     FamilyRepository,
     MessageRepository,
@@ -77,6 +81,14 @@ async def init_database(url: str, name: str):
     await family_repo.init_indexes()
     logger.debug('family indexes ready')
 
+    chat_config_repo = ChatConfigRepository(database)
+    # ChatConfigRepository uses global_config collection; no dedicated index needed
+    logger.debug('chat config repo ready')
+
+    chat_source_repo = ChatSourceRepository(database)
+    await chat_source_repo.init_indexes()
+    logger.debug('chat source indexes ready')
+
     import attubot.families as _families
     import attubot.markers as _markers
     import attubot.messages as _messages
@@ -91,10 +103,17 @@ async def init_database(url: str, name: str):
     _messages._message_repo = message_repo
     _starboard._starboard_repo = starboard_repo
 
+    # wire chat repos into config so on_load() can use them
+    config.chat_config_repo = chat_config_repo
+
     logger.info('database initialized')
 
 
 __all__ = [
+    'ChatConfigDocument',
+    'ChatConfigRepository',
+    'ChatSourceDocument',
+    'ChatSourceRepository',
     'ConfigRepository',
     'FamilyDocument',
     'FamilyRepository',

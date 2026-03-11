@@ -97,3 +97,86 @@ class PagesApi:
         res.raise_for_status()
         pages = res.json()['query']['pages']
         return PageSummary.model_validate(pages[0])
+
+    async def get_with_revision(self, page_name: str) -> tuple[str, int, str]:
+        """fetch wikitext along with the current revid and ISO timestamp"""
+        res = await self._client.get(
+            self._endpoint,
+            params={
+                'action': 'query',
+                'titles': page_name,
+                'prop': 'revisions',
+                'rvprop': 'ids|timestamp|content',
+                'rvslots': 'main',
+                'formatversion': 2,
+                'format': 'json',
+            },
+        )
+        res.raise_for_status()
+        page = res.json()['query']['pages'][0]
+        rev = page['revisions'][0]
+        return rev['slots']['main']['content'], rev['revid'], rev['timestamp']
+
+    async def get_all_pages(self, namespace: str = '0') -> list[str]:
+        """fetch all page titles in the given namespace via allpages with pagination"""
+        titles: list[str] = []
+        apcontinue: str | None = None
+
+        while True:
+            params: dict = {
+                'action': 'query',
+                'list': 'allpages',
+                'apnamespace': namespace,
+                'aplimit': 'max',
+                'format': 'json',
+                'formatversion': 2,
+            }
+            if apcontinue is not None:
+                params['apcontinue'] = apcontinue
+
+            res = await self._client.get(self._endpoint, params=params)
+            res.raise_for_status()
+            data = res.json()
+
+            for page in data.get('query', {}).get('allpages', []):
+                titles.append(page['title'])
+
+            cont = data.get('continue', {})
+            apcontinue = cont.get('apcontinue')
+            if apcontinue is None:
+                break
+
+        return titles
+
+    async def get_recent_changes(self, minutes: int = 65, namespace: str = '0') -> list[str]:
+        """fetch titles of pages changed in the last N minutes in the given namespace"""
+        import datetime
+
+        since = (datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=minutes)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        res = await self._client.get(
+            self._endpoint,
+            params={
+                'action': 'query',
+                'list': 'recentchanges',
+                'rcnamespace': namespace,
+                'rcstart': since,
+                'rcdir': 'newer',
+                'rctype': 'edit|new',
+                'rcprop': 'title',
+                'rclimit': 'max',
+                'format': 'json',
+                'formatversion': 2,
+            },
+        )
+        res.raise_for_status()
+        changes = res.json().get('query', {}).get('recentchanges', [])
+        # deduplicate - a page may appear multiple times if edited repeatedly
+        seen: set[str] = set()
+        titles: list[str] = []
+        for change in changes:
+            title = change['title']
+            if title not in seen:
+                seen.add(title)
+                titles.append(title)
+        return titles

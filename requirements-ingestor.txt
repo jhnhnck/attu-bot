@@ -1,0 +1,9 @@
+anyio>=4.12.0
+httpx
+mwparserfromhell
+pydantic
+pymongo>=4.6.0
+qdrant-client
+sentence-transformers
+termcolor
+tomlkit

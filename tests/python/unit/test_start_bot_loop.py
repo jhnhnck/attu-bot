@@ -170,14 +170,15 @@ class TestCheckDeps:
 class TestLoadExtensions:
     """unit: _load_extensions() loads all extensions in order and exits on failure"""
 
-    def test_all_nine_extensions_loaded_in_order(self):
-        """all nine extensions are loaded in the declared order"""
+    def test_all_ten_extensions_loaded_in_order(self):
+        """all ten extensions are loaded in the declared order"""
         with patch.object(attubot.bot, 'load_extension') as mock_load:
             attubot._load_extensions()
 
-        assert mock_load.call_count == 9
+        assert mock_load.call_count == 10
         mock_load.assert_has_calls(
             [
+                call('attubot.commands.chat'),
                 call('attubot.commands.debug'),
                 call('attubot.commands.fix'),
                 call('attubot.commands.link'),
@@ -284,6 +285,7 @@ class TestExtensionsList:
 
     def test_expected_extensions_present(self):
         expected = {
+            'attubot.commands.chat',
             'attubot.commands.debug',
             'attubot.commands.fix',
             'attubot.commands.link',
@@ -299,8 +301,8 @@ class TestExtensionsList:
     def test_no_duplicates(self):
         assert len(attubot._EXTENSIONS) == len(set(attubot._EXTENSIONS))
 
-    def test_count_is_nine(self):
-        assert len(attubot._EXTENSIONS) == 9
+    def test_count_is_ten(self):
+        assert len(attubot._EXTENSIONS) == 10
 
 
 # ============================================================

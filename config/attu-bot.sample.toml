@@ -52,3 +52,22 @@ authorized = [1000000000000000000, 2000000000000000000]
 path = ""
 day = "sunday"
 time = "03:00"
+
+[chat]
+# qdrant vector store url (docker service name or external host)
+qdrant_url = "http://qdrant:6333"
+# ingestor internal api url and shared secret (bot -> ingestor auth)
+ingestor_api_url = "http://ingestor:8001"
+ingestor_token = "CHANGE_ME"
+# llama.cpp openai-compatible inference endpoints
+# primary: desktop gpu (tailscale ip); fallback: server cpu
+llm_primary_url = "http://<desktop-tailscale-ip>:8080"
+llm_fallback_url = "http://llama-server:8080"
+# anthropic api key for claude haiku (used in phase 2+ for discord summarization)
+anthropic_api_key = "sk-ant-..."
+# per-user /ask cooldown in seconds; set to 0 to disable (useful for testing)
+ask_cooldown_seconds = 30
+# sentence-transformers embedding model name
+embedding_model = "all-MiniLM-L6-v2"
+# path to prompt template directory (relative to working dir or absolute)
+prompts_dir = "assets/prompts"

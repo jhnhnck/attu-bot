@@ -21,11 +21,11 @@ def run(title: str, cmd: list[str], env: dict | None = None, quiet: bool = True)
 if __name__ == '__main__':
     verbose = '-v' in sys.argv
 
-    run('python tests', ['coverage', 'run', '-m', 'pytest', '-m', 'not integration'], quiet=not verbose)
+    run('unit tests', ['coverage', 'run', '-m', 'pytest', 'tests/python/unit/'], quiet=not verbose)
+    run('component tests', ['coverage', 'run', '--append', '-m', 'pytest', 'tests/python/component/'], quiet=not verbose)
+    run('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', 'tests/python/integration/'], quiet=not verbose)
 
     run('javascript tests', ['npm', 'test'], quiet=not verbose)
-
-    run('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', '-m', 'integration', '-v'], quiet=not verbose)
 
     if '--coverage' in sys.argv:
         run('coverage report', ['coverage', 'report'], quiet=False)

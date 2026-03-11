@@ -16,7 +16,7 @@ RUN set -eux; \
     sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}+${GIT_CHANGED}'|" attubot/__init__.py; \
     sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" attubot/__init__.py;
 
-# doom-bot container
+# doom-bot container base - system deps and application code, no Python packages
 FROM python:3.13-bookworm AS doombox
 ENV TZ="America/New_York"
 ENV FORCE_COLOR=1
@@ -48,24 +48,40 @@ RUN --mount=type=cache,target=/var/lib/apt \
 # install resvg
 COPY --from=builder /usr/local/cargo/bin/resvg /usr/local/bin/resvg
 
-# run everything else as a standard user
 USER doom
-
-COPY --chown=doom:doom ./requirements.txt $DOOM_HOME/
-
-# install user dependencies
-RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
-    pip install --user -r ./requirements.txt --quiet; \
-    python -m compileall $HOME/attubot;
 
 # include docs/license with code
 COPY --chown=doom:doom ./LICENSE ./README.md ./attu-bot.py $DOOM_HOME/
 COPY --chown=doom:doom ./attubot $DOOM_HOME/attubot
+COPY --chown=doom:doom ./assets/prompts $DOOM_HOME/assets/prompts
 COPY --chown=doom:doom ./assets/templates $DOOM_HOME/assets/templates
 COPY --chown=doom:doom ./assets/static $DOOM_HOME/assets/static
 
 # stamp version and build time into __init__.py from git-info stage
 COPY --from=git-info --chown=doom:doom /src/attubot/__init__.py $DOOM_HOME/attubot/__init__.py
+
+# all requirements files available in every stage
+COPY --chown=doom:doom \
+    ./requirements-bot.txt \
+    ./requirements-web.txt \
+    ./requirements-ingestor.txt \
+    ./requirements-dev.txt \
+    $DOOM_HOME/
+
+# --- bot service ---
+FROM doombox AS bot
+RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
+    pip install --user -r ./requirements-bot.txt --quiet;
+
+# --- web service ---
+FROM doombox AS web
+RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
+    pip install --user -r ./requirements-web.txt --quiet;
+
+# --- ingestor service ---
+FROM doombox AS ingestor
+RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
+    pip install --user -r ./requirements-ingestor.txt --quiet;
 
 # --- for running tests inside docker ---
 FROM doombox AS tester
@@ -83,7 +99,6 @@ WORKDIR /home/doom
 
 # copy extra needed files
 COPY --chown=doom:doom \
-    ./requirements-dev.txt \
     ./package.json \
     ./pyproject.toml \
     ./eslint.config.js \
@@ -93,9 +108,14 @@ COPY --chown=doom:doom \
 COPY --chown=doom:doom ./tests $DOOM_HOME/tests
 COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
-# install python dev dependencies
+# install all service deps + dev deps for full test coverage
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
-    pip install --user -r ./requirements-dev.txt --quiet; \
+    pip install --user \
+        -r ./requirements-bot.txt \
+        -r ./requirements-web.txt \
+        -r ./requirements-ingestor.txt \
+        -r ./requirements-dev.txt \
+        --quiet; \
     chmod a+x "$DOOM_HOME/scripts/run_tests.py";
 
 # Install npm dependencies

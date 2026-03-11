@@ -6,6 +6,7 @@ attu-bot.toml
 **/*.wip.py
 .ruff_cache/
 assets/
+!assets/prompts/
 !assets/templates/
 !assets/static/
 backups/

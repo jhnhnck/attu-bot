@@ -6,8 +6,9 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
 Usage:
-    python attu-bot.py bot   # Launch the Discord bot (default)
-    python attu-bot.py web   # Launch the web interface
+    python attu-bot.py bot       # Launch the Discord bot (default)
+    python attu-bot.py web       # Launch the web interface
+    python attu-bot.py ingestor  # Launch the chat/RAG ingestor
 """
 
 import sys
@@ -31,8 +32,8 @@ else:
 # Determine mode from CLI args (default: bot)
 mode = sys.argv[1] if len(sys.argv) > 1 else 'bot'
 
-if mode not in ('bot', 'web'):
-    logger.error(f'Unknown mode: "{mode}". Valid options: bot, web')
+if mode not in ('bot', 'web', 'ingestor'):
+    logger.error(f'Unknown mode: "{mode}". Valid options: bot, web, ingestor')
     sys.exit(1)
 
 try:
@@ -45,6 +46,11 @@ try:
         from attubot.web.app import start_web
 
         start_web()
+
+    elif mode == 'ingestor':
+        from attubot.ingestor import start_ingestor
+
+        start_ingestor()
 
 except Exception as error:
     tb_str = ''.join(traceback.format_exception(error))

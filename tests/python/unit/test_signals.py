@@ -45,6 +45,11 @@ class TestReloadSignalDocument:
         assert doc.signal_type == 'system'
         assert doc.guild_id is None
 
+    def test_make_chat(self):
+        doc = ReloadSignalDocument.make('chat')
+        assert doc.signal_type == 'chat'
+        assert doc.guild_id is None
+
     def test_timestamp_is_current(self):
         before = int(time.time())
         doc = ReloadSignalDocument.make('theme')
@@ -208,6 +213,7 @@ def mock_cfg():
     cfg.load_guild = AsyncMock()
     cfg.load_theme = AsyncMock()
     cfg.load_globals = AsyncMock()
+    cfg.load_chat_runtime = AsyncMock()
     cfg.wait_for_load = AsyncMock()
     with patch('attubot.tasks.reload_watcher.config', cfg):
         yield cfg
@@ -318,6 +324,18 @@ class TestReloadWatcher:
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
+
+    async def test_chat_signal_reloads_chat_runtime(self, mock_signal_repo, mock_cfg):
+        mock_signal_repo.consume_all = AsyncMock(
+            return_value=[
+                ReloadSignalDocument(signal_type='chat', guild_id=None, timestamp=1000),
+            ],
+        )
+        from attubot.tasks.reload_watcher import ReloadWatcherTask
+
+        await ReloadWatcherTask.run(make_watcher())
+        mock_cfg.load_chat_runtime.assert_called_once()
+        mock_cfg.load_guild.assert_not_called()
 
     async def test_repo_error_is_caught(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(side_effect=Exception('mongo connection lost'))
