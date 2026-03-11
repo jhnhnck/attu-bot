@@ -70,26 +70,6 @@ services:
       retries: 5
       start_period: 10s
 
-  tests:
-    build:
-      context: .
-      target: tester
-    restart: no
-    profiles:
-      - tests
-    container_name: attu-bot-tests
-    environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
-      TEST_MODE: "1"
-      DEBUG: "1"
-    volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
-    user: doom:doom
-    command: python /home/doom/scripts/run_tests.py
-    depends_on:
-      mongo:
-        condition: service_healthy
-
   qdrant:
     image: qdrant/qdrant:latest
     volumes:
@@ -118,9 +98,9 @@ services:
   llama-server:
     image: ghcr.io/ggerganov/llama.cpp:server
     volumes:
-      - models:/models
+      - ./assets/models:/models
     command: >
-      -m /models/your-model-q4.gguf
+      -m /models/Qwen3.5-2B.Q4_K_M.gguf
       --host 0.0.0.0
       --port 8080
       --ctx-size 4096
@@ -130,4 +110,3 @@ services:
 volumes:
   mongo_data:
   qdrant_data:
-  models:
