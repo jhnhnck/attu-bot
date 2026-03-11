@@ -2,10 +2,20 @@
 # runs inside mongo:8 container during /docker-entrypoint-initdb.d/ phase (no auth yet).
 # called automatically when /data/db is empty - which is always, since docker-compose.dev.yml
 # mounts /data/db as tmpfs.
-if [ -f /tmp/seeds/doombot-seed.archive ]; then
-    echo "restoring db from seed archive..."
-    mongorestore --archive=/tmp/seeds/doombot-seed.archive --gzip
+
+if [ -d /tmp/seeds/doombot-seed ]; then
+    echo "restoring db from seed directory..."
+    mongorestore /tmp/seeds/doombot-seed
     echo "seed restore complete"
 else
-    echo "no seed found at assets/doombot-seed.archive - starting with empty db"
+    echo "no seed found at assets/doombot-seed - starting with empty db"
 fi
+
+# create the app user in the doombot database to match prod
+mongosh doombot --eval "
+  db.createUser({
+    user: '$MONGO_USERNAME',
+    pwd: '$MONGO_PASSWORD',
+    roles: [{ role: 'readWrite', db: 'doombot' }]
+  });
+"

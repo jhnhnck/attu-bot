@@ -10,8 +10,8 @@ RUN apt-get update -qq && apt-get install -qq git
 WORKDIR /src
 COPY . .
 RUN set -eux; \
-    GIT_COMMIT="$(git rev-parse --short HEAD)"; \
-    GIT_CHANGED="$(git diff HEAD --numstat | awk '{s+=$1+$2} END {print s+0}')"; \
+    GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"; \
+    GIT_CHANGED="$(git diff HEAD --numstat 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')"; \
     BUILD_TIME="$(date '+%a %b %d %H:%M:%S %Z %Y')"; \
     sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}+${GIT_CHANGED}'|" attubot/__init__.py; \
     sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" attubot/__init__.py;
@@ -85,7 +85,6 @@ WORKDIR /home/doom
 COPY --chown=doom:doom \
     ./requirements-dev.txt \
     ./package.json \
-    ./package-lock.json \
     ./pyproject.toml \
     ./eslint.config.js \
     ./vitest.config.js \
@@ -100,4 +99,4 @@ RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
     chmod a+x "$DOOM_HOME/scripts/run_tests.py";
 
 # Install npm dependencies
-RUN npm clean-install > /dev/null;
+RUN npm install > /dev/null;
