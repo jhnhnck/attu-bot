@@ -3,9 +3,11 @@ services:
   core:
     build:
       context: .
+      target: doombox
     command: python -u attu-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      DEBUG: 1
     logging:
       driver: journald
     restart: always
@@ -26,6 +28,7 @@ services:
   web:
     build:
       context: .
+      target: doombox
     command: python -u attu-bot.py web
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
@@ -77,6 +80,7 @@ services:
   ingestor:
     build:
       context: .
+      target: doombox
     command: python -u attu-bot.py ingestor
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
