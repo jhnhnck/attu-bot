@@ -28,6 +28,7 @@ class ChatInitTask(BaseTask):
     async def run(self) -> None:
         import asyncio
 
+        from attubot.commands.chat import _get_system_prompt
         from attubot.ingestor.embedder import _get_embedder
         from attubot.ingestor.llm import _get_llm
         from attubot.ingestor.reranker import _get_reranker
@@ -39,11 +40,12 @@ class ChatInitTask(BaseTask):
         await loop.run_in_executor(None, _get_reranker)   # blocking model load
         _get_vector_store()
         _get_llm()
+        _get_system_prompt()
         logger.info('Chat subsystems ready')
 
     async def next_run(self) -> datetime:
         # effectively never runs again after the immediate run
-        return datetime.now() + timedelta(days=36500)
+        return datetime.now().astimezone() + timedelta(days=36500)
 
 
 chat_init_task = ChatInitTask()

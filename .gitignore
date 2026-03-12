@@ -47,10 +47,9 @@ docker-compose.yml
 
 # assets
 assets/*
-!assets/templates/
 !assets/templates/**
-!assets/static/
 !assets/static/**
+!assets/prompts/**
 
 # notes
 notes/*
