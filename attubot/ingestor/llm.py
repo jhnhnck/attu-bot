@@ -16,7 +16,8 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
-_LLM_TIMEOUT = 30.0  # seconds before falling back to secondary
+_LLM_CONNECT_TIMEOUT = 10.0  # seconds; fail fast if server isn't reachable
+_LLM_READ_TIMEOUT = None      # no cap; let inference take as long as it needs on cpu
 
 _llm: 'LLMClient | None' = None
 
@@ -58,7 +59,8 @@ class LLMClient:
 
     async def _stream(self, base_url: str, payload: dict) -> AsyncIterator[str]:
         """open a streaming SSE connection and yield token strings"""
-        async with httpx.AsyncClient(timeout=_LLM_TIMEOUT) as client, client.stream('POST', f'{base_url}/v1/chat/completions', json=payload) as res:
+        timeout = httpx.Timeout(connect=_LLM_CONNECT_TIMEOUT, read=_LLM_READ_TIMEOUT, write=30.0, pool=10.0)
+        async with httpx.AsyncClient(timeout=timeout) as client, client.stream('POST', f'{base_url}/v1/chat/completions', json=payload) as res:
                 res.raise_for_status()
                 async for line in res.aiter_lines():
                     if not line.startswith('data: '):
