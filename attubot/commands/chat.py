@@ -12,6 +12,7 @@ from typing import cast
 import discord
 from discord import ApplicationCommand, ApplicationContext, Bot
 from discord.commands import option
+from discord.ext import commands
 
 from attubot.core import config
 from attubot.logging import get_logger
@@ -52,8 +53,8 @@ def _build_context_block(results: list[dict]) -> str:
 
 
 @discord.slash_command(name='ask', description='Ask the lore assistant a question about the Attu world')
-@discord.commands.check(is_bot_owner)  # TODO(release): remove - testing phase only
-@discord.commands.check(is_authorized_guild)
+@commands.check(is_bot_owner)  # TODO(release): remove - testing phase only
+@commands.check(is_authorized_guild)
 @option('query', description='Your question about the Attu world', required=True)
 async def command_ask(ctx: ApplicationContext, query: str):
     # cooldown check

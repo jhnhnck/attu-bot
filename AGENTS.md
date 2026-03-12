@@ -156,6 +156,7 @@ Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. `trace`/`d
 - Slash commands use `@discord.slash_command()` or `SlashCommandGroup`
 - Each command module is a pycord **extension** with a `setup(bot: Bot)` function
 - Options use `@discord.commands.option()` decorators
+- Permission checks: `from discord.ext import commands` then `@commands.check(predicate)`; `discord.commands` does NOT have `check` - it only exposes `option` and `SlashCommandGroup`; predicates live in `util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`)
 - Error handling: `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
 - **Ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument)
 
@@ -210,6 +211,14 @@ docker compose run --build --rm --quiet-build tests
 - `xfail` marks document **known bugs** - when a fix lands the test becomes `XPASS`, which signals the marker should be removed
 - Test constants: `TEST_GUILD = 1234567890`, `TEST_USER = 9876543210`, `TEST_CHANNEL = 5555555555`
 
+#### Mock compensation rule
+When a test mocks a framework mechanism, it inherits responsibility for testing what that mock hides. Two standing cases in this codebase:
+
+- `bot.load_extension()` is mocked in `test_start_bot_loop.py` to test orchestration. Compensation: `TestExtensionImports.test_extension_imports_cleanly` in the same file does a real `importlib.import_module()` for each entry in `_EXTENSIONS` - decorators are evaluated at import time, so any bad attribute reference surfaces immediately. Whenever you add an extension to `_EXTENSIONS`, verify this test still passes.
+- Command tests call functions directly, bypassing `@commands.check` decorators. Compensation: permission predicates (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`) are tested in `test_util.py`. Whenever you add a new predicate or change an existing one, add or update its test there.
+
+The general principle: if you write a test that mocks out a mechanism, ask "what behavior is this mock hiding?" and ensure that hidden behavior is covered at another level.
+
 ### JavaScript Tests
 - Test files: `tests/*.test.js`
 - Uses `jsdom` environment for DOM tests
@@ -256,6 +265,7 @@ docker compose logs -f
 - **`wip/` directory**: excluded from all linting and type checks; use it for exploratory/in-progress work.
 - **`resvg` dependency**: the bot checks for `/usr/local/bin/resvg` at startup and exits if missing - it is bundled in the Docker image.
 - **Error webhook**: unhandled exceptions in commands are forwarded to a Discord webhook via `logger.send_to_webhook(err)`.
+- **Permission checks on slash commands**: use `@commands.check(predicate)` from `discord.ext.commands` - NOT `@discord.commands.check()`, which does not exist in pycord. All command modules use `from discord.ext import commands`.
 
 ---
 

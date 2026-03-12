@@ -280,6 +280,21 @@ class TestRegisterCoreCommands:
 # ============================================================
 
 
+class TestExtensionImports:
+    """unit: every extension module in _EXTENSIONS can be imported without errors.
+
+    this is the compensation test for the mocked load_extension calls in TestLoadExtensions -
+    those tests verify orchestration only; this test verifies the modules themselves are
+    importable. decorators are evaluated at import time, so any bad attribute reference,
+    missing import, or module-level crash raises here immediately.
+    """
+
+    @pytest.mark.parametrize('ext', attubot._EXTENSIONS)
+    def test_extension_imports_cleanly(self, ext):
+        import importlib
+        importlib.import_module(ext)
+
+
 class TestExtensionsList:
     """unit: _EXTENSIONS list is complete and ordered"""
 

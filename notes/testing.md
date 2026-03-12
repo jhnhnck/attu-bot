@@ -51,6 +51,18 @@ docker compose run --build --rm --quiet-build tests scripts/run_tests.py
 - `TZ=UTC` must be set before pytest starts because `attubot.config` reads the timezone at import time. The shared `tests/conftest.py` already sets it for every test.
 - When renaming tests, keep imports (e.g., `from tests.conftest import TEST_GUILD`) relative to the test package layout.
 
+## Mock compensation
+
+When a test mocks a framework mechanism, it must compensate by testing what the mock hides at another level. The alternative is an invisible gap where real failures only surface in prod.
+
+Two standing compensations in this codebase:
+
+**Extension loading** - `test_start_bot_loop.py` mocks `bot.load_extension()` to verify call orchestration. The compensating test (`TestExtensionImports.test_extension_imports_cleanly`) does a real `importlib.import_module()` for every entry in `_EXTENSIONS`. Decorators evaluate at import time, so any attribute error or missing import raises immediately. Rule: whenever a module is added to or removed from `_EXTENSIONS`, confirm this test passes before merging.
+
+**Command auth gates** - command tests call functions directly and never execute `@commands.check` decorators. The compensating tests live in `test_util.py` and exercise the predicate functions (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`) directly with real config state. Rule: whenever a new predicate is added to `util.py` or applied to a command, add corresponding true/false tests in `test_util.py`.
+
+The general rule: if you mock a framework mechanism, write down what behavior that mock hides, then cover it at another level.
+
 ## Next improvements
 
 - Expand integration coverage by spinning up each Quart route group behind mocked dependencies instead of patching internals. The startup integration test currently covers the overall bot/web ready path and can serve as a template.
