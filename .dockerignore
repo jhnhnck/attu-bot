@@ -1,18 +1,17 @@
 .env
+.ruff_cache/
 .venv**
 *.sample.*
-attu-bot.toml
 **/__pycache__/
 **/*.wip.py
-.ruff_cache/
 assets/
-!assets/prompts/
-!assets/templates/
+assets/attu-bot.toml
 !assets/static/
+!assets/templates/
 backups/
 config/
-wip/
 notes/
+wip/
 
 # allow package files for test runner
 !package.json

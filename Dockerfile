@@ -53,7 +53,6 @@ USER doom
 # include docs/license with code
 COPY --chown=doom:doom ./LICENSE ./README.md ./attu-bot.py $DOOM_HOME/
 COPY --chown=doom:doom ./attubot $DOOM_HOME/attubot
-COPY --chown=doom:doom ./assets/prompts $DOOM_HOME/assets/prompts
 COPY --chown=doom:doom ./assets/templates $DOOM_HOME/assets/templates
 COPY --chown=doom:doom ./assets/static $DOOM_HOME/assets/static
 
