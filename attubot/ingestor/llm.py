@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 
-from attubot.core import config
+from attubot.client.core import config
 from attubot.logging import get_logger
 
 

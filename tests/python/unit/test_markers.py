@@ -19,8 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from attubot.client.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
 from attubot.database.models import YearMarkerDocument
-from attubot.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
 from tests.conftest import TEST_GUILD
 
 
@@ -98,7 +98,7 @@ class TestResolveMarkerOverride:
     @pytest.mark.asyncio
     async def test_override_found(self):
         doc = _make_year_marker_doc()
-        with patch('attubot.markers._get_repo') as mock_repo_fn:
+        with patch('attubot.client.markers._get_repo') as mock_repo_fn:
             repo = AsyncMock()
             repo.get = AsyncMock(return_value=doc)
             mock_repo_fn.return_value = repo
@@ -116,7 +116,7 @@ class TestResolveMarkerOverride:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_repo_fn, patch('attubot.years.Year') as mock_year_cls:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_repo_fn, patch('attubot.client.years.Year') as mock_year_cls:
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
             msg_repo.find_author_message = AsyncMock(return_value=None)
@@ -128,7 +128,7 @@ class TestResolveMarkerOverride:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
 
             # patch config for marker authors and lore channels
-            with patch('attubot.markers.config') as mock_cfg:
+            with patch('attubot.client.markers.config') as mock_cfg:
                 mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
                 result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
 
@@ -144,7 +144,7 @@ class TestResolveMarkerBotHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
 
@@ -169,7 +169,7 @@ class TestResolveMarkerAuthorHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
@@ -202,7 +202,7 @@ class TestResolveMarkerAuthorHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
@@ -238,7 +238,7 @@ class TestResolveMarkerFirstMessage:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
 
@@ -263,7 +263,7 @@ class TestResolveMarkerPrimaryFallback:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             # target channel has no messages; primary channel is TEST_CHANNEL_2
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[TEST_CHANNEL_2, TEST_CHANNEL]))
@@ -292,7 +292,7 @@ class TestResolveMarkerPrimaryFallback:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('attubot.markers._get_message_repo') as mock_msg_fn, patch('attubot.years.Year') as mock_year_cls, patch('attubot.markers.config') as mock_cfg:
+        with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             # target channel is the primary channel
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[TEST_CHANNEL]))

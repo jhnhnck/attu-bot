@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 from discord import Color, Embed
 
-from attubot.util import theme_color
+from attubot.client.util import theme_color
 
 
 def make_embed(

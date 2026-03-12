@@ -186,7 +186,7 @@ def dominant_color(
     super_reactions: dict[str, list[int]] | None = None,
 ) -> int:
     """return the color for the emoji with the highest weighted reaction count"""
-    from attubot.util import theme_color
+    from attubot.client.util import theme_color
 
     super_reactions = super_reactions or {}
     configured = {e for e in emoji_colors if (reactions.get(e) or super_reactions.get(e))}
@@ -258,8 +258,8 @@ async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many
 
     handles: standard text, images (single and multiple), replies, and stored link preview embeds.
     """
-    from attubot import bot
-    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.client.core import bot
+    from attubot.client.messages import _get_repo as _get_msg_repo
 
     jump_url = f'https://discord.com/channels/{guild_id}/{message_doc.channel_id}/{message_doc.message_id}'
 
@@ -357,9 +357,9 @@ async def _fetch_store_and_backfill(
     skips (skip_user, skip_emoji) since the caller will process that combination.
     returns the stored MessageDocument or None on failure.
     """
-    from attubot import bot
-    from attubot.messages import _get_repo as _get_msg_repo
-    from attubot.messages import build_message_doc
+    from attubot.client.core import bot
+    from attubot.client.messages import _get_repo as _get_msg_repo
+    from attubot.client.messages import build_message_doc
 
     try:
         channel = bot.get_channel(channel_id)
@@ -414,8 +414,8 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
     intended to be called during channel backfill for messages we hadn't seen before.
     no-ops on the starboard channel itself, bot messages, or unconfigured emojis.
     """
-    from attubot import config
-    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.client.core import config
+    from attubot.client.messages import _get_repo as _get_msg_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -511,8 +511,8 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
     creates the starboard document if needed, then posts or updates the starboard entry.
     super reactions (is_burst=True) count as 1.5 stars; a user can only have one type per emoji.
     """
-    from attubot import config
-    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.client.core import config
+    from attubot.client.messages import _get_repo as _get_msg_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -528,7 +528,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         return
 
     # skip our own bot's reactions and any configured legacy bot IDs
-    from attubot import bot as _bot
+    from attubot.client.core import bot as _bot
 
     if _bot.user and user_id == _bot.user.id:
         logger.debug(f'starboard: ignoring own bot reaction from {user_id}')
@@ -608,8 +608,8 @@ async def handle_star_remove(
     is_burst: bool = False,
 ) -> None:
     """process a star removal; updates the starboard post if it exists."""
-    from attubot import config
-    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.client.core import config
+    from attubot.client.messages import _get_repo as _get_msg_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -648,8 +648,8 @@ async def handle_star_remove(
 
 async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
     """create or update (or do nothing for) the starboard channel post for a starred message."""
-    from attubot import bot
-    from attubot.messages import _get_repo as _get_msg_repo
+    from attubot.client.core import bot
+    from attubot.client.messages import _get_repo as _get_msg_repo
 
     sb = guild_config.starboard
     repo = _get_repo()

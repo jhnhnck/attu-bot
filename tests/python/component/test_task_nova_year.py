@@ -97,7 +97,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -119,7 +119,7 @@ class TestAdvanceYear:
         # seed year 1 so finalize has something to update
         await year_repo.create(TEST_GUILD, year=1, start_time=1704067200)
 
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -138,7 +138,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -155,7 +155,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -173,8 +173,8 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        import attubot.client.years as _years
         import attubot.tasks.nova_year as nova_year_mod
-        import attubot.years as _years
         from attubot.tasks.nova_year import NovaYearTask
         from attubot.tasks.scheduler import scheduler as _scheduler
 
@@ -229,7 +229,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -281,7 +281,7 @@ class TestRolloverGuildGuards:
         # year 2 already recorded - rollover already happened
         await year_repo.create(TEST_GUILD, year=2, start_time=1705276800)
 
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -304,7 +304,7 @@ class TestRolloverGuildGuards:
         await year_repo.init_indexes()
         # no year 2 record yet
 
-        import attubot.years as _years
+        import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:

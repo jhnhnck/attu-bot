@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 import discord
 from discord import Color, Guild, GuildEmoji, Member, Role, User
 
-from attubot import bot, config
-from attubot.embeds import make_embed
+from attubot.client.core import bot, config
+from attubot.client.embeds import make_embed
 from attubot.logging import get_logger
 
 

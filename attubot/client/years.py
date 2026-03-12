@@ -7,8 +7,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel
 
-from attubot.calendar import SECONDS_PER_DAY
-from attubot.core import config, db
+from attubot.client.calendar import SECONDS_PER_DAY
+from attubot.client.core import config, db
 from attubot.database.repositories import YearRepository
 from attubot.logging import get_logger
 
@@ -64,7 +64,7 @@ class Year(BaseModel):
 
     def to_span(self):
         """Convert to AttuYearSpan for backward compatibility"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
 
         return AttuYearSpan(
             start_time=self.start_time,

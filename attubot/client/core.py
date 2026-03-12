@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 # leaf module - imports only third-party and sibling sub-packages, never attubot itself
-# this means any module can do `from attubot.core import bot, config, db` without circularity
+# this means any module can do `from attubot.client.core import bot, config, db` without circularity
 
 import discord
 from discord import Intents

@@ -16,8 +16,8 @@ import time
 import traceback
 from os import environ
 
+from attubot import __build_time__
 from attubot.logging import get_logger
-from attubot.meta import __build_time__
 
 
 logger = get_logger(__name__)

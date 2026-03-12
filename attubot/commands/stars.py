@@ -11,8 +11,8 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from attubot import config
+from attubot.client.util import theme_color
 from attubot.logging import get_logger
-from attubot.util import theme_color
 
 
 logger = get_logger(__name__)
@@ -24,13 +24,13 @@ stars_group = SlashCommandGroup('stars', description='Starboard browsing and lea
 
 
 def _get_sb_repo():
-    from attubot.starboard import _get_repo
+    from attubot.client.starboard import _get_repo
 
     return _get_repo()
 
 
 def _get_msg_repo():
-    from attubot.messages import _get_repo
+    from attubot.client.messages import _get_repo
 
     return _get_repo()
 
@@ -57,7 +57,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
         await ctx.respond('guild configuration not found', ephemeral=True)
         return
 
-    from attubot.starboard import build_content, build_embeds, dominant_color
+    from attubot.client.starboard import build_content, build_embeds, dominant_color
 
     msg_repo = _get_msg_repo()
     msg_doc = await msg_repo.get(doc.message_id)
@@ -74,7 +74,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
 
     await ctx.respond(content=content, embeds=embeds)
     try:
-        from attubot.messages import build_message_doc
+        from attubot.client.messages import build_message_doc
 
         interaction = ctx.interaction
         if interaction is None:
@@ -100,7 +100,7 @@ async def stars_lost(ctx: ApplicationContext):
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
 @discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
 async def stars_recheck(ctx: ApplicationContext, message_link: str):
-    from attubot.starboard import backfill_message_reactions, parse_jump_url
+    from attubot.client.starboard import backfill_message_reactions, parse_jump_url
 
     parsed = parse_jump_url(message_link.strip())
     if parsed is None:
@@ -121,8 +121,8 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
     await ctx.defer()
 
     from attubot import bot as _bot
-    from attubot.messages import _get_repo as _get_msg_repo
-    from attubot.messages import build_message_doc
+    from attubot.client.messages import _get_repo as _get_msg_repo
+    from attubot.client.messages import build_message_doc
 
     try:
         channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)

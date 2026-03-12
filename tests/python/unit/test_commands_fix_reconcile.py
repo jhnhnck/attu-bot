@@ -83,7 +83,7 @@ async def test_fix_reconcile_schedules_job(mock_ctx_factory):
     ctx = mock_ctx_factory()
 
     ctx.channel.send = AsyncMock(return_value=MagicMock())
-    with patch('attubot.messages._get_repo', return_value=MagicMock()), patch('attubot.commands.fix.job_reconcile_guild', new_callable=AsyncMock) as mock_job, patch('attubot.commands.fix.scheduler.add_job') as mock_sched:
+    with patch('attubot.client.messages._get_repo', return_value=MagicMock()), patch('attubot.commands.fix.job_reconcile_guild', new_callable=AsyncMock) as mock_job, patch('attubot.commands.fix.scheduler.add_job') as mock_sched:
         await fix_reconcile(ctx)
 
     mock_sched.assert_called_once()

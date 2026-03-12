@@ -119,7 +119,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_get_years_empty(self, client):
         """Test GET /api/guilds/<id>/years returns empty list when no years exist"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.all_for_guild = AsyncMock(return_value=[])
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years')
@@ -150,7 +150,7 @@ class TestYearsAPI:
         mock_year2.duration = 0
         mock_year2.notes = ''
 
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.all_for_guild = AsyncMock(return_value=[mock_year1, mock_year2])
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years')
@@ -174,7 +174,7 @@ class TestYearsAPI:
         mock_year.duration = 19
         mock_year.notes = 'Fifth year'
 
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=mock_year)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years/5')
@@ -187,7 +187,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_get_year_not_found(self, client):
         """Test GET /api/guilds/<id>/years/<year> returns 404 for missing year"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=None)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years/999')
@@ -207,7 +207,7 @@ class TestYearsAPI:
         mock_year.duration = 0
         mock_year.notes = ''
 
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get_latest = AsyncMock(return_value=mock_year)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years/latest')
@@ -219,7 +219,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_get_latest_year_not_found(self, client):
         """Test GET /api/guilds/<id>/years/latest returns 404 when no years"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get_latest = AsyncMock(return_value=None)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/years/latest')
@@ -255,7 +255,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_create_year_db_error(self, client):
         """Test POST /api/guilds/<id>/years/<year> returns 500 on DB error"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
             response = await client.post(f'/api/guilds/{TEST_GUILD}/years/1', json={'start_time': 1704067200})
@@ -273,7 +273,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_delete_year_not_found(self, client):
         """Test DELETE /api/guilds/<id>/years/<year> returns 404 when year missing"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=None)
 
             response = await client.delete(f'/api/guilds/{TEST_GUILD}/years/999')
@@ -285,7 +285,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_delete_year_db_error(self, client):
         """Test DELETE /api/guilds/<id>/years/<year> returns 500 on DB error"""
-        with patch('attubot.years.Year') as mock_year_class:
+        with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
             response = await client.delete(f'/api/guilds/{TEST_GUILD}/years/5')
@@ -308,7 +308,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_get_markers_empty(self, client):
         """Test GET /api/guilds/<id>/markers returns empty list when no markers exist"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.all_for_guild = AsyncMock(return_value=[])
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers')
@@ -336,7 +336,7 @@ class TestMarkersAPI:
         mock_marker2.exact = False
         mock_marker2.wiki_page = True
 
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.all_for_guild = AsyncMock(return_value=[mock_marker1, mock_marker2])
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers')
@@ -360,7 +360,7 @@ class TestMarkersAPI:
         mock_marker.exact = True
         mock_marker.wiki_page = False
 
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=mock_marker)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
@@ -373,7 +373,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_get_marker_not_found(self, client):
         """Test GET /api/guilds/<id>/markers/<year>/<channel> returns 404 for missing marker"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
@@ -382,7 +382,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_get_marker_timestamp(self, client):
         """Test GET /api/guilds/<id>/markers/<year>/timestamp returns timestamp"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.timestamp = AsyncMock(return_value=1704067200)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5/timestamp')
@@ -394,7 +394,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_get_marker_timestamp_not_found(self, client):
         """Test GET /api/guilds/<id>/markers/<year>/timestamp returns 404"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.timestamp = AsyncMock(return_value=None)
 
             response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999/timestamp')
@@ -418,7 +418,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_create_marker_db_error(self, client):
         """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 500 on DB error"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
             response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}', json={'message': '123456789012345678'})
@@ -433,7 +433,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_delete_marker_not_found(self, client):
         """Test DELETE /api/guilds/<id>/markers/<year>/<channel> returns 404 when marker missing"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
             response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
@@ -445,7 +445,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_delete_marker_db_error(self, client):
         """Test DELETE /api/guilds/<id>/markers/<year>/<channel> returns 500 on DB error"""
-        with patch('attubot.markers.YearMarker') as mock_marker_class:
+        with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
             response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
@@ -465,7 +465,7 @@ class TestTimeAPI:
     @pytest.mark.asyncio
     async def test_get_time_status(self, client):
         """Test GET /api/guilds/<id>/time returns time status"""
-        with patch('attubot.calendar.get_year_status') as mock_status, patch('attubot.calendar.get_next_year') as mock_next:
+        with patch('attubot.client.calendar.get_year_status') as mock_status, patch('attubot.client.calendar.get_next_year') as mock_next:
             mock_status.return_value = (50, 5)  # 50 days elapsed, year 5
             mock_next.return_value = MagicMock(timestamp=MagicMock(return_value=1750000000), strftime=MagicMock(return_value='2025-06-15 17:00:00 UTC'))
 
@@ -493,11 +493,11 @@ class TestTimeAPI:
     @pytest.mark.asyncio
     async def test_get_year_span(self, client):
         """Test GET /api/guilds/<id>/time/year-span/<year> returns year span"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
 
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705708800, duration=19)
 
-        with patch('attubot.calendar.get_year_span', new=AsyncMock(return_value=mock_span)):
+        with patch('attubot.client.calendar.get_year_span', new=AsyncMock(return_value=mock_span)):
             response = await client.get(f'/api/guilds/{TEST_GUILD}/time/year-span/5')
             assert response.status_code == 200
 
@@ -514,7 +514,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats(self, client):
         """Test GET /api/admin/stats returns system statistics"""
-        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(side_effect=[10, 5])  # Called twice for 2 guilds
             mock_marker.total = AsyncMock(side_effect=[20, 8])
             mock_db.get_db.side_effect = RuntimeError('not connected')
@@ -532,7 +532,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats_db_not_connected(self, client):
         """Test GET /api/admin/stats handles disconnected database"""
-        with patch('attubot.years.Year') as mock_year, patch('attubot.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(return_value=0)
             mock_marker.total = AsyncMock(return_value=0)
             mock_db.get_db.side_effect = RuntimeError('not connected')

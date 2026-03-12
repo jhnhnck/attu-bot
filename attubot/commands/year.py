@@ -13,11 +13,11 @@ from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
 from discord.enums import ChannelType
 
 from attubot import config
-from attubot.calendar import get_year_span, get_year_status
+from attubot.client.calendar import get_year_span, get_year_status
+from attubot.client.markers import resolve_marker
+from attubot.client.util import format_message_link
+from attubot.client.years import Year
 from attubot.logging import get_logger
-from attubot.markers import resolve_marker
-from attubot.util import format_message_link
-from attubot.years import Year
 
 
 logger = get_logger(__name__)

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from discord.utils import snowflake_time
 from pydantic import BaseModel
 
-from attubot.core import config, db
+from attubot.client.core import config, db
 from attubot.database.repositories import MessageRepository, YearMarkerRepository
 from attubot.logging import get_logger
 
@@ -87,7 +87,7 @@ async def resolve_marker(guild: int, channel: int, year: int) -> ResolvedMarker:
 
     returns ResolvedMarker with source='none' and message=0 if nothing found.
     """
-    from attubot.calendar import format_year_line
+    from attubot.client.calendar import format_year_line
 
     # 1 - admin override
     override = await _get_repo().get(channel, year)
@@ -139,7 +139,7 @@ async def _get_year_window(guild: int, year: int) -> tuple[int, int]:
     Uses Year records if available, falls back to YearMarker timestamps.
     Returns (0, current_time) as a last resort.
     """
-    from attubot.years import Year
+    from attubot.client.years import Year
 
     year_record = await Year.get(guild, year)
     if year_record and year_record.start_time > 0:

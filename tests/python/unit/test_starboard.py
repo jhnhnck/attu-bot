@@ -10,8 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
-from attubot.starboard import (
+from attubot.client.starboard import (
     _check_and_announce_sweep,
     _count_streak,
     _fmt_count,
@@ -28,6 +27,7 @@ from attubot.starboard import (
     parse_jump_url,
     parse_starboard_content,
 )
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
 
 
 # ---- constants ----
@@ -309,14 +309,14 @@ def _make_star_doc(**kwargs) -> StarredMessageDocument:
 @pytest.fixture
 def mock_sb_repo():
     repo = AsyncMock()
-    with patch('attubot.starboard._starboard_repo', repo):
+    with patch('attubot.client.starboard._starboard_repo', repo):
         yield repo
 
 
 @pytest.fixture
 def mock_sb_and_msg_repos(mock_sb_repo):
     msg_repo = AsyncMock()
-    with patch('attubot.messages._message_repo', msg_repo):
+    with patch('attubot.client.messages._message_repo', msg_repo):
         yield mock_sb_repo, msg_repo
 
 
@@ -335,7 +335,7 @@ def make_starboard_guild(make_guild):
 
 
 async def test_handle_star_add_self_star_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -350,7 +350,7 @@ async def test_handle_star_add_self_star_ignored(make_starboard_guild, mock_sb_a
 
 
 async def test_handle_star_add_unconfigured_emoji_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -362,7 +362,7 @@ async def test_handle_star_add_unconfigured_emoji_ignored(make_starboard_guild, 
 
 
 async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -374,7 +374,7 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
     updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
 
     sb_repo.upsert.assert_called_once()
@@ -383,7 +383,7 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
 
 
 async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -399,7 +399,7 @@ async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make
     updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         # reaction is on the STARBOARD channel/message, not the original
         await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR)
 
@@ -408,7 +408,7 @@ async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make
 
 
 async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -421,7 +421,7 @@ async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, m
 
 
 async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb_and_msg_repos):
-    from attubot.starboard import handle_star_remove
+    from attubot.client.starboard import handle_star_remove
 
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -429,7 +429,7 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
     updated = _make_star_doc(reactions={EMOJI_STAR: []}, total_reactions=0)
     sb_repo.remove_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_remove(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
 
     sb_repo.remove_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -483,7 +483,7 @@ class TestRecountStarboard:
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         # bot and _sync_starboard_post are imported inside the function, so patch at source
-        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
@@ -537,7 +537,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
 
-        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)  # must not raise
 
@@ -601,7 +601,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('attubot.bot') as mock_bot, patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(TEST_GUILD)
 
@@ -616,7 +616,7 @@ class TestStarboardChannelFallthrough:
         """reaction on an unlinked message in the starboard channel should not be silently dropped"""
         from unittest.mock import AsyncMock, patch
 
-        from attubot.starboard import handle_star_add
+        from attubot.client.starboard import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -631,7 +631,7 @@ class TestStarboardChannelFallthrough:
         updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         # should NOT have been dropped - add_reaction must have been called
@@ -641,7 +641,7 @@ class TestStarboardChannelFallthrough:
         """reaction on a known starboard post should still redirect to the original message"""
         from unittest.mock import AsyncMock, patch
 
-        from attubot.starboard import handle_star_add
+        from attubot.client.starboard import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -656,7 +656,7 @@ class TestStarboardChannelFallthrough:
         updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         # should have been redirected to the original message ID
@@ -667,7 +667,7 @@ class TestStarReferenceRedirect:
     async def test_handle_star_add_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
         from unittest.mock import AsyncMock, patch
 
-        from attubot.starboard import handle_star_add
+        from attubot.client.starboard import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -681,7 +681,7 @@ class TestStarReferenceRedirect:
         updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -689,7 +689,7 @@ class TestStarReferenceRedirect:
     async def test_handle_star_remove_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
         from unittest.mock import AsyncMock, patch
 
-        from attubot.starboard import handle_star_remove
+        from attubot.client.starboard import handle_star_remove
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -699,7 +699,7 @@ class TestStarReferenceRedirect:
         msg_repo.get = AsyncMock(return_value=response_doc)
         sb_repo.remove_reaction = AsyncMock(return_value=_make_star_doc(reactions={EMOJI_STAR: []}, total_reactions=0))
 
-        with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_remove(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
 
         sb_repo.remove_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -775,7 +775,7 @@ def test_dominant_color_super_reaction_wins():
 
 async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=True must call add_super_reaction, not add_reaction"""
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -787,7 +787,7 @@ async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_gui
     updated = _make_star_doc(super_reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.5)
     sb_repo.add_super_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
 
     sb_repo.add_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -796,7 +796,7 @@ async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_gui
 
 async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=False must call add_reaction, not add_super_reaction"""
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -808,7 +808,7 @@ async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, 
     updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.0)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=False)
 
     sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -817,7 +817,7 @@ async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, 
 
 async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=True on remove must call remove_super_reaction"""
-    from attubot.starboard import handle_star_remove
+    from attubot.client.starboard import handle_star_remove
 
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -825,7 +825,7 @@ async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboa
     updated = _make_star_doc(super_reactions={EMOJI_STAR: []}, total_reactions=0, weighted_total=0.0)
     sb_repo.remove_super_reaction = AsyncMock(return_value=updated)
 
-    with patch('attubot.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_remove(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
 
     sb_repo.remove_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
@@ -988,7 +988,7 @@ def mock_sb_repo_for_sweep():
     """patch _starboard_repo with a fresh MagicMock for sweep tests"""
     repo = MagicMock()
     repo.all_for_guild = AsyncMock()
-    with patch('attubot.starboard._starboard_repo', repo):
+    with patch('attubot.client.starboard._starboard_repo', repo):
         yield repo
 
 

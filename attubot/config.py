@@ -16,10 +16,10 @@ import anyio
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
+from attubot import __schema__
 from attubot.database.models import ChatConfigDocument
 from attubot.database.repositories import ChatConfigRepository, ConfigRepository
 from attubot.logging import get_logger
-from attubot.meta import __schema__
 
 
 logger = get_logger(__name__)
@@ -426,7 +426,7 @@ class NovaConfig:
             else:
                 logger.info('Running migrations...')
 
-                from attubot.migrations import MigrationError, load_migration_table
+                from attubot.client.migrations import MigrationError, load_migration_table
 
                 try:
                     for migration in load_migration_table:
@@ -443,7 +443,7 @@ class NovaConfig:
         self._get_event('load').set()
 
     async def on_ready(self):  # called by Bot.on_ready after connect, low priority maintenance tasks
-        from attubot import bot
+        from attubot.client.core import bot
 
         logger.info('Starting post-ready config loading stage')
 
@@ -513,7 +513,7 @@ class NovaConfig:
             if system_config.version != self.config_version:
                 logger.info(f'Running ready-stage migrations: {system_config.version} -> {self.config_version}')
 
-                from attubot.migrations import MigrationError, ready_migration_table
+                from attubot.client.migrations import MigrationError, ready_migration_table
 
                 try:
                     for migration in ready_migration_table:

@@ -70,7 +70,7 @@ class Logger:
             from discord import Webhook
 
             from attubot import config
-            from attubot.util import break_at_newline
+            from attubot.client.util import break_at_newline
 
             async with aiohttp.ClientSession() as session:
                 webhook = Webhook.from_url(config.error_hook, session=session)

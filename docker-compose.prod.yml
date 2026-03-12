@@ -80,6 +80,8 @@ services:
     command: python -u attu-bot.py ingestor
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+    env_file:
+      - .env
     logging:
       driver: journald
     restart: unless-stopped

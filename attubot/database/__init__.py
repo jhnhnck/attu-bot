@@ -89,12 +89,12 @@ async def init_database(url: str, name: str):
     await chat_source_repo.init_indexes()
     logger.debug('chat source indexes ready')
 
-    import attubot.families as _families
-    import attubot.markers as _markers
-    import attubot.messages as _messages
+    import attubot.client.families as _families
+    import attubot.client.markers as _markers
+    import attubot.client.messages as _messages
+    import attubot.client.starboard as _starboard
+    import attubot.client.years as _years
     import attubot.signals as _signals
-    import attubot.starboard as _starboard
-    import attubot.years as _years
 
     _families._family_repo = family_repo
     _markers._marker_repo = marker_repo

@@ -258,7 +258,7 @@ def mock_db_and_repos():
     """
     mock_database = MagicMock()
 
-    with patch('attubot.db.get_db', return_value=mock_database), patch('attubot.years._year_repo', None), patch('attubot.markers._marker_repo', None):
+    with patch('attubot.db.get_db', return_value=mock_database), patch('attubot.client.years._year_repo', None), patch('attubot.client.markers._marker_repo', None):
         yield mock_database
 
 
@@ -277,7 +277,7 @@ def mock_year_repo():
             assert result is not None
     """
     repo = AsyncMock()
-    with patch('attubot.years._get_repo', return_value=repo):
+    with patch('attubot.client.years._get_repo', return_value=repo):
         yield repo
 
 
@@ -295,7 +295,7 @@ def mock_marker_repo():
             assert result is not None
     """
     repo = AsyncMock()
-    with patch('attubot.markers._get_repo', return_value=repo):
+    with patch('attubot.client.markers._get_repo', return_value=repo):
         yield repo
 
 
@@ -316,7 +316,7 @@ def mock_all_repos():
     year_repo = AsyncMock()
     marker_repo = AsyncMock()
 
-    with patch('attubot.years._get_repo', return_value=year_repo), patch('attubot.markers._get_repo', return_value=marker_repo):
+    with patch('attubot.client.years._get_repo', return_value=year_repo), patch('attubot.client.markers._get_repo', return_value=marker_repo):
         yield {'year': year_repo, 'marker': marker_repo}
 
 
@@ -412,7 +412,7 @@ def make_year():
     """
 
     def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
-        from attubot.years import Year
+        from attubot.client.years import Year
 
         return Year(
             guild=guild,

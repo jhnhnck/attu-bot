@@ -11,10 +11,10 @@ from typing import cast
 from discord import TextChannel
 
 from attubot import bot, config
+from attubot.client.logo import generate_png
+from attubot.client.util import webhook_logging
 from attubot.logging import get_logger
-from attubot.logo import generate_png
 from attubot.tasks.base import BaseTask
-from attubot.util import webhook_logging
 
 
 logger = get_logger(__name__)

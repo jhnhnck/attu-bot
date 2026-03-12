@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from discord import Bot
 
-from attubot.core import config
+from attubot.client.core import config
 from attubot.logging import get_logger
 from attubot.wiki.client import WikiClient
 from attubot.wiki.models import SearchResult, SiteInfo

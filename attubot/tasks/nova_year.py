@@ -9,13 +9,13 @@ import re
 from datetime import datetime
 
 from attubot import bot, config
-from attubot.calendar import format_year_line, get_next_year, get_year_status
+from attubot.client.calendar import format_year_line, get_next_year, get_year_status
+from attubot.client.util import webhook_logging
+from attubot.client.years import Year
 from attubot.config import GuildConfig
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
-from attubot.util import webhook_logging
 from attubot.wiki import get_wiki
-from attubot.years import Year
 
 
 logger = get_logger(__name__)
@@ -27,9 +27,9 @@ async def job_construct_year_links(guild_id: int):
     from discord import ChannelType, TextChannel
 
     from attubot import bot, config
-    from attubot.calendar import format_year_line, get_year_span
+    from attubot.client.calendar import format_year_line, get_year_span
+    from attubot.client.years import Year
     from attubot.commands.year import find_marker_link
-    from attubot.years import Year
 
     cfg = config.guild(guild_id)
     guild = bot.get_guild(cfg.id)

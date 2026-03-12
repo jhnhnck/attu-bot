@@ -52,7 +52,7 @@ async def fix_sb_repos(component_db, make_guild):
     cfg.starboard.channel_id = SB_CHANNEL
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
-    import attubot.starboard as _starboard
+    import attubot.client.starboard as _starboard
 
     _starboard._starboard_repo = sb_repo
 

@@ -72,8 +72,8 @@ async def stars_repos(component_db, make_guild):
     cfg.starboard.channel_id = SB_CHANNEL
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
-    import attubot.messages as _messages
-    import attubot.starboard as _starboard
+    import attubot.client.messages as _messages
+    import attubot.client.starboard as _starboard
 
     _starboard._starboard_repo = sb_repo
     _messages._message_repo = msg_repo
@@ -195,7 +195,7 @@ class TestStarsRandom:
 
         from attubot.commands.stars import stars_random
 
-        with patch('attubot.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('attubot.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
             await stars_random(ctx)
 
         assert len(ctx._responses) == 1
@@ -231,7 +231,7 @@ class TestStarsRandom:
 
         from attubot.commands.stars import stars_lost
 
-        with patch('attubot.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('attubot.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
             await stars_lost(ctx)
 
         assert len(ctx._responses) == 1
@@ -271,8 +271,8 @@ class TestStarsRecheck:
 
         with (
             patch('attubot.bot') as mock_bot,
-            patch('attubot.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
-            patch('attubot.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
+            patch('attubot.client.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
+            patch('attubot.client.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
         ):
             mock_bot.get_channel.return_value = fake_channel
 

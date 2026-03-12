@@ -12,9 +12,9 @@ from discord import Object
 from discord.utils import time_snowflake
 
 from attubot import bot, config
+from attubot.client.messages import _get_repo, build_message_doc
+from attubot.client.starboard import backfill_message_reactions
 from attubot.logging import get_logger
-from attubot.messages import _get_repo, build_message_doc
-from attubot.starboard import backfill_message_reactions
 from attubot.tasks.base import BaseTask
 
 

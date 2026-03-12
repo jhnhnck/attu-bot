@@ -14,14 +14,14 @@ from discord import ApplicationCommand, ApplicationContext, Bot
 from discord.commands import option
 from discord.ext import commands
 
-from attubot.calendar import haracalnde_date
-from attubot.core import config
+from attubot.client.calendar import haracalnde_date
+from attubot.client.core import config
+from attubot.client.util import is_authorized_guild, is_bot_owner
 from attubot.ingestor.embedder import _get_embedder
 from attubot.ingestor.llm import _get_llm
 from attubot.ingestor.reranker import _get_reranker
 from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
-from attubot.util import is_authorized_guild, is_bot_owner
 
 
 logger = get_logger(__name__)

@@ -49,7 +49,7 @@ docker-compose.yml
 assets/*
 !assets/templates/**
 !assets/static/**
-!assets/prompts/**
+!assets/prompts/
 
 # notes
 notes/*

@@ -5,12 +5,13 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from attubot.commands.fix import fix_starboard_purge
 from tests.conftest import TEST_CHANNEL, TEST_GUILD
+
 
 MSG_ID = 7771234567890
 

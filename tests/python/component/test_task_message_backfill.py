@@ -98,7 +98,7 @@ class TestBackfillChannel:
             _fake_msg(103, CH_READABLE),
         )
 
-        import attubot.messages as _messages
+        import attubot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
@@ -128,7 +128,7 @@ class TestBackfillChannel:
         ch = _fake_channel(CH_READABLE)
         ch.history = _capturing_history(new_messages, history_calls)
 
-        import attubot.messages as _messages
+        import attubot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
@@ -156,7 +156,7 @@ class TestBackfillChannel:
         ch = _fake_channel(CH_READABLE)
         ch.history = _capturing_history([_fake_msg(200, CH_READABLE)], history_calls)
 
-        import attubot.messages as _messages
+        import attubot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
@@ -187,7 +187,7 @@ class TestBackfillChannel:
 
         ch.history = MagicMock(return_value=_forbidden_gen())
 
-        import attubot.messages as _messages
+        import attubot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
@@ -218,7 +218,7 @@ class TestRunChannelFiltering:
         fake_guild.id = TEST_GUILD
         fake_guild.me = MagicMock()
 
-        import attubot.messages as _messages
+        import attubot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:

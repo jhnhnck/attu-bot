@@ -11,14 +11,15 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 
-from attubot import bot, config, messages
+from attubot import bot, config
+from attubot.client import messages
+from attubot.client.starboard import _get_repo as _get_sb_repo
+from attubot.client.starboard import _sync_starboard_post
+from attubot.client.util import is_bot_owner
 from attubot.logging import get_logger
-from attubot.starboard import _get_repo as _get_sb_repo
-from attubot.starboard import _sync_starboard_post
 from attubot.tasks import LogoUpdateTask, scheduler
 from attubot.tasks.message_backfill import MessageBackfillTask
 from attubot.tasks.nova_year import job_construct_year_links
-from attubot.util import is_bot_owner
 
 
 logger = get_logger(__name__)
@@ -83,7 +84,7 @@ async def job_backfill_channel(
 async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
     """resolve current global usernames and bulk-update author_name on all stored messages."""
     from attubot import bot
-    from attubot.messages import _global_username
+    from attubot.client.messages import _global_username
 
     repo = messages._get_repo()
 
@@ -192,8 +193,8 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
 async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - live discord fetch loop with many error/skip branches
     """fetch live reaction counts from discord for all starred messages and rebuild per-user reaction lists."""
     from attubot import bot, config
+    from attubot.client.starboard import _get_repo as _get_sb_repo
     from attubot.database.models import StarredMessageDocument
-    from attubot.starboard import _get_repo as _get_sb_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -302,7 +303,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
 
 async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None = None):
     from attubot import config
-    from attubot.starboard import _sync_starboard_post
+    from attubot.client.starboard import _sync_starboard_post
 
     try:
         guild_config = config.guild(guild_id)
@@ -408,7 +409,7 @@ async def fix_reconcile(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 async def fix_starboard_recount(ctx: ApplicationContext):
     try:
-        from attubot.starboard import _get_repo
+        from attubot.client.starboard import _get_repo
 
         _get_repo()
     except RuntimeError:
@@ -438,7 +439,7 @@ async def fix_starboard_regen(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 @discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
 async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
-    from attubot.starboard import parse_jump_url
+    from attubot.client.starboard import parse_jump_url
 
     parsed = parse_jump_url(message_link)
     if parsed is None:

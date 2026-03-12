@@ -20,13 +20,12 @@ from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, Sl
 from discord.ext import commands
 from discord.utils import snowflake_time
 
-from attubot import config
-from attubot.calendar import get_year_span, get_year_status
-from attubot.embeds import make_embed
+from attubot import __build_time__, __schema__, __title__, __version__, config
+from attubot.client.calendar import get_year_span, get_year_status
+from attubot.client.embeds import make_embed
+from attubot.client.util import is_bot_owner
 from attubot.logging import get_logger
-from attubot.meta import __build_time__, __schema__, __title__, __version__
 from attubot.tasks import scheduler
-from attubot.util import is_bot_owner
 
 
 logger = get_logger(__name__)
@@ -233,7 +232,7 @@ async def debug_dump_config(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 @discord.commands.option(name='channel', required=False, description='Channel to query (omit for guild total)', input_type=discord.TextChannel)
 async def debug_message_stats(ctx: ApplicationContext, channel: discord.TextChannel | None = None):
-    from attubot.messages import _get_repo
+    from attubot.client.messages import _get_repo
 
     try:
         repo = _get_repo()

@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel
 
-from attubot import config
+from attubot.client.core import config
 from attubot.config import GuildEpoch
 from attubot.logging import get_logger
 
@@ -77,8 +77,8 @@ def get_next_year(guild: int | None = None) -> datetime:
 
 
 async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
-    from attubot.markers import YearMarker
-    from attubot.years import Year
+    from attubot.client.markers import YearMarker
+    from attubot.client.years import Year
 
     guild_id = config.primary_guild if guild is None else guild
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
@@ -174,7 +174,7 @@ async def haracalnde_date(timestamp: int, guild: int | None = None) -> str:
 
 # TODO: Shouldn't this be on the guild object
 async def move_epoch(length: int, guild: int | None = None):
-    from attubot.years import Year
+    from attubot.client.years import Year
 
     elapsed_days, current_year = get_year_status(guild)
     year_span = await get_year_span(current_year, guild)

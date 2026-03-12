@@ -13,10 +13,10 @@ import anyio
 import discord
 from discord import Color, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 
-from attubot import bot, config
+from attubot.client.core import bot, config
+from attubot.client.embeds import make_embed
 from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from attubot.database.repositories import MessageRepository
-from attubot.embeds import make_embed
 from attubot.logging import get_logger
 
 

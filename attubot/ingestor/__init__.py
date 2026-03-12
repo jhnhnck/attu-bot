@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 async def _run():
-    from attubot.core import config
+    from attubot.client.core import config
     from attubot.database import init_database
     from attubot.ingestor.tasks import WikiIngestTask
     from attubot.tasks.reload_watcher import ReloadWatcherTask

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from freezegun import freeze_time
 
-from attubot.calendar import move_epoch
+from attubot.client.calendar import move_epoch
 
 
 class TestMoveEpochYearUpdates:
@@ -25,11 +25,11 @@ class TestMoveEpochYearUpdates:
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
         with (
-            patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get,
-            patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update,
-            patch('attubot.calendar.get_year_status') as mock_status,
-            patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
-            patch('attubot.calendar.config') as mock_config,
+            patch('attubot.client.years.Year.get', new_callable=AsyncMock) as mock_get,
+            patch('attubot.client.years.Year.update', new_callable=AsyncMock) as mock_update,
+            patch('attubot.client.calendar.get_year_status') as mock_status,
+            patch('attubot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
+            patch('attubot.client.calendar.config') as mock_config,
         ):
             mock_get.return_value = existing_year
             mock_status.return_value = (150, current_year)  # 150 elapsed days
@@ -69,11 +69,11 @@ class TestMoveEpochYearUpdates:
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
 
         with (
-            patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get,
-            patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update,
-            patch('attubot.calendar.get_year_status') as mock_status,
-            patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
-            patch('attubot.calendar.config') as mock_config,
+            patch('attubot.client.years.Year.get', new_callable=AsyncMock) as mock_get,
+            patch('attubot.client.years.Year.update', new_callable=AsyncMock) as mock_update,
+            patch('attubot.client.calendar.get_year_status') as mock_status,
+            patch('attubot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
+            patch('attubot.client.calendar.config') as mock_config,
         ):
             mock_get.return_value = existing_year
             mock_status.return_value = (200, current_year)  # 200 elapsed days
@@ -107,11 +107,11 @@ class TestMoveEpochYearUpdates:
         current_year = 5
         existing_year = make_year(guild=guild_id, year=current_year, start_time=1700000000, notes='')
         with (
-            patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get,
-            patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update,
-            patch('attubot.calendar.get_year_status') as mock_status,
-            patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
-            patch('attubot.calendar.config') as mock_config,
+            patch('attubot.client.years.Year.get', new_callable=AsyncMock) as mock_get,
+            patch('attubot.client.years.Year.update', new_callable=AsyncMock) as mock_update,
+            patch('attubot.client.calendar.get_year_status') as mock_status,
+            patch('attubot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
+            patch('attubot.client.calendar.config') as mock_config,
         ):
             mock_get.return_value = existing_year
             mock_status.return_value = (0, current_year)
@@ -153,11 +153,11 @@ class TestMoveEpochYearUpdates:
         )
 
         with (
-            patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get,
-            patch('attubot.years.Year.update', new_callable=AsyncMock) as mock_update,
-            patch('attubot.calendar.get_year_status') as mock_status,
-            patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
-            patch('attubot.calendar.config') as mock_config,
+            patch('attubot.client.years.Year.get', new_callable=AsyncMock) as mock_get,
+            patch('attubot.client.years.Year.update', new_callable=AsyncMock) as mock_update,
+            patch('attubot.client.calendar.get_year_status') as mock_status,
+            patch('attubot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span,
+            patch('attubot.client.calendar.config') as mock_config,
         ):
             mock_get.return_value = existing_year
             mock_status.return_value = (150, current_year)
@@ -193,7 +193,7 @@ class TestMoveEpochYearUpdates:
         guild_id = 1234567890
         current_year = 5
 
-        with patch('attubot.years.Year.get', new_callable=AsyncMock) as mock_get, patch('attubot.calendar.get_year_status') as mock_status, patch('attubot.calendar.get_year_span', new_callable=AsyncMock) as mock_span, patch('attubot.calendar.config') as mock_config:
+        with patch('attubot.client.years.Year.get', new_callable=AsyncMock) as mock_get, patch('attubot.client.calendar.get_year_status') as mock_status, patch('attubot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span, patch('attubot.client.calendar.config') as mock_config:
             mock_get.return_value = None  # No Year record exists
             mock_status.return_value = (150, current_year)
             mock_span.return_value = MagicMock(start_time=1700000000, end_time=1731456000, duration=365)

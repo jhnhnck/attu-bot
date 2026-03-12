@@ -8,8 +8,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 from pydantic import ValidationError
 from quart import Quart, jsonify, render_template, request
 
+from attubot.client.core import db
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
-from attubot.core import db
 from attubot.logging import get_logger
 from attubot.signals import send_signal
 from attubot.web.app import config
@@ -731,7 +731,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.years import Year
+            from attubot.client.years import Year
 
             # Pagination (L7)
             limit = min(request.args.get('limit', default=100, type=int), 500)
@@ -772,7 +772,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.years import Year
+            from attubot.client.years import Year
 
             year_record = await Year.get(guild_id, year)
             if not year_record:
@@ -798,7 +798,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.years import Year
+            from attubot.client.years import Year
 
             year_record = await Year.get_latest(guild_id)
             if not year_record:
@@ -824,7 +824,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.years import Year
+            from attubot.client.years import Year
 
             data = await request.get_json()
             if not data:
@@ -886,7 +886,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.years import Year
+            from attubot.client.years import Year
 
             existing = await Year.get(guild_id, year)
             if not existing:
@@ -923,7 +923,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.markers import YearMarker
+            from attubot.client.markers import YearMarker
 
             # Pagination (L7)
             limit = min(request.args.get('limit', default=100, type=int), 500)
@@ -963,7 +963,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.markers import YearMarker
+            from attubot.client.markers import YearMarker
 
             marker = await YearMarker.get(channel, year)
             if not marker:
@@ -989,7 +989,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.markers import YearMarker
+            from attubot.client.markers import YearMarker
 
             timestamp = await YearMarker.timestamp(year, guild_id)
             if timestamp is None:
@@ -1011,7 +1011,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.markers import YearMarker
+            from attubot.client.markers import YearMarker
 
             data = await request.get_json()
             if not data:
@@ -1069,7 +1069,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.markers import YearMarker
+            from attubot.client.markers import YearMarker
 
             existing = await YearMarker.get(channel, year)
             if not existing:
@@ -1105,7 +1105,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.calendar import get_next_year, get_year_status
+            from attubot.client.calendar import get_next_year, get_year_status
 
             guild_config = config.guilds.get(guild_id)
             if not guild_config:
@@ -1144,7 +1144,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.calendar import get_year_span
+            from attubot.client.calendar import get_year_span
 
             span = await get_year_span(year, guild_id)
 
@@ -1166,8 +1166,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
     async def api_get_admin_stats():
         """Get system statistics"""
         try:
-            from attubot.markers import YearMarker
-            from attubot.years import Year
+            from attubot.client.markers import YearMarker
+            from attubot.client.years import Year
 
             # Collect statistics
             total_guilds = len(config.authorized_guilds)
@@ -1178,7 +1178,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             total_markers = 0
             total_starred_messages = 0
             total_stars = 0
-            from attubot.starboard import _get_repo as _get_sb_repo
+            from attubot.client.starboard import _get_repo as _get_sb_repo
 
             try:
                 sb_repo = _get_sb_repo()

@@ -11,11 +11,11 @@ from datetime import datetime, timedelta
 from random import random
 
 from attubot import bot, config
-from attubot.calendar import get_year_span, get_year_status
+from attubot.client.calendar import get_year_span, get_year_status
+from attubot.client.logo import generate_png
+from attubot.client.util import webhook_logging
 from attubot.logging import get_logger
-from attubot.logo import generate_png
 from attubot.tasks.base import BaseTask
-from attubot.util import webhook_logging
 
 
 logger = get_logger(__name__)

@@ -14,9 +14,9 @@ from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
 from attubot import config
-from attubot.embeds import make_embed
+from attubot.client.embeds import make_embed
+from attubot.client.util import is_authorized_guild
 from attubot.logging import get_logger
-from attubot.util import is_authorized_guild
 from attubot.wiki import get_wiki
 from attubot.wiki.models import PageSummary, SearchResult, SiteInfo
 

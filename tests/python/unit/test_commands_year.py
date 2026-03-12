@@ -31,7 +31,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_prior_year(self, mock_ctx, guild):
         """Test /year check for a prior year shows duration and dates"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         # Mock get_year_span to return a completed year
@@ -43,7 +43,7 @@ class TestYearCheckCommand:
 
         # Current year is 2, so year 1 is prior
         # Also need to patch Year.get to avoid database access
-        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 2)), patch('attubot.years.Year.get', new_callable=AsyncMock, return_value=None):
+        with patch('attubot.commands.year.get_year_span', new_callable=AsyncMock, return_value=mock_span_obj), patch('attubot.commands.year.get_year_status', return_value=(7, 2)), patch('attubot.client.years.Year.get', new_callable=AsyncMock, return_value=None):
             await year_check(mock_ctx, year=1)
 
         mock_ctx.respond.assert_called_once()
@@ -56,7 +56,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_current_year(self, mock_ctx, guild):
         """Test /year check for current year shows will last/started/will end"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         mock_span_obj = AttuYearSpan(
@@ -78,7 +78,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-14 16:00:00')  # Day before boundary
     async def test_check_next_year_approaching(self, mock_ctx, guild):
         """Test /year check for next year when approaching (not at boundary yet)"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         mock_span_obj = AttuYearSpan(
@@ -101,7 +101,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_next_year_normal(self, mock_ctx, guild):
         """Test /year check for next year (not at boundary)"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         mock_span_obj = AttuYearSpan(
@@ -122,7 +122,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_far_future_year(self, mock_ctx, guild):
         """Test /year check for year >80 years away shows easter egg"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         mock_span_obj = AttuYearSpan(start_time=999999999, end_time=0, duration=0)
@@ -139,7 +139,7 @@ class TestYearCheckCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_check_future_year(self, mock_ctx, guild):
         """Test /year check for a future year shows start date"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_check
 
         mock_span_obj = AttuYearSpan(
@@ -190,7 +190,7 @@ class TestYearSearchCommand:
     @freeze_time('2024-01-08 12:00:00')
     async def test_search_normal_year(self, mock_ctx, make_guild):
         """Test /year search generates proper search query"""
-        from attubot.calendar import AttuYearSpan
+        from attubot.client.calendar import AttuYearSpan
         from attubot.commands.year import year_search
 
         cfg = make_guild()

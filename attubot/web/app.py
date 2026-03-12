@@ -11,7 +11,7 @@ from pathlib import Path
 
 from quart import Quart, g
 
-from attubot.core import config, db
+from attubot.client.core import config, db
 from attubot.logging import get_logger
 from attubot.web.audit import AuditLogger
 
@@ -55,7 +55,7 @@ def _register_startup(app: Quart, assets_dir: Path) -> None:
 
 
 async def _initialize_startup(assets_dir: Path):
-    from attubot.logo import generate_png
+    from attubot.client.logo import generate_png
     from attubot.web.audit import AuditLogger
 
     logger.info('Connecting to database and initializing repositories...')

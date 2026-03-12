@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from collections.abc import Callable
 
-from attubot import config
+from attubot.client.core import config
 from attubot.logging import get_logger
 
 
@@ -60,7 +60,7 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable:
 
             # Bump version in MongoDB
             logger.info(f'Applied patch for {new}')
-            from attubot import db
+            from attubot.client.core import db
 
             database = db.get_db()
             await database.global_config.update_one(
@@ -117,10 +117,10 @@ async def migration_2_2_0():
 @migration(old='2.2.0', new='2.2.1')
 async def migration_backfill_years():
     """Backfill Year documents from existing YearMarker timestamps"""
-    from attubot import db
-    from attubot.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.core import db
+    from attubot.client.markers import YearMarker
     from attubot.database.repositories import YearRepository
-    from attubot.markers import YearMarker
 
     logger.info('Running migration to 2.2.1: backfilling year records')
 
@@ -167,8 +167,8 @@ async def migration_2_2_3():
 @migration(old='2.2.3', new='2.2.4')
 async def migration_fix_year_data():
     """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
-    from attubot import db
-    from attubot.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.core import db
     from attubot.database.repositories import YearRepository
 
     logger.info('Running migration to 2.2.4: fixing year data')
@@ -212,7 +212,7 @@ async def migration_add_guild_to_markers():
       - Adds guild to every real per-channel marker
       - Deletes the obsolete guild-proxy markers (channel == guild_id)
     """
-    from attubot import db
+    from attubot.client.core import db
     from attubot.database.repositories import YearMarkerRepository
 
     logger.info('Running migration to 2.2.5: adding guild field to markers')
@@ -310,7 +310,7 @@ async def migration_fix_thread_parent_ids():
     """
     import discord as _discord
 
-    from attubot import bot, db
+    from attubot.client.core import bot, db
     from attubot.database.repositories import MessageRepository
 
     logger.info('Running migration to 2.4.3: backfilling parent_channel_id on thread messages')
@@ -361,7 +361,7 @@ async def migration_fix_thread_parent_ids_archived():
 
     import discord as _discord
 
-    from attubot import bot, db
+    from attubot.client.core import bot, db
     from attubot.database.repositories import MessageRepository
 
     logger.info('Running migration to 2.4.4: backfilling parent_channel_id for archived threads')
@@ -447,7 +447,7 @@ async def migration_drop_formatted():
     It is now generated on demand via `format_year_line(year)` wherever needed, so
     storing it is redundant and makes the schema harder to maintain.
     """
-    from attubot import db
+    from attubot.client.core import db
 
     logger.info('Running migration to 2.5.0: removing formatted field from year documents')
 
@@ -468,7 +468,7 @@ async def migration_purge_markers():
     so persisted overrides are no longer needed as a baseline. Any overrides
     that still need to exist can be re-created via /marker save or the web UI.
     """
-    from attubot import db
+    from attubot.client.core import db
     from attubot.database.repositories import YearMarkerRepository
 
     logger.info('Running migration to 2.5.1: purging all year marker overrides')
@@ -489,7 +489,7 @@ async def migration_restructure_messages():
       - content (str), attachments, embeds, sticker_ids  ->  content: {text, attachments, embeds, sticker_ids}
       - reference_id, starboard_reference_id  ->  refs: {reply_to, starboard_post}
     """
-    from attubot import db
+    from attubot.client.core import db
     from attubot.database.repositories import MessageRepository
 
     logger.info('Running migration to 2.5.2: restructuring MessageDocument into sub-documents')

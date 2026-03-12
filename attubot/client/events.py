@@ -14,7 +14,7 @@ from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEve
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
-from attubot import bot, config
+from attubot.client.core import bot, config
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 
@@ -28,7 +28,7 @@ _READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108 - intentional healthcheck senti
 
 
 async def _shutdown(exit_code: int = 1):
-    from attubot import db
+    from attubot.client.core import db
 
     if db.client:
         await db.client.close()
@@ -159,7 +159,7 @@ async def on_message(message: Message):
 
     # store the message unless it's in the logs channel
     if message.channel.id != guild_config.channels.logs:
-        from attubot.messages import store_message
+        from attubot.client.messages import store_message
 
         await store_message(message)
 
@@ -193,7 +193,7 @@ async def on_raw_message_edit(payload: RawMessageUpdateEvent):
         return
 
     logger.debug('raw_message_edit: passing to log_edit')
-    from attubot.messages import log_edit
+    from attubot.client.messages import log_edit
 
     await log_edit(payload)
 
@@ -211,7 +211,7 @@ async def on_raw_message_delete(payload: RawMessageDeleteEvent):
     except Exception:
         return
 
-    from attubot.messages import log_delete
+    from attubot.client.messages import log_delete
 
     await log_delete(payload)
 
@@ -229,7 +229,7 @@ async def on_raw_bulk_message_delete(payload: RawBulkMessageDeleteEvent):
     except Exception:
         return
 
-    from attubot.messages import log_bulk_delete
+    from attubot.client.messages import log_bulk_delete
 
     await log_bulk_delete(payload)
 
@@ -270,7 +270,7 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
         logger.debug(f'reaction_add: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
-    from attubot.starboard import handle_star_add
+    from attubot.client.starboard import handle_star_add
 
     await handle_star_add(
         guild_id=payload.guild_id,
@@ -289,7 +289,7 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         logger.debug(f'reaction_remove: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
-    from attubot.starboard import handle_star_remove
+    from attubot.client.starboard import handle_star_remove
 
     await handle_star_remove(
         guild_id=payload.guild_id,

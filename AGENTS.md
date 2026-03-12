@@ -30,9 +30,17 @@ There are two runnable modes, both launched from `attu-bot.py`:
 ### Package: `attubot/`
 | File | Role |
 |---|---|
-| `__init__.py` | Module metadata, creates singleton `bot`, `config`, `db` instances; `/ping` command; `start_bot_loop()` |
-| `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
+| `__init__.py` | Module metadata constants (`__version__`, `__build_time__`, etc.); re-exports `bot`, `config`, `db`, and startup functions from `attubot.client` |
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); Pydantic models for all config sections |
+| `signals.py` | Cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
+| `logging.py` | Custom `Logger` class (termcolor-based); use `get_logger(__name__)` everywhere |
+
+### Package: `attubot/client/`
+| File | Role |
+|---|---|
+| `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil` |
+| `core.py` | Module-level singletons: `bot` (Discord Bot), `config` (NovaConfig), `db` (MongoStorage) |
+| `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
 | `embeds.py` | `make_embed()` - standard embed builder with auto-theme color and timestamp; see `notes/embed_usage.md` |
 | `markers.py` | `YearMarker` runtime model + bot extension setup |
 | `years.py` | `Year` runtime model + bot extension setup |
@@ -40,9 +48,8 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `messages.py` | Message storage, `build_message_doc()`, edit/delete log embeds sent to the logs channel |
 | `modlog.py` | Moderation log event handlers - member join/leave/ban, channel/role/emoji changes, nickname and timeout updates |
 | `starboard.py` | Starboard reaction processing (`handle_star_add`, `handle_star_remove`), embed builder (`build_embeds`), post sync logic |
-| `signals.py` | Cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
+| `families.py` | Guild family grouping runtime model and helpers |
 | `logo.py` | Logo generation and SVG-to-PNG rendering via `resvg` |
-| `logging.py` | Custom `Logger` class (termcolor-based); use `get_logger(__name__)` everywhere |
 | `migrations.py` | Schema migration table |
 | `util.py` | Shared helpers - `theme_color()`, `format_message_link()`, `break_at_newline()`, permission checks |
 
@@ -200,8 +207,8 @@ docker compose run --build --rm --quiet-build tests
 |---|---|
 | `guild` / `make_guild` | Creates a `GuildConfig` and registers it in `config.guilds` |
 | `mock_ctx` / `mock_ctx_factory` | Mock `ApplicationContext` with `.respond` tracked via `AsyncMock` |
-| `mock_year_repo` | Patches `attubot.years._get_repo` - preferred for Year model tests |
-| `mock_marker_repo` | Patches `attubot.markers._get_repo` - preferred for YearMarker tests |
+| `mock_year_repo` | Patches `attubot.client.years._get_repo` - preferred for Year model tests |
+| `mock_marker_repo` | Patches `attubot.client.markers._get_repo` - preferred for YearMarker tests |
 | `mock_all_repos` | Patches both repos; returns `{'year': ..., 'marker': ...}` |
 | `mock_db_and_repos` | Patches `db.get_db` and resets module-level repo singletons |
 | `make_year` / `make_year_doc` | Factory fixtures for `Year` and `YearDocument` instances |
@@ -214,7 +221,7 @@ docker compose run --build --rm --quiet-build tests
 #### Mock compensation rule
 When a test mocks a framework mechanism, it inherits responsibility for testing what that mock hides. Two standing cases in this codebase:
 
-- `bot.load_extension()` is mocked in `test_start_bot_loop.py` to test orchestration. Compensation: `TestExtensionImports.test_extension_imports_cleanly` in the same file does a real `importlib.import_module()` for each entry in `_EXTENSIONS` - decorators are evaluated at import time, so any bad attribute reference surfaces immediately. Whenever you add an extension to `_EXTENSIONS`, verify this test still passes.
+- `bot.load_extension()` is mocked in `test_start_bot_loop.py` to test orchestration. Compensation: `TestExtensionImports.test_extension_imports_cleanly` in the same file does a real `importlib.import_module()` for each entry in `extensions_list` - decorators are evaluated at import time, so any bad attribute reference surfaces immediately. Whenever you add an extension file under `attubot/commands/`, verify this test still passes.
 - Command tests call functions directly, bypassing `@commands.check` decorators. Compensation: permission predicates (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`) are tested in `test_util.py`. Whenever you add a new predicate or change an existing one, add or update its test there.
 
 The general principle: if you write a test that mocks out a mechanism, ask "what behavior is this mock hiding?" and ensure that hidden behavior is covered at another level.
@@ -258,7 +265,7 @@ docker compose logs -f
 
 - **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. Migrations are also skipped.
 - **`DEBUG` env var**: enables `trace`/`debug`/`alert` log levels.
-- **Config singleton**: `config` in `attubot/__init__.py` is the global `NovaConfig` instance. Extensions import it directly from `attubot`.
+- **Config singleton**: `bot`, `config`, and `db` singletons are defined in `attubot/client/core.py` and re-exported from `attubot`. Extensions can import them from either path.
 - **Guild authorization**: always check `guild_id in config.authorized_guilds` before acting. `config.guild(id)` raises `UnauthorizedGuild` for unknown guilds.
 - **Snowflake precision**: Discord IDs exceed JavaScript's safe integer range - serialize them as strings in any JSON API response.
 - **Rollover time storage**: stored as `rollover_minutes` (int, minutes since midnight) in MongoDB; the legacy string format (`"17:00"`) is handled by a `model_validator` in `GuildEpoch`.
@@ -286,6 +293,7 @@ Notes in `notes/` with relevant implementation details:
 ```
 attu-bot.py              # entrypoint
 attubot/                 # main package
+  client/                # discord-specific runtime (singletons, events, features)
   commands/              # slash command extensions (one group per file)
   database/              # mongodb connection, models, and repositories
   tasks/                 # background task scheduler and task implementations

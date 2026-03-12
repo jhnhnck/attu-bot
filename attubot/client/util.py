@@ -11,7 +11,7 @@ from typing import Any, cast
 import discord
 from discord.ext.commands import Context
 
-from attubot.core import config
+from attubot.client.core import config
 from attubot.logging import Logger, get_logger
 
 

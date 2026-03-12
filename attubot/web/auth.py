@@ -21,7 +21,7 @@ from webauthn.helpers.structs import (
     UserVerificationRequirement,
 )
 
-from attubot.core import db as _db_store
+from attubot.client.core import db as _db_store
 from attubot.logging import get_logger
 
 

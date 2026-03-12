@@ -32,7 +32,7 @@ def _patch_all_startup(
     return (
         patch.object(attubot.config, 'on_init'),
         patch('shutil.which', return_value=which_return, side_effect=which_side_effect),
-        patch('attubot._load_event_handlers'),
+        patch('attubot.client._load_event_handlers'),
         patch.object(attubot.bot, 'add_application_command'),
         patch.object(attubot.bot, 'load_extension', side_effect=load_ext_side_effect),
         patch.object(attubot.bot, 'run'),
@@ -52,7 +52,7 @@ class TestStartBotLoopPipeline:
         with (
             patch.object(attubot.config, 'on_init') as mock_init,
             patch('shutil.which', return_value='/usr/bin/resvg'),
-            patch('attubot._load_event_handlers') as mock_handlers,
+            patch('attubot.client._load_event_handlers') as mock_handlers,
             patch.object(attubot.bot, 'add_application_command') as mock_add,
             patch.object(attubot.bot, 'load_extension'),
             patch.object(attubot.bot, 'run') as mock_run,
@@ -71,7 +71,7 @@ class TestStartBotLoopPipeline:
         with (
             patch.object(attubot.config, 'on_init', side_effect=lambda: call_order.append('on_init')),
             patch('shutil.which', side_effect=lambda _: call_order.append('which') or '/usr/bin/resvg'),
-            patch('attubot._load_event_handlers'),
+            patch('attubot.client._load_event_handlers'),
             patch.object(attubot.bot, 'add_application_command'),
             patch.object(attubot.bot, 'load_extension'),
             patch.object(attubot.bot, 'run'),
@@ -87,7 +87,7 @@ class TestStartBotLoopPipeline:
         with (
             patch.object(attubot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot._load_event_handlers', side_effect=lambda: call_order.append('events')),
+            patch('attubot.client._load_event_handlers', side_effect=lambda: call_order.append('events')),
             patch.object(attubot.bot, 'add_application_command'),
             patch.object(attubot.bot, 'load_extension', side_effect=lambda _: call_order.append('ext')),
             patch.object(attubot.bot, 'run'),
@@ -105,7 +105,7 @@ class TestStartBotLoopPipeline:
         with (
             patch.object(attubot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot._load_event_handlers'),
+            patch('attubot.client._load_event_handlers'),
             patch.object(attubot.bot, 'add_application_command'),
             patch.object(attubot.bot, 'load_extension'),
             patch.object(attubot.bot, 'run') as mock_run,
@@ -205,7 +205,7 @@ class TestLoadExtensions:
         with (
             patch.object(attubot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot._load_event_handlers'),
+            patch('attubot.client._load_event_handlers'),
             patch.object(attubot.bot, 'add_application_command'),
             patch.object(attubot.bot, 'load_extension', side_effect=Exception('bad ext')),
             patch.object(attubot.bot, 'run'),
@@ -240,7 +240,7 @@ class TestLoadExtensions:
         with (
             patch.object(attubot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot._load_event_handlers'),
+            patch('attubot.client._load_event_handlers'),
             patch.object(attubot.bot, 'add_application_command'),
             patch.object(attubot.bot, 'load_extension', side_effect=Exception('load error')),
             patch.object(attubot.bot, 'run') as mock_run,
@@ -276,12 +276,12 @@ class TestRegisterCoreCommands:
 
 
 # ============================================================
-# _EXTENSIONS constant
+# extensions_list
 # ============================================================
 
 
 class TestExtensionImports:
-    """unit: every extension module in _EXTENSIONS can be imported without errors.
+    """unit: every extension module in extensions_list can be imported without errors.
 
     this is the compensation test for the mocked load_extension calls in TestLoadExtensions -
     those tests verify orchestration only; this test verifies the modules themselves are
@@ -289,14 +289,14 @@ class TestExtensionImports:
     missing import, or module-level crash raises here immediately.
     """
 
-    @pytest.mark.parametrize('ext', attubot._EXTENSIONS)
+    @pytest.mark.parametrize('ext', attubot.extensions_list)
     def test_extension_imports_cleanly(self, ext):
         import importlib
         importlib.import_module(ext)
 
 
 class TestExtensionsList:
-    """unit: _EXTENSIONS list is complete and ordered"""
+    """unit: extensions_list is complete and ordered"""
 
     def test_expected_extensions_present(self):
         expected = {
@@ -311,13 +311,13 @@ class TestExtensionsList:
             'attubot.commands.wiki',
             'attubot.commands.year',
         }
-        assert set(attubot._EXTENSIONS) == expected
+        assert set(attubot.extensions_list) == expected
 
     def test_no_duplicates(self):
-        assert len(attubot._EXTENSIONS) == len(set(attubot._EXTENSIONS))
+        assert len(attubot.extensions_list) == len(set(attubot.extensions_list))
 
     def test_count_is_ten(self):
-        assert len(attubot._EXTENSIONS) == 10
+        assert len(attubot.extensions_list) == 10
 
 
 # ============================================================
@@ -347,4 +347,4 @@ class TestSingletonCreation:
         assert attubot.command_ping is not None
 
     def test_extensions_list_is_not_empty(self):
-        assert len(attubot._EXTENSIONS) > 0
+        assert len(attubot.extensions_list) > 0

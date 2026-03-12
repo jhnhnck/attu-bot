@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from attubot.core import db
+from attubot.client.core import db
 from attubot.database.models import ChatSourceDocument
 from attubot.database.repositories import ChatSourceRepository
 from attubot.logging import get_logger

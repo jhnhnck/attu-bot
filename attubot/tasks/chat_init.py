@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import datetime, timedelta
 
-from attubot.core import config
+from attubot.client.core import config
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
 

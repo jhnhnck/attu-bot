@@ -9,8 +9,8 @@ from platform import python_version
 
 import httpx
 
+from attubot import __email__, __title__, __version__
 from attubot.logging import get_logger
-from attubot.meta import __email__, __title__, __version__
 from attubot.wiki.admin import AdminApi
 from attubot.wiki.auth import AuthApi
 from attubot.wiki.pages import PagesApi
