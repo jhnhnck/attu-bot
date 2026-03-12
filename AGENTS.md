@@ -66,6 +66,7 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 
 | File | Slash Group | Purpose |
 |---|---|---|
+| `chat.py` | `/ask` | RAG lore assistant - embeds query, vector-searches Qdrant, reranks with CrossEncoder, streams LLM response; see `attubot/ingestor/` |
 | `debug.py` | `/debug` | Diagnostic commands - version, scheduler state, year stats, message stats, starboard dump, config dump |
 | `fix.py` | `/fix` | Repair/rebuild commands - logo refresh, year links rebuild, message backfill, starboard learn and recount |
 | `marker.py` | `/marker` | Save, set, and clear year marker messages |
@@ -77,6 +78,25 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
 | `chat.py` | `/ask` | RAG lore query; streams LLM response with source citations |
 
+### Package: `attubot/ingestor/`
+ML pipeline for the `/ask` RAG feature. All models are lazy singletons loaded by `ChatInitTask` at startup.
+
+| File | Role |
+|---|---|
+| `embedder.py` | `Embedder` - wraps `sentence-transformers` SentenceTransformer; `embed()` / `embed_batch()`; model set via `config.chat.embedding_model` (default `all-MiniLM-L6-v2`) |
+| `reranker.py` | `Reranker` - wraps CrossEncoder (`cross-encoder/ms-marco-MiniLM-L6-v2`); `rerank(query, candidates)` scores and sorts by relevance, adds `rerank_score` to each result dict |
+| `llm.py` | `LlmClient` - streaming HTTP client for a llama.cpp OpenAI-compatible API; `complete(system, context, query)` yields tokens; dual-URL failover (`llm_primary_url` / `llm_fallback_url`) |
+| `vector_store.py` | `VectorStore` - wraps `AsyncQdrantClient`; `search(collection, vector, top_k)`, `upsert()`, `delete()`; COSINE distance |
+| `pipelines/wiki.py` | `WikiPipeline` - fetches wiki pages, chunks by section, embeds, upserts to Qdrant `wiki` collection |
+
+Context blocks sent to the LLM are formatted as:
+```xml
+<article source="wiki" name="Page Title > Section">
+...section text...
+</article>
+```
+`source` will expand to `discord`, `doc`, etc. in future phases. The system prompt lives at `assets/prompts/chat-system-prompt.md` and is loaded lazily on first `/ask` call.
+
 ### Package: `attubot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
 
@@ -84,6 +104,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 |---|---|
 | `base.py` | `BaseTask` ABC - defines the task lifecycle interface |
 | `scheduler.py` | `TaskScheduler` - registers tasks, drives `_run_loop()` per task, exposes `running_tasks()` |
+| `chat_init.py` | `ChatInitTask` - one-shot startup task; loads embedder, reranker, vector store, LLM client, and system prompt |
 | `nova_year.py` | `NovaYearTask` - checks for year rollover on schedule; `job_construct_year_links()` helper |
 | `message_backfill.py` | `MessageBackfillTask` - periodic scan of configured channels to store unseen messages |
 | `logo_update.py` | `LogoUpdateTask` - refreshes the bot's avatar on a schedule |
@@ -304,6 +325,7 @@ Notes in `notes/` with relevant implementation details:
 - [`markers.md`](notes/markers.md) - marker system spec (resolution order, storage, commands, web API)
 - [`starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
 - [`testing.md`](notes/testing.md) - test cases
+- [`web.md`](notes/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
 - [`timekeeping.md`](notes/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`dev_setup.md`](notes/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 - [`attu-chat-architecture.md`](notes/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions

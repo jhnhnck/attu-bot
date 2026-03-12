@@ -43,17 +43,17 @@ def _get_system_prompt() -> str:
 
 
 def _build_context_block(results: list[dict]) -> str:
-    """format reranked results into a context block for the LLM prompt"""
+    """format reranked results into article blocks for the LLM prompt"""
     lines: list[str] = []
     for r in results:
         payload = r.get('payload', {})
         title = payload.get('page_title', 'Unknown')
         section = payload.get('section', '')
         text = payload.get('text', '')
-        header = f'[WIKI - authoritative] {title}'
+        name = title
         if section and section != '(intro)':
-            header += f' > {section}'
-        lines.append(f'{header}\n{text}')
+            name += f' > {section}'
+        lines.append(f'<article source="wiki" name="{name}">\n{text}\n</article>')
     return '\n\n---\n\n'.join(lines)
 
 
@@ -114,7 +114,7 @@ async def command_ask(ctx: ApplicationContext, query: str):
         # 6. stream LLM response
         llm = _get_llm()
         logger.debug(f'llm system prompt:\n{system}')
-        logger.debug(f'llm user message:\n{context}\n\n<query>{query}</query>')
+        logger.debug(f'llm user message:\n{context}\n\n<query>{query}</query>')  # context already uses article tags
         prefix = f'> {query}\n'
         buffer = ''
         last_edit = time.monotonic()
