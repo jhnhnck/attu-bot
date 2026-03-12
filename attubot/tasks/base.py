@@ -16,6 +16,7 @@ class BaseTask(ABC):
       - fixed interval: set `interval`; `next_run()` is unused
       - dynamic schedule: override `next_run()` to return the exact datetime for the next
         execution; `interval` should be set to None
+      - TODO: this should probably have a 'once' option.
 
     The scheduler calls `on_start()` once before entering the run loop, then either
     sleeps for `interval` or sleeps until the datetime returned by `next_run()` before

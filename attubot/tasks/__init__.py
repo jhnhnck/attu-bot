@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
+from attubot.tasks.chat_init import ChatInitTask, chat_init_task
 from attubot.tasks.db_backup import DatabaseBackupTask, db_backup_task
 from attubot.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_hook_task
 from attubot.tasks.logo_update import LogoUpdateTask, logo_update_task
@@ -19,6 +20,7 @@ from attubot.tasks.scheduler import TaskScheduler, scheduler
 logger = get_logger(__name__)
 
 # register all tasks
+scheduler.register(chat_init_task)
 scheduler.register(nova_year_task)
 scheduler.register(logo_update_task)
 scheduler.register(error_hook_task)
@@ -29,6 +31,7 @@ scheduler.register(message_backfill_task)
 
 __all__ = [
     'BaseTask',
+    'ChatInitTask',
     'DatabaseBackupTask',
     'ErrorHookTask',
     'LogoUpdateTask',
@@ -36,6 +39,7 @@ __all__ = [
     'NovaYearTask',
     'ReloadWatcherTask',
     'TaskScheduler',
+    'chat_init_task',
     'db_backup_task',
     'error_hook_refresh',
     'error_hook_task',

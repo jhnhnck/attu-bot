@@ -14,7 +14,12 @@ from discord import ApplicationCommand, ApplicationContext, Bot
 from discord.commands import option
 from discord.ext import commands
 
+from attubot.calendar import haracalnde_date
 from attubot.core import config
+from attubot.ingestor.embedder import _get_embedder
+from attubot.ingestor.llm import _get_llm
+from attubot.ingestor.reranker import _get_reranker
+from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
 from attubot.util import is_authorized_guild, is_bot_owner
 
@@ -71,12 +76,6 @@ async def command_ask(ctx: ApplicationContext, query: str):
     await ctx.defer()
 
     try:
-        from attubot.calendar import haracalnde_date
-        from attubot.ingestor.embedder import _get_embedder
-        from attubot.ingestor.llm import _get_llm
-        from attubot.ingestor.reranker import _get_reranker
-        from attubot.ingestor.vector_store import _get_vector_store
-
         # 1. embed the query
         embedder = _get_embedder()
         query_vector = embedder.embed(query)
@@ -135,6 +134,7 @@ async def command_ask(ctx: ApplicationContext, query: str):
 
     except Exception as e:
         logger.error(f'/ask command failed: {e!s}')
+        await logger.send_to_webhook(e)
         await ctx.edit(content='Something went wrong processing your question. Please try again.')
 
 

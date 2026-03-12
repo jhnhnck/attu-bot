@@ -49,13 +49,14 @@ class VectorStore:
     async def search(self, collection: str, query_vector: list[float], top_k: int, query_filter=None) -> list:
         """vector search; returns a list of ScoredPoint"""
         # TODO(phase2): switch to hybrid search (vector + BM25 sparse) - requires collection schema migration
-        return await self._client.search(
+        result = await self._client.query_points(
             collection_name=collection,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             query_filter=query_filter,
             with_payload=True,
         )
+        return result.points
 
     async def delete(self, collection: str, point_ids: list[str]) -> None:
         """delete points by ID from the collection"""
