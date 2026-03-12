@@ -86,7 +86,7 @@ async def command_ask(ctx: ApplicationContext, query: str):
         raw_results = await store.search('wiki', query_vector, top_k=top_k)
 
         if not raw_results:
-            await ctx.respond("I don't have reliable information about that.")
+            await ctx.respond(f"> {query}\nI don't have reliable information about that.")
             return
 
         # 3. rerank
@@ -94,6 +94,11 @@ async def command_ask(ctx: ApplicationContext, query: str):
         reranker = _get_reranker()
         candidates = [{'text': r.payload.get('text', ''), 'payload': r.payload} for r in raw_results]
         reranked = reranker.rerank(query, candidates)
+        for r in reranked:
+            title = r.get('payload', {}).get('page_title', '?')
+            section = r.get('payload', {}).get('section', '')
+            score = r.get('rerank_score', 0)
+            logger.debug(f'rerank: {score:.3f} [{title}] {section}')
 
         # 4. assemble context block
         context = _build_context_block(reranked)
@@ -108,6 +113,9 @@ async def command_ask(ctx: ApplicationContext, query: str):
 
         # 6. stream LLM response
         llm = _get_llm()
+        logger.debug(f'llm system prompt:\n{system}')
+        logger.debug(f'llm user message:\n{context}\n\n<query>{query}</query>')
+        prefix = f'> {query}\n'
         buffer = ''
         last_edit = time.monotonic()
         edit_interval = 1.5  # seconds between message edits while streaming
@@ -116,21 +124,22 @@ async def command_ask(ctx: ApplicationContext, query: str):
             buffer += token
             now = time.monotonic()
             if now - last_edit >= edit_interval:
-                await ctx.edit(content=buffer + '\u25aa')  # trailing indicator while streaming
+                await ctx.edit(content=prefix + buffer + '\u25aa')  # trailing indicator while streaming
                 last_edit = now
 
-        # 7. final response with source citations
+        # 7. final response with source citations (only sources with positive rerank score)
         sources: list[str] = []
         seen_sources: set[str] = set()
-        for r in reranked:
+        relevant = [r for r in reranked if r.get('rerank_score', 0) > 0] or reranked[:1]
+        for r in relevant:
             payload = r.get('payload', {})
             title = payload.get('page_title', '')
             if title and title not in seen_sources:
                 seen_sources.add(title)
                 sources.append(f'[wiki: {title}]')
 
-        citation_line = '\n\n-# ' + ' '.join(sources) if sources else ''
-        await ctx.edit(content=buffer + citation_line)
+        citation_line = '\n-# ' + ' '.join(sources) if sources else ''
+        await ctx.edit(content=prefix + buffer.strip() + citation_line)
 
     except Exception as e:
         logger.error(f'/ask command failed: {e!s}')
