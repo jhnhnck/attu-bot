@@ -3,7 +3,6 @@ services:
   core:
     build:
       context: .
-      target: bot
     command: python -u attu-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
@@ -27,7 +26,6 @@ services:
   web:
     build:
       context: .
-      target: web
     command: python -u attu-bot.py web
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
@@ -79,7 +77,6 @@ services:
   ingestor:
     build:
       context: .
-      target: ingestor
     command: python -u attu-bot.py ingestor
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
