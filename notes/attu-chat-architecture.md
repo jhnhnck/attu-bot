@@ -169,6 +169,7 @@ ingestor_api_url = "http://ingestor:8001"
 ingestor_token = "..."               # shared secret for X-Ingestor-Token header (bot -> ingestor)
 llm_primary_url = "http://<desktop-tailscale-ip>:8080"
 llm_fallback_url = "http://llama-server:8080"
+llm_api_key = "..."                  # shared secret sent as Bearer token to both primary and fallback llama-server instances
 anthropic_api_key = "..."
 ask_cooldown_seconds = 30            # per-user /ask cooldown; 0 = disabled (for testing)
 embedding_model = "all-MiniLM-L6-v2"  # override for testing with a smaller/stub model
@@ -556,13 +557,14 @@ services:
   llama-server:
     image: ghcr.io/ggerganov/llama.cpp:server
     volumes:
-      - models:/models
+      - ./assets/models:/models
     command: >
       -m /models/your-model-q4.gguf
       --host 0.0.0.0
       --port 8080
       --ctx-size 4096
       --threads 8
+      --api-key ${LLM_API_KEY}
     restart: unless-stopped
 
 volumes:
@@ -584,6 +586,7 @@ services:
       --port 8080
       --ctx-size 8192
       --n-gpu-layers 99
+      --api-key ${LLM_API_KEY}
     deploy:
       resources:
         reservations:
@@ -743,7 +746,7 @@ Every external dependency is wrapped in a thin class with a `_get_X()` lazy sing
 | `Embedder` | `ingestor/embedder.py` | sentence-transformers model | `embed(text) -> list[float]`, `embed_batch(texts) -> list[list[float]]` |
 | `VectorStore` | `ingestor/vector_store.py` | Qdrant client | `upsert(...)`, `search(...)`, `delete(...)` |
 | `Summarizer` | `ingestor/summarizer.py` | Anthropic `AsyncAnthropic` | `summarize(window) -> str`, `caption_image(data, ctx) -> str`, `extract_characters(window, roster) -> list[dict]` |
-| `LLMClient` | `ingestor/llm.py` | llama.cpp HTTP (OpenAI-compat) | `complete(prompt, context) -> AsyncIterator[str]` |
+| `LLMClient` | `ingestor/llm.py` | llama.cpp HTTP (OpenAI-compat) | `complete(prompt, context) -> AsyncIterator[str]`; sends `Authorization: Bearer <llm_api_key>` on both primary and fallback |
 
 Example pattern (same as existing repos):
 ```python
@@ -846,6 +849,7 @@ def mock_summarizer():
 - Implement time-window grouping with configurable lookback
 - Wire Claude Haiku summarization
 - Deploy Discord ingest pipeline
+- Add `llm_api_key` to `ChatConfig`; wire as `Authorization: Bearer` header in `LLMClient` for both primary and fallback; add `--api-key` to both llama-server instances
 
 #### Phase 3 - Documents & Images
 - Implement PDF/DOCX pipeline
