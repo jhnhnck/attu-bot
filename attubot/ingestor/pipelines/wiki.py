@@ -82,6 +82,7 @@ class WikiPipeline:
 
     async def _ingest_page(self, title: str) -> None:
         """fetch, parse, split, and embed a single wiki page"""
+        logger.info(f'Ingesting "{title}"')
         wiki = get_wiki()
 
         try:
