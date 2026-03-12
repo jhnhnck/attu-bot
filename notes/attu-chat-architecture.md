@@ -555,7 +555,7 @@ services:
     restart: unless-stopped
 
   llama-server:
-    image: ghcr.io/ggerganov/llama.cpp:server
+    image: ghcr.io/ggml-org/llama.cpp:server
     volumes:
       - ./assets/models:/models
     command: >
@@ -577,7 +577,7 @@ volumes:
 ```yaml
 services:
   llama-server:
-    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
     volumes:
       - models:/models
     command: >
