@@ -272,7 +272,7 @@ A helper `_load_prompt(name: str) -> str` reads from `config.chat.prompts_dir / 
 
 #### Current Date Injection
 
-`async def haracalnde_date(timestamp: int, guild: int | None = None) -> str` is a pure function in `attubot/calendar.py` that converts a unix timestamp to a formatted Haracalnde date string (e.g., `"15-3 5 PC"`). It uses the same epoch math as `get_year_status()`.
+`async def haracalnde_date(timestamp: int, guild: int | None = None) -> str` is a pure function in `attubot/client/calendar.py` that converts a unix timestamp to a formatted Haracalnde date string (e.g., `"15-3 5 PC"`). It uses the same epoch math as `get_year_status()`.
 
 The Q&A handler substitutes `{current_date_pc}` immediately before the LLM call:
 
@@ -640,7 +640,7 @@ volumes:
 - `attubot/tasks/reload_watcher.py` - handle `'chat'` signal (reload `config.chat_runtime`)
 - `attubot/commands/fix.py` - add `fix_chat` subgroup (`fix_group.create_subgroup('chat', ...)`) with `/fix chat forget` and `/fix ingest document`
 - `attubot/commands/debug.py` - add `debug_chat` subgroup with `/debug chat status`
-- `attubot/calendar.py` - add `haracalnde_date(timestamp: int, guild: int | None = None) -> str`
+- `attubot/client/calendar.py` - add `haracalnde_date(timestamp: int, guild: int | None = None) -> str`
 - `docker-compose.yml` - add `qdrant`, `ingestor`, `llama-server`; add assets volume to `core`
 - `config/attu-bot.sample.toml` - add `[chat]` section example
 

@@ -104,10 +104,10 @@ See `haracalnde_date()` in `attubot/calendar.py`.
 
 | File | Role |
 |---|---|
-| `attubot/calendar.py` | `get_year_status()`, `get_next_year()`, `get_year_span()`, `move_epoch()`, `haracalnde_date()` |
+| `attubot/client/calendar.py` | `get_year_status()`, `get_next_year()`, `get_year_span()`, `move_epoch()`, `haracalnde_date()` (async) |
 | `attubot/tasks/nova_year.py` | scheduled rollover check and `job_construct_year_links()` |
-| `attubot/markers.py` | `YearMarker` - associates a Discord snowflake with a year and channel |
-| `attubot/years.py` | `Year` - database-backed record of each completed or active year |
+| `attubot/client/markers.py` | `YearMarker` - associates a Discord snowflake with a year and channel |
+| `attubot/client/years.py` | `Year` - database-backed record of each completed or active year |
 | `attubot/commands/time.py` | `/time advance`, `/time pause`, `/time resume`, `/time dilate` |
 | `attubot/commands/year.py` | `/year check`, `/year link`, `/year search` |
 | `attubot/config.py` | `GuildEpoch` - Pydantic model that holds and validates epoch config |

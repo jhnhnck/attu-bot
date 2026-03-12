@@ -74,6 +74,8 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `time.py` | `/time` | In-universe time controls - advance, pause, resume, dilate |
 | `wiki.py` | `/wiki` | Wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | Year check, search, and link commands |
+| `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
+| `chat.py` | `/ask` | RAG lore query; streams LLM response with source citations |
 
 ### Package: `attubot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
@@ -88,6 +90,22 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
+| `chat_init.py` | `ChatInitTask` - initializes chat subsystems (embedder, reranker, vector store, LLM client) at startup |
+
+### Package: `attubot/ingestor/`
+RAG ingestion pipeline. See [`notes/attu-chat-architecture.md`](notes/attu-chat-architecture.md) for the full design.
+
+| File | Role |
+|---|---|
+| `__init__.py` | `start_ingestor()` - creates TaskScheduler, registers tasks, starts internal Quart API |
+| `embedder.py` | `Embedder` - wraps `all-MiniLM-L6-v2` sentence-transformers model |
+| `vector_store.py` | `VectorStore` - Qdrant client wrapper (`upsert`, `search`, `delete`) |
+| `reranker.py` | `Reranker` - cross-encoder reranking of retrieval candidates |
+| `llm.py` | `LLMClient` - llama.cpp HTTP client (OpenAI-compat); primary GPU + CPU fallback |
+| `registry.py` | `ChatSourceRepository` access; tracks all ingested content for deduplication and deletion |
+| `tasks.py` | `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask` (`BaseTask` subclasses) |
+| `pipelines/wiki.py` | Wiki page fetch → section split → embed |
+| `pipelines/discord.py` | Reply-chain graph traversal, time-window grouping, noise filtering |
 
 ### Package: `attubot/wiki/`
 | File | Role |
@@ -146,7 +164,7 @@ Always use the custom logger - never the stdlib `logging` module directly:
 from attubot.logging import get_logger
 logger = get_logger(__name__)
 ```
-Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.
+Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.
 
 ### Pydantic
 - All MongoDB documents extend `pydantic.BaseModel` and live in `models.py`
@@ -283,8 +301,12 @@ Notes in `notes/` with relevant implementation details:
 - [`button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
 - [`comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
 - [`embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
+- [`markers.md`](notes/markers.md) - marker system spec (resolution order, storage, commands, web API)
 - [`starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
 - [`testing.md`](notes/testing.md) - test cases
+- [`timekeeping.md`](notes/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
+- [`dev_setup.md`](notes/dev_setup.md) - dev worktree setup, running tests, deploying to prod
+- [`attu-chat-architecture.md`](notes/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
 - [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
 ---
 

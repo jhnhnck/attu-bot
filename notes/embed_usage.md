@@ -6,10 +6,10 @@ Reference for constructing and sending Discord embeds via `discord.Embed`.
 
 ## `make_embed()` Wrapper (preferred)
 
-Most bot code should use the project wrapper from `attubot/embeds.py` rather than constructing `discord.Embed` directly. It auto-applies the guild theme color and timestamps.
+Most bot code should use the project wrapper from `attubot/client/embeds.py` rather than constructing `discord.Embed` directly. It auto-applies the guild theme color and timestamps.
 
 ```python
-from attubot.embeds import make_embed
+from attubot.client.embeds import make_embed
 
 embed = make_embed(
     'Member Joined',
