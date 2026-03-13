@@ -142,6 +142,7 @@ class ChatConfig(BaseModel):
     ingestor_token: str = ''
     llm_primary_url: str = 'http://localhost:8080'
     llm_fallback_url: str = 'http://llama-server:8080'
+    llm_api_key: str = ''
     anthropic_api_key: str = ''
     ask_cooldown_seconds: int = 30
     embedding_model: str = 'all-MiniLM-L6-v2'

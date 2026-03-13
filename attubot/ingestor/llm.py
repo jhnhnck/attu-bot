@@ -60,7 +60,10 @@ class LLMClient:
     async def _stream(self, base_url: str, payload: dict) -> AsyncIterator[str]:
         """open a streaming SSE connection and yield token strings"""
         timeout = httpx.Timeout(connect=_LLM_CONNECT_TIMEOUT, read=_LLM_READ_TIMEOUT, write=30.0, pool=10.0)
-        async with httpx.AsyncClient(timeout=timeout) as client, client.stream('POST', f'{base_url}/v1/chat/completions', json=payload) as res:
+        headers = {}
+        if config.chat.llm_api_key:
+            headers['Authorization'] = f'Bearer {config.chat.llm_api_key}'
+        async with httpx.AsyncClient(timeout=timeout) as client, client.stream('POST', f'{base_url}/v1/chat/completions', json=payload, headers=headers) as res:
                 res.raise_for_status()
                 async for line in res.aiter_lines():
                     if not line.startswith('data: '):

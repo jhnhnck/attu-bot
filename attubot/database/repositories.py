@@ -11,6 +11,7 @@ from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
 from attubot.database.models import (
+    ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
     FamilyDocument,
@@ -473,6 +474,24 @@ class MessageRepository:
         docs = await cursor.to_list(length=None)
         return [doc['message_id'] for doc in docs]
 
+    async def get_in_channels_since(self, guild_id: int, channel_ids: list[int], since_timestamp: int) -> list[MessageDocument]:
+        """Fetch all non-deleted messages from the given channels since since_timestamp, sorted by created_at asc."""
+        if not channel_ids:
+            return []
+        cursor = (
+            self
+            .db[self.COLLECTION]
+            .find({
+                'guild_id': guild_id,
+                'channel_id': {'$in': channel_ids},
+                'created_at': {'$gte': since_timestamp},
+                'deleted': {'$ne': True},
+            })
+            .sort('created_at', ASCENDING)
+        )
+        docs = await cursor.to_list(length=None)
+        return [MessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
 
 class StarboardRepository:
     """Repository for starred message documents"""
@@ -829,3 +848,41 @@ class ChatSourceRepository:
         cursor = self.db[self.COLLECTION].find({'source_type': source_type})
         docs = await cursor.to_list(length=None)
         return [ChatSourceDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
+
+class ChatCharacterRepository:
+    """Repository for dynamically discovered character records from the character log channel"""
+
+    COLLECTION = 'chat_characters'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self) -> None:
+        """Create required indexes"""
+        await self.db[self.COLLECTION].create_index(
+            [('user_id', ASCENDING), ('character_name', ASCENDING)],
+            unique=True,
+        )
+
+    async def get_all(self) -> list[ChatCharacterDocument]:
+        """Fetch all known character records"""
+        cursor = self.db[self.COLLECTION].find()
+        docs = await cursor.to_list(length=None)
+        return [ChatCharacterDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
+    async def upsert(self, doc: ChatCharacterDocument) -> None:
+        """Insert or update a character record; first_seen_* fields are set only on insert"""
+        await self.db[self.COLLECTION].update_one(
+            {'user_id': doc.user_id, 'character_name': doc.character_name},
+            {
+                '$set': {'source_channel_id': doc.source_channel_id, 'notes': doc.notes},
+                '$setOnInsert': {
+                    'user_id': doc.user_id,
+                    'character_name': doc.character_name,
+                    'first_seen_timestamp': doc.first_seen_timestamp,
+                    'first_seen_message_id': doc.first_seen_message_id,
+                },
+            },
+            upsert=True,
+        )

@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from attubot.database.connection import MongoStorage
 from attubot.database.models import (
+    ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
     FamilyDocument,
@@ -20,6 +21,7 @@ from attubot.database.models import (
     YearMarkerDocument,
 )
 from attubot.database.repositories import (
+    ChatCharacterRepository,
     ChatConfigRepository,
     ChatSourceRepository,
     ConfigRepository,
@@ -89,6 +91,10 @@ async def init_database(url: str, name: str):
     await chat_source_repo.init_indexes()
     logger.debug('chat source indexes ready')
 
+    chat_character_repo = ChatCharacterRepository(database)
+    await chat_character_repo.init_indexes()
+    logger.debug('chat character indexes ready')
+
     import attubot.client.families as _families
     import attubot.client.markers as _markers
     import attubot.client.messages as _messages
@@ -110,6 +116,8 @@ async def init_database(url: str, name: str):
 
 
 __all__ = [
+    'ChatCharacterDocument',
+    'ChatCharacterRepository',
     'ChatConfigDocument',
     'ChatConfigRepository',
     'ChatSourceDocument',
