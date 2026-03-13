@@ -53,11 +53,13 @@ assets/*
 
 # notes
 notes/*
-!notes/embed_usage.md
-!notes/button_usage.md
-!notes/starboard.md
-!notes/timekeeping.md
-!notes/comment_style.md
-!notes/testing.md
-!notes/dev_setup.md
 !notes/attu-chat-*.md
+!notes/button_usage.md
+!notes/comment_style.md
+!notes/dev_setup.md
+!notes/embed_usage.md
+!notes/markers.md
+!notes/starboard.md
+!notes/testing.md
+!notes/timekeeping.md
+!notes/web.md

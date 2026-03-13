@@ -14,6 +14,8 @@ vi.mock('/assets/static/js/modules/api.js', () => ({
         saveTheme: vi.fn(),
         getSystem: vi.fn(),
         saveSystem: vi.fn(),
+        getChat: vi.fn(),
+        saveChat: vi.fn(),
     },
 }));
 
@@ -198,5 +200,70 @@ describe('SystemConfig', () => {
             error_log_channel: BigInt('333333333333333333'),
         });
         expect(cfg.isErrorLoggingConfigured()).toBe(true);
+    });
+});
+
+describe('ChatConfig', () => {
+    let ChatConfig;
+
+    beforeEach(async () => {
+        vi.resetAllMocks();
+        const module = await import('/assets/static/js/modules/config.js');
+        ChatConfig = module.ChatConfig;
+    });
+
+    it('should initialize with defaults', () => {
+        const cfg = new ChatConfig();
+        expect(cfg.discord_lookback_hours).toBe(6);
+        expect(cfg.discord_window_minutes).toBe(30);
+        expect(cfg.noise_filter_min_tokens).toBe(20);
+        expect(cfg.ignored_user_ids).toEqual([]);
+        expect(cfg.ingest_discord).toBe(true);
+        expect(cfg.ingest_wiki).toBe(true);
+        expect(cfg.ingest_documents).toBe(true);
+        expect(cfg.wiki_namespaces).toEqual(['0']);
+        expect(cfg.character_log_channel_id).toBeNull();
+        expect(cfg.chat_channels).toEqual({});
+        expect(cfg.user_nations).toEqual({});
+        expect(cfg.retrieval_top_k_wiki).toBe(5);
+        expect(cfg.retrieval_top_k_discord).toBe(5);
+        expect(cfg.retrieval_top_k_documents).toBe(3);
+        expect(cfg.retrieval_top_k_images).toBe(2);
+    });
+
+    it('should store data from constructor', () => {
+        const cfg = new ChatConfig({
+            discord_lookback_hours: 12,
+            ingest_discord: false,
+            wiki_namespaces: ['0', '4'],
+            chat_channels: { '123456789': { channel_type: 'roleplay' } },
+            user_nations: { '111111111': 'Faltir' },
+        });
+        expect(cfg.discord_lookback_hours).toBe(12);
+        expect(cfg.ingest_discord).toBe(false);
+        expect(cfg.wiki_namespaces).toEqual(['0', '4']);
+        expect(cfg.chat_channels['123456789'].channel_type).toBe('roleplay');
+        expect(cfg.user_nations['111111111']).toBe('Faltir');
+    });
+
+    it('toJSON should include all fields with snake_case keys', () => {
+        const cfg = new ChatConfig({
+            discord_lookback_hours: 8,
+            ingest_wiki: false,
+            retrieval_top_k_wiki: 10,
+            chat_channels: { '123456789': { channel_type: 'discussion' } },
+            user_nations: { '111111111': 'Faltir' },
+            ignored_user_ids: [999],
+        });
+        const json = cfg.toJSON();
+        expect(json).toHaveProperty('discord_lookback_hours', 8);
+        expect(json).toHaveProperty('ingest_wiki', false);
+        expect(json).toHaveProperty('retrieval_top_k_wiki', 10);
+        expect(json).toHaveProperty('chat_channels');
+        expect(json.chat_channels['123456789'].channel_type).toBe('discussion');
+        expect(json).toHaveProperty('user_nations');
+        expect(json.user_nations['111111111']).toBe('Faltir');
+        expect(json).toHaveProperty('ignored_user_ids');
+        expect(json.ignored_user_ids).toEqual([999]);
     });
 });

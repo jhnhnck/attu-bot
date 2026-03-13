@@ -20,6 +20,7 @@ import pytest
 import pytest_asyncio
 
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from attubot.database.models import ChatChannelConfig, ChatConfigDocument
 
 
 TEST_GUILD = 1234567890
@@ -87,6 +88,26 @@ async def web_app():
     web_app_module.config.error_log = (TEST_GUILD, 123456)
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
+
+    # chat runtime config
+    web_app_module.config.chat_runtime = ChatConfigDocument(
+        discord_lookback_hours=6,
+        discord_window_minutes=30,
+        noise_filter_min_tokens=20,
+        ingest_discord=True,
+        ingest_wiki=True,
+        ingest_documents=True,
+        wiki_namespaces=['0'],
+        retrieval_top_k_wiki=5,
+        retrieval_top_k_discord=5,
+        retrieval_top_k_documents=3,
+        retrieval_top_k_images=2,
+        chat_channels={'123456789': ChatChannelConfig(name='lore-news', channel_type='roleplay')},
+        user_nations={'111111111': 'Faltir'},
+    )
+    web_app_module.config.chat_config_repo = MagicMock()
+    web_app_module.config.chat_config_repo.save = AsyncMock()
+    web_app_module.config.load_chat_runtime = AsyncMock(return_value=True)
 
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
@@ -576,6 +597,116 @@ class TestSystemAPI:
         assert 'error' in data
 
 
+# ========== Chat Config API Tests ==========
+
+
+class TestChatAPI:
+    @pytest.mark.asyncio
+    async def test_chat_config_page(self, client):
+        """Test /chat page renders"""
+        response = await client.get('/chat')
+        assert response.status_code == 200
+
+        html = await response.get_data(as_text=True)
+        assert 'Chat Configuration' in html
+
+    @pytest.mark.asyncio
+    async def test_get_chat_config(self, client):
+        """Test GET /api/chat returns chat runtime config"""
+        response = await client.get('/api/chat')
+        assert response.status_code == 200
+
+        data = await response.get_json()
+        assert data['discord_lookback_hours'] == 6
+        assert data['discord_window_minutes'] == 30
+        assert data['ingest_wiki'] is True
+        assert data['wiki_namespaces'] == ['0']
+        assert '123456789' in data['chat_channels']
+        assert data['chat_channels']['123456789']['channel_type'] == 'roleplay'
+        assert data['user_nations']['111111111'] == 'Faltir'
+        assert data['character_log_channel_id'] is None
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_valid(self, client):
+        """Test POST /api/chat saves valid config"""
+        from attubot.web import app as web_app_module
+
+        payload = {
+            'discord_lookback_hours': 12,
+            'discord_window_minutes': 45,
+            'noise_filter_min_tokens': 15,
+            'ingest_wiki': True,
+            'ingest_discord': False,
+            'ingest_documents': True,
+            'wiki_namespaces': ['0'],
+            'retrieval_top_k_wiki': 8,
+            'retrieval_top_k_discord': 3,
+            'retrieval_top_k_documents': 2,
+            'retrieval_top_k_images': 1,
+            'chat_channels': {},
+            'user_nations': {},
+        }
+
+        web_app_module.config.chat_config_repo.save.reset_mock()
+        web_app_module.config.load_chat_runtime.reset_mock()
+
+        response = await client.post('/api/chat', json=payload)
+        assert response.status_code == 200
+
+        data = await response.get_json()
+        assert data['success'] is True
+
+        web_app_module.config.chat_config_repo.save.assert_called_once()
+        web_app_module.config.load_chat_runtime.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_invalid_top_k(self, client):
+        """Test POST /api/chat rejects retrieval_top_k < 1"""
+        response = await client.post('/api/chat', json={'retrieval_top_k_wiki': 0})
+        assert response.status_code == 400
+
+        data = await response.get_json()
+        assert 'error' in data
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_invalid_channel_type(self, client):
+        """Test POST /api/chat rejects unknown channel_type"""
+        response = await client.post('/api/chat', json={
+            'chat_channels': {'123': {'channel_type': 'invalid'}},
+        })
+        assert response.status_code == 400
+
+        data = await response.get_json()
+        assert 'error' in data
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_invalid_lookback(self, client):
+        """Test POST /api/chat rejects discord_lookback_hours < 1"""
+        response = await client.post('/api/chat', json={'discord_lookback_hours': 0})
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_no_data(self, client):
+        """Test POST /api/chat with empty body returns 400"""
+        response = await client.post('/api/chat')
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_save_chat_config_database_error(self, client):
+        """Test POST /api/chat handles database errors"""
+        from attubot.web import app as web_app_module
+
+        web_app_module.config.chat_config_repo.save.side_effect = Exception('db error')
+
+        response = await client.post('/api/chat', json={'discord_lookback_hours': 6})
+        assert response.status_code == 500
+
+        data = await response.get_json()
+        assert 'error' in data
+
+        web_app_module.config.chat_config_repo.save.side_effect = None
+
+
 # ========== Audit Log Tests ==========
 
 
@@ -886,6 +1017,45 @@ class TestAuditLogAPI:
 
         # Reset the mock for other tests
         config.guilds[TEST_GUILD].save.side_effect = None
+
+    @pytest.mark.asyncio
+    async def test_audit_logging_on_chat_save(self, client):
+        """Test that saving chat config creates audit log entry"""
+        from attubot.web import app as web_app_module
+        from attubot.web.app import config as app_config
+        from attubot.database.models import ChatConfigDocument
+
+        mock_audit_logger = MagicMock()
+        mock_audit_logger.log_change = AsyncMock()
+        web_app_module.audit_logger = mock_audit_logger
+
+        # make load_chat_runtime update chat_runtime so compare_configs finds changes
+        async def mock_load_chat():
+            app_config.chat_runtime = ChatConfigDocument(
+                discord_lookback_hours=12,
+                ingest_wiki=False,
+            )
+
+        web_app_module.config.load_chat_runtime = AsyncMock(side_effect=mock_load_chat)
+
+        payload = {
+            'discord_lookback_hours': 12,
+            'ingest_wiki': False,
+            'chat_channels': {},
+            'user_nations': {},
+        }
+        response = await client.post('/api/chat', json=payload)
+        assert response.status_code == 200
+
+        mock_audit_logger.log_change.assert_called_once()
+        call_kwargs = mock_audit_logger.log_change.call_args.kwargs
+        assert call_kwargs['config_type'] == 'chat'
+        assert call_kwargs['action'] == 'update'
+        assert call_kwargs['success'] is True
+        assert len(call_kwargs['changes']) > 0
+
+        # reset
+        web_app_module.config.load_chat_runtime = AsyncMock(return_value=True)
 
 
 # ========== Error Handling Tests ==========
