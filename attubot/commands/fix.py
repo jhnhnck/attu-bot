@@ -456,8 +456,11 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
 
     doc = await sb_repo.get(message_id)
     if doc is None:
+        doc = await sb_repo.get_by_starboard_message(message_id)
+    if doc is None:
         await ctx.respond(f'No starboard entry found for message {message_id}', ephemeral=True)
         return
+    message_id = doc.message_id
 
     # try to delete the discord starboard post if one is linked
     deleted_post = False

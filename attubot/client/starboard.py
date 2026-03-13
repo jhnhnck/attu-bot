@@ -408,11 +408,13 @@ async def _fetch_store_and_backfill(
     return doc
 
 
-async def backfill_message_reactions(message: discord.Message, guild_id: int) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
+async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
     """process all existing reactions on a discord message for starboard backfill.
 
     intended to be called during channel backfill for messages we hadn't seen before.
-    no-ops on the starboard channel itself, bot messages, or unconfigured emojis.
+    no-ops on the starboard channel itself (unless force=True) or unconfigured emojis.
+    force=True bypasses the starboard channel guard so /stars recheck can process
+    non-bot messages posted directly in the starboard channel.
     """
     from attubot.client.core import config
     from attubot.client.messages import _get_repo as _get_msg_repo
@@ -426,11 +428,8 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int) ->
     if not sb.channel_id or not sb.emojis:
         return
 
-    # don't process reactions on the starboard channel itself
-    if message.channel.id == sb.channel_id:
-        return
-
-    if message.author.bot:
+    # don't process reactions on the starboard channel itself (unless called from recheck)
+    if not force and message.channel.id == sb.channel_id:
         return
 
     configured = {str(r.emoji): r for r in message.reactions if str(r.emoji) in sb.emojis}

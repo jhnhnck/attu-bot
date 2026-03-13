@@ -46,6 +46,7 @@ async def test_purge_entry_not_found(mock_ctx_factory):
 
     mock_repo = AsyncMock()
     mock_repo.get = AsyncMock(return_value=None)
+    mock_repo.get_by_starboard_message = AsyncMock(return_value=None)
 
     with patch('attubot.commands.fix._get_sb_repo', return_value=mock_repo):
         await fix_starboard_purge(ctx, message_link=f'https://discord.com/channels/{TEST_GUILD}/{TEST_CHANNEL}/{MSG_ID}')
