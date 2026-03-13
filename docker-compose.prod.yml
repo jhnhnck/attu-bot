@@ -100,6 +100,8 @@ services:
 
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server
+    env_file:
+      - ./.env
     volumes:
       - ./assets/models:/models
     command: >
@@ -108,6 +110,7 @@ services:
       --port 8080
       --ctx-size 4096
       --threads 8
+      --api-key ${LLM_API_KEY}
     restart: unless-stopped
 
 volumes:

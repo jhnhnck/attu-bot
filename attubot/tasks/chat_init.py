@@ -32,6 +32,7 @@ class ChatInitTask(BaseTask):
         from attubot.ingestor.embedder import _get_embedder
         from attubot.ingestor.llm import _get_llm
         from attubot.ingestor.reranker import _get_reranker
+        from attubot.ingestor.summarizer import _get_summarizer
         from attubot.ingestor.vector_store import _get_vector_store
 
         logger.info('Initializing chat subsystems...')
@@ -40,6 +41,7 @@ class ChatInitTask(BaseTask):
         await loop.run_in_executor(None, _get_reranker)   # blocking model load
         _get_vector_store()
         _get_llm()
+        _get_summarizer()   # loads anthropic client + prompt templates
         _get_system_prompt()
         logger.info('Chat subsystems ready')
 

@@ -224,3 +224,16 @@ class ChatSourceDocument(BaseModel):
     qdrant_point_ids: list[str] = []
     flagged_incorrect: bool = False
     metadata: dict = {}
+
+
+class ChatCharacterDocument(BaseModel):
+    """MongoDB document tracking dynamically discovered characters from the character log channel"""
+
+    model_config = ConfigDict(extra='ignore')
+
+    user_id: int
+    character_name: str
+    first_seen_timestamp: int    # unix timestamp of the source message
+    first_seen_message_id: int
+    source_channel_id: int
+    notes: str = ''              # e.g. "abdicated in favor of X"

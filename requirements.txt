@@ -1,4 +1,5 @@
 aiohttp
+anthropic
 anyio>=4.12.0
 httpx
 hypercorn>=0.16.0
