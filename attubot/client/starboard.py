@@ -22,8 +22,8 @@ logger = get_logger(__name__)
 # module-level singleton seeded by database/__init__.py
 _starboard_repo: StarboardRepository | None = None
 
-# per-message locks to prevent concurrent creation of duplicate starboard posts
-_post_creation_locks: dict[int, asyncio.Lock] = {}
+# per-message locks to serialize reaction processing and prevent concurrent races
+_message_locks: dict[int, asyncio.Lock] = {}
 
 _IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.apng'}
 
@@ -574,29 +574,31 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         logger.debug(f'starboard: ignoring self-star from {user_id} on message {real_message_id}')
         return
 
-    # create the starboard document if this is the first star
-    if await repo.get(real_message_id) is None:
-        doc = StarredMessageDocument(
-            message_id=real_message_id,
-            channel_id=msg_doc.channel_id,
-            guild_id=guild_id,
-            author_id=msg_doc.author.id,
-        )
-        await repo.upsert(doc)
+    lock = _message_locks.setdefault(real_message_id, asyncio.Lock())
+    async with lock:
+        # create the starboard document if this is the first star
+        if await repo.get(real_message_id) is None:
+            doc = StarredMessageDocument(
+                message_id=real_message_id,
+                channel_id=msg_doc.channel_id,
+                guild_id=guild_id,
+                author_id=msg_doc.author.id,
+            )
+            await repo.upsert(doc)
 
-    # add the reaction - super reactions take priority and remove any existing normal reaction
-    if is_burst:
-        updated = await repo.add_super_reaction(real_message_id, emoji_str, user_id)
-        reaction_kind = 'super'
-    else:
-        updated = await repo.add_reaction(real_message_id, emoji_str, user_id)
-        reaction_kind = 'normal'
-    if updated is None:
-        return
+        # add the reaction - super reactions take priority and remove any existing normal reaction
+        if is_burst:
+            updated = await repo.add_super_reaction(real_message_id, emoji_str, user_id)
+            reaction_kind = 'super'
+        else:
+            updated = await repo.add_reaction(real_message_id, emoji_str, user_id)
+            reaction_kind = 'normal'
+        if updated is None:
+            return
 
-    logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
 
-    await _sync_starboard_post(guild_id, updated, guild_config)
+        await _sync_starboard_post(guild_id, updated, guild_config)
 
 
 async def handle_star_remove(
@@ -634,16 +636,18 @@ async def handle_star_remove(
             return
         real_message_id = existing.message_id
 
-    if is_burst:
-        updated = await repo.remove_super_reaction(real_message_id, emoji_str, user_id)
-    else:
-        updated = await repo.remove_reaction(real_message_id, emoji_str, user_id)
-    if updated is None:
-        return
+    lock = _message_locks.setdefault(real_message_id, asyncio.Lock())
+    async with lock:
+        if is_burst:
+            updated = await repo.remove_super_reaction(real_message_id, emoji_str, user_id)
+        else:
+            updated = await repo.remove_reaction(real_message_id, emoji_str, user_id)
+        if updated is None:
+            return
 
-    logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
 
-    await _sync_starboard_post(guild_id, updated, guild_config)
+        await _sync_starboard_post(guild_id, updated, guild_config)
 
 
 async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
@@ -670,33 +674,23 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     if doc.starboard_message_id is None:
-        lock = _post_creation_locks.setdefault(doc.message_id, asyncio.Lock())
-        async with lock:
-            # re-fetch inside the lock; a concurrent call may have already created the post
-            fresh = await repo.get(doc.message_id)
-            if fresh is None:
-                return
-            if fresh.starboard_message_id is None:
-                # still no post - we are responsible for creating it
-                if fresh.weighted_total < 2:
-                    return
-                try:
-                    sb_msg = await channel.send(content=content, embeds=embeds)
-                    await repo.set_starboard_message(fresh.message_id, sb_msg.id)
-                    # bot reacts to its own starboard post with all active emojis
-                    for emoji in fresh.reactions:
-                        if fresh.reactions[emoji] and emoji in sb.emojis:
-                            try:
-                                await sb_msg.add_reaction(emoji)
-                            except Exception as err:
-                                logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
-                    logger.info(f'starboard: created post {sb_msg.id} for message {fresh.message_id} ({fresh.total_reactions} reactions)')
-                except Exception as err:
-                    logger.error(f'starboard: failed to create post for message {fresh.message_id}: {err}')
-                await _check_and_announce_sweep(guild_id, fresh.author_id, channel)
-                return
-            # concurrent call already created the post - fall through to update it
-            doc = fresh
+        if doc.weighted_total < 2:
+            return
+        try:
+            sb_msg = await channel.send(content=content, embeds=embeds)
+            await repo.set_starboard_message(doc.message_id, sb_msg.id)
+            # bot reacts to its own starboard post with all active emojis
+            for emoji in doc.reactions:
+                if doc.reactions[emoji] and emoji in sb.emojis:
+                    try:
+                        await sb_msg.add_reaction(emoji)
+                    except Exception as err:
+                        logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
+            logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
+        except Exception as err:
+            logger.error(f'starboard: failed to create post for message {doc.message_id}: {err}')
+        await _check_and_announce_sweep(guild_id, doc.author_id, channel)
+        return
 
     # update existing post (starboard_message_id is guaranteed non-None here)
     if doc.starboard_message_id is None:

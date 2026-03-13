@@ -512,23 +512,28 @@ class StarboardRepository:
             upsert=True,
         )
 
-    def _compute_totals(self, doc: StarredMessageDocument) -> tuple[int, float]:
-        """return (total_reactions, weighted_total) from a doc's reaction dicts"""
-        normal = sum(len(v) for v in doc.reactions.values())
-        super_ = sum(len(v) for v in doc.super_reactions.values())
-        return normal + super_, normal + super_ * 1.5
+    async def _sync_totals(self, message_id: int) -> StarredMessageDocument | None:
+        """recompute and persist total_reactions and weighted_total atomically from stored arrays"""
+        from pymongo import ReturnDocument
 
-    async def _sync_totals(self, message_id: int, doc: StarredMessageDocument) -> StarredMessageDocument:
-        """recompute and persist total_reactions and weighted_total if they drifted; returns the updated doc"""
-        total, weighted = self._compute_totals(doc)
-        if total != doc.total_reactions or weighted != doc.weighted_total:
-            await self.db[self.COLLECTION].update_one(
-                {'message_id': message_id},
-                {'$set': {'total_reactions': total, 'weighted_total': weighted}},
-            )
-            doc.total_reactions = total
-            doc.weighted_total = weighted
-        return doc
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            [{'$set': {
+                'total_reactions': {'$add': [
+                    {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}},
+                    {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}},
+                ]},
+                'weighted_total': {'$add': [
+                    {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}}},
+                    {'$multiply': [1.5, {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}}}]},
+                ]},
+            }}],
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        return StarredMessageDocument(**result)
 
     async def add_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """add a user to the normal reaction list; skips if they already super-reacted for this emoji.
@@ -551,8 +556,7 @@ class StarboardRepository:
             existing.pop('_id', None)
             return StarredMessageDocument(**existing)
         result.pop('_id', None)
-        doc = StarredMessageDocument(**result)
-        return await self._sync_totals(message_id, doc)
+        return await self._sync_totals(message_id)
 
     async def add_super_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """add a user to the super reaction list; removes them from normal reactions if present.
@@ -572,8 +576,7 @@ class StarboardRepository:
         if result is None:
             return None
         result.pop('_id', None)
-        doc = StarredMessageDocument(**result)
-        return await self._sync_totals(message_id, doc)
+        return await self._sync_totals(message_id)
 
     async def remove_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """remove a user from the normal reaction list; returns the updated doc or None if not found"""
@@ -587,8 +590,7 @@ class StarboardRepository:
         if result is None:
             return None
         result.pop('_id', None)
-        doc = StarredMessageDocument(**result)
-        return await self._sync_totals(message_id, doc)
+        return await self._sync_totals(message_id)
 
     async def remove_super_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """remove a user from the super reaction list; returns the updated doc or None if not found"""
@@ -602,8 +604,7 @@ class StarboardRepository:
         if result is None:
             return None
         result.pop('_id', None)
-        doc = StarredMessageDocument(**result)
-        return await self._sync_totals(message_id, doc)
+        return await self._sync_totals(message_id)
 
     async def set_starboard_message(self, message_id: int, starboard_message_id: int | None):
         """link or unlink a starboard channel post to this document"""
