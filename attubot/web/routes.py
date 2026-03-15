@@ -477,7 +477,6 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
         svg = generate_svg(
             rotation=theme.rotation,
-            foreground='#ffffff',
             background=theme.bot_color,
         )
         return Response(svg, mimetype='image/svg+xml')

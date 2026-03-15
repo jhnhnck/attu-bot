@@ -7,7 +7,7 @@ services:
     command: python -u attu-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
-      DEBUG: 1
+      # DEBUG: 1
     logging:
       driver: journald
     restart: always

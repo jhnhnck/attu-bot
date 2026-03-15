@@ -100,10 +100,11 @@ async function fetchJSON(url, options = {}) {
             }
         });
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : null;
 
         if (!response.ok) {
-            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            throw new Error(data?.error || `HTTP error! status: ${response.status}`);
         }
 
         return data;
