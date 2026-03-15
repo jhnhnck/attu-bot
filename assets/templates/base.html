@@ -65,6 +65,12 @@
         opacity: 0.8;
       }
 
+      #navbar-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+      }
+
       body {
         min-height: 100vh;
         display: flex;
@@ -80,39 +86,14 @@
   </head>
   <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-doom">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-doom sticky-top">
       <div class="container-fluid">
-        <a class="navbar-brand" href="/">
-          <i data-feather="settings"></i>
-          Doom Bot Configurator
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <img id="navbar-logo" src="/api/theme/icon.svg" width="28" height="28" alt="DoomBot logo" />
+          DoomBot
         </a>
 
         <div class="d-flex align-items-center gap-2">
-          <!-- Passkey management -->
-          <a
-            href="/auth/passkeys"
-            class="btn btn-sm btn-outline-light d-flex align-items-center gap-1"
-            title="Manage Passkeys"
-            style="opacity: 0.8"
-          >
-            <i data-feather="key" style="width: 14px; height: 14px"></i>
-            <span class="d-none d-md-inline">Passkeys</span>
-          </a>
-
-          <!-- Sign out -->
-          <form method="post" action="/auth/logout" class="d-flex">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-            <button
-              type="submit"
-              class="btn btn-sm btn-outline-light d-flex align-items-center gap-1"
-              title="Sign Out"
-              style="opacity: 0.8"
-            >
-              <i data-feather="log-out" style="width: 14px; height: 14px"></i>
-              <span class="d-none d-md-inline">Sign Out</span>
-            </button>
-          </form>
-
           <!-- Theme toggle -->
           <button
             class="theme-toggle-btn"
@@ -120,9 +101,32 @@
             type="button"
             aria-label="Toggle theme"
           >
-            <i id="theme-icon-light" data-feather="sun"></i>
-            <i id="theme-icon-dark" data-feather="moon" class="d-none"></i>
+            <i id="theme-icon-light" data-feather="sun" style="width: 14px; height: 14px"></i>
+            <i id="theme-icon-dark" data-feather="moon" class="d-none" style="width: 14px; height: 14px"></i>
           </button>
+
+          <!-- Passkey management -->
+          <a
+            href="/auth/passkeys"
+            class="theme-toggle-btn"
+            title="Manage Passkeys"
+            aria-label="Manage Passkeys"
+          >
+            <i data-feather="key" style="width: 14px; height: 14px"></i>
+          </a>
+
+          <!-- Sign out -->
+          <form method="post" action="/auth/logout" class="d-flex">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button
+              type="submit"
+              class="theme-toggle-btn"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <i data-feather="log-out" style="width: 14px; height: 14px"></i>
+            </button>
+          </form>
         </div>
       </div>
     </nav>

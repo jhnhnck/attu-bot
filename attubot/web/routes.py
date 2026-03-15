@@ -6,9 +6,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from pydantic import ValidationError
-from quart import Quart, jsonify, render_template, request
+from quart import Quart, Response, jsonify, render_template, request
 
 from attubot.client.core import db
+from attubot.client.logo import generate_svg
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 from attubot.database.models import ChatChannelConfig, ChatConfigDocument
 from attubot.logging import get_logger
@@ -466,6 +467,20 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'bot_color': theme.bot_color,
             'guild_color': theme.guild_color,
         })
+
+    @app.route('/api/theme/icon.svg')
+    async def api_get_theme_icon():
+        """Serve the bot logo as SVG for navbar use"""
+        theme = config.theme
+        if not theme:
+            return jsonify({'error': 'Theme not found'}), 404
+
+        svg = generate_svg(
+            rotation=theme.rotation,
+            foreground='#ffffff',
+            background=theme.bot_color,
+        )
+        return Response(svg, mimetype='image/svg+xml')
 
     @app.route('/api/theme', methods=['POST'])
     async def api_save_theme():
