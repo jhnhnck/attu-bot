@@ -15,8 +15,8 @@ services:
       -m /models/Qwen3.5-9B.Q4_K_M.gguf
       --host 0.0.0.0
       --port 8080
-      --ctx-size 8192
-      --n-gpu-layers 99
+      --ctx-size 4096
+      --n-gpu-layers 95
       --api-key ${LLM_API_KEY}
     deploy:
       resources:

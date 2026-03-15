@@ -104,7 +104,7 @@ class WikiPipeline:
                 continue
 
             source_id = _section_source_id(title, section_title)
-            content_hash = _content_hash(section_text)
+            content_hash = _content_hash(f'{title}:{section_text}')
 
             # skip if content unchanged
             existing = await get_source(source_id)
@@ -112,8 +112,9 @@ class WikiPipeline:
                 logger.trace(f'Skipping unchanged section: {source_id}')
                 continue
 
-            # embed the section text
-            vector = embedder.embed(section_text)
+            # embed title + section heading + body so title-based queries match correctly
+            embed_prefix = f'{title} - {section_title}' if section_title else title
+            vector = embedder.embed(f'{embed_prefix}: {section_text}')
 
             # upsert into qdrant
             point_id = str(uuid.uuid4())

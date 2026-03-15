@@ -49,14 +49,22 @@ class VectorStore:
     async def search(self, collection: str, query_vector: list[float], top_k: int, query_filter=None) -> list:
         """vector search; returns a list of ScoredPoint"""
         # TODO(phase2): switch to hybrid search (vector + BM25 sparse) - requires collection schema migration
-        result = await self._client.query_points(
-            collection_name=collection,
-            query=query_vector,
-            limit=top_k,
-            query_filter=query_filter,
-            with_payload=True,
-        )
-        return result.points
+        from qdrant_client.http.exceptions import UnexpectedResponse
+
+        try:
+            result = await self._client.query_points(
+                collection_name=collection,
+                query=query_vector,
+                limit=top_k,
+                query_filter=query_filter,
+                with_payload=True,
+            )
+            return result.points
+        except UnexpectedResponse as e:
+            if e.status_code == 404:
+                logger.warn(f'collection `{collection}` not found - returning empty results')
+                return []
+            raise
 
     async def delete(self, collection: str, point_ids: list[str]) -> None:
         """delete points by ID from the collection"""
