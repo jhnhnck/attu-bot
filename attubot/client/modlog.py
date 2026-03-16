@@ -286,6 +286,13 @@ async def on_guild_role_delete(role: Role):
 async def on_guild_role_update(before: Role, after: Role):
     if after.guild.id not in config.valid_guilds:
         return
+    # skip the bot_color role - its color is updated automatically by logo task
+    try:
+        gc = config.guild(after.guild.id)
+        if gc.roles.bot_color != 0 and after.id == gc.roles.bot_color:
+            return
+    except Exception as err:
+        logger.debug(f'failed to resolve guild config for bot_color role check: {err}')
     if await _is_bot_audit_action(after.guild, discord.AuditLogAction.role_update, after.id):
         return
 

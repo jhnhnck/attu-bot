@@ -117,3 +117,27 @@ class TestHasAnnouncementsRole:
         ctx = mock_ctx_factory()
         # ctx.author is a plain MagicMock (no spec), so isinstance(author, discord.Member) is False
         assert has_announcements_role(ctx) is False
+
+
+# ============================================================
+# shift_hue
+# ============================================================
+
+
+class TestShiftHue:
+    """unit: shift_hue helper"""
+
+    def test_shifts_color(self):
+        from attubot.client.util import shift_hue
+
+        result = shift_hue('#ff0000')
+        assert result != '#ff0000'
+        assert result.startswith('#')
+        assert len(result) == 7
+
+    def test_360_degree_shift_is_identity(self):
+        from attubot.client.util import shift_hue
+
+        # 360-degree shift is a no-op for hue; with round() the integer values are stable
+        assert shift_hue('#ff0000', degrees=360.0) == '#ff0000'
+        assert shift_hue('#00ffff', degrees=360.0) == '#00ffff'

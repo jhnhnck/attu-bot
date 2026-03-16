@@ -328,6 +328,23 @@ class TestRoleLogs:
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Role Deleted'
 
+    async def test_role_update_skips_bot_color_role(self, guild_with_logs, make_guild):
+        from attubot.client.modlog import on_guild_role_update
+
+        gc = make_guild(guild_id=TEST_GUILD)
+        bot_color_role_id = 9999
+        gc.roles.bot_color = bot_color_role_id
+
+        before = _make_role(role_id=bot_color_role_id, name='BotColor')
+        after = _make_role(role_id=bot_color_role_id, name='BotColor')
+        after.color = 'blue'
+        logs_channel = _make_logs_channel()
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_guild_role_update(before, after)
+
+        logs_channel.send.assert_not_called()
+
     async def test_role_update_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_guild_role_update
 

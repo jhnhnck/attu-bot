@@ -10,6 +10,8 @@ import math
 from datetime import datetime, timedelta
 from random import random
 
+import discord
+
 from attubot import bot, config
 from attubot.client.calendar import get_year_span, get_year_status
 from attubot.client.logo import generate_png
@@ -104,6 +106,14 @@ class LogoUpdateTask(BaseTask):
                 break
 
         await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
+
+        # update the bot_color role to match the current theme color
+        role_id = config.primary().roles.bot_color
+        if role_id:
+            role = guild.get_role(role_id)
+            if role is not None:
+                await role.edit(color=discord.Color(int(theme.bot_color.lstrip('#'), 16)), reason='logo update task')
+                logger.debug(f'Updated bot_color role {role.name} to {theme.bot_color}')
 
         # store new rotation in config
         config.theme.rotation = new_rotation % 360

@@ -130,6 +130,7 @@ class GuildEpoch(BaseModel):
 
 class GuildRoles(BaseModel):
     announcements: int = 0  # notification role for year changes
+    bot_color: int = 0  # role whose color tracks the bot theme color
 
 
 class GuildUsers(BaseModel):

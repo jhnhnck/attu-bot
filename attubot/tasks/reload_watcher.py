@@ -64,6 +64,11 @@ class ReloadWatcherTask(BaseTask):
                 elif signal.signal_type == 'theme':
                     logger.info('Reloading theme config (web-triggered)')
                     await config.load_theme()
+                    from attubot.tasks.logo_update import logo_update_task  # local import avoids circular dependency with tasks/__init__.py
+                    from attubot.tasks.scheduler import scheduler  # local import avoids circular dependency with tasks/__init__.py
+
+                    scheduler.add_job(logo_update_task.run(), 'logo_update_immediate')
+                    logger.info('Triggered immediate logo update from theme reload')
 
                 elif signal.signal_type == 'system':
                     logger.info('Reloading system globals (web-triggered)')

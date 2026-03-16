@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import colorsys
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -69,6 +70,16 @@ def theme_color() -> int:
     if config.theme:
         return int(config.theme.bot_color.lstrip('#'), 16)
     return 0x5865F2  # discord blurple
+
+
+def shift_hue(hex_color: str, degrees: float = 1.0) -> str:
+    """shift the hue of a hex color by the given number of degrees and return a new hex string"""
+    hex_clean = hex_color.lstrip('#')
+    r, g, b = (int(hex_clean[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+    h, lightness, s = colorsys.rgb_to_hls(r, g, b)
+    h = (h + degrees / 360.0) % 1.0
+    r2, g2, b2 = colorsys.hls_to_rgb(h, lightness, s)
+    return f'#{round(r2 * 255):02x}{round(g2 * 255):02x}{round(b2 * 255):02x}'
 
 
 # --- Formatting ---

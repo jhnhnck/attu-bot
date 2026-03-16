@@ -15,6 +15,7 @@ from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
 from attubot.client.core import bot, config
+from attubot.client.util import shift_hue
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
 
@@ -258,6 +259,14 @@ async def on_member_join(member: Member):
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
     logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
+
+    # shift theme hue by 1 degree on every command invocation
+    if config.theme is not None:
+        config.theme.bot_color = shift_hue(config.theme.bot_color)
+        try:
+            await config.theme.save()
+        except Exception as err:
+            logger.warn(f'failed to save theme after hue shift: {err}')
 
 
 logger.info('Registered event handlers')
