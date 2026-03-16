@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import discord
-from discord import Color, Guild, GuildEmoji, Member, Role, User
+from discord import Guild, GuildEmoji, Member, Role, User
 
 from attubot.client.core import bot, config
 from attubot.client.embeds import make_embed
@@ -77,6 +77,32 @@ async def _is_bot_audit_action(guild: Guild, action: discord.AuditLogAction, tar
     return False
 
 
+async def _get_member_update_actor(guild: Guild, target_id: int) -> 'discord.User | discord.Member | None':
+    # look up who performed the most recent member_update action for this target
+    try:
+        async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.member_update):
+            target = getattr(entry, 'target', None)
+            if getattr(target, 'id', None) != target_id:
+                continue
+            return getattr(entry, 'user', None)
+    except Exception as err:
+        logger.debug(f'failed to resolve member_update actor for {guild.id} target={target_id}: {err}')
+    return None
+
+
+async def _get_remove_reason(guild: Guild, target_id: int) -> 'tuple[str | None, discord.User | discord.Member | None]':
+    # check whether the member departure was a kick or ban, and by whom
+    for action, label in ((discord.AuditLogAction.kick, 'kick'), (discord.AuditLogAction.ban, 'ban')):
+        try:
+            async for entry in guild.audit_logs(limit=3, action=action):
+                if getattr(getattr(entry, 'target', None), 'id', None) != target_id:
+                    continue
+                return label, getattr(entry, 'user', None)
+        except Exception as err:
+            logger.debug(f'failed to resolve {label} audit for {guild.id} target={target_id}: {err}')
+    return None, None
+
+
 def _member_avatar(member: Member | User) -> str | None:
     return member.display_avatar.url if member.display_avatar else None
 
@@ -99,17 +125,32 @@ def _build_member_join_embed(member: Member) -> discord.Embed:
     return embed
 
 
-def _build_member_leave_embed(member: Member) -> discord.Embed:
+def _build_member_leave_embed(
+    member: Member,
+    reason: str | None = None,
+    actor: 'discord.User | discord.Member | None' = None,
+) -> discord.Embed:
+    if reason == 'kick':
+        title = 'Member Kicked'
+        description = f'{member.mention} was kicked from the server'
+    elif reason == 'ban':
+        title = 'Member Banned'
+        description = f'{member.mention} was banned from the server'
+    else:
+        title = 'Member Left'
+        description = f'{member.mention} left the server'
+
     embed = make_embed(
-        'Member Left',
-        description=f'{member.mention} left the server',
-        color=Color.red(),
+        title,
+        description=description,
         footer=f'user id: {member.id}',
         author_name=_member_display_name(member),
         author_icon_url=_member_avatar(member),
     )
     embed.add_field(name='Joined', value=_format_dt(member.joined_at), inline=True)
     embed.add_field(name='Roles', value=_role_mentions(list(member.roles)), inline=False)
+    if actor is not None:
+        embed.add_field(name='By', value=actor.mention, inline=True)
     return embed
 
 
@@ -125,7 +166,8 @@ async def on_member_join(member: Member):
 async def on_member_remove(member: Member):
     if member.guild.id not in config.valid_guilds or member.bot:
         return
-    embed = _build_member_leave_embed(member)
+    reason, actor = await _get_remove_reason(member.guild, member.id)
+    embed = _build_member_leave_embed(member, reason=reason, actor=actor)
     await _send_embed(member.guild.id, embed)
 
 
@@ -136,7 +178,6 @@ async def on_member_ban(guild: Guild, user: User | Member):
     embed = make_embed(
         'Member Banned',
         description=f'{user.mention} was banned',
-        color=Color.red(),
         footer=f'user id: {user.id}',
         author_name=_member_display_name(user),
         author_icon_url=_member_avatar(user),
@@ -178,7 +219,7 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
         return
     if await _is_bot_audit_action(channel.guild, discord.AuditLogAction.channel_delete, channel.id):
         return
-    embed = make_embed('Channel Deleted', color=Color.red(), footer=f'channel id: {channel.id}')
+    embed = make_embed('Channel Deleted', footer=f'channel id: {channel.id}')
     embed.add_field(name='Channel', value=channel.name, inline=True)
     embed.add_field(name='Type', value=str(channel.type), inline=True)
     if channel.category:
@@ -235,7 +276,7 @@ async def on_guild_role_delete(role: Role):
         return
     if await _is_bot_audit_action(role.guild, discord.AuditLogAction.role_delete, role.id):
         return
-    embed = make_embed('Role Deleted', color=Color.red(), footer=f'role id: {role.id}')
+    embed = make_embed('Role Deleted', footer=f'role id: {role.id}')
     embed.add_field(name='Role', value=role.name, inline=True)
     embed.add_field(name='Color', value=str(role.color), inline=True)
     await _send_embed(role.guild.id, embed)
@@ -276,15 +317,37 @@ async def on_member_update(before: Member, after: Member):
         return
 
     if before.nick != after.nick:
+        # use audit log for authoritative before/after values and actor
+        actor: discord.User | discord.Member | None = None
+        audit_before_nick: str | None = before.nick
+        audit_after_nick: str | None = after.nick
+        try:
+            async for entry in after.guild.audit_logs(limit=5, action=discord.AuditLogAction.member_update):
+                target = getattr(entry, 'target', None)
+                if getattr(target, 'id', None) != after.id:
+                    continue
+                changes = getattr(entry, 'changes', None)
+                if changes is not None and hasattr(changes.before, 'nick'):
+                    audit_before_nick = changes.before.nick
+                    audit_after_nick = changes.after.nick
+                    actor = getattr(entry, 'user', None)
+                    break
+        except Exception as err:
+            logger.debug(f'failed to fetch audit log for nick change guild={after.guild.id} user={after.id}: {err}')
+
+        description = f'{after.mention} changed their nickname'
+        if actor is not None and actor.id != after.id:
+            description = f'{after.mention} had their nickname changed by {actor.mention}'
+
         embed = make_embed(
             'Nickname Changed',
-            description=f'{after.mention} changed their nickname',
+            description=description,
             footer=f'user id: {after.id}',
             author_name=_member_display_name(after),
             author_icon_url=_member_avatar(after),
         )
-        embed.add_field(name='Before', value=before.nick or before.name, inline=True)
-        embed.add_field(name='After', value=after.nick or after.name, inline=True)
+        embed.add_field(name='Before', value=audit_before_nick or before.name, inline=True)
+        embed.add_field(name='After', value=audit_after_nick or after.name, inline=True)
         await _send_embed(after.guild.id, embed)
 
     before_roles = {role.id: role for role in before.roles if not role.is_default()}
@@ -307,7 +370,6 @@ async def on_member_update(before: Member, after: Member):
         embed = make_embed(
             'Member Role Removed',
             description=f'{after.mention} had a role removed',
-            color=Color.red(),
             footer=f'user id: {after.id}',
             author_name=_member_display_name(after),
             author_icon_url=_member_avatar(after),
@@ -318,10 +380,12 @@ async def on_member_update(before: Member, after: Member):
     before_timeout = getattr(before, 'communication_disabled_until', None)
     after_timeout = getattr(after, 'communication_disabled_until', None)
     if before_timeout != after_timeout:
+        timeout_actor = await _get_member_update_actor(after.guild, after.id)
+        timeout_description = (f'{after.mention} was timed out by {timeout_actor.mention}' if after_timeout else f'{after.mention} had their timeout removed by {timeout_actor.mention}') if timeout_actor is not None else f'{after.mention} had their timeout updated'
+
         embed = make_embed(
             'Member Timeout Updated',
-            description=f'{after.mention} had their timeout updated',
-            color=Color.orange(),
+            description=timeout_description,
             footer=f'user id: {after.id}',
             author_name=_member_display_name(after),
             author_icon_url=_member_avatar(after),
@@ -359,7 +423,7 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
         emoji = before_map[emoji_id]
         if await _is_bot_audit_action(guild, discord.AuditLogAction.emoji_delete, emoji_id):
             continue
-        embed = make_embed('Emoji Deleted', color=Color.red(), footer=f'emoji id: {emoji.id}')
+        embed = make_embed('Emoji Deleted', footer=f'emoji id: {emoji.id}')
         embed.add_field(name='Emoji', value=f'{emoji.name}', inline=True)
         await _send_embed(guild.id, embed)
 

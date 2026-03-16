@@ -96,6 +96,26 @@ def _make_audit_entry(target_id: int, bot: bool = False):
     return entry
 
 
+def _make_kick_audit_entry(target_id: int, actor_id: int):
+    entry = _make_audit_entry(target_id)
+    entry.user.id = actor_id
+    entry.user.mention = f'<@{actor_id}>'
+    return entry
+
+
+def _make_nick_audit_entry(target_id: int, actor_id: int, old_nick: str | None, new_nick: str | None):
+    entry = _make_audit_entry(target_id)
+    entry.user.id = actor_id
+    entry.user.mention = f'<@{actor_id}>'
+    changes = MagicMock()
+    changes.before = MagicMock()
+    changes.before.nick = old_nick
+    changes.after = MagicMock()
+    changes.after.nick = new_nick
+    entry.changes = changes
+    return entry
+
+
 def _make_audit_log(entries: list[MagicMock]):
     async def _iter():
         for entry in entries:
@@ -148,6 +168,43 @@ class TestMemberLogs:
         logs_channel.send.assert_called_once()
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Member Left'
+
+    async def test_member_leave_kicked_shows_reason(self, guild_with_logs):
+        from attubot.client.modlog import on_member_remove
+
+        member = _make_member()
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        member.guild.audit_logs = MagicMock(
+            side_effect=[
+                _make_audit_log([_make_kick_audit_entry(member.id, actor_id)]),  # kick check
+            ]
+        )
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_remove(member)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.title == 'Member Kicked'
+
+    async def test_member_leave_banned_shows_reason(self, guild_with_logs):
+        from attubot.client.modlog import on_member_remove
+
+        member = _make_member()
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        member.guild.audit_logs = MagicMock(
+            side_effect=[
+                _make_audit_log([]),  # kick check - no match
+                _make_audit_log([_make_kick_audit_entry(member.id, actor_id)]),  # ban check
+            ]
+        )
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_remove(member)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.title == 'Member Banned'
 
     async def test_member_ban_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_ban
@@ -301,6 +358,27 @@ class TestMemberUpdateLogs:
         logs_channel.send.assert_called_once()
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Nickname Changed'
+
+    async def test_nickname_change_shows_mod_actor(self, guild_with_logs):
+        from attubot.client.modlog import on_member_update
+
+        before = _make_member()
+        after = _make_member()
+        after.nick = 'NewNick'
+        actor_id = TEST_USER + 1
+        actor_mention = f'<@{actor_id}>'
+        logs_channel = _make_logs_channel()
+        after.guild.audit_logs = MagicMock(
+            return_value=_make_audit_log([
+                _make_nick_audit_entry(after.id, actor_id, None, 'NewNick'),
+            ])
+        )
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        assert actor_mention in embed.description
 
     async def test_role_add_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_update
