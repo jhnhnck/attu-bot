@@ -10,3 +10,5 @@ if [ -d /tmp/seeds/doombot-seed ]; then
 else
     echo "no seed found at assets/doombot-seed - starting with empty db"
 fi
+
+touch /tmp/seed_ready
