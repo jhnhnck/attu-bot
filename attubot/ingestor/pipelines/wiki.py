@@ -86,7 +86,7 @@ class WikiPipeline:
         wiki = get_wiki()
 
         try:
-            wikitext, revid, rev_timestamp = await wiki.pages.get_with_revision(title)
+            wikitext, revid, rev_timestamp, categories = await wiki.pages.get_with_revision(title)
         except Exception as e:
             logger.warn(f'Failed to fetch wiki page "{title}": {e!s}')
             return
@@ -112,9 +112,12 @@ class WikiPipeline:
                 logger.trace(f'Skipping unchanged section: {source_id}')
                 continue
 
-            # embed title + section heading + body so title-based queries match correctly
+            # embed title + section heading + body + categories for better term overlap
             embed_prefix = f'{title} - {section_title}' if section_title else title
-            vector = embedder.embed(f'{embed_prefix}: {section_text}')
+            embed_text = f'{embed_prefix}: {section_text}'
+            if categories:
+                embed_text += f'\nCategories: {", ".join(categories)}'
+            vector = embedder.embed(embed_text)
 
             # upsert into qdrant
             point_id = str(uuid.uuid4())
@@ -128,6 +131,7 @@ class WikiPipeline:
                 'timestamp': rev_timestamp,
                 'source_of_truth': True,
                 'text': section_text,
+                'categories': categories,
             }
             await store.upsert(_WIKI_COLLECTION, [PointStruct(id=point_id, vector=vector, payload=payload)])
 
@@ -138,7 +142,7 @@ class WikiPipeline:
                 content_hash=content_hash,
                 last_ingested=int(time.time()),
                 qdrant_point_ids=[point_id],
-                metadata={'page_title': title, 'section': section_title or '(intro)'},
+                metadata={'page_title': title, 'section': section_title or '(intro)', 'categories': categories},
             ))
 
             logger.debug(f'Ingested wiki section: {source_id}')

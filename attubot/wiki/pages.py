@@ -98,16 +98,17 @@ class PagesApi:
         pages = res.json()['query']['pages']
         return PageSummary.model_validate(pages[0])
 
-    async def get_with_revision(self, page_name: str) -> tuple[str, int, str]:
-        """fetch wikitext along with the current revid and ISO timestamp"""
+    async def get_with_revision(self, page_name: str) -> tuple[str, int, str, list[str]]:
+        """fetch wikitext along with the current revid, ISO timestamp, and page categories"""
         res = await self._client.get(
             self._endpoint,
             params={
                 'action': 'query',
                 'titles': page_name,
-                'prop': 'revisions',
+                'prop': 'revisions|categories',
                 'rvprop': 'ids|timestamp|content',
                 'rvslots': 'main',
+                'cllimit': 'max',
                 'formatversion': 2,
                 'format': 'json',
             },
@@ -115,7 +116,8 @@ class PagesApi:
         res.raise_for_status()
         page = res.json()['query']['pages'][0]
         rev = page['revisions'][0]
-        return rev['slots']['main']['content'], rev['revid'], rev['timestamp']
+        cats = [c['title'].removeprefix('Category:') for c in page.get('categories', [])]
+        return rev['slots']['main']['content'], rev['revid'], rev['timestamp'], cats
 
     async def get_all_pages(self, namespace: str = '0') -> list[str]:
         """fetch all page titles in the given namespace via allpages with pagination"""

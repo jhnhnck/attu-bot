@@ -20,6 +20,7 @@ from attubot.client.util import is_authorized_guild, is_bot_owner
 from attubot.database.models import ChatCharacterDocument
 from attubot.ingestor.embedder import _get_embedder
 from attubot.ingestor.llm import _get_llm
+from attubot.ingestor.query_expander import _get_query_expander
 from attubot.ingestor.reranker import _get_reranker
 from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
@@ -126,9 +127,19 @@ async def command_ask(ctx: ApplicationContext, query: str):  # noqa: PLR0915 TOD
         embedder = _get_embedder()
         query_vector = embedder.embed(query)
 
+        # 1b. expand query into search terms for wiki retrieval; fall back on failure
+        wiki_query_vector = query_vector
+        try:
+            expander = _get_query_expander()
+            expanded_terms = await expander.expand(query)
+            logger.debug(f'expanded query: {expanded_terms}')
+            wiki_query_vector = embedder.embed(expanded_terms)
+        except Exception as e:
+            logger.warn(f'query expansion failed, using original vector: {e!s}')
+
         # 2. search qdrant wiki + discord collections
         store = _get_vector_store()
-        wiki_results = await store.search('wiki', query_vector, top_k=config.chat_runtime.retrieval_top_k_wiki)
+        wiki_results = await store.search('wiki', wiki_query_vector, top_k=config.chat_runtime.retrieval_top_k_wiki)
         discord_results = await store.search('discord', query_vector, top_k=config.chat_runtime.retrieval_top_k_discord)
         raw_results = wiki_results + discord_results
 
