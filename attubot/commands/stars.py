@@ -175,7 +175,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
 
     doc_before = await _get_sb_repo().get(message_id)
 
-    await backfill_message_reactions(discord_msg, ctx.guild.id, force=force)
+    await backfill_message_reactions(discord_msg, ctx.guild.id, force=force, replace=True)
 
     doc_after = await _get_sb_repo().get(message_id)
 

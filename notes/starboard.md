@@ -23,9 +23,12 @@ Only emojis listed in `emojis` are tracked. Any other reaction is silently ignor
 - any user can star any message with a configured emoji
 - self-stars don't count (reactor == message author)
 - bot reactions are ignored (own bot + `valid_bots`)
-- each user's reaction counts **once per emoji** regardless of whether they reacted on the original message or the starboard post - no double counting
+- each user gets **one vote per message** - their first reaction counts; subsequent reactions with different emojis are auto-removed from discord; no double counting across emojis
 - messages in the starboard channel itself are also eligible to be starred; the bot redirects those reactions to the original message record
-- a post is created in the starboard channel once total reactions reach **2**
+- a post is created once any single emoji reaches a weighted count of **2** (requires at least 2 different users reacting with the same emoji, or 1 super + 1 normal on the same emoji)
+- a starboard post is deleted if reactions drop below threshold; the reference is cleared so a new post can be created if reactions recover
+- if all reactions on a message are cleared (e.g. by a moderator), the bot clears the reaction state and deletes the starboard post if it exists
+- if all reactions of a single emoji are cleared, that emoji is removed from the record and the post is updated or deleted as appropriate
 - the bot reacts to its own starboard post with all active emojis
 - if the starboard post was created by an old bot (can't edit it), the bot sends a reply with the updated content and tracks that as the new post
 - if a starboard post is deleted externally, the reference is cleared so a new post can be created next time the count changes

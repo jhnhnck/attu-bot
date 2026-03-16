@@ -625,6 +625,34 @@ class StarboardRepository:
         result.pop('_id', None)
         return await self._sync_totals(message_id)
 
+    async def clear_emoji_reactions(self, message_id: int, emoji: str) -> StarredMessageDocument | None:
+        """clear all normal and super reactions for a specific emoji; returns updated doc or None if not found."""
+        from pymongo import ReturnDocument
+
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            {'$unset': {f'reactions.{emoji}': '', f'super_reactions.{emoji}': ''}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        return await self._sync_totals(message_id)
+
+    async def clear_all_reactions(self, message_id: int) -> StarredMessageDocument | None:
+        """clear all reactions (all emojis, normal and super) from a message; returns updated doc or None if not found."""
+        from pymongo import ReturnDocument
+
+        result = await self.db[self.COLLECTION].find_one_and_update(
+            {'message_id': message_id},
+            {'$set': {'reactions': {}, 'super_reactions': {}}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if result is None:
+            return None
+        result.pop('_id', None)
+        return await self._sync_totals(message_id)
+
     async def set_starboard_message(self, message_id: int, starboard_message_id: int | None):
         """link or unlink a starboard channel post to this document"""
         await self.db[self.COLLECTION].update_one(

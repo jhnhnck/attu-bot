@@ -345,6 +345,18 @@ def _is_image(attachment: dict) -> bool:
 # --- Reaction Processing ---
 
 
+async def _remove_reaction_from_discord(channel_id: int, message_id: int, user_id: int, emoji_str: str) -> None:
+    """remove an invalid reaction from discord, suppressing all errors."""
+    from attubot.client.core import bot
+    try:
+        channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+        message = await channel.fetch_message(message_id)
+        await message.remove_reaction(emoji_str, discord.Object(id=user_id))
+        logger.debug(f'starboard: removed invalid reaction {emoji_str} from user {user_id} on message {message_id}')
+    except Exception as err:
+        logger.debug(f'starboard: could not remove reaction {emoji_str} from user {user_id} on message {message_id}: {err}')
+
+
 async def _fetch_store_and_backfill(
     guild_id: int,
     channel_id: int,
@@ -409,13 +421,14 @@ async def _fetch_store_and_backfill(
     return doc
 
 
-async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
+async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False, replace: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
     """process all existing reactions on a discord message for starboard backfill.
 
     intended to be called during channel backfill for messages we hadn't seen before.
     no-ops on the starboard channel itself (unless force=True) or unconfigured emojis.
     force=True bypasses the starboard channel guard so /stars recheck can process
     non-bot messages posted directly in the starboard channel.
+    replace=True rebuilds the stored reactions from scratch instead of merging.
     """
     from attubot.client.core import config
     from attubot.client.messages import _get_repo as _get_msg_repo
@@ -434,30 +447,52 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
         return
 
     configured = {str(r.emoji): r for r in message.reactions if str(r.emoji) in sb.emojis}
-    if not configured:
-        return
 
     repo = _get_repo()
     msg_repo = _get_msg_repo()
 
-    # collect per-emoji user sets, excluding self-stars and bots
+    # collect per-emoji user sets, enforcing one-vote-per-user and auto-removing invalids
+    seen_voters: set[int] = set()
     new_reactions: dict[str, list[int]] = {}
     for emoji, reaction in configured.items():
         users = []
         async for user in reaction.users():
-            if user.id != message.author.id and not user.bot:
-                users.append(user.id)
+            if user.id == message.author.id or user.bot:
+                with contextlib.suppress(Exception):
+                    await message.remove_reaction(emoji, discord.Object(id=user.id))
+                continue
+            if user.id in seen_voters:
+                with contextlib.suppress(Exception):
+                    await message.remove_reaction(emoji, discord.Object(id=user.id))
+                continue
+            users.append(user.id)
+            seen_voters.add(user.id)
         if users:
             new_reactions[emoji] = users
 
-    if not new_reactions:
+    existing = await repo.get(message.id)
+
+    if not new_reactions and not (replace and existing is not None):
         return
 
-    existing = await repo.get(message.id)
-    if existing is None:
+    total_new = sum(len(v) for v in new_reactions.values())
+
+    if replace and existing is not None:
+        doc = StarredMessageDocument(
+            message_id=existing.message_id,
+            channel_id=existing.channel_id,
+            guild_id=existing.guild_id,
+            author_id=existing.author_id,
+            starboard_message_id=existing.starboard_message_id,
+            reactions=new_reactions,
+            super_reactions={},
+            total_reactions=total_new,
+            weighted_total=float(total_new),
+        )
+        await repo.upsert(doc)
+    elif existing is None:
         msg_doc = await msg_repo.get(message.id)
         author_id = msg_doc.author.id if msg_doc else message.author.id
-        total_new = sum(len(v) for v in new_reactions.values())
         doc = StarredMessageDocument(
             message_id=message.id,
             channel_id=message.channel.id,
@@ -469,7 +504,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
         )
         await repo.upsert(doc)
     else:
-        # merge into existing, deduplicating per user per emoji
+        # merge into existing - new_reactions is already deduplicated per user
         merged = {k: list(v) for k, v in existing.reactions.items()}
         for emoji, users in new_reactions.items():
             current = set(merged.get(emoji, []))
@@ -490,7 +525,6 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
         )
         await repo.upsert(doc)
 
-    total_new = sum(len(v) for v in new_reactions.values())
     logger.info(f'starboard: backfilled {total_new} reaction(s) on message {message.id} during channel scan')
 
     updated = await repo.get(message.id)
@@ -540,6 +574,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
     repo = _get_repo()
     msg_repo = _get_msg_repo()
 
+    orig_message_id = message_id  # save before any starboard_post redirect
     stored_doc = await msg_repo.get(message_id)
     if isinstance(stored_doc, MessageDocument) and stored_doc.refs.starboard_post:
         message_id = stored_doc.refs.starboard_post
@@ -569,9 +604,10 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         if msg_doc is None:
             return
 
-    # self-stars don't count
+    # self-stars don't count - auto-remove from discord
     if user_id == msg_doc.author.id:
-        logger.debug(f'starboard: ignoring self-star from {user_id} on message {real_message_id}')
+        logger.debug(f'starboard: removing self-star from {user_id} on message {real_message_id}')
+        await _remove_reaction_from_discord(channel_id, orig_message_id, user_id, emoji_str)
         return
 
     lock = _message_locks.setdefault(real_message_id, asyncio.Lock())
@@ -585,6 +621,19 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
                 author_id=msg_doc.author.id,
             )
             await repo.upsert(doc)
+
+        # one vote per user per message - ignore subsequent emoji reactions
+        current_doc = await repo.get(real_message_id)
+        if current_doc is not None:
+            already_voted = any(
+                user_id in users
+                for bucket in (current_doc.reactions, current_doc.super_reactions)
+                for users in bucket.values()
+            )
+            if already_voted:
+                logger.debug(f'starboard: removing extra reaction from user {user_id} on message {real_message_id} - already has a vote')
+                await _remove_reaction_from_discord(channel_id, orig_message_id, user_id, emoji_str)
+                return
 
         # add the reaction - super reactions take priority and remove any existing normal reaction
         if is_burst:
@@ -650,6 +699,70 @@ async def handle_star_remove(
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
+async def handle_star_clear(guild_id: int, channel_id: int, message_id: int) -> None:
+    """process an all-reactions-cleared event; wipes the doc's reaction state and syncs the post."""
+    from attubot.client.core import config
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id:
+        return
+
+    repo = _get_repo()
+
+    real_message_id = message_id
+    if channel_id == sb.channel_id:
+        existing = await repo.get_by_starboard_message(message_id)
+        if existing is None:
+            return
+        real_message_id = existing.message_id
+
+    lock = _message_locks.setdefault(real_message_id, asyncio.Lock())
+    async with lock:
+        updated = await repo.clear_all_reactions(real_message_id)
+        if updated is None:
+            return
+
+        logger.info(f'starboard: all reactions cleared on message {real_message_id} - weighted total now {updated.weighted_total}')
+        await _sync_starboard_post(guild_id, updated, guild_config)
+
+
+async def handle_star_clear_emoji(guild_id: int, channel_id: int, message_id: int, emoji_str: str) -> None:
+    """process a single-emoji-cleared event; removes that emoji from the doc and syncs the post."""
+    from attubot.client.core import config
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id or emoji_str not in sb.emojis:
+        return
+
+    repo = _get_repo()
+
+    real_message_id = message_id
+    if channel_id == sb.channel_id:
+        existing = await repo.get_by_starboard_message(message_id)
+        if existing is None:
+            return
+        real_message_id = existing.message_id
+
+    lock = _message_locks.setdefault(real_message_id, asyncio.Lock())
+    async with lock:
+        updated = await repo.clear_emoji_reactions(real_message_id, emoji_str)
+        if updated is None:
+            return
+
+        logger.info(f'starboard: {emoji_str} cleared on message {real_message_id} - weighted total now {updated.weighted_total}')
+        await _sync_starboard_post(guild_id, updated, guild_config)
+
+
 async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
     """create or update (or do nothing for) the starboard channel post for a starred message."""
     from attubot.client.core import bot
@@ -674,7 +787,12 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
     embeds = await build_embeds(msg_doc, guild_id, color)
 
     if doc.starboard_message_id is None:
-        if doc.weighted_total < 2:
+        max_weight = max(
+            (_weighted_count(e, doc.reactions, doc.super_reactions)
+             for e in (set(doc.reactions) | set(doc.super_reactions))),
+            default=0.0,
+        )
+        if max_weight < 2:
             return
         try:
             sb_msg = await channel.send(content=content, embeds=embeds)
@@ -703,6 +821,24 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
 
     # update existing post (starboard_message_id is guaranteed non-None here)
     if doc.starboard_message_id is None:
+        return
+    # delete post if it fell below threshold
+    max_weight = max(
+        (_weighted_count(e, doc.reactions, doc.super_reactions)
+         for e in (set(doc.reactions) | set(doc.super_reactions))),
+        default=0.0,
+    )
+    if max_weight < 2:
+        try:
+            sb_msg = await channel.fetch_message(doc.starboard_message_id)
+            await sb_msg.delete()
+            logger.info(f'starboard: deleted post {doc.starboard_message_id} for message {doc.message_id} - fell below threshold')
+        except discord.NotFound:
+            logger.debug(f'starboard: post {doc.starboard_message_id} already gone')
+        except Exception as err:
+            logger.warn(f'starboard: could not delete post {doc.starboard_message_id}: {err}')
+        with contextlib.suppress(Exception):
+            await repo.set_starboard_message(doc.message_id, None)
         return
     try:
         sb_msg = await channel.fetch_message(doc.starboard_message_id)

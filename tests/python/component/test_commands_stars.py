@@ -286,8 +286,8 @@ class TestStarsRecheck:
         # message should be in the DB
         assert await msg_repo.get(message_id) is not None
 
-        # backfill should have been invoked with the fetched message (force=False for normal channel)
-        mock_backfill.assert_called_once_with(fake_discord_msg, TEST_GUILD, force=False)
+        # backfill should have been invoked with the fetched message (force=False for normal channel, replace=True always)
+        mock_backfill.assert_called_once_with(fake_discord_msg, TEST_GUILD, force=False, replace=True)
 
     async def test_recheck_rejects_invalid_link(self, stars_repos, mock_ctx_factory):
         """recheck responds ephemeral when given a non-discord message link"""

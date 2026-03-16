@@ -10,7 +10,7 @@ import contextlib
 import sys
 
 import anyio
-from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, RawReactionActionEvent
+from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, RawReactionActionEvent, RawReactionClearEmojiEvent, RawReactionClearEvent
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
@@ -307,4 +307,37 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         user_id=payload.user_id,
         emoji_str=str(payload.emoji),
         is_burst=payload.burst,
+    )
+
+
+@bot.listen()
+async def on_raw_reaction_clear(payload: RawReactionClearEvent):
+    logger.debug(f'reaction_clear: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id}')
+    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        logger.debug(f'reaction_clear: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        return
+
+    from attubot.client.starboard import handle_star_clear
+
+    await handle_star_clear(
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+    )
+
+
+@bot.listen()
+async def on_raw_reaction_clear_emoji(payload: RawReactionClearEmojiEvent):
+    logger.debug(f'reaction_clear_emoji: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} emoji={str(payload.emoji)!r}')
+    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+        logger.debug(f'reaction_clear_emoji: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        return
+
+    from attubot.client.starboard import handle_star_clear_emoji
+
+    await handle_star_clear_emoji(
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+        emoji_str=str(payload.emoji),
     )
