@@ -1,7 +1,7 @@
 ---
-# dev environment: tests-only, no live discord connection.
-# mongodb is ephemeral (tmpfs) and seeded from assets/doombot-seed.archive on each start.
-# usage: docker compose -f docker-compose.dev.yml run --build --rm tests
+# dev environment: ephemeral mongodb seeded from assets/doombot-seed.archive on each start.
+# usage (tests): docker compose -f docker-compose.dev.yml run --build --rm tests
+# usage (web):   docker compose -f docker-compose.dev.yml up --build web
 name: doom-bot-dev
 
 services:
@@ -16,15 +16,38 @@ services:
       - ./assets:/tmp/seeds:ro    # init script looks for doombot-seed.archive here
     environment:
       MONGO_INITDB_DATABASE: doombot
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
     env_file:
-      - ./.env
+      - .env
     healthcheck:
       test: ["CMD-SHELL", "mongosh mongodb://$MONGO_USERNAME:$MONGO_PASSWORD@localhost:27017/doombot --eval \"db.adminCommand('ping')\" --quiet"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      target: doombox
+    container_name: attu-dev-web
+    command: python -u attu-bot.py web
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      DEBUG: "1"
+    ports:
+      - "127.0.0.1:5010:5000"
+    restart: no
+    user: doom:doom
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 10s
 
   tests:
@@ -37,6 +60,8 @@ services:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
       TEST_MODE: "1"
       DEBUG: "1"
+    env_file:
+      - .env
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
     user: doom:doom

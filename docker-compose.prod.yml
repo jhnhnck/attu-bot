@@ -1,4 +1,8 @@
 ---
+# prod environment: persistent mongodb, live discord connection.
+# usage: docker compose up --build -d
+name: doom-bot
+
 services:
   core:
     build:
