@@ -660,6 +660,118 @@ class TestLogDelete:
         # no stored record means set_author was never called - embed.author is None
         assert embed.author is None
 
+    async def test_skips_bot_authored_message(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        stored_doc = _make_msg_doc(author_bot=True, created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_delete(_make_raw_delete_payload())
+
+        mock_message_repo.mark_deleted.assert_not_called()
+        logs_ch.send.assert_not_called()
+
+    async def test_skips_known_starboard_post(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+        from attubot.database.models import StarredMessageDocument
+
+        stored_doc = _make_msg_doc(created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        sb_doc = StarredMessageDocument(message_id=TEST_MESSAGE, channel_id=TEST_CHANNEL, guild_id=TEST_GUILD, author_id=TEST_USER, starboard_message_id=TEST_MESSAGE + 1)
+        mock_sb_repo = AsyncMock()
+        mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=sb_doc)
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.client.starboard._get_repo', return_value=mock_sb_repo):
+            await log_delete(_make_raw_delete_payload())
+
+        mock_message_repo.mark_deleted.assert_not_called()
+        logs_ch.send.assert_not_called()
+
+    async def test_skips_unknown_message_in_starboard_channel(self, mock_message_repo, make_guild):
+        from attubot.client.messages import log_delete
+        from attubot.config import GuildStarboard
+
+        sb_channel = 8888888888
+        gc = make_guild()
+        gc.starboard = GuildStarboard(channel_id=sb_channel, emojis={})
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_delete_payload(channel_id=sb_channel)
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_delete(payload)
+
+        logs_ch.send.assert_not_called()
+
+    async def test_shows_deleted_by_when_mod_found_in_audit_log(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        stored_doc = _make_msg_doc(author_id=TEST_USER, created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        actor = MagicMock()
+        actor.mention = f'<@{TEST_USER + 1}>'
+
+        entry = MagicMock()
+        entry.target = MagicMock()
+        entry.target.id = TEST_USER
+        entry.extra = MagicMock()
+        entry.extra.channel = MagicMock()
+        entry.extra.channel.id = TEST_CHANNEL
+        entry.user = actor
+
+        async def _audit_log_iter(*args, **kwargs):
+            yield entry
+
+        mock_guild = MagicMock()
+        mock_guild.audit_logs = MagicMock(return_value=_audit_log_iter())
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.client.core.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        field_values = {f.name: f.value for f in embed.fields}
+        assert 'Deleted by' in field_names
+        assert actor.mention in field_values['Deleted by']
+
+    async def test_no_deleted_by_when_audit_log_has_no_match(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        stored_doc = _make_msg_doc(author_id=TEST_USER, created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        async def _empty_audit_log(*args, **kwargs):
+            return
+            yield  # make it an async generator
+
+        mock_guild = MagicMock()
+        mock_guild.audit_logs = MagicMock(return_value=_empty_audit_log())
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
+             patch('attubot.client.core.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        assert 'Deleted by' not in field_names
+
 
 # --- log_bulk_delete ---
 

@@ -390,6 +390,23 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
         logger.error(f'failed to send edit log for message {payload.message_id}: {err}')
 
 
+async def _get_message_delete_actor(guild: discord.Guild, author_id: int, channel_id: int) -> 'discord.User | discord.Member | None':
+    # check audit log for who deleted this message; returns None if self-deleted or lookup fails
+    try:
+        async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.message_delete):
+            target = getattr(entry, 'target', None)
+            if getattr(target, 'id', None) != author_id:
+                continue
+            extra = getattr(entry, 'extra', None)
+            entry_channel = getattr(extra, 'channel', None)
+            if getattr(entry_channel, 'id', None) != channel_id:
+                continue
+            return getattr(entry, 'user', None)
+    except Exception as err:
+        logger.debug(f'failed to resolve message_delete actor for guild {guild.id}: {err}')
+    return None
+
+
 async def log_delete(payload: RawMessageDeleteEvent) -> None:
     """Post a message-deleted embed to the guild's logs channel."""
     if payload.guild_id is None:
@@ -397,10 +414,36 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
 
     now = int(datetime.now(tz=UTC).timestamp())
 
-    # always update the stored record, even if we can't post to logs
     stored = None
     try:
         stored = await _get_repo().get(payload.message_id)
+    except Exception as err:
+        logger.warn(f'failed to fetch message {payload.message_id}: {err}')
+
+    # skip bot-authored messages (consistent with log_edit behavior)
+    if stored and stored.author.bot:
+        return
+
+    # skip known starboard posts (reference still in db - e.g. mod deleted the post)
+    try:
+        from attubot.client.starboard import _get_repo as _get_sb_repo
+        if await _get_sb_repo().get_by_starboard_message(payload.message_id) is not None:
+            return
+    except Exception:
+        pass
+
+    # skip bot-deleted starboard posts where the reference was already cleared before the event fired
+    if stored is None:
+        try:
+            from attubot.client.core import config as _config
+            gc = _config.guild(payload.guild_id)
+            if gc.starboard.channel_id and gc.starboard.channel_id == payload.channel_id:
+                return
+        except Exception:
+            pass
+
+    # always update the stored record, even if we can't post to logs
+    try:
         await _get_repo().mark_deleted(payload.message_id, now)
     except Exception as err:
         logger.warn(f'failed to mark message {payload.message_id} as deleted: {err}')
@@ -427,6 +470,14 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     if stored and stored.content.attachments:
         names = ', '.join(a.get('filename', '?') for a in stored.content.attachments)
         embed.add_field(name='Attachments', value=names, inline=False)
+
+    if stored:
+        from attubot.client.core import bot as _bot
+        guild = _bot.get_guild(payload.guild_id)
+        if guild:
+            actor = await _get_message_delete_actor(guild, stored.author.id, payload.channel_id)
+            if actor:
+                embed.add_field(name='Deleted by', value=actor.mention, inline=True)
 
     try:
         await channel.send(embed=embed)
