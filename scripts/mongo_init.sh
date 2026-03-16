@@ -10,12 +10,3 @@ if [ -d /tmp/seeds/doombot-seed ]; then
 else
     echo "no seed found at assets/doombot-seed - starting with empty db"
 fi
-
-# create the app user in the doombot database to match prod
-mongosh doombot --eval "
-  db.createUser({
-    user: '$MONGO_USERNAME',
-    pwd: '$MONGO_PASSWORD',
-    roles: [{ role: 'readWrite', db: 'doombot' }]
-  });
-"

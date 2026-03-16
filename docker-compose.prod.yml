@@ -59,6 +59,7 @@ services:
   mongo:
     image: mongo:8
     restart: always
+    command: ["mongod", "--config", "/etc/mongod.conf"]
     # ports:
       # - "172.17.0.1:5017:27017"
     volumes:
@@ -69,10 +70,10 @@ services:
     env_file:
     - ./.env
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
-      interval: 10s
+      test: ["CMD-SHELL", "mongosh --eval 'try{rs.initiate()}catch(e){}; if(!db.hello().isWritablePrimary){quit(1)}' --quiet"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 10s
 
   qdrant:

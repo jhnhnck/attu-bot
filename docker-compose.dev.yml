@@ -8,6 +8,7 @@ services:
   mongo:
     image: mongo:8
     restart: no
+    command: ["mongod", "--config", "/etc/mongod.conf"]
     tmpfs:
       - /data/db    # ephemeral - always starts empty, always re-runs init scripts
     volumes:
@@ -19,7 +20,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "mongosh mongodb://$MONGO_USERNAME:$MONGO_PASSWORD@localhost:27017/doombot --eval \"db.adminCommand('ping')\" --quiet"]
+      test: ["CMD-SHELL", "mongosh --eval 'try{rs.initiate()}catch(e){}; if(!db.hello().isWritablePrimary){quit(1)}' --quiet"]
       interval: 5s
       timeout: 5s
       retries: 10

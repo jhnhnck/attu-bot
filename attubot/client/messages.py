@@ -13,6 +13,8 @@ import anyio
 import discord
 from discord import Color, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 
+from pymongo.errors import AutoReconnect
+
 from attubot.client.core import bot, config
 from attubot.client.embeds import make_embed
 from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
@@ -229,7 +231,11 @@ async def store_message(message: Message) -> None:
     """Persist a message to MongoDB. Called from on_message."""
     try:
         doc = await build_message_doc(message)
-        await _get_repo().upsert(doc)
+        try:
+            await _get_repo().upsert(doc)
+        except AutoReconnect:
+            logger.debug(f'store_message: retrying {message.id} after connection reset')
+            await _get_repo().upsert(doc)
     except Exception as err:
         logger.error(f'failed to store message {message.id}: {err}')
 
