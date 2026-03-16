@@ -371,19 +371,19 @@ class TestThemeConfigForm:
         assert form.guild_color == '#ffffff'
 
     def test_max_rate_bounds(self):
-        """Test max_rate must be between 0 and 1"""
+        """Test max_rate must be between 0 and 360"""
         with pytest.raises(ValidationError):
             ThemeConfigForm(max_rate=-0.1)
 
         with pytest.raises(ValidationError):
-            ThemeConfigForm(max_rate=1.1)
+            ThemeConfigForm(max_rate=360.1)
 
         # Valid bounds
         form = ThemeConfigForm(max_rate=0.0)
         assert form.max_rate == 0.0
 
-        form = ThemeConfigForm(max_rate=1.0)
-        assert form.max_rate == 1.0
+        form = ThemeConfigForm(max_rate=360.0)
+        assert form.max_rate == 360.0
 
     def test_color_hex_validation(self):
         """Test color hex pattern validation"""

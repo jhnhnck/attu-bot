@@ -520,7 +520,7 @@ class TestThemeAPI:
     async def test_save_theme_invalid_max_rate(self, client):
         """Test POST /api/theme with invalid max_rate"""
         payload = {
-            'max_rate': 1.5,  # Invalid: max 1.0
+            'max_rate': 360.1,  # Invalid: max 360.0
         }
 
         response = await client.post('/api/theme', json=payload)

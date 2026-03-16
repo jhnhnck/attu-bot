@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import contextlib
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -677,17 +678,26 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             return
         try:
             sb_msg = await channel.send(content=content, embeds=embeds)
-            await repo.set_starboard_message(doc.message_id, sb_msg.id)
-            # bot reacts to its own starboard post with all active emojis
-            for emoji in doc.reactions:
-                if doc.reactions[emoji] and emoji in sb.emojis:
-                    try:
-                        await sb_msg.add_reaction(emoji)
-                    except Exception as err:
-                        logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
-            logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
         except Exception as err:
-            logger.error(f'starboard: failed to create post for message {doc.message_id}: {err}')
+            logger.error(f'starboard: failed to send post for message {doc.message_id}: {err}')
+            return
+        try:
+            await repo.set_starboard_message(doc.message_id, sb_msg.id)
+        except Exception as err:
+            # post was created in discord but db write failed - delete the orphan so the
+            # next reaction can retry cleanly rather than creating a duplicate
+            logger.error(f'starboard: failed to record post {sb_msg.id} for message {doc.message_id}: {err} - deleting orphan')
+            with contextlib.suppress(Exception):
+                await sb_msg.delete()
+            return
+        # bot reacts to its own starboard post with all active emojis
+        for emoji in doc.reactions:
+            if doc.reactions[emoji] and emoji in sb.emojis:
+                try:
+                    await sb_msg.add_reaction(emoji)
+                except Exception as err:
+                    logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
+        logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
         await _check_and_announce_sweep(guild_id, doc.author_id, channel)
         return
 

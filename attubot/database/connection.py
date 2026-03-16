@@ -49,6 +49,7 @@ class MongoStorage:
                 self.mongo_url,
                 serverSelectionTimeoutMS=timeout,
                 connectTimeoutMS=timeout,
+                maxIdleTimeMS=45000,
             )
 
             # Verify connection by pinging the database
