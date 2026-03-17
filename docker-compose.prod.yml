@@ -71,7 +71,7 @@ services:
     env_file:
     - ./.env
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'try{rs.initiate()}catch(e){}; if(!db.hello().isWritablePrimary){quit(1)}' --quiet"]
+      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet"]
       interval: 5s
       timeout: 5s
       retries: 10

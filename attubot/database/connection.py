@@ -9,11 +9,14 @@ import asyncio
 
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
+from pymongo.errors import ConfigurationError, ConnectionFailure
 
 from attubot.logging import get_logger
 
 
 logger = get_logger(__name__)
+
+_RETRY_DELAYS = (2.0, 4.0, 8.0)  # seconds between attempts 1→2, 2→3, 3→4
 
 
 class MongoStorage:
@@ -25,50 +28,69 @@ class MongoStorage:
         self.mongo_url: str | None = None
         self.db_name: str | None = None
 
-    async def connect(self, url: str, name: str, timeout: int = 10000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
-        """Initialize MongoDB connection with timeout
+    async def connect(self, url: str, name: str, timeout: int = 30000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
+        """Initialize MongoDB connection with retry on transient failures.
 
         Args:
-            url: MongoDB connection URL (e.g. "mongodb://localhost:27017")
+            url: MongoDB connection URL (e.g. 'mongodb://localhost:27017')
             name: Database name
-            timeout: Connection timeout in milliseconds (default: 10000ms = 10s)
+            timeout: Connection timeout in milliseconds (default: 30000ms = 30s)
 
         Returns:
             AsyncDatabase: The connected database instance
 
         Raises:
-            RuntimeError: If connection fails or times out
+            RuntimeError: If all connection attempts fail
         """
         self.mongo_url = url
         self.db_name = name
-        logger.info(f'Connecting to MongoDB: {self.db_name}')
 
-        try:
-            # Create client with timeout settings
-            self.client = AsyncMongoClient(
-                self.mongo_url,
-                serverSelectionTimeoutMS=timeout,
-                connectTimeoutMS=timeout,
-                maxIdleTimeMS=300000,
-            )
+        max_attempts = len(_RETRY_DELAYS) + 1
+        last_err: Exception | None = None
 
-            # Verify connection by pinging the database
-            await asyncio.wait_for(
-                self.client.admin.command('ping'),
-                timeout=timeout / 1000,  # Convert to seconds
-            )
+        for attempt in range(1, max_attempts + 1):
+            logger.info(f'Connecting to MongoDB: {self.db_name} (attempt {attempt}/{max_attempts})')
 
-            self.db = self.client[self.db_name]
-            logger.info('MongoDB connection established successfully')
-            return self.db
+            # close any client left over from a previous failed attempt
+            if self.client is not None:
+                try:
+                    await self.client.close()
+                except Exception:
+                    pass
+                self.client = None
 
-        except TimeoutError:
-            logger.error(f'MongoDB connection timed out after {timeout}ms')
-            raise RuntimeError(f'MongoDB connection timeout: {self.mongo_url}')
+            try:
+                self.client = AsyncMongoClient(
+                    self.mongo_url,
+                    serverSelectionTimeoutMS=timeout,
+                    connectTimeoutMS=timeout,
+                    socketTimeoutMS=timeout,
+                    maxIdleTimeMS=300000,
+                )
+                await self.client.admin.command('ping')
+                self.db = self.client[self.db_name]
+                logger.info('MongoDB connection established successfully')
+                return self.db
 
-        except Exception as e:
-            logger.error(f'MongoDB connection failed: {e!s}')
-            raise RuntimeError(f'MongoDB connection failed: {e!s}') from e
+            except ConfigurationError:
+                # bad url or client config - not retryable
+                raise
+
+            except ConnectionFailure as e:
+                last_err = e
+                if attempt < max_attempts:
+                    delay = _RETRY_DELAYS[attempt - 1]
+                    logger.warn(f'MongoDB connection attempt {attempt} failed: {e!s}; retrying in {delay:.0f}s')
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f'MongoDB connection failed after {max_attempts} attempts: {e!s}')
+
+            except Exception as e:
+                last_err = e
+                logger.error(f'MongoDB connection failed with unexpected error: {e!s}')
+                break  # non-connection errors are not retried
+
+        raise RuntimeError(f'MongoDB connection failed: {last_err!s}') from last_err
 
     def get_db(self) -> AsyncDatabase:
         """Get database instance"""
