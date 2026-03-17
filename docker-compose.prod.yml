@@ -1,5 +1,5 @@
 ---
-# prod environment: persistent mongodb, live discord connection.
+# prod environment: persistent ferretdb (mongodb-compatible), live discord connection.
 # usage: docker compose up --build -d
 name: doom-bot
 
@@ -20,13 +20,13 @@ services:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
       - /srv/backups/attu-bot:/home/doom/backups
     depends_on:
-      mongo:
-        condition: service_healthy
+      ferret:
+        condition: service_started
     healthcheck:
       test: ["CMD", "test", "-f", "/tmp/bot-ready"]
       interval: 10s
       timeout: 5s
-      retries: 30
+      retries: 20
       start_period: 30s
 
   web:
@@ -45,37 +45,40 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
     depends_on:
-      mongo:
-        condition: service_healthy
+      ferret:
+        condition: service_started
       core:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 100
       start_period: 10s
 
-  mongo:
-    image: mongo:8
-    hostname: mongo
+  ferret:
+    image: ghcr.io/ferretdb/ferretdb:1
     restart: always
-    command: ["mongod", "--config", "/etc/mongod.conf"]
-    # ports:
-      # - "172.17.0.1:5017:27017"
-    volumes:
-      - mongo_data:/data/db
-      - ./config/mongod.conf:/etc/mongod.conf
-    environment:
-      MONGO_INITDB_DATABASE: doombot
     env_file:
-    - ./.env
+      - ./.env
+    environment:
+      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17
+    restart: always
+    env_file:
+      - ./.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -99,8 +102,8 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
     depends_on:
-      mongo:
-        condition: service_healthy
+      ferret:
+        condition: service_started
       qdrant:
         condition: service_started
 
@@ -137,9 +140,9 @@ services:
     user: doom:doom
     command: python /home/doom/scripts/run_tests.py
     depends_on:
-      mongo:
-        condition: service_healthy
+      ferret:
+        condition: service_started
 
 volumes:
-  mongo_data:
+  postgres_data:
   qdrant_data:

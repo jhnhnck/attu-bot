@@ -1,30 +1,46 @@
 ---
-# dev environment: ephemeral mongodb seeded from assets/doombot-seed.archive on each start.
+# dev environment: ephemeral ferretdb seeded from assets/doombot-seed on each start.
 # usage (tests): docker compose -f docker-compose.dev.yml run --build --rm tests
 # usage (web):   docker compose -f docker-compose.dev.yml up --build web
 name: doom-bot-dev
 
 services:
-  mongo:
-    image: mongo:8
+  ferret:
+    image: ghcr.io/ferretdb/ferretdb:1
     restart: no
-    command: ["mongod", "--config", "/etc/mongod.conf"]
-    tmpfs:
-      - /data/db
-    volumes:
-      - ./config/mongod.conf:/etc/mongod.conf
-      - ./scripts/mongo_init.sh:/docker-entrypoint-initdb.d/restore.sh:ro
-      - ./assets:/tmp/seeds:ro
-    environment:
-      MONGO_INITDB_DATABASE: doombot
     env_file:
-      - .env
+      - ./.env
+    environment:
+      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17
+    restart: no
+    env_file:
+      - ./.env
+    tmpfs:
+      - /var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "test -f /tmp/seed_ready && mongosh --eval 'db.adminCommand({ping:1})' --quiet"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+
+  mongo-init:
+    build:
+      context: .
+      target: tester
+    restart: no
+    depends_on:
+      ferret:
+        condition: service_started
+    volumes:
+      - ./assets:/tmp/seeds:ro
+      - ./scripts/ferret_init.sh:/ferret_init.sh:ro
+    command: bash /ferret_init.sh
 
   web:
     build:
@@ -42,8 +58,8 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
     depends_on:
-      mongo:
-        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 10s
@@ -69,5 +85,6 @@ services:
     user: doom:doom
     command: python /home/doom/scripts/run_tests.py
     depends_on:
-      mongo:
-        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+
