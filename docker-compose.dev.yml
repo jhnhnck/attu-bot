@@ -10,11 +10,11 @@ services:
     restart: no
     command: ["mongod", "--config", "/etc/mongod.conf"]
     tmpfs:
-      - /data/db    # ephemeral - always starts empty, always re-runs init scripts
+      - /data/db
     volumes:
       - ./config/mongod.conf:/etc/mongod.conf
       - ./scripts/mongo_init.sh:/docker-entrypoint-initdb.d/restore.sh:ro
-      - ./assets:/tmp/seeds:ro    # init script looks for doombot-seed.archive here
+      - ./assets:/tmp/seeds:ro
     environment:
       MONGO_INITDB_DATABASE: doombot
     env_file:
@@ -52,6 +52,7 @@ services:
       start_period: 10s
 
   tests:
+    profiles: [tests]
     build:
       context: .
       target: tester

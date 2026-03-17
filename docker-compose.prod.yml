@@ -58,6 +58,7 @@ services:
 
   mongo:
     image: mongo:8
+    hostname: mongo
     restart: always
     command: ["mongod", "--config", "/etc/mongod.conf"]
     # ports:
@@ -117,6 +118,27 @@ services:
       --threads 8
       --api-key ${LLM_API_KEY}
     restart: unless-stopped
+
+  tests:
+    profiles: [tests]
+    build:
+      context: .
+      target: tester
+    restart: no
+    container_name: attu-tests
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      TEST_MODE: "1"
+      DEBUG: "1"
+    env_file:
+      - .env
+    volumes:
+      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+    user: doom:doom
+    command: python /home/doom/scripts/run_tests.py
+    depends_on:
+      mongo:
+        condition: service_healthy
 
 volumes:
   mongo_data:
