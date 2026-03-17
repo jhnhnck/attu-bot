@@ -5,6 +5,8 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
+
 from attubot.database.connection import MongoStorage
 from attubot.database.models import (
     ChatCharacterDocument,
@@ -38,6 +40,21 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 
+async def _try_init_indexes(repo: object, label: str, timeout: float = 90.0) -> None:
+    """Call repo.init_indexes(), logging a warning instead of raising on failure.
+
+    FerretDB/DocumentDB builds RUM indexes non-concurrently and can block for minutes
+    on large collections. This lets the bot start while indexes finish in the background.
+    """
+    try:
+        await asyncio.wait_for(repo.init_indexes(), timeout=timeout)  # type: ignore[union-attr]
+        logger.debug(f'{label} indexes ready')
+    except asyncio.TimeoutError:
+        logger.warn(f'{label} index init timed out after {timeout:.0f}s (indexes may still be building in db)')
+    except Exception as e:
+        logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
+
+
 async def init_database(url: str, name: str):
     """Connect to MongoDB and initialize all repository indexes.
 
@@ -62,38 +79,27 @@ async def init_database(url: str, name: str):
     signal_repo = ReloadSignalRepository(database)
     message_repo = MessageRepository(database)
 
-    await marker_repo.init_indexes()
-    logger.debug('marker indexes ready')
-
-    await year_repo.init_indexes()
-    logger.debug('year indexes ready')
-
-    await signal_repo.init_indexes()
-    logger.debug('signal indexes ready')
-
-    await message_repo.init_indexes()
-    logger.debug('message indexes ready')
+    await _try_init_indexes(marker_repo, 'marker')
+    await _try_init_indexes(year_repo, 'year')
+    await _try_init_indexes(signal_repo, 'signal')
+    await _try_init_indexes(message_repo, 'message')
 
     # seed module-level repo singletons so lazy _get_repo() calls work
     starboard_repo = StarboardRepository(database)
-    await starboard_repo.init_indexes()
-    logger.debug('starboard indexes ready')
+    await _try_init_indexes(starboard_repo, 'starboard')
 
     family_repo = FamilyRepository(database)
-    await family_repo.init_indexes()
-    logger.debug('family indexes ready')
+    await _try_init_indexes(family_repo, 'family')
 
     chat_config_repo = ChatConfigRepository(database)
     # ChatConfigRepository uses global_config collection; no dedicated index needed
     logger.debug('chat config repo ready')
 
     chat_source_repo = ChatSourceRepository(database)
-    await chat_source_repo.init_indexes()
-    logger.debug('chat source indexes ready')
+    await _try_init_indexes(chat_source_repo, 'chat_source')
 
     chat_character_repo = ChatCharacterRepository(database)
-    await chat_character_repo.init_indexes()
-    logger.debug('chat character indexes ready')
+    await _try_init_indexes(chat_character_repo, 'chat_character')
 
     import attubot.client.families as _families
     import attubot.client.markers as _markers

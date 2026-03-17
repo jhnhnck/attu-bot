@@ -28,13 +28,14 @@ class MongoStorage:
         self.mongo_url: str | None = None
         self.db_name: str | None = None
 
-    async def connect(self, url: str, name: str, timeout: int = 30000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
+    async def connect(self, url: str, name: str, timeout: int = 30000, socket_timeout: int | None = 30000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
         """Initialize MongoDB connection with retry on transient failures.
 
         Args:
             url: MongoDB connection URL (e.g. 'mongodb://localhost:27017')
             name: Database name
-            timeout: Connection timeout in milliseconds (default: 30000ms = 30s)
+            timeout: Connection/server-selection timeout in milliseconds (default: 30000ms = 30s)
+            socket_timeout: Per-operation socket timeout in ms; None disables it (default: 30000ms = 30s)
 
         Returns:
             AsyncDatabase: The connected database instance
@@ -64,7 +65,7 @@ class MongoStorage:
                     self.mongo_url,
                     serverSelectionTimeoutMS=timeout,
                     connectTimeoutMS=timeout,
-                    socketTimeoutMS=timeout,
+                    socketTimeoutMS=socket_timeout,
                     maxIdleTimeMS=300000,
                 )
                 await self.client.admin.command('ping')

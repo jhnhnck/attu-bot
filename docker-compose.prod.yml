@@ -11,7 +11,6 @@ services:
     command: python -u attu-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
-      # DEBUG: 1
     logging:
       driver: journald
     restart: always
@@ -57,7 +56,7 @@ services:
       start_period: 10s
 
   ferret:
-    image: ghcr.io/ferretdb/ferretdb:1
+    image: ghcr.io/ferretdb/ferretdb:latest
     restart: always
     env_file:
       - ./.env
@@ -68,7 +67,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:17
+    image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
     restart: always
     env_file:
       - ./.env
