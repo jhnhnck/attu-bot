@@ -171,7 +171,7 @@ class GuildConfig(BaseModel):
 
     async def set_epoch(self, time, year: int):
         # Updates epoch start time and year number, persisting to database
-        logger.warn(f'[{self.id}] Epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
+        logger.warn(f'[{self.id}] epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
         self.epoch.time = int(time)
         self.epoch.year = year
         await _config.config_repo.update_guild_field(self.id, 'epoch.time', int(time))
@@ -179,19 +179,19 @@ class GuildConfig(BaseModel):
 
     async def set_year_length(self, length: int):
         # Updates the duration of each in-game year, persisting to database
-        logger.warn(f'[{self.id}] Epoch length changed: old={self.epoch.length} new={length}')
+        logger.warn(f'[{self.id}] epoch length changed: old={self.epoch.length} new={length}')
         self.epoch.length = length
         await _config.config_repo.update_guild_field(self.id, 'epoch.length', length)
 
     async def pause_time(self):
         # Freezes time progression, persisting to database
-        logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=True')
+        logger.warn(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=True')
         self.epoch.paused = True
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', True)
 
     async def resume_time(self):
         # Resumes time progression, persisting to database
-        logger.warn(f'[{self.id}] Epoch pause changed: old={self.epoch.paused} new=False')
+        logger.warn(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=False')
         self.epoch.paused = False
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', False)
 
@@ -304,23 +304,23 @@ class NovaConfig:
     # --- Event Calls ---
 
     def on_init(self):  # called first upon startup, load config file only
-        logger.info('Starting initial config loading stage')
+        logger.info('starting initial config loading stage')
 
         if not self.path.exists():
-            logger.error('Config file missing!')
+            logger.error('config file missing')
             raise ConfigLoadError('missing config file')
 
-        logger.info(f'Loading config from "{self.path}"')
+        logger.info(f'loading config from "{self.path}"')
 
         with self.path.open() as file:
             self._raw = cast(RawConfig, tomlkit.load(file))
 
         # validate config version
         if self._raw['config_version'] != self.config_version:
-            logger.fatal('Incompatible config version!')
+            logger.fatal('incompatible config version')
             raise ConfigLoadError('incompatible config file version')
         else:
-            logger.info(f'Matched file version: {__schema__}')
+            logger.info(f'matched file version: {__schema__}')
 
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
@@ -329,57 +329,57 @@ class NovaConfig:
         try:
             self.paths = PathsConfig(**self._raw.get('paths', {}))
         except ValidationError as err:
-            logger.error(f'Failed to validate paths configuration: {err!s}')
+            logger.error(f'failed to validate paths configuration: {err!s}')
             raise ConfigLoadError('invalid paths configuration')
 
         try:
             self.database = DatabaseConfig(**self._raw.get('database', {}))
         except ValidationError as err:
-            logger.error(f'Failed to validate database configuration: {err!s}')
+            logger.error(f'failed to validate database configuration: {err!s}')
             raise ConfigLoadError('invalid database configuration')
 
         try:
             self.web = WebConfig(**self._raw['auth']['web'])
         except (KeyError, ValidationError) as err:
-            logger.error(f'Failed to validate web auth configuration: {err!s}')
+            logger.error(f'failed to validate web auth configuration: {err!s}')
             raise ConfigLoadError('invalid web auth configuration (missing [auth.web] section?)')
 
         try:
             self.webauthn = WebAuthnConfig(**self._raw['auth'].get('webauthn', {}))
         except ValidationError as err:
-            logger.error(f'Failed to validate webauthn configuration: {err!s}')
+            logger.error(f'failed to validate webauthn configuration: {err!s}')
             raise ConfigLoadError('invalid webauthn configuration')
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
 
         except ValidationError as err:
-            logger.error(f'Failed to validate wiki auth configuration: {err!s}')
+            logger.error(f'failed to validate wiki auth configuration: {err!s}')
             raise ConfigLoadError('invalid wiki auth configuration')
 
         try:
             self.backup = BackupConfig(**self._raw.get('backup', {}))
         except ValidationError as err:
-            logger.error(f'Failed to validate backup configuration: {err!s}')
+            logger.error(f'failed to validate backup configuration: {err!s}')
             raise ConfigLoadError('invalid backup configuration')
 
         try:
             self.chat = ChatConfig(**self._raw.get('chat', {}))
         except ValidationError as err:
-            logger.error(f'Failed to validate chat configuration: {err!s}')
+            logger.error(f'failed to validate chat configuration: {err!s}')
             raise ConfigLoadError('invalid chat configuration')
 
         self._get_event('init').set()
 
     async def on_load(self):  # called after init_database() connects and sets up config_repo
-        logger.info('Starting post-connect config loading stage')
+        logger.info('starting post-connect config loading stage')
 
         # Version check and load system config
         system_config = await self.config_repo.get_system()
         if system_config:
-            logger.info(f'Current schema version: {system_config.version}')
+            logger.info(f'current schema version: {system_config.version}')
         else:
-            logger.warn('No system config found - creating defaults')
+            logger.warn('no system config found - creating defaults')
             from attubot.database.models import SystemConfigDocument
 
             system_config = SystemConfigDocument(
@@ -406,7 +406,7 @@ class NovaConfig:
                 success = await self.load_guild(guild_id)
                 return (guild_id, success)
             except Exception as e:
-                logger.error(f'Failed to load guild {guild_id} during parallel load: {e!s}')
+                logger.error(f'failed to load guild {guild_id} during parallel load: {e!s}')
                 return (guild_id, False)
 
         results = await asyncio.gather(
@@ -417,16 +417,16 @@ class NovaConfig:
         # Log any failures
         for guild_id, success in results:
             if not success:
-                logger.warn(f'Guild {guild_id} failed to load properly')
+                logger.warn(f'guild {guild_id} failed to load properly')
 
         # Run migrations after guild configs are loaded (migrations may need guild data)
         if system_config.version != self.config_version:
-            logger.info(f'Schema version mismatch: {system_config.version} -> {self.config_version}')
+            logger.info(f'schema version mismatch: {system_config.version} -> {self.config_version}')
 
             if self.test_mode or self.web_mode or self.ingestor_mode:
-                logger.info('Skipping migrations (TEST_MODE, web_mode, or ingestor_mode)')
+                logger.info('skipping migrations (TEST_MODE, web_mode, or ingestor_mode)')
             else:
-                logger.info('Running migrations...')
+                logger.info('running migrations')
 
                 from attubot.client.migrations import MigrationError, load_migration_table
 
@@ -435,31 +435,31 @@ class NovaConfig:
                         await migration(system_config.version)
                         system_config = await self.config_repo.get_system()
                 except MigrationError as e:
-                    logger.fatal(f'Migration failed — refusing to continue initialization: {e}')
+                    logger.fatal(f'migration failed - refusing to continue initialization: {e}')
                     raise
 
                 # Reload system config after load-stage migrations
                 system_config = await self.config_repo.get_system()
-                logger.info(f'Load-stage migrations complete: now at version {system_config.version}')
+                logger.info(f'load-stage migrations complete: now at version {system_config.version}')
 
         self._get_event('load').set()
 
     async def on_ready(self):  # called by Bot.on_ready after connect, low priority maintenance tasks
         from attubot.client.core import bot
 
-        logger.info('Starting post-ready config loading stage')
+        logger.info('starting post-ready config loading stage')
 
         async def _update_guild_markers(guild_id: int, guild: GuildConfig) -> int | None:
             """Add bot user to guild markers if needed"""
             if bot.user.id not in guild.users.markers:
-                logger.info(f'Adding bot user to valid year marker authors for {guild_id}')
+                logger.info(f'adding bot user to valid year marker authors for {guild_id}')
                 guild.users.markers.append(bot.user.id)
 
                 try:
                     await self.config_repo.update_guild_field(guild_id, 'users.markers', guild.users.markers)
                     return guild_id
                 except Exception as e:
-                    logger.error(f'Failed to update markers for guild {guild_id}: {e!s}')
+                    logger.error(f'failed to update markers for guild {guild_id}: {e!s}')
                     return None
             return None
 
@@ -475,7 +475,7 @@ class NovaConfig:
             await anyio.Path(self.path).chmod(0o660)
 
         # manually fetch owner info ourselves bc pycord is weird
-        logger.debug('Fetching bot owner info')
+        logger.debug('fetching bot owner info')
         bot_info = await bot.application_info()
 
         if bot_info.team:
@@ -488,17 +488,17 @@ class NovaConfig:
             pass
 
         # load guild names from discord and store in config object
-        logger.debug('Fetching guild names')
+        logger.debug('fetching guild names')
 
         async def _fetch_guild_name(guild_id: int) -> tuple[int, str | None]:
             """Fetch guild name from bot cache, falling back to API if not cached"""
             guild_obj = bot.get_guild(guild_id)
             if guild_obj is None:
                 try:
-                    logger.info(f'Fetching guild {guild_id} info from API (not in cache)')
+                    logger.info(f'fetching guild {guild_id} info from api (not in cache)')
                     guild_obj = await bot.fetch_guild(guild_id)
                 except Exception as e:
-                    logger.error(f'Failed to fetch guild {guild_id} from API: {e}')
+                    logger.error(f'failed to fetch guild {guild_id} from api: {e}')
                     return (guild_id, None)
             return (guild_id, guild_obj.name if guild_obj else None)
 
@@ -513,7 +513,7 @@ class NovaConfig:
         if not self.test_mode and not self.web_mode:
             system_config = await self.config_repo.get_system()
             if system_config.version != self.config_version:
-                logger.info(f'Running ready-stage migrations: {system_config.version} -> {self.config_version}')
+                logger.info(f'running ready-stage migrations: {system_config.version} -> {self.config_version}')
 
                 from attubot.client.migrations import MigrationError, ready_migration_table
 
@@ -522,11 +522,11 @@ class NovaConfig:
                         await migration(system_config.version)
                         system_config = await self.config_repo.get_system()
                 except MigrationError as e:
-                    logger.fatal(f'Ready-stage migration failed: {e}')
+                    logger.fatal(f'ready-stage migration failed: {e}')
                     raise
 
                 system_config = await self.config_repo.get_system()
-                logger.info(f'Ready-stage migrations complete: now at version {system_config.version}')
+                logger.info(f'ready-stage migrations complete: now at version {system_config.version}')
 
         self._get_event('ready').set()
 
@@ -566,11 +566,11 @@ class NovaConfig:
         prev_state = self.guilds.get(guild, None)
 
         try:
-            logger.info(f'{"Loading" if prev_state is None else "Reloading"} guild config for {guild}')
+            logger.info(f'{"loading" if prev_state is None else "reloading"} guild config for {guild}')
 
             doc = await self.config_repo.get_guild(guild)
             if not doc:
-                logger.warn(f'No config found for guild {guild}, using defaults')
+                logger.warn(f'no config found for guild {guild}, using defaults')
                 # Create default config
                 default_config = GuildConfig(
                     id=guild,
@@ -602,7 +602,7 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(f'Failed to validate {guild}: {err!s}')
+            logger.error(f'failed to validate {guild}: {err!s}')
 
             if prev_state is not None:
                 self.guilds[guild] = prev_state
@@ -613,7 +613,7 @@ class NovaConfig:
         prev_state = self.theme
 
         try:
-            logger.info(f'{"Loading" if prev_state is None else "Reloading"} theme config')
+            logger.info(f'{"loading" if prev_state is None else "reloading"} theme config')
 
             doc = await self.config_repo.get_theme()
             if doc:
@@ -640,7 +640,7 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(f'Failed to validate theme: {err!s}')
+            logger.error(f'failed to validate theme: {err!s}')
 
             if prev_state is not None:
                 self.theme = prev_state
@@ -651,7 +651,7 @@ class NovaConfig:
         prev_state = self.chat_runtime
 
         try:
-            logger.info(f'{"Loading" if prev_state is None else "Reloading"} chat runtime config')
+            logger.info(f'{"loading" if prev_state is None else "reloading"} chat runtime config')
 
             doc = await self.chat_config_repo.get()
             if doc:
@@ -668,7 +668,7 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(f'Failed to validate chat runtime config: {err!s}')
+            logger.error(f'failed to validate chat runtime config: {err!s}')
 
             if prev_state is not None:
                 self.chat_runtime = prev_state
@@ -696,7 +696,7 @@ class NovaConfig:
         reload = self._get_event('reload')
 
         if reload.is_set():
-            logger.debug('Caught new wait - reseting reload event')
+            logger.debug('caught new wait - reseting reload event')
             reload.clear()
 
         return await reload.wait()

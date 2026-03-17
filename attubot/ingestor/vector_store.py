@@ -27,7 +27,7 @@ class VectorStore:
     def __init__(self, url: str):
         from qdrant_client import AsyncQdrantClient
 
-        logger.info(f'Connecting to Qdrant at {url}')
+        logger.info(f'connecting to qdrant at {url}')
         self._client = AsyncQdrantClient(url=url)
 
     async def ensure_collection(self, name: str, vector_size: int) -> None:
@@ -36,7 +36,7 @@ class VectorStore:
 
         existing = {c.name for c in (await self._client.get_collections()).collections}
         if name not in existing:
-            logger.info(f'Creating Qdrant collection: {name} (dim={vector_size})')
+            logger.info(f'creating qdrant collection: {name} (dim={vector_size})')
             await self._client.create_collection(
                 collection_name=name,
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),

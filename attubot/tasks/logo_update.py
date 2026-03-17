@@ -85,7 +85,7 @@ class LogoUpdateTask(BaseTask):
         else:
             new_rotation = theme.rotation + (random() * theme.max_rate)
 
-        logger.info(f'Changing icon rotation from {theme.rotation} to {new_rotation}')
+        logger.info(f'changing icon rotation from {theme.rotation} to {new_rotation}')
 
         # generate new icons
         bot_avatar = await generate_png(new_rotation, theme.bot_color)
@@ -101,7 +101,7 @@ class LogoUpdateTask(BaseTask):
 
         for emoji in guild.emojis:
             if emoji_name in emoji.name:
-                logger.debug(f'Clearing old emoji "{emoji.name}"')
+                logger.debug(f'clearing old emoji "{emoji.name}"')
                 await emoji.delete()
                 break
 
@@ -113,7 +113,7 @@ class LogoUpdateTask(BaseTask):
             role = guild.get_role(role_id)
             if role is not None:
                 await role.edit(color=discord.Color(int(theme.bot_color.lstrip('#'), 16)), reason='logo update task')
-                logger.debug(f'Updated bot_color role {role.name} to {theme.bot_color}')
+                logger.debug(f'updated bot_color role {role.name} to {theme.bot_color}')
 
         # store new rotation in config
         config.theme.rotation = new_rotation % 360

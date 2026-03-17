@@ -32,10 +32,10 @@ class QueryExpander:
     def __init__(self):
         from anthropic import AsyncAnthropic
 
-        logger.info(f'Initializing query expander ({_HAIKU_MODEL})')
+        logger.info(f'initializing query expander ({_HAIKU_MODEL})')
         self._client = AsyncAnthropic(api_key=config.chat.anthropic_api_key)
         self._prompt = (Path(config.chat.prompts_dir) / 'query-expansion-prompt.md').read_text()
-        logger.info('Query expander ready')
+        logger.info('query expander ready')
 
     async def expand(self, query: str) -> str:
         """return a string of search terms extracted from the query; raises on failure"""

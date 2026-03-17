@@ -32,7 +32,7 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
     guild_creation = snowflake_time(ctx.guild.id)
 
     # this might take a bit so send message to not timeout
-    logger.info(f'Querying pins in channel {channel.id}')
+    logger.info(f'querying pins in #{channel.name}')
     await ctx.respond(f'## Pins in <#{channel.id}>')
 
     # for year 1 thru current year
@@ -47,7 +47,7 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
             if message.type == MessageType.pins_add:
                 link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id or 0)
 
-                logger.info(f'Found pin_add in {year} PC at {message.jump_url} -> {link}')
+                logger.info(f'found pin_add in {year} PC at {message.jump_url} -> {link}')
                 pins.append(f'{message.jump_url} -> {link}')
 
         if len(pins) > 0:
@@ -58,6 +58,6 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(query_group)

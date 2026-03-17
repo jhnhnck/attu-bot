@@ -20,7 +20,7 @@ from attubot.logging import get_logger
 
 
 logger = get_logger(__name__)
-logger.info('Initializing...')
+logger.info('initializing')
 
 
 # --- Commands ---
@@ -59,13 +59,13 @@ def _load_event_handlers():
 
 def _register_core_commands():
     """register top-level slash commands that are not part of any extension"""
-    logger.info('Loading Commands')
+    logger.info('loading commands')
     bot.add_application_command(cast(ApplicationCommand, command_ping))
 
 
 def _load_extensions():
     """load all slash command extensions in order; raises Exception on first failure"""
-    logger.info('Loading Extensions')
+    logger.info('loading extensions')
     for ext in extensions_list:
         bot.load_extension(ext)
 
@@ -74,7 +74,7 @@ def _load_extensions():
 
 
 def start_bot_loop():
-    logger.info('Starting DoomBot!')
+    logger.info('starting doombot')
     config.on_init()
     _check_deps()
     _load_event_handlers()
@@ -82,10 +82,10 @@ def start_bot_loop():
     try:
         _load_extensions()
     except Exception as e:
-        logger.fatal(f'Failed to load extensions, cannot start bot: {e}')
+        logger.fatal(f'failed to load extensions, cannot start bot: {e}')
         sys.exit(1)
         return  # defensive; stops execution when sys.exit is mocked in tests
-    logger.info('Starting Bot')
+    logger.info('starting bot')
     bot.run(config.bot_token)
 
 

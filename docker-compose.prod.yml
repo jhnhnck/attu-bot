@@ -57,7 +57,7 @@ services:
       start_period: 10s
 
   mongo:
-    image: mongo:8
+    image: dhi.io/mongodb:8
     hostname: mongo
     restart: always
     command: ["mongod", "--config", "/etc/mongod.conf"]
@@ -74,7 +74,7 @@ services:
       test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand({ping:1})' --quiet"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
       start_period: 10s
 
   qdrant:

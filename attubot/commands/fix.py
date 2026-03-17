@@ -135,7 +135,7 @@ async def fix_logo(ctx: ApplicationContext):
     logger.info('logo update forced by admin')
     task = LogoUpdateTask()
 
-    await ctx.respond('Refreshing logo!')
+    await ctx.respond('Refreshing!')
     await task.run()
 
 
@@ -145,7 +145,7 @@ async def fix_year_links(ctx: ApplicationContext):
     logger.info('year links update forced by admin')
     cfg = config.guild(ctx.guild.id)
 
-    await ctx.respond(f'Starting year links rebuild on <#{cfg.channels.year_links}>')
+    await ctx.respond(f'starting year links rebuild on <#{cfg.channels.year_links}>')
     scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
 
@@ -157,10 +157,10 @@ async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond(f'Scanning <#{channel.id}>...', ephemeral=True)
+    await ctx.respond(f'scanning <#{channel.id}>...', ephemeral=True)
     status_msg = await ctx.channel.send(f'Scanning <#{channel.id}>...')
     scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, status_msg), f'Job[fix_messages:#{channel.name}]')
 
@@ -173,17 +173,17 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
     if user is not None:
         label = f'Job[fix_author_names:{user.id}]'
-        await ctx.respond(f'Updating author name for <@{user.id}>...', ephemeral=True)
+        await ctx.respond(f'updating author name for <@{user.id}>...', ephemeral=True)
         status_msg = await ctx.channel.send(f'Updating author name for <@{user.id}>...')
         coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg, user_id=user.id)
     else:
         label = 'Job[fix_author_names:all]'
-        await ctx.respond('Resolving all author names...', ephemeral=True)
+        await ctx.respond('resolving all author names...', ephemeral=True)
         status_msg = await ctx.channel.send('Resolving all author names...')
         coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg)
 
@@ -397,10 +397,10 @@ async def fix_reconcile(ctx: ApplicationContext):
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting full reconciliation...', ephemeral=True)
+    await ctx.respond('starting full reconciliation...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting full reconciliation...')
     scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg), 'Job[fix_reconcile]')
 
@@ -413,10 +413,10 @@ async def fix_starboard_recount(ctx: ApplicationContext):
 
         _get_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting starboard recount...', ephemeral=True)
+    await ctx.respond('starting starboard recount...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting starboard recount...')
     scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
 
@@ -427,10 +427,10 @@ async def fix_starboard_regen(ctx: ApplicationContext):
     try:
         _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting starboard regeneration...', ephemeral=True)
+    await ctx.respond('starting starboard regeneration...', ephemeral=True)
     status_msg = await ctx.channel.send('Regenerating starboard posts...')
     scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_regen]')
 
@@ -443,7 +443,7 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
 
     parsed = parse_jump_url(message_link)
     if parsed is None:
-        await ctx.respond('Invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        await ctx.respond('Failed: invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
         return
 
     _guild_id, _channel_id, message_id = parsed
@@ -451,14 +451,14 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
     doc = await sb_repo.get(message_id)
     if doc is None:
         doc = await sb_repo.get_by_starboard_message(message_id)
     if doc is None:
-        await ctx.respond(f'No starboard entry found for message {message_id}', ephemeral=True)
+        await ctx.respond(f'Failed: no starboard entry found for message {message_id}', ephemeral=True)
         return
     message_id = doc.message_id
 
@@ -487,13 +487,13 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
             parts.append('(starboard post could not be deleted - may already be gone)')
         await ctx.respond(', '.join(parts))
     else:
-        await ctx.respond(f'No entry deleted (message {message_id} not found)', ephemeral=True)
+        await ctx.respond(f'Failed: no entry deleted - message {message_id} not found', ephemeral=True)
 
 
 # --- Extension Def ---
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(cast(ApplicationCommand, fix_group))

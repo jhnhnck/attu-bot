@@ -87,7 +87,7 @@ async def save_credential(db, credential_id_b64: str, public_key_b64: str, sign_
         'created_at': int(time.time()),
         'last_used': int(time.time()),
     })
-    logger.info(f'Passkey registered: {name}')
+    logger.info(f'passkey registered: {name}')
 
 
 async def update_sign_count(db, credential_id_b64: str, new_count: int):
@@ -299,11 +299,11 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             # Mark session as authenticated
             set_authenticated()
 
-            logger.info(f'Successful passkey login from {request.remote_addr}')
+            logger.info(f'passkey login from {request.remote_addr}')
             return jsonify({'success': True})
 
         except Exception as e:
-            logger.warn(f'Passkey login failed from {request.remote_addr}: {e}')
+            logger.warn(f'passkey login failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': 'Passkey verification failed'}), 403
 
@@ -324,7 +324,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             if n > 0 and not is_authenticated():
                 return redirect(url_for('auth_login'))
         except Exception:
-            logger.debug('DB not available during setup page load — rendering setup anyway')
+            logger.debug('db not available during setup page load - rendering setup anyway')
         return await render_template('setup.html', title='Initial Setup — Register Passkey')
 
     # ---- Setup begin (generate registration challenge) --------------------
@@ -404,11 +404,11 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             session.pop(CHALLENGE_KEY, None)
             set_authenticated()
 
-            logger.info(f'Passkey registered via setup from {request.remote_addr}: {name}')
+            logger.info(f'passkey registered via setup from {request.remote_addr}: {name}')
             return jsonify({'success': True, 'message': f'Passkey "{name}" registered successfully'})
 
         except Exception as e:
-            logger.warn(f'Passkey setup failed from {request.remote_addr}: {e}')
+            logger.warn(f'passkey setup failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 
@@ -492,11 +492,11 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             await save_credential(db, cred_id_b64, pub_key_b64, verification.sign_count, name)
             session.pop(CHALLENGE_KEY, None)
 
-            logger.info(f'Additional passkey registered from {request.remote_addr}: {name}')
+            logger.info(f'additional passkey registered from {request.remote_addr}: {name}')
             return jsonify({'success': True, 'message': f'Passkey "{name}" registered successfully'})
 
         except Exception as e:
-            logger.warn(f'Passkey registration failed from {request.remote_addr}: {e}')
+            logger.warn(f'passkey registration failed from {request.remote_addr}: {e}')
             session.pop(CHALLENGE_KEY, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 
@@ -518,7 +518,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
         if not deleted:
             return jsonify({'error': 'Passkey not found'}), 404
 
-        logger.info(f'Passkey deleted from {request.remote_addr}: {credential_id[:16]}...')
+        logger.info(f'passkey deleted from {request.remote_addr}: {credential_id[:16]}...')
         return jsonify({'success': True, 'message': 'Passkey deleted'})
 
-    logger.info('Auth routes registered')
+    logger.info('auth routes registered')

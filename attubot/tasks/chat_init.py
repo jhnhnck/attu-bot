@@ -35,7 +35,7 @@ class ChatInitTask(BaseTask):
         from attubot.ingestor.summarizer import _get_summarizer
         from attubot.ingestor.vector_store import _get_vector_store
 
-        logger.info('Initializing chat subsystems...')
+        logger.info('initializing chat subsystems')
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, _get_embedder)   # blocking model load
         await loop.run_in_executor(None, _get_reranker)   # blocking model load
@@ -43,7 +43,7 @@ class ChatInitTask(BaseTask):
         _get_llm()
         _get_summarizer()   # loads anthropic client + prompt templates
         _get_system_prompt()
-        logger.info('Chat subsystems ready')
+        logger.info('chat subsystems ready')
 
     async def next_run(self) -> datetime:
         # effectively never runs again after the immediate run

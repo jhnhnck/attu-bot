@@ -28,7 +28,7 @@ def get_wiki() -> WikiClient:
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     # eagerly initialize so any config errors surface at startup
     get_wiki()

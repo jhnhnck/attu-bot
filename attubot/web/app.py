@@ -50,13 +50,13 @@ def _register_startup(app: Quart, assets_dir: Path) -> None:
             audit_logger_value = await _initialize_startup(assets_dir)
             globals()['audit_logger'] = audit_logger_value
         except Exception as err:
-            logger.fatal(f'Failed to initialize: {err}')
+            logger.fatal(f'failed to initialize: {err}')
             raise err
 
     @app.after_serving
     async def shutdown() -> None:
         """clean up connections on container stop (SIGTERM)"""
-        logger.info('Web server shutting down')
+        logger.info('web server shutting down')
 
         if db.client:
             await db.client.close()
@@ -71,18 +71,18 @@ async def _initialize_startup(assets_dir: Path):
     from attubot.client.logo import generate_png
     from attubot.web.audit import AuditLogger
 
-    logger.info('Connecting to database and initializing repositories...')
+    logger.info('connecting to database and initializing repositories')
     from attubot.database import init_database
 
     await init_database(config.database.url, config.database.name)
 
-    logger.info('Loading configuration from database...')
+    logger.info('loading configuration from database')
     config.web_mode = True
     await config.on_load()
 
-    logger.info('Configuration loaded successfully')
+    logger.info('configuration loaded')
 
-    logger.info('Generating favicon...')
+    logger.info('generating favicon')
     static_dir = assets_dir / 'static' / 'img'
     favicon_path = static_dir / 'favicon.png'
     import anyio
@@ -96,24 +96,24 @@ async def _initialize_startup(assets_dir: Path):
     try:
         favicon_png = await generate_png(rotation, bot_color, foreground='#000000', height=256, width=256)
         await anyio.Path(favicon_path).write_bytes(favicon_png)
-        logger.info(f'Favicon generated at {favicon_path}')
+        logger.info(f'favicon generated at {favicon_path}')
     except PermissionError as err:
-        logger.error(f'Unable to write favicon at {favicon_path}: {err}')
+        logger.error(f'unable to write favicon at {favicon_path}: {err}')
     except Exception as err:
-        logger.error(f'Favicon generation failed: {err}')
+        logger.error(f'favicon generation failed: {err}')
 
-    logger.info('Initializing Discord API connection...')
+    logger.info('initializing discord api connection')
     from attubot import bot
 
     await bot.login(config.bot_token)
-    logger.info(f'Logged into Discord as {bot.user}')
+    logger.info(f'logged into discord as {bot.user}')
 
-    logger.info('Running post-ready config setup...')
+    logger.info('running post-ready config setup')
     await config.on_ready()
 
-    logger.info('Initializing audit logger...')
+    logger.info('initializing audit logger')
     audit_logger = AuditLogger(db.get_db())
-    logger.info('Audit logger initialized')
+    logger.info('audit logger initialized')
     return audit_logger
 
 
@@ -178,17 +178,17 @@ def create_app() -> Quart:
     _register_rate_limits_and_routes(app)
     _configure_app(app)
 
-    logger.info('Quart application initialized')
+    logger.info('quart application initialized')
 
     return app
 
 
 def start_web():
     """Start the web interface — mirrors core.start_bot_loop()"""
-    logger.info('Starting AttuBot Web Interface!')
+    logger.info('starting attubot web interface')
     config.on_init()
 
-    logger.info('Starting Web Server')
+    logger.info('starting web server')
     app = create_app()
     app.run(
         host='0.0.0.0',  # noqa: S104 - listening on all interfaces is intentional inside the container

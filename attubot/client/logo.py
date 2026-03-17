@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
     arguments = ['--height', str(height), '--width', str(width), '--resources-dir', str(config.path.parent), '-', '-c']
 
-    logger.debug('Executing: $ resvg', ' '.join(arguments))
+    logger.debug('executing: $ resvg', ' '.join(arguments))
 
     process = await asyncio.create_subprocess_exec(
         'resvg',

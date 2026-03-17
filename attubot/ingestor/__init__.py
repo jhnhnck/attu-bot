@@ -27,7 +27,7 @@ async def _run():
     await init_database(config.database.url, config.database.name)
     await config.on_load()
 
-    logger.info('Starting ingestor task scheduler')
+    logger.info('starting ingestor task scheduler')
     scheduler.register(ReloadWatcherTask())
     scheduler.register(WikiIngestTask())
     scheduler.register(DiscordIngestTask())
@@ -39,10 +39,10 @@ async def _run():
     loop.add_signal_handler(signal.SIGTERM, _stop.set)
     loop.add_signal_handler(signal.SIGINT, _stop.set)
 
-    logger.info('Ingestor running; waiting for shutdown signal')
+    logger.info('ingestor running; waiting for shutdown signal')
     await _stop.wait()
 
-    logger.info('Shutting down ingestor...')
+    logger.info('shutting down ingestor')
     await scheduler.stop_all()
 
     if db.client:
@@ -51,5 +51,5 @@ async def _run():
 
 def start_ingestor():
     """entry point for the ingestor process (python attu-bot.py ingestor)"""
-    logger.info('Starting Ingestor!')
+    logger.info('starting ingestor')
     asyncio.run(_run())

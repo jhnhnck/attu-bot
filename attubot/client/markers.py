@@ -252,7 +252,7 @@ class YearMarker(BaseModel):
         if guild is None:
             guild = config.primary_guild
 
-        logger.info(f'Marker override stored: guild={guild} channel={channel} year={year} message={message_id}')
+        logger.info(f'marker override stored: guild={guild} channel={channel} year={year} message={message_id}')
         await _get_repo().upsert(guild=guild, channel=channel, year=year, message=message_id, exact=True)
 
     @classmethod

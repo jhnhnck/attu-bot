@@ -40,7 +40,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     guild_id = ctx.guild.id
@@ -48,13 +48,13 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
 
     if doc is None:
         label = 'exactly 1 star' if max_total == 1 else f'{min_total}+ stars'
-        await ctx.respond(f'no messages found with {label}', ephemeral=True)
+        await ctx.respond(f'no messages found with {label} <:rockball_player:1308977543034048552>', ephemeral=True)
         return
 
     try:
         guild_config = config.guild(guild_id)
     except Exception:
-        await ctx.respond('guild configuration not found', ephemeral=True)
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
         return
 
     from attubot.client.starboard import build_content, build_embeds, dominant_color
@@ -63,7 +63,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
     msg_doc = await msg_repo.get(doc.message_id)
 
     if msg_doc is None:
-        await ctx.respond('original message not found in database', ephemeral=True)
+        await ctx.respond('Failed: original message not found in database', ephemeral=True)
         return
 
     sb = guild_config.starboard
@@ -104,24 +104,24 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
 
     parsed = parse_jump_url(message_link.strip())
     if parsed is None:
-        await ctx.respond('invalid message link - paste the full discord message link', ephemeral=True)
+        await ctx.respond('Failed: invalid message link - paste the full discord message link', ephemeral=True)
         return
 
     _link_guild_id, channel_id, message_id = parsed
     if _link_guild_id != ctx.guild.id:
-        await ctx.respond('that message link is from a different server', ephemeral=True)
+        await ctx.respond('Failed: that message link is from a different server', ephemeral=True)
         return
 
     try:
         _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     try:
         guild_config = config.guild(ctx.guild.id)
     except Exception as err:
-        await ctx.respond(f'could not load guild config: {err}', ephemeral=True)
+        await ctx.respond(f'Failed: could not load guild config: {err}', ephemeral=True)
         return
 
     await ctx.defer()
@@ -136,7 +136,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
         channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)
         discord_msg = await channel.fetch_message(message_id)
     except Exception as err:
-        await ctx.respond(f'could not fetch message: {err}', ephemeral=True)
+        await ctx.respond(f'Failed: could not fetch message: {err}', ephemeral=True)
         return
 
     # ensure the message is stored so build_embeds etc. can find it
@@ -154,7 +154,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
             # this is a starboard post - redirect recheck to the original message
             sb_doc = await _get_sb_repo().get_by_starboard_message(message_id)
             if sb_doc is None:
-                await ctx.respond('that looks like a starboard post but no matching original message was found', ephemeral=True)
+                await ctx.respond('Failed: that looks like a starboard post but no matching original message was found', ephemeral=True)
                 return
             original_id = message_id
             channel_id = sb_doc.channel_id
@@ -166,7 +166,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
                 orig_doc = await build_message_doc(discord_msg)
                 await _get_msg_repo().upsert(orig_doc)
             except Exception as err:
-                await ctx.respond(f'could not fetch original message: {err}', ephemeral=True)
+                await ctx.respond(f'Failed: could not fetch original message: {err}', ephemeral=True)
                 return
         else:
             # non-bot message in the starboard channel - force-bypass the channel guard
@@ -223,7 +223,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
 async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_key: str, value_label: str, title: str) -> None:
     """build and send a numbered leaderboard embed."""
     if not rows:
-        await ctx.respond(f'no data yet for {title.lower()}', ephemeral=True)
+        await ctx.respond(f'no data yet for {title.lower()} <:rockball_player:1308977543034048552>', ephemeral=True)
         return
 
     lines = []
@@ -241,7 +241,7 @@ async def stars_most_stars(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     rows = await sb_repo.leaderboard_most_stars(ctx.guild.id, limit=_PAGE_SIZE)
@@ -253,7 +253,7 @@ async def stars_most_starred(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     rows = await sb_repo.leaderboard_most_starred(ctx.guild.id, limit=_PAGE_SIZE)
@@ -265,7 +265,7 @@ async def stars_most_given(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     rows = await sb_repo.leaderboard_most_given(ctx.guild.id, limit=_PAGE_SIZE)
@@ -276,6 +276,6 @@ async def stars_most_given(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(cast(ApplicationCommand, stars_group))

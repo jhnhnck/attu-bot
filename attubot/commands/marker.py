@@ -32,7 +32,7 @@ marker_group = SlashCommandGroup('marker', default_member_permissions=Permission
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
     if 'discord.com/channels' not in link:
-        await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
+        await ctx.respond('Failed: not a valid discord message link', ephemeral=True)
         return
 
     ids = link.split('/')[-3:]
@@ -43,15 +43,15 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         _, current_year = get_year_status(guild=guild_config.id)
 
     except UnauthorizedGuild:
-        await ctx.respond('Failed: Guild not in the authorized guilds list', ephemeral=True)
+        await ctx.respond('Failed: guild not in the authorized guilds list', ephemeral=True)
         return
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
     if channel not in guild_config.channels.lore_channels:
-        await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
+        await ctx.respond('Failed: channel is not a lore channel', ephemeral=True)
         return
 
     # Check if close
@@ -59,7 +59,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
     if time_diff > 600 and not force:
-        await ctx.respond(f'Failed: Provided link is {int(time_diff)} seconds off from expected; if correct, override with `force:true`', ephemeral=True)
+        await ctx.respond(f'Failed: provided link is {int(time_diff)} seconds off from expected; if correct, override with `force:true`', ephemeral=True)
         return
 
     # Add or update marker
@@ -80,7 +80,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     snowflake = int(snowflake)
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
     # Get existing marker
@@ -89,7 +89,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     new_time = int(snowflake_time(snowflake).timestamp())
 
     # Log change
-    logger.info(f'Moving {year} PC start from {est_marker.message} to {snowflake}')
+    logger.info(f'moving {year} PC start from {est_marker.message} to {snowflake}')
 
     # Update marker
     await est_marker.update(message=snowflake)
@@ -106,11 +106,11 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
     _, current_year = get_year_status(guild=guild_config.id)
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
     if channel.id not in guild_config.channels.lore_channels:
-        await ctx.respond('Failed: Channel is not a lore channel', ephemeral=True)
+        await ctx.respond('Failed: channel is not a lore channel', ephemeral=True)
         return
 
     marker = await YearMarker.get(channel=channel.id, year=year)
@@ -120,13 +120,13 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
         await ctx.respond(f'Cleared saved marker for {year} PC in <#{channel.id}>')
 
     else:
-        await ctx.respond('Failed: Could not clear marker as it did not exist', ephemeral=True)
+        await ctx.respond('Failed: could not clear marker as it did not exist', ephemeral=True)
 
 
 # --- Extension Def ---
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(marker_group)

@@ -38,7 +38,7 @@ class ErrorHookTask(BaseTask):
     async def run(self) -> None:
         """Ensure error webhook exists."""
         if config.test_mode:
-            logger.debug('Application in test mode; skipping error hook refresh')
+            logger.debug('application in test mode; skipping error hook refresh')
             return
 
         try:
@@ -51,22 +51,22 @@ class ErrorHookTask(BaseTask):
             # cleanup old urls
             for old in webhooks:
                 if old.user == bot.user and old.url != config.error_hook:
-                    logger.warn(f'Deleted old webhook: {old.name}-{old.id}')
+                    logger.warn(f'deleted old webhook: {old.name}-{old.id}')
                     await old.delete()
 
             if config.error_hook in webhook_urls:
-                logger.debug('Existing error hook found; skipping refresh')
+                logger.debug('existing error hook found; skipping refresh')
                 return
 
             icon = await generate_png(45, '#ff4941')
             hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
 
-            logger.info(f'Created new webhook: {hook.name}-{hook.id}')
+            logger.info(f'created new webhook: {hook.name}-{hook.id}')
             config.error_hook = hook.url
             await config.config_repo.update_system_field('error_hook', hook.url)
 
         except Exception as err:
-            logger.error(f'Failed acquiring new webhook for error log: {err}')
+            logger.error(f'failed acquiring new webhook for error log: {err}')
 
 
 # singleton for backwards compatibility - standalone function too

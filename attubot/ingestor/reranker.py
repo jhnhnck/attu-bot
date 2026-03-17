@@ -28,9 +28,9 @@ class Reranker:
     def __init__(self):
         from sentence_transformers import CrossEncoder
 
-        logger.info(f'Loading reranker model: {_RERANKER_MODEL}')
+        logger.info(f'loading reranker model: {_RERANKER_MODEL}')
         self._model = CrossEncoder(_RERANKER_MODEL)
-        logger.info('Reranker model loaded')
+        logger.info('reranker model loaded')
 
     def rerank(self, query: str, candidates: list[dict]) -> list[dict]:
         """score and sort candidates by relevance to query (highest score first)

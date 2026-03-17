@@ -38,7 +38,7 @@ async def command_pong(ctx: ApplicationContext):
     async def wait_random():
         sleep_time = 5 * randrange(25, 240)
 
-        logger.info(f'Pong task sleeping for {sleep_time} seconds')
+        logger.info(f'pong task sleeping for {sleep_time} seconds')
         await asyncio.sleep(sleep_time)
 
         await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
@@ -165,7 +165,7 @@ def _message_dump(message: discord.Message, channel_id: int, guild_id: int) -> d
 @discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
 async def debug_message(ctx: ApplicationContext, link):
     if 'discord.com/channels' not in link:
-        await ctx.respond('Failed: Not a valid Discord message link', ephemeral=True)
+        await ctx.respond('Failed: not a valid discord message link', ephemeral=True)
         return
 
     # unpack url
@@ -216,14 +216,14 @@ async def debug_message(ctx: ApplicationContext, link):
         await ctx.respond(embed=embed, file=discord.File(buf, filename=f'message_{message.id}.json'))
 
     except Exception as err:
-        await ctx.respond('Error locating message! (check logs) <:rockball_player:1308977543034048552>')
-        logger.error(err)
+        await ctx.respond('could not locate message (check logs) <:rockball_player:1308977543034048552>')
+        logger.error(f'debug message: {err}')
 
 
 @debug_group.command(name='dump_config', description='Prints config to console')
 @commands.check(is_bot_owner)
 async def debug_dump_config(ctx: ApplicationContext):
-    logger.info('Dumping NovaConfig:', tomlkit.dumps(config.to_dict(), sort_keys=True), sep='\n')
+    logger.info(f'dumping NovaConfig:\n{tomlkit.dumps(config.to_dict(), sort_keys=True)}')
 
     await ctx.respond('Done!')
 
@@ -237,7 +237,7 @@ async def debug_message_stats(ctx: ApplicationContext, channel: discord.TextChan
     try:
         repo = _get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
     if channel is not None:
@@ -259,7 +259,7 @@ async def debug_dump_starboard(ctx: ApplicationContext):
 
     channel = cast(discord.TextChannel, ctx.bot.get_channel(_STARBOARD_CHANNEL_ID))
     if channel is None:
-        await ctx.respond('could not find starboard channel', ephemeral=True)
+        await ctx.respond('Failed: could not find starboard channel', ephemeral=True)
         return
 
     # collect all messages from the starboard bot
@@ -287,7 +287,7 @@ async def debug_dump_starboard(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(cast(ApplicationCommand, command_pong))
     # bot.add_application_command(cast(ApplicationCommand, command_test))

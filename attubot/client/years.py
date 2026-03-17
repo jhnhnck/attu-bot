@@ -162,7 +162,7 @@ class Year(BaseModel):
         """Finalize a year by setting its end_time and computing duration"""
         existing = await cls.get(guild, year)
         if existing is None:
-            logger.error(f'Cannot finalize year {year} for guild {guild}: not found')
+            logger.error(f'cannot finalize year {year} for guild {guild}: not found')
             return None
 
         duration = round((end_time - existing.start_time) / SECONDS_PER_DAY)
