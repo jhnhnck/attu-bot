@@ -49,7 +49,6 @@ class PathsConfig(BaseModel):
 
 class BackupConfig(BaseModel):
     path: str = ''
-    day: str = 'sunday'
     time: str = '03:00'
 
 

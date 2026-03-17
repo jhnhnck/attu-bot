@@ -7,7 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import shutil
+import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from attubot import config
 from attubot.logging import get_logger
@@ -16,44 +18,29 @@ from attubot.tasks.base import BaseTask
 
 logger = get_logger(__name__)
 
-# weekday name -> isoweekday (monday=1 ... sunday=7)
-_WEEKDAYS = {
-    'monday': 1,
-    'tuesday': 2,
-    'wednesday': 3,
-    'thursday': 4,
-    'friday': 5,
-    'saturday': 6,
-    'sunday': 7,
-}
+_RETENTION_DAYS = 90
 
 
-def _next_weekday_at(day_name: str, time_str: str) -> datetime:
-    """Return the next datetime matching the given weekday and HH:MM time string.
+def _next_daily_at(time_str: str) -> datetime:
+    """Return the next datetime matching the given HH:MM time string.
 
-    If that moment is in the past (or less than 60 seconds away), advances by one week
+    If that moment is in the past (or less than 60 seconds away), advances by one day
     so the task doesn't fire immediately on startup.
     """
-    target_isoweekday = _WEEKDAYS[day_name.lower()]
     h, m = (int(x) for x in time_str.split(':'))
 
     now = datetime.now().astimezone()
-    # start from today at the target time
     candidate = now.replace(hour=h, minute=m, second=0, microsecond=0)
 
-    # advance forward by whole days until we land on the right weekday
-    days_ahead = (target_isoweekday - candidate.isoweekday()) % 7
-    candidate += timedelta(days=days_ahead)
-
-    # if we're already past (or within 60s), jump a full week
+    # if we're already past (or within 60s), run tomorrow
     if (candidate - now).total_seconds() < 60:
-        candidate += timedelta(weeks=1)
+        candidate += timedelta(days=1)
 
     return candidate
 
 
 class DatabaseBackupTask(BaseTask):
-    """Weekly task that runs mongodump and writes a full database backup to disk.
+    """Daily task that runs mongodump and writes a full database backup to disk.
 
     Disabled (no-op) when config.backup.path is empty or mongodump is not found.
     """
@@ -77,14 +64,14 @@ class DatabaseBackupTask(BaseTask):
             return
 
         self._enabled = True
-        logger.info(f'database backup task enabled: path={backup_path} day={config.backup.day} time={config.backup.time}')
+        logger.info(f'database backup task enabled: path={backup_path} time={config.backup.time}')
 
     async def next_run(self) -> datetime | None:
         if not self._enabled:
             # return a far-future datetime to keep the loop alive but effectively idle
             return datetime.now().astimezone() + timedelta(days=365)
 
-        return _next_weekday_at(config.backup.day, config.backup.time)
+        return _next_daily_at(config.backup.time)
 
     async def run(self) -> None:
         if not self._enabled:
@@ -94,26 +81,58 @@ class DatabaseBackupTask(BaseTask):
         db_cfg = config.database
 
         timestamp = datetime.now().astimezone().strftime('%Y-%m-%d_%H%M%S')
-        out_dir = f'{backup_cfg.path}/{timestamp}'
+        archive_path = f'{backup_cfg.path}/{timestamp}.tar.bz2'
 
-        logger.info(f'starting database backup to {out_dir}')
+        logger.info(f'starting database backup to {archive_path}')
 
-        proc = await asyncio.create_subprocess_exec(
-            'mongodump',
-            f'--uri={db_cfg.url}',
-            f'--db={db_cfg.name}',
-            f'--out={out_dir}',
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            dump_dir = f'{tmp_dir}/{timestamp}'
 
-        _, stderr = await proc.communicate()
+            dump_proc = await asyncio.create_subprocess_exec(
+                'mongodump',
+                f'--uri={db_cfg.url}',
+                f'--db={db_cfg.name}',
+                f'--out={dump_dir}',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
-        if proc.returncode == 0:
-            logger.info(f'database backup complete: {out_dir}')
-        else:
-            err_text = stderr.decode().strip() if stderr else '(no output)'
-            logger.error(f'mongodump exited with code {proc.returncode}: {err_text}')
+            _, stderr = await dump_proc.communicate()
+
+            if dump_proc.returncode != 0:
+                err_text = stderr.decode().strip() if stderr else '(no output)'
+                logger.error(f'mongodump exited with code {dump_proc.returncode}: {err_text}')
+                return
+
+            tar_proc = await asyncio.create_subprocess_exec(
+                'tar', '-cjf', archive_path, '-C', tmp_dir, timestamp,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            _, tar_stderr = await tar_proc.communicate()
+
+            if tar_proc.returncode != 0:
+                err_text = tar_stderr.decode().strip() if tar_stderr else '(no output)'
+                logger.error(f'tar exited with code {tar_proc.returncode}: {err_text}')
+                return
+
+        logger.info(f'database backup complete: {archive_path}')
+        _cleanup_old_backups(backup_cfg.path)
+
+
+def _cleanup_old_backups(backup_path: str) -> None:
+    """Remove .tar.bz2 backup files older than _RETENTION_DAYS days."""
+    cutoff = datetime.now().astimezone() - timedelta(days=_RETENTION_DAYS)
+    removed = 0
+    for f in Path(backup_path).glob('*.tar.bz2'):
+        mtime = datetime.fromtimestamp(f.stat().st_mtime).astimezone()
+        if mtime < cutoff:
+            f.unlink()
+            logger.info(f'removed old backup: {f.name}')
+            removed += 1
+    if removed:
+        logger.info(f'cleanup: removed {removed} backup(s) older than {_RETENTION_DAYS} days')
 
 
 # singleton instance for registration
