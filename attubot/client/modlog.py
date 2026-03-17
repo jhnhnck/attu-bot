@@ -77,16 +77,16 @@ async def _is_bot_audit_action(guild: Guild, action: discord.AuditLogAction, tar
     return False
 
 
-async def _get_member_update_actor(guild: Guild, target_id: int) -> 'discord.User | discord.Member | None':
-    # look up who performed the most recent member_update action for this target
+async def _get_audit_actor(guild: Guild, action: discord.AuditLogAction, target_id: int) -> 'discord.User | discord.Member | None':
+    # look up who performed the most recent audit action for this target
     try:
-        async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.member_update):
+        async for entry in guild.audit_logs(limit=5, action=action):
             target = getattr(entry, 'target', None)
             if getattr(target, 'id', None) != target_id:
                 continue
             return getattr(entry, 'user', None)
     except Exception as err:
-        logger.debug(f'failed to resolve member_update actor for {guild.id} target={target_id}: {err}')
+        logger.debug(f'failed to resolve {action} actor for {guild.id} target={target_id}: {err}')
     return None
 
 
@@ -251,10 +251,13 @@ async def on_guild_channel_update(before: discord.abc.GuildChannel, after: disco
     if not changes:
         return
 
+    channel_actor = await _get_audit_actor(after.guild, discord.AuditLogAction.channel_update, after.id)
     embed = make_embed('Channel Updated', footer=f'channel id: {after.id}')
     embed.add_field(name='Channel', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
+    if channel_actor is not None:
+        embed.add_field(name='By', value=channel_actor.mention, inline=True)
     await _send_embed(after.guild.id, embed)
 
 
@@ -311,10 +314,13 @@ async def on_guild_role_update(before: Role, after: Role):
     if not changes:
         return
 
+    role_update_actor = await _get_audit_actor(after.guild, discord.AuditLogAction.role_update, after.id)
     embed = make_embed('Role Updated', footer=f'role id: {after.id}')
     embed.add_field(name='Role', value=after.mention, inline=False)
     for label, old, new in changes:
         embed.add_field(name=label, value=f'{old} -> {new}', inline=False)
+    if role_update_actor is not None:
+        embed.add_field(name='By', value=role_update_actor.mention, inline=True)
     await _send_embed(after.guild.id, embed)
 
 
@@ -362,6 +368,10 @@ async def on_member_update(before: Member, after: Member):
     added = [after_roles[rid] for rid in after_roles.keys() - before_roles.keys()]
     removed = [before_roles[rid] for rid in before_roles.keys() - after_roles.keys()]
 
+    role_actor: discord.User | discord.Member | None = None
+    if added or removed:
+        role_actor = await _get_audit_actor(after.guild, discord.AuditLogAction.member_role_update, after.id)
+
     if added:
         embed = make_embed(
             'Member Role Added',
@@ -371,6 +381,8 @@ async def on_member_update(before: Member, after: Member):
             author_icon_url=_member_avatar(after),
         )
         embed.add_field(name='Roles', value=_role_mentions(added), inline=False)
+        if role_actor is not None and role_actor.id != after.id:
+            embed.add_field(name='By', value=role_actor.mention, inline=True)
         await _send_embed(after.guild.id, embed)
 
     if removed:
@@ -382,12 +394,14 @@ async def on_member_update(before: Member, after: Member):
             author_icon_url=_member_avatar(after),
         )
         embed.add_field(name='Roles', value=_role_mentions(removed), inline=False)
+        if role_actor is not None and role_actor.id != after.id:
+            embed.add_field(name='By', value=role_actor.mention, inline=True)
         await _send_embed(after.guild.id, embed)
 
     before_timeout = getattr(before, 'communication_disabled_until', None)
     after_timeout = getattr(after, 'communication_disabled_until', None)
     if before_timeout != after_timeout:
-        timeout_actor = await _get_member_update_actor(after.guild, after.id)
+        timeout_actor = await _get_audit_actor(after.guild, discord.AuditLogAction.member_update, after.id)
         timeout_description = (f'{after.mention} was timed out by {timeout_actor.mention}' if after_timeout else f'{after.mention} had their timeout removed by {timeout_actor.mention}') if timeout_actor is not None else f'{after.mention} had their timeout updated'
 
         embed = make_embed(
