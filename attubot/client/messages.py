@@ -11,7 +11,7 @@ from typing import NamedTuple
 
 import anyio
 import discord
-from discord import Color, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
+from discord import Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 
 from pymongo.errors import AutoReconnect
 
@@ -138,6 +138,8 @@ def _serialize_embeds(embeds: list[discord.Embed]) -> list[dict]:  # noqa: PLR09
             d['image_url'] = embed.image.url
         if embed.thumbnail:
             d['thumbnail_url'] = embed.thumbnail.url
+        if embed.video and embed.video.url:
+            d['video_url'] = embed.video.url
         if embed.fields:
             d['fields'] = [{'name': f.name, 'value': f.value, 'inline': f.inline} for f in embed.fields]
         if embed.footer and embed.footer.text:
@@ -184,6 +186,7 @@ async def build_message_doc(message: Message) -> MessageDocument:
     forwarded = False
     snapshot_msg = getattr(message.snapshots[0], 'message', None) if message.snapshots else None
 
+    src = snapshot_msg if snapshot_msg is not None else message
     if snapshot_msg is not None:
         forwarded = True
         raw_text = snapshot_msg.content or ''
@@ -195,6 +198,23 @@ async def build_message_doc(message: Message) -> MessageDocument:
         raw_attachments = message.attachments
         raw_embeds = message.embeds
         raw_sticker_ids = [s.id for s in message.stickers]
+
+    raw_sticker_urls = [s.url for s in src.stickers]
+
+    # serialize poll to human-readable text (question, options, vote counts if finalized)
+    raw_poll_text: str | None = None
+    poll = getattr(message, 'poll', None)
+    if poll is not None:
+        results_map: dict[int, int] = {}
+        if getattr(poll, 'results', None) is not None:
+            results_map = {ac.id: ac.count for ac in poll.results.answer_counts}
+        lines = [f'📊 {poll.question.text}']
+        for answer in poll.answers:
+            prefix = f'{answer.emoji} ' if getattr(answer, 'emoji', None) else ''
+            count = results_map.get(answer.id)
+            suffix = f' - {count} votes' if count is not None else ''
+            lines.append(f'{prefix}{answer.text}{suffix}')
+        raw_poll_text = '\n'.join(lines)
 
     # never download snapshot attachments - original channel context is unavailable
     attachments = await _build_attachments(raw_attachments, message.id, guild_id, channel_id, save_files and not forwarded)
@@ -215,6 +235,8 @@ async def build_message_doc(message: Message) -> MessageDocument:
             attachments=attachments,
             embeds=embeds,
             sticker_ids=raw_sticker_ids,
+            sticker_urls=raw_sticker_urls,
+            poll_text=raw_poll_text,
             forwarded=forwarded,
         ),
         refs=MessageRefs(
@@ -458,7 +480,6 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     embed = make_embed(
         'Message Deleted',
         description=description,
-        color=Color.red(),
         footer=f'message id: {payload.message_id}',
         author_name=stored.author.name if stored else None,
         author_icon_url=avatar_url,
@@ -502,7 +523,7 @@ async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
     except Exception as err:
         logger.warn(f'failed to bulk-delete {len(ids)} messages: {err}')
 
-    embed = make_embed('Bulk Message Delete', color=Color.dark_red(), footer=f'guild: {payload.guild_id}')
+    embed = make_embed('Bulk Message Delete', footer=f'guild: {payload.guild_id}')
     embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)
     embed.add_field(name='Count', value=str(len(ids)), inline=True)
 
