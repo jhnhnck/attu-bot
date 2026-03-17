@@ -44,45 +44,45 @@ class ReloadWatcherTask(BaseTask):
         try:
             signals = await repo.consume_all()
         except Exception as e:
-            logger.error(f'Error fetching reload signals: {e}')
+            logger.error(f'error fetching reload signals: {e}')
             return
 
         if not signals:
             return
 
-        logger.info(f'Processing {len(signals)} reload signal(s) from web')
+        logger.info(f'processing [{len(signals)}] reload signal(s) from web')
 
         for signal in signals:
             try:
                 if signal.signal_type == 'guild':
                     if signal.guild_id is None:
-                        logger.warn('Received guild reload signal with no guild_id; skipping')
+                        logger.warn('received guild reload signal with no guild_id; skipping')
                         continue
-                    logger.info(f'Reloading guild config for {signal.guild_id} (web-triggered)')
+                    logger.info(f'reloading guild config for {signal.guild_id} (web-triggered)')
                     await config.load_guild(signal.guild_id)
 
                 elif signal.signal_type == 'theme':
-                    logger.info('Reloading theme config (web-triggered)')
+                    logger.info('reloading theme config (web-triggered)')
                     await config.load_theme()
                     from attubot.tasks.logo_update import logo_update_task  # local import avoids circular dependency with tasks/__init__.py
                     from attubot.tasks.scheduler import scheduler  # local import avoids circular dependency with tasks/__init__.py
 
                     scheduler.add_job(logo_update_task.run(), 'logo_update_immediate')
-                    logger.info('Triggered immediate logo update from theme reload')
+                    logger.info('triggered immediate logo update from theme reload')
 
                 elif signal.signal_type == 'system':
-                    logger.info('Reloading system globals (web-triggered)')
+                    logger.info('reloading system globals (web-triggered)')
                     await config.load_globals()
 
                 elif signal.signal_type == 'chat':
-                    logger.info('Reloading chat runtime config (signal received)')
+                    logger.info('reloading chat runtime config (signal received)')
                     await config.load_chat_runtime()
 
                 else:
-                    logger.warn(f'Unknown reload signal type: {signal.signal_type!r}')
+                    logger.warn(f'unknown reload signal type: {signal.signal_type!r}')
 
             except Exception as e:
-                logger.error(f'Error processing reload signal {signal.signal_type}: {e}')
+                logger.error(f'error processing reload signal {signal.signal_type}: {e}')
 
 
 # singleton for registration

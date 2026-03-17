@@ -49,7 +49,7 @@ class MongoStorage:
         last_err: Exception | None = None
 
         for attempt in range(1, max_attempts + 1):
-            logger.info(f'Connecting to MongoDB: {self.db_name} (attempt {attempt}/{max_attempts})')
+            logger.info(f'connecting to mongodb: {self.db_name} (attempt {attempt}/{max_attempts})')
 
             # close any client left over from a previous failed attempt
             if self.client is not None:
@@ -69,7 +69,7 @@ class MongoStorage:
                 )
                 await self.client.admin.command('ping')
                 self.db = self.client[self.db_name]
-                logger.info('MongoDB connection established successfully')
+                logger.info('mongodb connection established')
                 return self.db
 
             except ConfigurationError:
@@ -80,14 +80,14 @@ class MongoStorage:
                 last_err = e
                 if attempt < max_attempts:
                     delay = _RETRY_DELAYS[attempt - 1]
-                    logger.warn(f'MongoDB connection attempt {attempt} failed: {e!s}; retrying in {delay:.0f}s')
+                    logger.warn(f'mongodb connection attempt {attempt} failed: {e!s}; retrying in {delay:.0f}s')
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f'MongoDB connection failed after {max_attempts} attempts: {e!s}')
+                    logger.error(f'mongodb connection failed after {max_attempts} attempts: {e!s}')
 
             except Exception as e:
                 last_err = e
-                logger.error(f'MongoDB connection failed with unexpected error: {e!s}')
+                logger.error(f'mongodb connection failed with unexpected error: {e!s}')
                 break  # non-connection errors are not retried
 
         raise RuntimeError(f'MongoDB connection failed: {last_err!s}') from last_err
@@ -102,4 +102,4 @@ class MongoStorage:
         """Close MongoDB connection"""
         if self.client:
             await self.client.close()
-            logger.info('Closed MongoDB connection')
+            logger.info('closed mongodb connection')

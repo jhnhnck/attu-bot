@@ -51,7 +51,7 @@ def _get_system_prompt() -> str:
     if _system_prompt is None:
         path = Path(config.chat.prompts_dir) / 'chat-system-prompt.md'
         _system_prompt = path.read_text()
-        logger.debug(f'Loaded system prompt from {path}')
+        logger.debug(f'loaded system prompt from {path}')
     return _system_prompt
 
 
@@ -116,7 +116,7 @@ async def command_ask(ctx: ApplicationContext, query: str):  # noqa: PLR0915 TOD
         last = _ask_last_used.get(ctx.user.id, 0.0)
         if now - last < cooldown:
             remaining = int(cooldown - (now - last))
-            await ctx.respond(f'please wait {remaining}s before asking again', ephemeral=True)
+            await ctx.respond(f'slow down, wait {remaining}s before asking again', ephemeral=True)
             return
         _ask_last_used[ctx.user.id] = now
 
@@ -211,7 +211,7 @@ async def command_ask(ctx: ApplicationContext, query: str):  # noqa: PLR0915 TOD
     except Exception as e:
         logger.error(f'/ask command failed: {e!s}')
         await logger.send_to_webhook(e)
-        await ctx.edit(content='Something went wrong processing your question. Please try again.')
+        await ctx.edit(content='something went wrong processing your question; please try again')
 
 
 def setup(bot: Bot):

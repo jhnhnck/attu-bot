@@ -48,18 +48,18 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable:
         async def wrapper(version: str):
             # Bail out if we're past this patch
             if version != old:
-                logger.debug(f'Patch for {new} already applied')
+                logger.debug(f'patch for {new} already applied')
                 return
 
             # call migrator — do NOT bump version if it fails
             try:
                 await func()
             except Exception as e:
-                logger.error(f'Migration to {new} FAILED: {e}')
+                logger.error(f'migration to {new} failed: {e}')
                 raise MigrationError(f'Migration to {new} failed') from e
 
             # Bump version in MongoDB
-            logger.info(f'Applied patch for {new}')
+            logger.info(f'applied patch for {new}')
             from attubot.client.core import db
 
             database = db.get_db()
@@ -122,7 +122,7 @@ async def migration_backfill_years():
     from attubot.client.markers import YearMarker
     from attubot.database.repositories import YearRepository
 
-    logger.info('Running migration to 2.2.1: backfilling year records')
+    logger.info('running migration to 2.2.1: backfilling year records')
 
     database = db.get_db()
     year_repo = YearRepository(database)
@@ -132,14 +132,14 @@ async def migration_backfill_years():
         try:
             _, current_year = get_year_status(guild_id)
         except Exception as e:
-            logger.error(f'Skipping guild {guild_id} during year backfill: {e}')
+            logger.error(f'skipping guild {guild_id} during year backfill: {e}')
             continue
 
         count = 0
         for yr in range(1, current_year + 1):
             start_ts = await YearMarker.timestamp(yr, guild_id)
             if start_ts is None:
-                logger.warn(f'No marker for year {yr} in guild {guild_id}, skipping')
+                logger.warn(f'no marker for year {yr} in guild {guild_id}, skipping')
                 continue
 
             end_ts = await YearMarker.timestamp(yr + 1, guild_id) or 0 if yr < current_year else 0
@@ -154,7 +154,7 @@ async def migration_backfill_years():
             )
             count += 1
 
-        logger.info(f'Backfilled {count} year records for guild {guild_id}')
+        logger.info(f'backfilled {count} year records for guild {guild_id}')
 
 
 # Version 2.2.3 - no-op; version bump only
@@ -171,7 +171,7 @@ async def migration_fix_year_data():
     from attubot.client.core import db
     from attubot.database.repositories import YearRepository
 
-    logger.info('Running migration to 2.2.4: fixing year data')
+    logger.info('running migration to 2.2.4: fixing year data')
 
     database = db.get_db()
     year_repo = YearRepository(database)
@@ -180,7 +180,7 @@ async def migration_fix_year_data():
         try:
             _, current_year = get_year_status(guild_id)
         except Exception as e:
-            logger.error(f'Skipping guild {guild_id} during year fix: {e}')
+            logger.error(f'skipping guild {guild_id} during year fix: {e}')
             continue
 
         all_years = await year_repo.all_for_guild(guild_id)
@@ -198,7 +198,7 @@ async def migration_fix_year_data():
 
             if updates:
                 await year_repo.update(guild_id, year_doc.year, **updates)
-                logger.info(f'Fixed year {year_doc.year} for guild {guild_id}: {list(updates.keys())}')
+                logger.info(f'fixed year {year_doc.year} for guild {guild_id}: {list(updates.keys())}')
 
 
 # Version 2.2.5
@@ -215,14 +215,14 @@ async def migration_add_guild_to_markers():
     from attubot.client.core import db
     from attubot.database.repositories import YearMarkerRepository
 
-    logger.info('Running migration to 2.2.5: adding guild field to markers')
+    logger.info('running migration to 2.2.5: adding guild field to markers')
 
     database = db.get_db()
     collection = database[YearMarkerRepository.COLLECTION]
 
     # Snapshot the collection for rollback
     backup = await _backup_collection(database, YearMarkerRepository.COLLECTION)
-    logger.info(f'Snapshotted {len(backup)} marker documents for rollback')
+    logger.info(f'snapshotted [{len(backup)}] marker documents for rollback')
 
     try:
         # Build reverse map: channel_id -> guild_id from config
@@ -234,7 +234,7 @@ async def migration_add_guild_to_markers():
                 for channel_id in guild_cfg.channels.lore_channels:
                     channel_to_guild[channel_id] = guild_id
             except Exception as e:
-                logger.error(f'Could not load lore channels for guild {guild_id}: {e}')
+                logger.error(f'could not load lore channels for guild {guild_id}: {e}')
 
         all_docs = await collection.find({}).to_list(length=None)
         updated = deleted = skipped = 0
@@ -256,17 +256,17 @@ async def migration_add_guild_to_markers():
                 updated += 1
 
             else:
-                logger.warn(f'Marker channel={channel} year={doc.get("year")} not found in any guild config, skipping')
+                logger.warn(f'marker channel={channel} year={doc.get("year")} not found in any guild config, skipping')
                 skipped += 1
 
-        logger.info(f'Migration 2.2.5 complete: updated={updated} deleted={deleted} skipped={skipped}')
+        logger.info(f'migration 2.2.5 complete: updated={updated} deleted={deleted} skipped={skipped}')
 
         # re-initialize indexes to add the new guild index
         marker_repo = YearMarkerRepository(database)
         await marker_repo.init_indexes()
 
     except Exception:
-        logger.error('Migration 2.2.5 failed — restoring collection from snapshot')
+        logger.error('migration 2.2.5 failed - restoring collection from snapshot')
         await _restore_collection(database, YearMarkerRepository.COLLECTION, backup)
         raise
 
@@ -275,14 +275,14 @@ async def migration_add_guild_to_markers():
 @migration(old='2.2.5', new='2.3.0')
 async def migration_2_3_0():
     """Config file format updated: secrets and connection settings moved from env vars into TOML."""
-    logger.info('Running migration to 2.3.0')
+    logger.info('running migration to 2.3.0')
 
 
 # Version 2.4.0
 @migration(old='2.3.0', new='2.4.0')
 async def migration_2_4_0():
     """Adds weekly database backup task."""
-    logger.info('Running migration to 2.4.0')
+    logger.info('running migration to 2.4.0')
 
 
 # Version 2.4.1 - no-op; version already written to DB before thread fix was ready
@@ -313,7 +313,7 @@ async def migration_fix_thread_parent_ids():
     from attubot.client.core import bot, db
     from attubot.database.repositories import MessageRepository
 
-    logger.info('Running migration to 2.4.3: backfilling parent_channel_id on thread messages')
+    logger.info('running migration to 2.4.3: backfilling parent_channel_id on thread messages')
 
     database = db.get_db()
     collection = database[MessageRepository.COLLECTION]
@@ -326,7 +326,7 @@ async def migration_fix_thread_parent_ids():
     cursor = await collection.aggregate(pipeline)
     rows = await cursor.to_list(length=None)
     channel_ids = [row['_id'] for row in rows]
-    logger.info(f'Checking {len(channel_ids)} distinct channel ids for thread membership')
+    logger.info(f'checking [{len(channel_ids)}] distinct channel ids for thread membership')
 
     fixed = 0
     skipped = 0
@@ -340,9 +340,9 @@ async def migration_fix_thread_parent_ids():
             {'$set': {'parent_channel_id': ch.parent_id}},
         )
         fixed += result.modified_count
-        logger.debug(f'Set parent_channel_id={ch.parent_id} on {result.modified_count} messages in thread {channel_id}')
+        logger.debug(f'set parent_channel_id={ch.parent_id} on {result.modified_count} messages in thread {channel_id}')
 
-    logger.info(f'Migration 2.4.3 complete: updated={fixed} skipped={skipped}')
+    logger.info(f'migration 2.4.3 complete: updated={fixed} skipped={skipped}')
 
 
 # Version 2.4.4 (ready)
@@ -364,7 +364,7 @@ async def migration_fix_thread_parent_ids_archived():
     from attubot.client.core import bot, db
     from attubot.database.repositories import MessageRepository
 
-    logger.info('Running migration to 2.4.4: backfilling parent_channel_id for archived threads')
+    logger.info('running migration to 2.4.4: backfilling parent_channel_id for archived threads')
 
     database = db.get_db()
     collection = database[MessageRepository.COLLECTION]
@@ -379,10 +379,10 @@ async def migration_fix_thread_parent_ids_archived():
     unfixed_ids: set[int] = {row['_id'] for row in rows}
 
     if not unfixed_ids:
-        logger.info('Migration 2.4.4: nothing to fix')
+        logger.info('migration 2.4.4: nothing to fix')
         return
 
-    logger.info(f'Found {len(unfixed_ids)} channel ids still missing parent_channel_id')
+    logger.info(f'found [{len(unfixed_ids)}] channel ids still missing parent_channel_id')
 
     # build thread_id -> parent_id map by querying the Discord API for every guild
     thread_to_parent: dict[int, int] = {}
@@ -390,7 +390,7 @@ async def migration_fix_thread_parent_ids_archived():
     for guild_id in config.authorized_guilds:
         discord_guild = bot.get_guild(guild_id)
         if discord_guild is None:
-            logger.warn(f'Guild {guild_id} not in bot cache, skipping')
+            logger.warn(f'guild {guild_id} not in bot cache, skipping')
             continue
 
         # active threads - always available from cache after on_ready
@@ -406,19 +406,19 @@ async def migration_fix_thread_parent_ids_archived():
                 async for thread in parent_ch.archived_threads(limit=None):
                     thread_to_parent[thread.id] = parent_ch.id
             except (_discord.Forbidden, _discord.HTTPException) as e:
-                logger.warn(f'Could not fetch public archived threads for channel {parent_ch.id}: {e}')
+                logger.warn(f'could not fetch public archived threads for channel {parent_ch.id}: {e}')
 
             # private archived threads (requires MANAGE_THREADS)
             try:
                 async for thread in parent_ch.archived_threads(limit=None, private=True):
                     thread_to_parent[thread.id] = parent_ch.id
             except (_discord.Forbidden, _discord.HTTPException) as e:
-                logger.debug(f'Could not fetch private archived threads for channel {parent_ch.id}: {e}')
+                logger.debug(f'could not fetch private archived threads for channel {parent_ch.id}: {e}')
 
             # small delay to avoid hitting rate limits across many channels
             await asyncio.sleep(0.5)
 
-    logger.info(f'Discovered {len(thread_to_parent)} total threads across all guilds')
+    logger.info(f'discovered [{len(thread_to_parent)}] total threads across all guilds')
 
     fixed = 0
     still_missing = 0
@@ -433,9 +433,9 @@ async def migration_fix_thread_parent_ids_archived():
             {'$set': {'parent_channel_id': parent_id}},
         )
         fixed += result.modified_count
-        logger.debug(f'Set parent_channel_id={parent_id} on {result.modified_count} messages in thread {channel_id}')
+        logger.debug(f'set parent_channel_id={parent_id} on {result.modified_count} messages in thread {channel_id}')
 
-    logger.info(f'Migration 2.4.4 complete: updated={fixed} unresolvable={still_missing}')
+    logger.info(f'migration 2.4.4 complete: updated={fixed} unresolvable={still_missing}')
 
 
 # Version 2.5.0 (ready)
@@ -449,14 +449,14 @@ async def migration_drop_formatted():
     """
     from attubot.client.core import db
 
-    logger.info('Running migration to 2.5.0: removing formatted field from year documents')
+    logger.info('running migration to 2.5.0: removing formatted field from year documents')
 
     database = db.get_db()
     result = await database['years'].update_many(
         {'formatted': {'$exists': True}},
         {'$unset': {'formatted': ''}},
     )
-    logger.info(f'Migration 2.5.0: unset formatted on {result.modified_count} year documents')
+    logger.info(f'migration 2.5.0: unset formatted on {result.modified_count} year documents')
 
 
 # Version 2.5.1 (ready)
@@ -471,11 +471,11 @@ async def migration_purge_markers():
     from attubot.client.core import db
     from attubot.database.repositories import YearMarkerRepository
 
-    logger.info('Running migration to 2.5.1: purging all year marker overrides')
+    logger.info('running migration to 2.5.1: purging all year marker overrides')
 
     database = db.get_db()
     result = await database[YearMarkerRepository.COLLECTION].delete_many({})
-    logger.info(f'Migration 2.5.1: deleted {result.deleted_count} year marker documents')
+    logger.info(f'migration 2.5.1: deleted {result.deleted_count} year marker documents')
 
 
 # Version 2.5.2
@@ -492,13 +492,13 @@ async def migration_restructure_messages():
     from attubot.client.core import db
     from attubot.database.repositories import MessageRepository
 
-    logger.info('Running migration to 2.5.2: restructuring MessageDocument into sub-documents')
+    logger.info('running migration to 2.5.2: restructuring MessageDocument into sub-documents')
 
     database = db.get_db()
     collection = database[MessageRepository.COLLECTION]
 
     backup = await _backup_collection(database, MessageRepository.COLLECTION)
-    logger.info(f'Snapshotted {len(backup)} message documents for rollback')
+    logger.info(f'snapshotted [{len(backup)}] message documents for rollback')
 
     try:
         result = await collection.update_many(
@@ -538,9 +538,9 @@ async def migration_restructure_messages():
                 },
             ],
         )
-        logger.info(f'Migration 2.5.2: restructured {result.modified_count} message documents')
+        logger.info(f'migration 2.5.2: restructured {result.modified_count} message documents')
 
     except Exception:
-        logger.error('Migration 2.5.2 failed — restoring messages collection from snapshot')
+        logger.error('migration 2.5.2 failed - restoring messages collection from snapshot')
         await _restore_collection(database, MessageRepository.COLLECTION, backup)
         raise

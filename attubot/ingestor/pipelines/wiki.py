@@ -46,9 +46,9 @@ class WikiPipeline:
         """ingest all pages in the configured namespaces - use for bootstrapping"""
         wiki = get_wiki()
         for ns in config.chat_runtime.wiki_namespaces:
-            logger.info(f'Initial wiki ingest: namespace {ns}')
+            logger.info(f'initial wiki ingest: namespace {ns}')
             titles = await wiki.pages.get_all_pages(namespace=ns)
-            logger.info(f'Found {len(titles)} pages in namespace {ns}')
+            logger.info(f'found [{len(titles)}] pages in namespace {ns}')
             for title in titles:
                 await self._ingest_page(title)
 
@@ -68,7 +68,7 @@ class WikiPipeline:
             collection_empty = True
 
         if collection_empty:
-            logger.info('Wiki collection is empty - running initial ingest')
+            logger.info('wiki collection is empty - running initial ingest')
             await self.run_initial_ingest()
             return
 
@@ -76,24 +76,24 @@ class WikiPipeline:
         for ns in config.chat_runtime.wiki_namespaces:
             titles = await wiki.pages.get_recent_changes(minutes=65, namespace=ns)
             if titles:
-                logger.info(f'Wiki recent changes: {len(titles)} page(s) in namespace {ns}')
+                logger.info(f'wiki recent changes: [{len(titles)}] page(s) in namespace {ns}')
             for title in titles:
                 await self._ingest_page(title)
 
     async def _ingest_page(self, title: str) -> None:
         """fetch, parse, split, and embed a single wiki page"""
-        logger.info(f'Ingesting "{title}"')
+        logger.info(f'ingesting "{title}"')
         wiki = get_wiki()
 
         try:
             wikitext, revid, rev_timestamp, categories = await wiki.pages.get_with_revision(title)
         except Exception as e:
-            logger.warn(f'Failed to fetch wiki page "{title}": {e!s}')
+            logger.warn(f'failed to fetch wiki page "{title}": {e!s}')
             return
 
         sections = _parse_sections(wikitext)
         if not sections:
-            logger.debug(f'No sections found in "{title}"; skipping')
+            logger.debug(f'no sections found in "{title}"; skipping')
             return
 
         store = _get_vector_store()
@@ -145,7 +145,7 @@ class WikiPipeline:
                 metadata={'page_title': title, 'section': section_title or '(intro)', 'categories': categories},
             ))
 
-            logger.debug(f'Ingested wiki section: {source_id}')
+            logger.debug(f'ingested wiki section: {source_id}')
 
 
 def _parse_sections(wikitext: str) -> list[tuple[str, str]]:

@@ -462,4 +462,4 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
         await _send_embed(guild.id, embed)
 
 
-logger.info('Registered moderation log handlers')
+logger.info('registered moderation log handlers')

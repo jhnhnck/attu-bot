@@ -43,10 +43,10 @@ class TaskScheduler:
             try:
                 await coro
             except Exception as e:
-                logger.error(f'Job {name} raised: {e}')
+                logger.error(f'job {name} raised: {e}')
                 await logger.send_to_webhook(e, location=f'job: {name}')
 
-        logger.info(f'Starting task: {name}')
+        logger.info(f'starting task: {name}')
         task = asyncio.create_task(run_and_forget(), name=name)
         self._jobs.add(task)
         task.add_done_callback(self._jobs.discard)
@@ -58,7 +58,7 @@ class TaskScheduler:
     async def start_all(self) -> None:
         """Start all registered recurring tasks."""
         if self._running:
-            logger.warn('Scheduler already running')
+            logger.warn('scheduler already running')
             return
 
         self._running = True
@@ -68,14 +68,14 @@ class TaskScheduler:
             self._loop_tasks.add(t)
             t.add_done_callback(self._loop_tasks.discard)
 
-        logger.info(f'Started {len(self._registered_tasks)} recurring tasks')
+        logger.info(f'started [{len(self._registered_tasks)}] recurring tasks')
 
     async def stop_all(self) -> None:
         """Gracefully stop all tasks and wait for completion."""
         if not self._running:
             return
 
-        logger.info('Scheduler shutting down')
+        logger.info('scheduler shutting down')
         self._running = False
 
         # cancel all loop tasks so they wake up immediately
@@ -106,7 +106,7 @@ class TaskScheduler:
                 await task.on_stop()
                 return
             except Exception as e:
-                logger.error(f'Error in task {task.name} (immediate run): {e}')
+                logger.error(f'error in task {task.name} (immediate run): {e}')
                 await logger.send_to_webhook(e, location=f'recurring task: {task.name} (immediate run)')
 
         while self._running:
@@ -115,7 +115,7 @@ class TaskScheduler:
                 if task.interval is None:
                     next_dt = await task.next_run()
                     if next_dt is None:
-                        logger.error(f'Task {task.name} has no interval and next_run() returned None; stopping')
+                        logger.error(f'task {task.name} has no interval and next_run() returned None; stopping')
                         break
                     await self._sleep_until(next_dt)
                 else:
@@ -129,11 +129,11 @@ class TaskScheduler:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f'Error in task {task.name}: {e}')
+                logger.error(f'error in task {task.name}: {e}')
                 await logger.send_to_webhook(e, location=f'recurring task: {task.name}')
 
         await task.on_stop()
-        logger.info(f'Task {task.name} stopped')
+        logger.info(f'task {task.name} stopped')
 
     @property
     def count(self) -> int:

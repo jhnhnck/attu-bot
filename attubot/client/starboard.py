@@ -903,4 +903,4 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         logger.error(f'starboard: failed to update post {doc.starboard_message_id}: {err}')
 
 
-logger.info('Registered: starboard module')
+logger.info('registered: starboard module')

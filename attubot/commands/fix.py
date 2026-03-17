@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import discord
@@ -43,6 +44,7 @@ async def job_backfill_channel(
     status_msg: discord.Message | None = None,
     *,
     reconcile_recent: bool = False,
+    reconcile_lookback: timedelta | None = None,
     task: MessageBackfillTask | None = None,
 ):
     """scan a channel and backfill any messages not already stored."""
@@ -68,7 +70,7 @@ async def job_backfill_channel(
 
     if reconcile_recent:
         try:
-            reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel)  # pyright: ignore[reportArgumentType]
+            reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel, lookback=reconcile_lookback)  # pyright: ignore[reportArgumentType]
         except Exception as err:
             logger.warn(f'fix messages: recent reconcile failed for {channel_id}: {err}')
 
@@ -135,7 +137,7 @@ async def fix_logo(ctx: ApplicationContext):
     logger.info('logo update forced by admin')
     task = LogoUpdateTask()
 
-    await ctx.respond('Refreshing logo!')
+    await ctx.respond('Refreshing!')
     await task.run()
 
 
@@ -145,7 +147,7 @@ async def fix_year_links(ctx: ApplicationContext):
     logger.info('year links update forced by admin')
     cfg = config.guild(ctx.guild.id)
 
-    await ctx.respond(f'Starting year links rebuild on <#{cfg.channels.year_links}>')
+    await ctx.respond(f'starting year links rebuild on <#{cfg.channels.year_links}>')
     scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
 
 
@@ -157,10 +159,10 @@ async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond(f'Scanning <#{channel.id}>...', ephemeral=True)
+    await ctx.respond(f'scanning <#{channel.id}>...', ephemeral=True)
     status_msg = await ctx.channel.send(f'Scanning <#{channel.id}>...')
     scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, status_msg), f'Job[fix_messages:#{channel.name}]')
 
@@ -173,17 +175,17 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
     if user is not None:
         label = f'Job[fix_author_names:{user.id}]'
-        await ctx.respond(f'Updating author name for <@{user.id}>...', ephemeral=True)
+        await ctx.respond(f'updating author name for <@{user.id}>...', ephemeral=True)
         status_msg = await ctx.channel.send(f'Updating author name for <@{user.id}>...')
         coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg, user_id=user.id)
     else:
         label = 'Job[fix_author_names:all]'
-        await ctx.respond('Resolving all author names...', ephemeral=True)
+        await ctx.respond('resolving all author names...', ephemeral=True)
         status_msg = await ctx.channel.send('Resolving all author names...')
         coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg)
 
@@ -345,7 +347,7 @@ async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None 
     await _safe_edit(status_msg, summary)
 
 
-async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None = None):
+async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None = None, *, lookback: timedelta | None = None):
     """Run a full reconciliation pass across all readable channels and threads."""
     task = MessageBackfillTask()
 
@@ -381,6 +383,7 @@ async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None 
             guild_id,
             status_msg=status_msg,
             reconcile_recent=True,
+            reconcile_lookback=lookback,
             task=task,
         )
         total_backfilled += backfilled or 0
@@ -392,17 +395,173 @@ async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None 
 
 @fix_group.command(name='reconcile', description='Scans the guild and reconciles recent history and starboard state')
 @commands.check(is_bot_owner)
-async def fix_reconcile(ctx: ApplicationContext):
+@discord.commands.option(name='days', required=False, description='Lookback window in days (default 1)', input_type=int)
+async def fix_reconcile(ctx: ApplicationContext, days: int = 1):
 
     try:
         messages._get_repo()
     except RuntimeError:
-        await ctx.respond('message repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: message repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting full reconciliation...', ephemeral=True)
-    status_msg = await ctx.channel.send('Starting full reconciliation...')
-    scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg), 'Job[fix_reconcile]')
+    await ctx.respond(f'starting full reconciliation (last {days} day(s))...', ephemeral=True)
+    status_msg = await ctx.channel.send(f'Starting full reconciliation (last {days} day(s))...')
+    scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg, lookback=timedelta(days=days)), 'Job[fix_reconcile]')
+
+
+async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - recovery scan with many error/skip branches
+    """scan the starboard channel for bot posts and restore any missing starred_message docs or broken links."""
+    from discord.utils import time_snowflake
+
+    from attubot import bot, config
+    from attubot.client.starboard import _get_repo as _get_sb_repo_inner
+    from attubot.client.starboard import _sync_starboard_post as _sync_post
+    from attubot.client.starboard import parse_jump_url
+    from attubot.database.models import StarredMessageDocument
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception as err:
+        await _safe_edit(status_msg, f'Error: {err}')
+        return
+
+    sb = guild_config.starboard
+    if not sb.channel_id:
+        await _safe_edit(status_msg, 'No starboard channel configured')
+        return
+
+    sb_channel = bot.get_channel(sb.channel_id)
+    if sb_channel is None:
+        try:
+            sb_channel = await bot.fetch_channel(sb.channel_id)
+        except Exception as err:
+            await _safe_edit(status_msg, f'Could not fetch starboard channel: {err}')
+            return
+
+    sb_repo = _get_sb_repo_inner()
+    since = datetime.now(tz=UTC) - timedelta(days=days)
+    after = discord.Object(id=time_snowflake(since))
+
+    created = 0
+    link_fixed = 0
+    already_ok = 0
+    errors = 0
+
+    try:
+        history = sb_channel.history(after=after, oldest_first=True, limit=None)  # type: ignore[union-attr]
+        async for sb_msg in history:
+            # only consider posts made by this bot
+            if bot.user is None or sb_msg.author.id != bot.user.id:
+                continue
+
+            # extract the original message jump url from content (format: "⭐ **N** | ... | https://discord.com/channels/G/C/M")
+            jump_url = None
+            for token in sb_msg.content.split():
+                if token.startswith('https://discord.com/channels/'):
+                    jump_url = token
+                    break
+            if not jump_url:
+                continue
+
+            parsed = parse_jump_url(jump_url)
+            if parsed is None:
+                continue
+
+            _guild_id, orig_channel_id, orig_message_id = parsed
+            if _guild_id != guild_id:
+                continue
+
+            try:
+                doc = await sb_repo.get(orig_message_id)
+
+                if doc is not None and doc.starboard_message_id == sb_msg.id:
+                    already_ok += 1
+                    continue
+
+                if doc is not None:
+                    # doc exists but link is wrong or missing - fix the pointer and re-sync
+                    await sb_repo.set_starboard_message(doc.message_id, sb_msg.id)
+                    updated = await sb_repo.get(doc.message_id)
+                    if updated:
+                        await _sync_post(guild_id, updated, guild_config)
+                    link_fixed += 1
+                    logger.info(f'recover_starboard: fixed link for message {orig_message_id} -> post {sb_msg.id}')
+                    continue
+
+                # doc does not exist - fetch the original message and build a new doc
+                orig_channel = bot.get_channel(orig_channel_id)
+                if orig_channel is None:
+                    orig_channel = await bot.fetch_channel(orig_channel_id)
+                orig_msg = await orig_channel.fetch_message(orig_message_id)  # type: ignore[union-attr]
+
+                # collect per-emoji reaction lists (no auto-removal in recovery mode)
+                seen_voters: set[int] = set()
+                new_reactions: dict[str, list[int]] = {}
+                for reaction in orig_msg.reactions:
+                    emoji_str = str(reaction.emoji)
+                    if emoji_str not in sb.emojis:
+                        continue
+                    users: list[int] = []
+                    async for user in reaction.users():
+                        if user.id == orig_msg.author.id or user.bot:
+                            continue
+                        if user.id in seen_voters:
+                            continue
+                        users.append(user.id)
+                        seen_voters.add(user.id)
+                    if users:
+                        new_reactions[emoji_str] = users
+
+                total = sum(len(v) for v in new_reactions.values())
+                new_doc = StarredMessageDocument(
+                    message_id=orig_message_id,
+                    channel_id=orig_channel_id,
+                    guild_id=guild_id,
+                    author_id=orig_msg.author.id,
+                    starboard_message_id=sb_msg.id,
+                    reactions=new_reactions,
+                    total_reactions=total,
+                    weighted_total=float(total),
+                )
+                await sb_repo.upsert(new_doc)
+                await _sync_post(guild_id, new_doc, guild_config)
+                created += 1
+                logger.info(f'recover_starboard: created doc for message {orig_message_id} from starboard post {sb_msg.id}')
+
+            except (discord.NotFound, discord.Forbidden):
+                errors += 1
+                logger.warn(f'recover_starboard: could not access original message {orig_message_id}')
+            except Exception as err:
+                errors += 1
+                logger.warn(f'recover_starboard: error processing starboard post {sb_msg.id}: {err}')
+
+    except discord.Forbidden:
+        await _safe_edit(status_msg, 'No permission to read starboard channel history')
+        return
+    except Exception as err:
+        await _safe_edit(status_msg, f'Error scanning starboard channel: {err}')
+        return
+
+    summary = f'Done - {created} created, {link_fixed} links fixed, {already_ok} already ok'
+    if errors:
+        summary += f', {errors} errors'
+    logger.info(f'recover_starboard: {summary} (guild {guild_id})')
+    await _safe_edit(status_msg, summary)
+
+
+@fix_starboard.command(name='recover', description='Scans the starboard channel for bot posts and restores any missing DB records or broken links')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='days', required=False, description='How many days back to scan (default 7)', input_type=int)
+async def fix_starboard_recover(ctx: ApplicationContext, days: int = 7):
+    try:
+        _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
+        return
+
+    await ctx.respond(f'scanning last {days} days of starboard channel...', ephemeral=True)
+    status_msg = await ctx.channel.send(f'Scanning last {days} days of starboard channel...')
+    scheduler.add_job(job_recover_starboard_from_channel(ctx.guild.id, days=days, status_msg=status_msg), 'Job[fix_starboard_recover]')
 
 
 @fix_starboard.command(name='recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
@@ -413,10 +572,10 @@ async def fix_starboard_recount(ctx: ApplicationContext):
 
         _get_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting starboard recount...', ephemeral=True)
+    await ctx.respond('starting starboard recount...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting starboard recount...')
     scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
 
@@ -427,10 +586,10 @@ async def fix_starboard_regen(ctx: ApplicationContext):
     try:
         _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
-    await ctx.respond('Starting starboard regeneration...', ephemeral=True)
+    await ctx.respond('starting starboard regeneration...', ephemeral=True)
     status_msg = await ctx.channel.send('Regenerating starboard posts...')
     scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_regen]')
 
@@ -443,7 +602,7 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
 
     parsed = parse_jump_url(message_link)
     if parsed is None:
-        await ctx.respond('Invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        await ctx.respond('Failed: invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
         return
 
     _guild_id, _channel_id, message_id = parsed
@@ -451,14 +610,14 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
-        await ctx.respond('starboard repo not initialized yet', ephemeral=True)
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
         return
 
     doc = await sb_repo.get(message_id)
     if doc is None:
         doc = await sb_repo.get_by_starboard_message(message_id)
     if doc is None:
-        await ctx.respond(f'No starboard entry found for message {message_id}', ephemeral=True)
+        await ctx.respond(f'Failed: no starboard entry found for message {message_id}', ephemeral=True)
         return
     message_id = doc.message_id
 
@@ -487,13 +646,13 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
             parts.append('(starboard post could not be deleted - may already be gone)')
         await ctx.respond(', '.join(parts))
     else:
-        await ctx.respond(f'No entry deleted (message {message_id} not found)', ephemeral=True)
+        await ctx.respond(f'Failed: no entry deleted - message {message_id} not found', ephemeral=True)
 
 
 # --- Extension Def ---
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(cast(ApplicationCommand, fix_group))

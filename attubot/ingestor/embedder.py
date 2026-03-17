@@ -27,10 +27,10 @@ class Embedder:
     def __init__(self, model_name: str):
         from sentence_transformers import SentenceTransformer
 
-        logger.info(f'Loading embedding model: {model_name}')
+        logger.info(f'loading embedding model: {model_name}')
         self._model = SentenceTransformer(model_name)
         self._dim = self._model.get_sentence_embedding_dimension()
-        logger.info(f'Embedding model loaded (dim={self._dim})')
+        logger.info(f'embedding model loaded (dim={self._dim})')
 
     @property
     def dim(self) -> int:

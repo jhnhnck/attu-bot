@@ -321,6 +321,7 @@ Notes in `notes/` with relevant implementation details:
 
 - [`button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
 - [`comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
+- [`message_style.md`](notes/message_style.md) - log message and Discord response message style (tone, capitalization, error format, custom emojis)
 - [`embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
 - [`markers.md`](notes/markers.md) - marker system spec (resolution order, storage, commands, web API)
 - [`starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference

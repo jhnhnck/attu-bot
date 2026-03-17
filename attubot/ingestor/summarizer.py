@@ -45,13 +45,13 @@ class Summarizer:
     def __init__(self):
         from anthropic import AsyncAnthropic
 
-        logger.info(f'Initializing summarizer ({_HAIKU_MODEL})')
+        logger.info(f'initializing summarizer ({_HAIKU_MODEL})')
         self._client = AsyncAnthropic(api_key=config.chat.anthropic_api_key)
 
         prompts_dir = Path(config.chat.prompts_dir)
         self._summarize_prompt = (prompts_dir / 'discord-summarization-prompt.md').read_text()
         self._extract_prompt = (prompts_dir / 'character-extraction-prompt.md').read_text()
-        logger.info('Summarizer ready')
+        logger.info('summarizer ready')
 
     async def summarize(
         self,

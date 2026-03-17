@@ -98,7 +98,7 @@ class WikiLookupView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self._ctx.user.id:
-            await interaction.response.send_message('only the command executor can use these buttons', ephemeral=True)
+            await interaction.response.send_message("those aren't yours to press <:rockball:1308981475114225694>", ephemeral=True)
             return False
         return True
 
@@ -215,7 +215,7 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
     success = await wiki.admin.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
     if not success:
-        await ctx.edit(content=f'Failed to block user [{user}] after 3 attempts')
+        await ctx.edit(content=f'Failed: could not block user [{user}] after 3 attempts')
         await logger.send_to_webhook(Exception(f'wiki.admin.block() failed for user "{user}" after 3 retries'))
 
 
@@ -223,6 +223,6 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(wiki_group)

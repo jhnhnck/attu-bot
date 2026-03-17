@@ -70,15 +70,15 @@ async def _graceful_shutdown():
 async def _do_ready_init():
     """inner ready path; extracted from on_ready() for testability"""
     try:
-        logger.info('Connecting to database and initializing repositories...')
+        logger.info('connecting to database and initializing repositories')
         from attubot.database import init_database
 
         await init_database(config.database.url, config.database.name)
 
-        logger.info('Loading configuration from database...')
+        logger.info('loading configuration from database')
         await config.on_load()
     except Exception as err:
-        logger.fatal('Exception caught initializing database; exiting', err)
+        logger.fatal('exception caught initializing database; exiting', err)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
@@ -86,13 +86,13 @@ async def _do_ready_init():
     try:
         await config.on_ready()
     except Exception as err:
-        logger.fatal('Exception caught in on_ready() event; exiting', err)
+        logger.fatal('exception caught in on_ready() event; exiting', err)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
 
     if config.test_mode:
-        logger.fatal('Reached ready state')
+        logger.fatal('reached ready state')
         await _shutdown(exit_code=0)
         return
 
@@ -102,7 +102,7 @@ async def _do_ready_init():
 
         await scheduler.start_all()
     except Exception as err:
-        logger.fatal('Exception caught starting task scheduler; exiting', err)
+        logger.fatal('exception caught starting task scheduler; exiting', err)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
@@ -114,9 +114,9 @@ async def _do_ready_init():
     try:
         await anyio.Path(_READY_SENTINEL).write_text('ready\n')
     except Exception as err:
-        logger.warn(f'Could not write ready sentinel: {err}')
+        logger.warn(f'could not write ready sentinel: {err}')
 
-    logger.info('Pushing commands to Discord')
+    logger.info('pushing commands to discord')
     await bot.sync_commands()
 
 
@@ -125,7 +125,7 @@ async def _do_ready_init():
 
 @bot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
-    logger.error(f'Error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
+    logger.error(f'error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
         if ctx.guild.id in config.authorized_guilds:
@@ -163,23 +163,23 @@ async def on_ready():
     if not on_ready.has_run:
         on_ready.has_run = True
 
-        logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})!')
-        logger.info(f'Add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
+        logger.info(f'logged in as {bot.user}')
+        logger.info(f'add to a server:\n\thttps://discord.com/oauth2/authorize?client_id={bot.application_id}&scope=bot&permissions={perms}')
 
         await _do_ready_init()
 
     else:
-        logger.info(f'Reconnected as {bot.user} (ID: {bot.user.id})!')
+        logger.info(f'reconnected as {bot.user}')
 
 
 @bot.listen()
 async def on_message(message: Message):
     if message.guild is None:
-        logger.debug(f'Skipping checks for message from "{message.author.name}" with blank guild')
+        logger.debug(f'skipping checks for message from "{message.author.name}" with blank guild')
         return
 
     if message.guild.id not in config.valid_guilds:
-        logger.debug(f'Skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
+        logger.debug(f'skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
         return
 
     guild_config = config.guild(message.guild.id)
@@ -284,7 +284,7 @@ async def on_member_join(member: Member):
 
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
-    logger.info(f'Command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
+    logger.info(f'command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
     # shift theme hue by 1 degree on every command invocation
     if config.theme is not None:
@@ -295,7 +295,7 @@ async def on_application_command(ctx: ApplicationContext):
             logger.warn(f'failed to save theme after hue shift: {err}')
 
 
-logger.info('Registered event handlers')
+logger.info('registered event handlers')
 
 
 @bot.listen()

@@ -211,7 +211,7 @@ These are filled in by Discord and are ignored if you provide them:
 @bot.slash_command(name='info')
 async def info(ctx: discord.ApplicationContext):
     embed = make_embed(
-        'attu bot info',
+        'Attu Bot Info',
         description='timekeeping for the attu project',
         footer='attu-bot v1.0',
     )

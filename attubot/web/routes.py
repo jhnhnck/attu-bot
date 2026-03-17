@@ -321,7 +321,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                         success=True,
                     )
 
-            logger.info(f'Guild {guild_id} configuration saved')
+            logger.info(f'guild {guild_id} configuration saved')
 
             return jsonify({
                 'success': True,
@@ -329,7 +329,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except ValidationError as e:
-            logger.error(f'Validation error for guild {guild_id}: {e}')
+            logger.error(f'validation error for guild {guild_id}: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -350,7 +350,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'details': e.errors(),
             }), 400
         except Exception as e:
-            logger.error(f'Error saving guild {guild_id}: {e}')
+            logger.error(f'error saving guild {guild_id}: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -411,7 +411,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             else:
                 return jsonify({'error': 'Failed to reload configuration'}), 500
         except Exception as e:
-            logger.error(f'Error reloading guild {guild_id}: {e}')
+            logger.error(f'error reloading guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to reload configuration'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/channels')
@@ -531,7 +531,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                         success=True,
                     )
 
-            logger.info('Theme configuration saved')
+            logger.info('theme configuration saved')
 
             return jsonify({
                 'success': True,
@@ -539,7 +539,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except ValidationError as e:
-            logger.error(f'Validation error for theme: {e}')
+            logger.error(f'validation error for theme: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -559,7 +559,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'details': e.errors(),
             }), 400
         except Exception as e:
-            logger.error(f'Error saving theme: {e}')
+            logger.error(f'error saving theme: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -640,7 +640,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                         success=True,
                     )
 
-            logger.info('System configuration saved')
+            logger.info('system configuration saved')
 
             return jsonify({
                 'success': True,
@@ -648,7 +648,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except ValidationError as e:
-            logger.error(f'Validation error for system config: {e}')
+            logger.error(f'validation error for system config: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -675,7 +675,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 ],
             }), 400
         except Exception as e:
-            logger.error(f'Error saving system config: {e}')
+            logger.error(f'error saving system config: {e}')
 
             # Log failed attempt
             from attubot.web import app as web_app
@@ -791,7 +791,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                         success=True,
                     )
 
-            logger.info('Chat configuration saved')
+            logger.info('chat configuration saved')
 
             return jsonify({
                 'success': True,
@@ -799,7 +799,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except ValidationError as e:
-            logger.error(f'Validation error for chat config: {e}')
+            logger.error(f'validation error for chat config: {e}')
 
             from attubot.web import app as web_app
 
@@ -818,7 +818,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'details': [{'type': err['type'], 'loc': err['loc'], 'msg': err['msg']} for err in e.errors()],
             }), 400
         except Exception as e:
-            logger.error(f'Error saving chat config: {e}')
+            logger.error(f'error saving chat config: {e}')
 
             from attubot.web import app as web_app
 
@@ -877,7 +877,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching audit logs: {e}')
+            logger.error(f'error fetching audit logs: {e}')
             return jsonify({'error': 'Failed to fetch audit logs'}), 500
 
     # ========== API Routes - Years ==========
@@ -920,7 +920,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching years for guild {guild_id}: {e}')
+            logger.error(f'error fetching years for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch years'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/<int:year>')
@@ -946,7 +946,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching year {year} for guild {guild_id}: {e}')
+            logger.error(f'error fetching year {year} for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch year'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/latest')
@@ -972,7 +972,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching latest year for guild {guild_id}: {e}')
+            logger.error(f'error fetching latest year for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch latest year'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/<int:year>', methods=['POST'])
@@ -1030,11 +1030,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     success=True,
                 )
 
-            logger.info(f'{message} for guild {guild_id}')
+            logger.info(f'year {year} {"updated" if existing else "created"} for guild {guild_id}')
             return jsonify({'success': True, 'message': message})
 
         except Exception as e:
-            logger.error(f'Error creating/updating year {year} for guild {guild_id}: {e}')
+            logger.error(f'error creating/updating year {year} for guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/<int:year>', methods=['DELETE'])
@@ -1065,11 +1065,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     success=True,
                 )
 
-            logger.info(f'Year {year} deleted for guild {guild_id}')
+            logger.info(f'year {year} deleted for guild {guild_id}')
             return jsonify({'success': True, 'message': f'Year {year} deleted successfully'})
 
         except Exception as e:
-            logger.error(f'Error deleting year {year} for guild {guild_id}: {e}')
+            logger.error(f'error deleting year {year} for guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Markers ==========
@@ -1111,7 +1111,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching markers for guild {guild_id}: {e}')
+            logger.error(f'error fetching markers for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch markers'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>')
@@ -1137,7 +1137,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching marker for year {year} channel {channel} in guild {guild_id}: {e}')
+            logger.error(f'error fetching marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch marker'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/timestamp')
@@ -1159,7 +1159,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching marker timestamp for year {year} in guild {guild_id}: {e}')
+            logger.error(f'error fetching marker timestamp for year {year} in guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch marker timestamp'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>', methods=['POST'])
@@ -1213,11 +1213,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     success=True,
                 )
 
-            logger.info(f'{msg} for guild {guild_id}')
+            logger.info(f'marker year={year} channel={channel} {"updated" if existing else "created"} for guild {guild_id}')
             return jsonify({'success': True, 'message': msg})
 
         except Exception as e:
-            logger.error(f'Error creating/updating marker for year {year} channel {channel} in guild {guild_id}: {e}')
+            logger.error(f'error creating/updating marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>', methods=['DELETE'])
@@ -1247,11 +1247,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     success=True,
                 )
 
-            logger.info(f'Marker for year {year} channel {channel} deleted for guild {guild_id}')
+            logger.info(f'marker year={year} channel={channel} deleted for guild {guild_id}')
             return jsonify({'success': True, 'message': f'Marker for year {year} channel {channel} deleted successfully'})
 
         except Exception as e:
-            logger.error(f'Error deleting marker for year {year} channel {channel} in guild {guild_id}: {e}')
+            logger.error(f'error deleting marker for year {year} channel {channel} in guild {guild_id}: {e}')
             return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Time/Calendar ==========
@@ -1292,7 +1292,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching time status for guild {guild_id}: {e}')
+            logger.error(f'error fetching time status for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch time status'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/time/year-span/<int:year>')
@@ -1315,7 +1315,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching year span for year {year} in guild {guild_id}: {e}')
+            logger.error(f'error fetching year span for year {year} in guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to fetch year span'}), 500
 
     # ========== API Routes - Admin Stats ==========
@@ -1387,7 +1387,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             })
 
         except Exception as e:
-            logger.error(f'Error fetching admin stats: {e}')
+            logger.error(f'error fetching admin stats: {e}')
             return jsonify({'error': 'Failed to fetch statistics'}), 500
 
     # ========== Health Check ==========
@@ -1401,4 +1401,4 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'config_loaded': config._get_event('load').is_set(),
         })
 
-    logger.info('Routes registered')
+    logger.info('routes registered')

@@ -110,12 +110,12 @@ class AuditLogger:
             await self.collection.insert_one(entry.to_dict())
 
             logger.info(
-                f'Audit log: {config_type} {action} by {ip_address}' + (f' for guild {guild_id}' if guild_id else '') + f' - {len(changes)} changes',
+                f'audit log: {config_type} {action} by {ip_address}' + (f' for guild {guild_id}' if guild_id else '') + f' - [{len(changes)}] changes',
             )
 
         except Exception as e:
             # Don't let audit logging failures break the application
-            logger.error(f'Failed to write audit log: {e}')
+            logger.error(f'failed to write audit log: {e}')
 
     async def get_logs(
         self,

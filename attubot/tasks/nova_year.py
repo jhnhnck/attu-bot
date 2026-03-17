@@ -136,28 +136,28 @@ class NovaYearTask(BaseTask):
         epoch = cfg.epoch
 
         if epoch.paused:
-            logger.info(f'[{cfg!s}] Skipping task - time paused')
+            logger.info(f'[{cfg!s}] skipping task - time paused')
             return
 
         elapsed_days, year = get_year_status(cfg.id)
 
         if elapsed_days % epoch.length != 0:
-            logger.info(f'[{cfg!s}] Year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)} days away')
+            logger.info(f'[{cfg!s}] year {year + 1} PC: {epoch.length - (elapsed_days % epoch.length)} days away')
             return
 
         latest_year = await Year.get_latest(cfg.id)
 
         if latest_year and year <= latest_year.year:
-            logger.error(f'[{cfg!s}] Already advanced to year {latest_year.year}; was event manually triggered?')
+            logger.error(f'[{cfg!s}] already advanced to year {latest_year.year} PC; was event manually triggered?')
             return
 
-        logger.info(f'[{cfg!s}] Processing guild event')
+        logger.info(f'[{cfg!s}] processing guild event')
         await self._advance_year(cfg, year)
 
     @webhook_logging(scope=logger)
     async def _advance_year(self, cfg: GuildConfig, year: int) -> None:
         """Execute the year advance for a guild."""
-        logger.info(f'[{cfg!s}] Happy New Year! Advancing to Year {year} PC')
+        logger.info(f'[{cfg!s}] advancing to year {year} PC')
         guild = bot.get_guild(cfg.id)
 
         # --- Year Record Lifecycle ---

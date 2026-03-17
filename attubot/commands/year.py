@@ -36,7 +36,7 @@ async def year_check(ctx: ApplicationContext, year: int):
 
     # invalid year input
     if year <= 0:
-        await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
+        await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
 
     # prior years - read directly from Year records
     elif year < current_year:
@@ -86,7 +86,7 @@ async def year_search(ctx: ApplicationContext, year: int):
 
     # invalid year input
     if year <= 0:
-        await ctx.respond('Failed: Only years 1 PC or later are valid options', ephemeral=True)
+        await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
         return
 
     elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
@@ -118,7 +118,7 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
     cfg = config.guild(channel.guild.id)
     marker = await resolve_marker(guild=cfg.id, channel=channel.id, year=year)
 
-    logger.debug(f'Resolved marker: year={year} channel={channel.id} source={marker.source} exact={marker.exact} message={marker.message}')
+    logger.debug(f'resolved marker: year={year} channel=#{channel.name} source={marker.source} exact={marker.exact} message={marker.message}')
 
     return format_message_link(
         guild=cfg.id,
@@ -142,15 +142,15 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
 
     # validate arguments
     if year < 1 or year > current_year:
-        await ctx.respond(f'Failed: Only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
 
     # Skip if its a not a text channel (so we can be unspecific about canon_channels)
     elif channel.type not in (ChannelType.text, ChannelType.news):
-        await ctx.respond(f'Failed: Command does not work on whatever {channel.mention} is', ephemeral=True)
+        await ctx.respond(f'Failed: command does not work on whatever {channel.mention} is', ephemeral=True)
 
     # validate as lore channel
     elif channel.id not in canon_channels:
-        await ctx.respond('Failed: This command only works on lore channels', ephemeral=True)
+        await ctx.respond('Failed: this command only works on lore channels', ephemeral=True)
 
     else:
         link = await find_marker_link(year, channel)
@@ -161,6 +161,6 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
 
 
 def setup(bot: Bot):
-    logger.info(f'Registered: {__name__}')
+    logger.info(f'registered: {__name__}')
 
     bot.add_application_command(year_group)
