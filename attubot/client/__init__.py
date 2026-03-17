@@ -52,8 +52,9 @@ def _check_deps():
 
 
 def _load_event_handlers():
-    """import events module to register all bot event handlers"""
+    """import event handler modules to register all bot event handlers"""
     importlib.import_module('attubot.client.events')
+    importlib.import_module('attubot.client.modlog')
 
 
 def _register_core_commands():
