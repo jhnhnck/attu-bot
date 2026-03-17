@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import signal
 
 from attubot.logging import get_logger
 
@@ -14,7 +15,7 @@ logger = get_logger(__name__)
 
 
 async def _run():
-    from attubot.client.core import config
+    from attubot.client.core import config, db
     from attubot.database import init_database
     from attubot.ingestor.tasks import DiscordIngestTask, WikiIngestTask
     from attubot.tasks.reload_watcher import ReloadWatcherTask
@@ -32,8 +33,20 @@ async def _run():
     scheduler.register(DiscordIngestTask())
     await scheduler.start_all()
 
-    # run forever - tasks handle their own scheduling
-    await asyncio.Event().wait()
+    # run until SIGTERM or SIGINT (e.g. docker stop)
+    loop = asyncio.get_running_loop()
+    _stop = asyncio.Event()
+    loop.add_signal_handler(signal.SIGTERM, _stop.set)
+    loop.add_signal_handler(signal.SIGINT, _stop.set)
+
+    logger.info('Ingestor running; waiting for shutdown signal')
+    await _stop.wait()
+
+    logger.info('Shutting down ingestor...')
+    await scheduler.stop_all()
+
+    if db.client:
+        await db.client.close()
 
 
 def start_ingestor():

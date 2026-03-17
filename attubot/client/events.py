@@ -7,6 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 import asyncio
 import contextlib
+import signal
 import sys
 
 import anyio
@@ -30,6 +31,9 @@ _READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108 - intentional healthcheck senti
 
 async def _shutdown(exit_code: int = 1):
     from attubot.client.core import db
+    from attubot.tasks.scheduler import scheduler
+
+    await scheduler.stop_all()
 
     if db.client:
         await db.client.close()
@@ -39,6 +43,25 @@ async def _shutdown(exit_code: int = 1):
 
     asyncio.get_running_loop().stop()
     sys.exit(exit_code)
+
+
+async def _graceful_shutdown():
+    """handle SIGTERM from docker; stop tasks, close connections, then close bot cleanly"""
+    from attubot.client.core import db
+    from attubot.tasks.scheduler import scheduler
+
+    logger.info('SIGTERM received; shutting down gracefully')
+    asyncio.get_running_loop().remove_signal_handler(signal.SIGTERM)
+
+    await scheduler.stop_all()
+
+    if db.client:
+        await db.client.close()
+
+    with contextlib.suppress(FileNotFoundError):
+        await anyio.Path(_READY_SENTINEL).unlink()
+
+    await bot.close()
 
 
 # --- Ready Path ---
@@ -83,6 +106,9 @@ async def _do_ready_init():
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
+
+    # register SIGTERM handler for graceful container shutdown
+    asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(_graceful_shutdown()))
 
     # signal healthcheck: bot is fully ready
     try:

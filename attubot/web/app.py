@@ -53,6 +53,19 @@ def _register_startup(app: Quart, assets_dir: Path) -> None:
             logger.fatal(f'Failed to initialize: {err}')
             raise err
 
+    @app.after_serving
+    async def shutdown() -> None:
+        """clean up connections on container stop (SIGTERM)"""
+        logger.info('Web server shutting down')
+
+        if db.client:
+            await db.client.close()
+
+        from attubot import bot as discord_bot
+
+        if not discord_bot.is_closed():
+            await discord_bot.close()
+
 
 async def _initialize_startup(assets_dir: Path):
     from attubot.client.logo import generate_png
