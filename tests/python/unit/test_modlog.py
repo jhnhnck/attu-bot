@@ -288,6 +288,28 @@ class TestChannelLogs:
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Channel Updated'
 
+    async def test_channel_update_shows_actor(self, guild_with_logs):
+        from attubot.client.modlog import on_guild_channel_update
+
+        before = _make_channel(name='old')
+        after = _make_channel(name='new')
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        # two calls: _is_bot_audit_action then _get_audit_actor
+        after.guild.audit_logs = MagicMock(side_effect=[
+            _make_audit_log([_make_audit_entry(after.id, bot=False)]),
+            _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
+        ])
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_guild_channel_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        field_values = [f.value for f in embed.fields]
+        assert 'By' in field_names
+        assert f'<@{actor_id}>' in field_values
+
 
 class TestRoleLogs:
     async def test_role_create_sends_embed(self, guild_with_logs):
@@ -344,6 +366,28 @@ class TestRoleLogs:
             await on_guild_role_update(before, after)
 
         logs_channel.send.assert_not_called()
+
+    async def test_role_update_shows_actor(self, guild_with_logs):
+        from attubot.client.modlog import on_guild_role_update
+
+        before = _make_role(name='old')
+        after = _make_role(name='new')
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        # two calls: _is_bot_audit_action then _get_audit_actor
+        after.guild.audit_logs = MagicMock(side_effect=[
+            _make_audit_log([_make_audit_entry(after.id, bot=False)]),
+            _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
+        ])
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_guild_role_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        field_values = [f.value for f in embed.fields]
+        assert 'By' in field_names
+        assert f'<@{actor_id}>' in field_values
 
     async def test_role_update_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_guild_role_update
@@ -412,6 +456,27 @@ class TestMemberUpdateLogs:
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Member Role Added'
 
+    async def test_role_add_shows_actor(self, guild_with_logs):
+        from attubot.client.modlog import on_member_update
+
+        before = _make_member()
+        after = _make_member()
+        after.roles = [_make_role(role_id=10, mention='@new')]
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        after.guild.audit_logs = MagicMock(
+            return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
+        )
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        field_values = [f.value for f in embed.fields]
+        assert 'By' in field_names
+        assert f'<@{actor_id}>' in field_values
+
     async def test_role_remove_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_update
 
@@ -426,6 +491,27 @@ class TestMemberUpdateLogs:
         logs_channel.send.assert_called_once()
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Member Role Removed'
+
+    async def test_role_remove_shows_actor(self, guild_with_logs):
+        from attubot.client.modlog import on_member_update
+
+        before = _make_member()
+        before.roles = [_make_role(role_id=10, mention='@old')]
+        after = _make_member()
+        actor_id = TEST_USER + 1
+        logs_channel = _make_logs_channel()
+        after.guild.audit_logs = MagicMock(
+            return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
+        )
+
+        with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
+            await on_member_update(before, after)
+
+        embed = logs_channel.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        field_values = [f.value for f in embed.fields]
+        assert 'By' in field_names
+        assert f'<@{actor_id}>' in field_values
 
     async def test_timeout_change_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_update

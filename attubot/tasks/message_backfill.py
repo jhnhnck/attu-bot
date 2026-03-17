@@ -33,7 +33,6 @@ class MessageBackfillTask(BaseTask):
     interval: timedelta | None = None  # dynamic schedule - run once then idle
     run_immediately: bool = True
 
-    RECENT_LOOKBACK: timedelta = timedelta(minutes=30)
     RECENT_HISTORY_LIMIT: int | None = None
 
     async def on_start(self) -> None:
@@ -76,6 +75,7 @@ class MessageBackfillTask(BaseTask):
         """Backfill all text channels and active threads across all valid guilds."""
         total_new = 0
         total_channels = 0
+        logger.info('backfill: starting')
 
         for guild_id in config.valid_guilds:
             guild = bot.get_guild(guild_id)
@@ -101,6 +101,8 @@ class MessageBackfillTask(BaseTask):
                 total_channels += 1
                 await self._reconcile_recent_channel(guild_id, channel)
 
+            await self._reconcile_pending_starred_docs(guild_id)
+
         logger.info(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
 
     async def _backfill_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread) -> int:
@@ -112,7 +114,7 @@ class MessageBackfillTask(BaseTask):
         count = 0
 
         channel_label = f'#{channel.name} ({channel.id})'
-        logger.info(f'backfill: scanning {channel_label}')
+        logger.debug(f'backfill: scanning {channel_label}')
 
         try:
             latest_id = await repo.get_latest_in_channel(guild_id, channel.id)
@@ -150,7 +152,7 @@ class MessageBackfillTask(BaseTask):
             logger.warn(f'backfill: error reading {channel_label}: {err}')
 
         if count > 0:
-            logger.info(f'backfill: stored {count} new messages from {channel_label}')
+            logger.debug(f'backfill: stored {count} new messages from {channel_label}')
         else:
             logger.debug(f'backfill: {channel_label} is up to date')
 
@@ -159,13 +161,13 @@ class MessageBackfillTask(BaseTask):
     async def _reconcile_recent_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread, lookback: timedelta | None = None) -> int:
         """Force a recent lookback on a channel to pick up edits and reactions."""
 
-        lookback = lookback or self.RECENT_LOOKBACK
+        lookback = lookback or timedelta(hours=24)
         repo = _get_repo()
         count = 0
 
         channel_label = f'#{channel.name} ({channel.id})'
         since = datetime.now(tz=UTC) - lookback
-        logger.info(f'backfill: reconciling recent activity in {channel_label} (last {lookback})')
+        logger.debug(f'backfill: reconciling recent activity in {channel_label} (last {lookback})')
         after = Object(id=time_snowflake(since))
 
         seen_ids: set[int] = set()
@@ -186,7 +188,7 @@ class MessageBackfillTask(BaseTask):
             deleted_at = int(datetime.now(tz=UTC).timestamp())
             await repo.mark_bulk_deleted(missing, deleted_at)
         if count > 0 or missing:
-            logger.info(f'backfill: reconciled {count} recent messages from {channel_label}')
+            logger.debug(f'backfill: reconciled {count} recent messages from {channel_label}')
 
         return count
 
@@ -201,6 +203,41 @@ class MessageBackfillTask(BaseTask):
         except Exception as err:
             logger.warn(f'backfill: failed to reconcile message {message.id} in channel {message.channel.id}: {err}')
             return False
+
+    async def _reconcile_pending_starred_docs(self, guild_id: int) -> None:
+        """Re-check starred docs with no starboard post; catches stars added during an outage."""
+        from attubot.client.starboard import _get_repo as _get_sb_repo, _sync_starboard_post, backfill_message_reactions
+        from attubot.client.core import config as _config
+
+        try:
+            sb_repo = _get_sb_repo()
+            pending = await sb_repo.get_all_pending(guild_id)
+        except Exception as err:
+            logger.warn(f'backfill: could not fetch pending starred docs for guild {guild_id}: {err}')
+            return
+
+        if not pending:
+            return
+
+        logger.debug(f'backfill: found {len(pending)} pending starred docs for guild {guild_id}')
+
+        try:
+            guild_config = _config.guild(guild_id)
+        except Exception:
+            return
+
+        for starred_doc in pending:
+            try:
+                channel = bot.get_channel(starred_doc.channel_id)
+                if channel is None:
+                    continue
+                fresh_msg = await channel.fetch_message(starred_doc.message_id)  # type: ignore[union-attr]
+                await backfill_message_reactions(fresh_msg, guild_id, replace=True)
+                updated = await sb_repo.get(starred_doc.message_id)
+                if updated:
+                    await _sync_starboard_post(guild_id, updated, guild_config)
+            except Exception as err:
+                logger.warn(f'backfill: failed to reconcile pending starred doc {starred_doc.message_id}: {err}')
 
 
 # singleton instance for registration

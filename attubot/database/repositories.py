@@ -736,6 +736,12 @@ class StarboardRepository:
         docs = await cursor.to_list(length=None)
         return [StarredMessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
+    async def get_all_pending(self, guild_id: int) -> list[StarredMessageDocument]:
+        """return starred docs that have not yet been posted to the starboard channel"""
+        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id, 'starboard_message_id': None})
+        docs = await cursor.to_list(length=None)
+        return [StarredMessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+
 
 class ReloadSignalRepository:
     """Repository for cross-process config reload signals

@@ -97,6 +97,8 @@ class MessageContent(BaseModel):
     attachments: list[dict] = []  # [{filename, url, content_type, size, saved_path}]
     embeds: list[dict] = []
     sticker_ids: list[int] = []
+    sticker_urls: list[str] = []  # resolved cdn urls for attached stickers
+    poll_text: str | None = None  # human-readable poll serialization (question, options, results)
     forwarded: bool = False  # true when content was extracted from message.snapshots
 
 

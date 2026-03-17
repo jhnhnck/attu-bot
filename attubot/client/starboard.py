@@ -78,7 +78,7 @@ def _merge_stored_embed(embed: discord.Embed, stored: dict, has_attachment_image
         embed.title = stored['title']
     if stored.get('url'):
         embed.url = stored['url']
-    image_url = stored.get('image_url') or stored.get('thumbnail_url')
+    image_url = stored.get('image_url') or stored.get('video_url') or stored.get('thumbnail_url')
     if image_url and not has_attachment_image:
         embed.set_image(url=image_url)
     for field in stored.get('fields', []):
@@ -94,7 +94,7 @@ def _hydrate_stored_embed(stored: dict) -> discord.Embed:
         embed.description = stored['description']
     if stored.get('url'):
         embed.url = stored['url']
-    image_url = stored.get('image_url') or stored.get('thumbnail_url')
+    image_url = stored.get('image_url') or stored.get('video_url') or stored.get('thumbnail_url')
     if image_url:
         embed.set_image(url=image_url)
     if stored.get('fields'):
@@ -290,6 +290,16 @@ async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many
             )
             if ref_doc.content.text:
                 reply_embed.description = ref_doc.content.text
+            elif not ref_doc.content.attachments:
+                # poll, system message, or other non-text content
+                if ref_doc.content.poll_text:
+                    reply_embed.description = ref_doc.content.poll_text
+                else:
+                    first = ref_doc.content.embeds[0] if ref_doc.content.embeds else None
+                    reply_embed.description = (
+                        (first.get('title') or first.get('description') if first else None)
+                        or '*message has no text preview*'
+                    )
             # show first image attachment from the referenced message
             if ref_doc.content.attachments and ref_doc.content.attachments[0].get('url'):
                 reply_embed.set_image(url=ref_doc.content.attachments[0]['url'])
@@ -306,6 +316,11 @@ async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many
     image_attachments = [a for a in message_doc.content.attachments if _is_image(a)]
     if image_attachments:
         main_embed.set_image(url=image_attachments[0]['url'])
+    elif not message_doc.content.embeds and message_doc.content.sticker_urls:
+        # sticker-only or sticker + text message - show the sticker as the embed image
+        main_embed.set_image(url=message_doc.content.sticker_urls[0])
+        if not message_doc.content.text:
+            main_embed.description = '*sticker*'
 
     hydrated_embed: discord.Embed | None = None
     if message_doc.content.embeds:
@@ -794,8 +809,15 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         )
         if max_weight < 2:
             return
+        # send with a brief notification preview so push notifications show message context
+        # instead of just a bare jump URL; edit to the full content after db write + reactions
+        all_emojis = set(doc.reactions) | set(doc.super_reactions)
+        leading_emoji = max(all_emojis, key=lambda e: _weighted_count(e, doc.reactions, doc.super_reactions)) if all_emojis else '⭐'
+        leading_count = _fmt_count(_weighted_count(leading_emoji, doc.reactions, doc.super_reactions)) if all_emojis else '1'
+        preview = (msg_doc.content.text or '*no text*')[:100]
+        notification_content = f'{leading_emoji} {leading_count} | @{msg_doc.author.name}: {preview}'
         try:
-            sb_msg = await channel.send(content=content, embeds=embeds)
+            sb_msg = await channel.send(content=notification_content, embeds=embeds)
         except Exception as err:
             logger.error(f'starboard: failed to send post for message {doc.message_id}: {err}')
             return
@@ -815,6 +837,16 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                     await sb_msg.add_reaction(emoji)
                 except Exception as err:
                     logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
+        # edit to final content with retry so notification preview doesn't persist
+        for attempt in range(3):
+            try:
+                await sb_msg.edit(content=content)
+                break
+            except discord.HTTPException as err:
+                if attempt == 2:
+                    logger.warn(f'starboard: failed to edit notification post {sb_msg.id} to final content after 3 attempts: {err}')
+                else:
+                    await asyncio.sleep(2 ** attempt)
         logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
         await _check_and_announce_sweep(guild_id, doc.author_id, channel)
         return

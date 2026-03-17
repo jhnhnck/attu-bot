@@ -280,6 +280,24 @@ class TestRegisterCoreCommands:
 # ============================================================
 
 
+class TestEventHandlerModules:
+    """unit: every event handler module can be imported without errors.
+
+    this is the compensation test for the mocked _load_event_handlers calls in
+    TestStartBotLoopPipeline - those tests verify orchestration only; this test verifies the
+    real modules are importable. decorators (@bot.listen) are evaluated at import time, so any
+    bad attribute reference or missing import raises here immediately.
+    """
+
+    @pytest.mark.parametrize('module', [
+        'attubot.client.events',
+        'attubot.client.modlog',
+    ])
+    def test_event_handler_module_imports_cleanly(self, module):
+        import importlib
+        importlib.import_module(module)
+
+
 class TestExtensionImports:
     """unit: every extension module in extensions_list can be imported without errors.
 
