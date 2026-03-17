@@ -300,6 +300,7 @@ async function loadGuildConfig(guildId) {
         populateField('epoch.rollover_time', data.epoch.rollover_time);
 
         populateField('roles.announcements', data.roles.announcements);
+        populateField('roles.bot_color', data.roles.bot_color);
 
         // Use resolved user names for display
         initListField('marker_users', data.users.markers, data.users.markers_names);

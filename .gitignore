@@ -46,13 +46,8 @@ wip/
 docker-compose.yml
 
 # assets
-assets/*
-!assets/templates
-!assets/static
-!assets/prompts
-!assets/templates/**
-!assets/static/**
-!assets/prompts/**
+assets/doombot-seed/
+assets/models/
 
 # notes
 notes/*

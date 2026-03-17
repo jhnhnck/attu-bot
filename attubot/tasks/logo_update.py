@@ -92,7 +92,7 @@ class LogoUpdateTask(BaseTask):
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # edit guild and bot with new logos
-        guild = bot.get_guild(config.primary_guild)
+        guild = bot.get_guild(config.primary_guild) or await bot.fetch_guild(config.primary_guild)
         await guild.edit(icon=guild_icon, reason='logo update task')
         await bot.user.edit(avatar=bot_avatar)
 
