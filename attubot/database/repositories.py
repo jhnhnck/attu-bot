@@ -756,9 +756,9 @@ class ReloadSignalRepository:
         self.db = db
 
     async def init_indexes(self):
+        # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead
         await self.db[self.COLLECTION].create_index(
             [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
-            unique=True,
         )
 
     async def send(self, signal_type: str, guild_id: int | None = None):
@@ -771,14 +771,15 @@ class ReloadSignalRepository:
         )
 
     async def consume_all(self) -> list[ReloadSignalDocument]:
-        """Atomically fetch and delete all pending signals"""
-        cursor = self.db[self.COLLECTION].find({})
-        docs = await cursor.to_list(length=None)
-        if not docs:
-            return []
-        ids = [doc['_id'] for doc in docs]
-        await self.db[self.COLLECTION].delete_many({'_id': {'$in': ids}})
-        return [ReloadSignalDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
+        """Fetch and delete all pending signals one at a time (find_one_and_delete avoids $in on _id which has FerretDB compat issues)"""
+        results = []
+        while True:
+            doc = await self.db[self.COLLECTION].find_one_and_delete({})
+            if doc is None:
+                break
+            doc.pop('_id', None)
+            results.append(ReloadSignalDocument(**doc))
+        return results
 
 
 class FamilyRepository:

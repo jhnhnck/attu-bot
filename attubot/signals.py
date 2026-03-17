@@ -31,6 +31,6 @@ async def send_signal(signal_type: str, guild_id: int | None = None):
     try:
         repo = _get_repo()
         await repo.send(signal_type, guild_id)
-        logger.debug(f'sent reload signal: type={signal_type} guild_id={guild_id}')
+        logger.info(f'sent reload signal: type={signal_type} guild_id={guild_id}')
     except Exception as e:
         logger.error(f'failed to send reload signal (type={signal_type} guild_id={guild_id}): {e}')
