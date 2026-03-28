@@ -25,7 +25,7 @@ from attubot.config import GuildEpoch
 from tests.conftest import test_guild
 
 
-utc = ZoneInfo('utc')
+utc = ZoneInfo('UTC')
 
 
 # --- GuildEpoch.get_rollover_time() ---

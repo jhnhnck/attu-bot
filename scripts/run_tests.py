@@ -3,6 +3,7 @@
 
 import subprocess
 import sys
+from typing import Any
 
 from termcolor import colored
 
@@ -20,14 +21,16 @@ def run(title: str, cmd: list[str], env: dict | None = None, quiet: bool = True)
 
 if __name__ == '__main__':
     verbose = '-v' in sys.argv
+    exit_early = ['-x'] if '-x' in sys.argv else []
+    coverage = '--coverage' in sys.argv
 
-    run('unit tests', ['coverage', 'run', '-m', 'pytest', '-x', 'tests/python/unit/'], quiet=not verbose)
-    run('component tests', ['coverage', 'run', '--append', '-m', 'pytest', '-x', 'tests/python/component/'], quiet=not verbose)
-    run('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', '-x', 'tests/python/integration/'], quiet=not verbose)
+    run('unit tests', ['coverage', 'run', '-m', 'pytest', *exit_early, 'tests/python/unit/'], quiet=not verbose)
+    run('component tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_early, 'tests/python/component/'], quiet=not verbose)
+    run('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_early, 'tests/python/integration/'], quiet=not verbose)
 
     run('javascript tests', ['npm', 'test'], quiet=not verbose)
 
-    if '--coverage' in sys.argv:
+    if coverage:
         run('coverage report', ['coverage', 'report'], quiet=False)
 
     print(colored('tests completed successfully.', 'light_green'))

@@ -106,22 +106,15 @@ class TestReloadSignalRepository:
         assert before <= doc['timestamp'] <= after
 
     async def test_consume_all_empty(self, signal_repo):
-        mock_cursor = MagicMock()
-        mock_cursor.to_list = AsyncMock(return_value=[])
-        signal_repo.db[signal_repo.COLLECTION].find = MagicMock(return_value=mock_cursor)
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(return_value=None)
         result = await signal_repo.consume_all()
         assert result == []
-        # no delete when nothing to consume
-        signal_repo.db[signal_repo.COLLECTION].delete_many = AsyncMock()
-        signal_repo.db[signal_repo.COLLECTION].delete_many.assert_not_called()
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once()
 
     async def test_consume_all_returns_signals(self, signal_repo):
         fake_id = 'fake_oid_1'
-        raw_docs = [{'_id': fake_id, 'signal_type': 'guild', 'guild_id': test_guild, 'timestamp': 1000}]
-        mock_cursor = MagicMock()
-        mock_cursor.to_list = AsyncMock(return_value=raw_docs)
-        signal_repo.db[signal_repo.COLLECTION].find = MagicMock(return_value=mock_cursor)
-        signal_repo.db[signal_repo.COLLECTION].delete_many = AsyncMock()
+        raw_doc = {'_id': fake_id, 'signal_type': 'guild', 'guild_id': test_guild, 'timestamp': 1000}
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(side_effect=[raw_doc, None])
         result = await signal_repo.consume_all()
         assert len(result) == 1
         assert result[0].signal_type == 'guild'
@@ -129,13 +122,11 @@ class TestReloadSignalRepository:
 
     async def test_consume_all_deletes_processed(self, signal_repo):
         fake_id = 'fake_oid_1'
-        raw_docs = [{'_id': fake_id, 'signal_type': 'theme', 'guild_id': None, 'timestamp': 1000}]
-        mock_cursor = MagicMock()
-        mock_cursor.to_list = AsyncMock(return_value=raw_docs)
-        signal_repo.db[signal_repo.COLLECTION].find = MagicMock(return_value=mock_cursor)
-        signal_repo.db[signal_repo.COLLECTION].delete_many = AsyncMock()
+        raw_doc = {'_id': fake_id, 'signal_type': 'theme', 'guild_id': None, 'timestamp': 1000}
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(side_effect=[raw_doc, None])
         await signal_repo.consume_all()
-        signal_repo.db[signal_repo.COLLECTION].delete_many.assert_called_once_with({'_id': {'$in': [fake_id]}})
+        # find_one_and_delete atomically deletes each doc; verify it was called for the doc
+        assert signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.call_count == 2
 
     async def test_consume_all_multiple_signals(self, signal_repo):
         raw_docs = [
@@ -143,17 +134,12 @@ class TestReloadSignalRepository:
             {'_id': 'id2', 'signal_type': 'theme', 'guild_id': None, 'timestamp': 1001},
             {'_id': 'id3', 'signal_type': 'system', 'guild_id': None, 'timestamp': 1002},
         ]
-        mock_cursor = MagicMock()
-        mock_cursor.to_list = AsyncMock(return_value=raw_docs)
-        signal_repo.db[signal_repo.COLLECTION].find = MagicMock(return_value=mock_cursor)
-        signal_repo.db[signal_repo.COLLECTION].delete_many = AsyncMock()
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(side_effect=[*raw_docs, None])
         result = await signal_repo.consume_all()
         assert len(result) == 3
         types = {r.signal_type for r in result}
         assert types == {'guild', 'theme', 'system'}
-        # all three ids should be in the delete call
-        delete_args = signal_repo.db[signal_repo.COLLECTION].delete_many.call_args[0][0]
-        assert set(delete_args['_id']['$in']) == {'id1', 'id2', 'id3'}
+        assert signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.call_count == 4
 
     async def test_collection_name(self, signal_repo):
         assert signal_repo.COLLECTION == 'reload_signals'

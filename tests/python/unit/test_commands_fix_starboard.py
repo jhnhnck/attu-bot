@@ -24,7 +24,7 @@ async def test_purge_rejects_invalid_link(mock_ctx_factory):
     await fix_starboard_purge(ctx, message_link='not-a-link')
 
     assert ctx._responses[0]['kwargs'].get('ephemeral') is True
-    assert 'Invalid' in ctx._responses[0]['args'][0]
+    assert 'Failed' in ctx._responses[0]['args'][0]
 
 
 @pytest.mark.asyncio
@@ -52,4 +52,4 @@ async def test_purge_entry_not_found(mock_ctx_factory):
         await fix_starboard_purge(ctx, message_link=f'https://discord.com/channels/{test_guild}/{test_channel}/{msg_id}')
 
     assert ctx._responses[0]['kwargs'].get('ephemeral') is True
-    assert 'No starboard entry found' in ctx._responses[0]['args'][0]
+    assert 'no starboard entry found for message' in ctx._responses[0]['args'][0]

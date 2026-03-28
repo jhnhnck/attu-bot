@@ -138,9 +138,9 @@ class TestNextRun:
             result = await task.next_run()
 
         assert result is not None
-        # frozen at 12:00, target is 03:00 — already past, so should be tomorrow
+        # frozen at 12:00, target is 03:00 — already past, so should be tomorrow (15h away)
         delta = (result - datetime.now().astimezone()).total_seconds()
-        assert delta > 60 * 60 * 23  # at least 23h away
+        assert delta > 60 * 60 * 14  # tomorrow's 03:00 is ~15h from noon
 
 
 # ---------------------------------------------------------------------------

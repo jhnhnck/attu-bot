@@ -77,9 +77,11 @@ def restore_config_state():
     # clear repo/db handles that may be bound to a different event loop
     config.config_repo = None
     from attubot import db
+    from attubot.client import starboard as _starboard_module
 
     db.client = None
     db.db = None
+    _starboard_module._starboard_repo = None
 
     # restore event set/clear states
     for k, was_set in saved_events.items():

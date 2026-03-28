@@ -23,6 +23,7 @@ from attubot.eggs.hatching import (
     hatch_egg,
     run_hatch_animation,
 )
+from attubot.tasks.scheduler import scheduler as real_scheduler
 
 
 # ---- constants ----
@@ -175,12 +176,12 @@ class TestHatchEgg:
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
             patch('attubot.eggs.hatching.bot') as mock_bot,
-            patch('attubot.eggs.hatching.asyncio') as mock_asyncio,
+            patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
             self.egg_repo = mock_egg_repo
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
-            self.mock_asyncio = mock_asyncio
+            self.mock_add_job = mock_add_job
             yield
 
     async def test_no_eggs(self):
@@ -221,7 +222,7 @@ class TestHatchEgg:
         assert 'discord.com' in result
         assert ts is None
         self.egg_repo.mark_hatched.assert_called_once_with(egg.egg_id, egg.result)
-        self.mock_asyncio.create_task.assert_called_once()
+        self.mock_add_job.assert_called_once()
 
 
 # ============================================================

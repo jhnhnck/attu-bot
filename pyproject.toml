@@ -95,7 +95,7 @@ exclude = ["*.wip.py", "wip/"]
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
 addopts = "-v"
 asyncio_mode = "auto"
 markers = [
