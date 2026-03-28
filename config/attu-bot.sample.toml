@@ -1,4 +1,4 @@
-config_version = "2.5.1"
+config_version = "2.5.3"
 
 [paths]
 # Path to the assets directory (templates, static files, favicon)
@@ -43,7 +43,8 @@ user = "WikiBot@WikiBot"
 endpoint = "https://example.org"
 
 [discord.guilds]
-authorized = [1000000000000000000, 2000000000000000000]
+primary = 1000000000000000000
+secondary = 2000000000000000000
 
 [backup]
 # full database backup via mongodump — leave path empty to disable
