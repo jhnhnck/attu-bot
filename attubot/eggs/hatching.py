@@ -97,7 +97,7 @@ async def get_or_create_user_thread(guild_id: int, user_id: int, username: str) 
     guild_cfg = config.guild(guild_id)
     eggs_channel = bot.get_channel(guild_cfg.channels.eggs)
     if eggs_channel is None:
-        raise RuntimeError('eggs channel not found - run /fix eggs generate first')
+        raise RuntimeError('oops, all out of eggs right now')
 
     thread = await eggs_channel.create_thread(  # type: ignore[union-attr]
         name=f"{username}'s eggs",
@@ -204,8 +204,12 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
     thread = bot.get_channel(user_doc.thread_id)
     if thread is None:
         guild = bot.get_guild(guild_id)
-        thread = await guild.fetch_channel(user_doc.thread_id)  # type: ignore[union-attr]
+        if guild is None:
+            raise RuntimeError(f'guild {guild_id} not in cache')
+        thread = await guild.fetch_channel(user_doc.thread_id)
 
+    if egg.message_id is None:
+        raise RuntimeError(f'egg {egg.egg_id} has no message_id stored')
     msg = await thread.fetch_message(egg.message_id)  # type: ignore[union-attr]
     jump_url = msg.jump_url
 

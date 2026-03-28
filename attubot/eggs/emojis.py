@@ -5,9 +5,10 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+from pathlib import Path
+
 import discord
 
-from attubot.client.core import config
 from attubot.client.logo import svg_to_png
 from attubot.eggs.data import rarities
 from attubot.logging import get_logger
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 
 async def render_egg(rarity: str) -> bytes:
     """Render the egg SVG for the given rarity to PNG bytes."""
-    svg_path = config.path.parent / 'eggs' / 'egg.svg'
+    svg_path = Path(__file__).parent / 'egg.svg'
     svg_text = svg_path.read_text()
     # swap the class on the root <g> element to select the correct color theme
     svg_text = svg_text.replace('class="common"', f'class="{rarity}"', 1)
