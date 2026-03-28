@@ -20,8 +20,8 @@ embed = make_embed(
     author_icon_url='https://cdn.discordapp.com/...',
     author_url='https://example.com',
     thumbnail='https://example.com/icon.png',
-    url='https://example.com',    # makes the title a hyperlink
-    timestamp=True,               # default - uses current utc time
+    url='https://example.com',  # makes the title a hyperlink
+    timestamp=True,  # default - uses current utc time
 )
 ```
 
@@ -78,10 +78,10 @@ Use directly only when you need something `make_embed()` doesn't support (e.g. `
 import discord
 
 embed = discord.Embed(
-    title='embed title',          # max 256 chars
-    description='embed body',     # max 4096 chars
-    url='https://example.com',    # makes title a hyperlink
-    color=discord.Color.blurple(), # or int: 0x5865F2
+    title='embed title',  # max 256 chars
+    description='embed body',  # max 4096 chars
+    url='https://example.com',  # makes title a hyperlink
+    color=discord.Color.blurple(),  # or int: 0x5865F2
     timestamp=datetime.now(UTC),  # adds a timestamp to the footer row
 )
 ```
@@ -96,7 +96,8 @@ All setters return the embed instance, so you can chain them:
 
 ```python
 embed = (
-    discord.Embed(title='example')
+    discord
+    .Embed(title='example')
     .set_author(name='attu bot', url='https://attu.wiki', icon_url='https://...')
     .set_footer(text='footer text', icon_url='https://...')
     .set_image(url='https://example.com/banner.png')
@@ -126,7 +127,7 @@ Small image anchored to the top-right. Pass `None` to remove.
 embed.add_field(name='label', value='content', inline=True)
 embed.insert_field_at(0, name='prepend', value='...', inline=False)
 embed.set_field_at(1, name='updated', value='new content', inline=True)
-embed.remove_field(0)   # silently ignored if index out of range
+embed.remove_field(0)  # silently ignored if index out of range
 embed.clear_fields()
 ```
 
@@ -158,13 +159,13 @@ embed.remove_thumbnail()
 All component accessors return a typed dataclass or `None`:
 
 ```python
-embed.author     # EmbedAuthor | None  (.name, .url, .icon_url, .proxy_icon_url)
-embed.footer     # EmbedFooter | None  (.text, .icon_url, .proxy_icon_url)
-embed.image      # EmbedMedia  | None  (.url, .proxy_url, .height, .width)
+embed.author  # EmbedAuthor | None  (.name, .url, .icon_url, .proxy_icon_url)
+embed.footer  # EmbedFooter | None  (.text, .icon_url, .proxy_icon_url)
+embed.image  # EmbedMedia  | None  (.url, .proxy_url, .height, .width)
 embed.thumbnail  # EmbedMedia  | None
-embed.video      # EmbedMedia  | None  (read-only; set by Discord for non-rich embeds)
-embed.provider   # EmbedProvider | None (.name, .url; also read-only)
-embed.fields     # list[EmbedField]    (.name, .value, .inline)
+embed.video  # EmbedMedia  | None  (read-only; set by Discord for non-rich embeds)
+embed.provider  # EmbedProvider | None (.name, .url; also read-only)
+embed.fields  # list[EmbedField]    (.name, .value, .inline)
 ```
 
 `len(embed)` returns the total character count across all text fields - useful for checking against the 6000 char cap before sending.
@@ -236,7 +237,7 @@ await ctx.respond(content='here is the info:', embed=embed)
 ## Dict Roundtrip
 
 ```python
-data = embed.to_dict()   # -> dict[str, ...]
+data = embed.to_dict()  # -> dict[str, ...]
 embed2 = discord.Embed.from_dict(data)
 ```
 

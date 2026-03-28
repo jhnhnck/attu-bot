@@ -182,24 +182,25 @@ MediaWiki access uses the existing `[auth.wiki]` config section (`WikiAuth`: key
 
 ```python
 class ChatChannelConfig(BaseModel):
-    name: str                          # display name used in summarization prompts and Qdrant payload
-    description: str = ''              # short theme note (e.g. "Attu Archipelago general discussion")
-    channel_type: str = 'discussion'   # 'roleplay' | 'discussion' | 'shitpost' | 'forum'
-    ingest: bool = True                # set False to exclude entirely; shitpost channels default to False
+    name: str  # display name used in summarization prompts and Qdrant payload
+    description: str = ''  # short theme note (e.g. "Attu Archipelago general discussion")
+    channel_type: str = 'discussion'  # 'roleplay' | 'discussion' | 'shitpost' | 'forum'
+    ingest: bool = True  # set False to exclude entirely; shitpost channels default to False
+
 
 class ChatConfigDocument(BaseModel):
     config_type: Literal['chat'] = 'chat'
-    discord_lookback_hours: int = 6        # how far back to gather messages for window building
-    discord_window_minutes: int = 30       # time-bucket width for grouping non-reply messages
-    noise_filter_min_tokens: int = 20      # ingest only - skip messages shorter than this; does not affect context expansion at query time
-    ignored_user_ids: list[int] = []       # user snowflakes excluded from ingestion (bots, etc.); does not affect context expansion
+    discord_lookback_hours: int = 6  # how far back to gather messages for window building
+    discord_window_minutes: int = 30  # time-bucket width for grouping non-reply messages
+    noise_filter_min_tokens: int = 20  # ingest only - skip messages shorter than this; does not affect context expansion at query time
+    ignored_user_ids: list[int] = []  # user snowflakes excluded from ingestion (bots, etc.); does not affect context expansion
     ingest_discord: bool = True
     ingest_wiki: bool = True
     ingest_documents: bool = True
-    wiki_namespaces: list[str] = ['0']     # mediawiki namespace IDs permitted for ingestion ('0' = main)
+    wiki_namespaces: list[str] = ['0']  # mediawiki namespace IDs permitted for ingestion ('0' = main)
     character_log_channel_id: int | None = None  # channel with conversational 1st-person RP and world leader chit-chat
     chat_channels: dict[str, ChatChannelConfig] = {}  # snowflake (str key) -> channel config; channels absent from map are not ingested
-    user_nations: dict[str, str] = {}      # user snowflake (str key) -> nation name (static; nations don't change)
+    user_nations: dict[str, str] = {}  # user snowflake (str key) -> nation name (static; nations don't change)
     retrieval_top_k_wiki: int = 5
     retrieval_top_k_discord: int = 5
     retrieval_top_k_documents: int = 3
@@ -240,10 +241,10 @@ Results are upserted into `chat_characters` (MongoDB collection backed by `ChatC
 class ChatCharacterDocument(BaseModel):
     user_id: int
     character_name: str
-    first_seen_timestamp: int    # unix timestamp of the source message
+    first_seen_timestamp: int  # unix timestamp of the source message
     first_seen_message_id: int
     source_channel_id: int
-    notes: str = ''              # e.g. "abdicated in favor of X"
+    notes: str = ''  # e.g. "abdicated in favor of X"
 ```
 
 **Character roster assembly** - both sources merged at Q&A time and summarization time:
@@ -284,10 +285,7 @@ import time
 
 system_prompt = _cached_system_prompt.format(
     current_date_pc=(await haracalnde_date(int(time.time()), guild_id)),
-    character_roster=_format_character_roster(
-        config.chat_runtime.user_nations,
-        await character_repo.get_all()
-    ),
+    character_roster=_format_character_roster(config.chat_runtime.user_nations, await character_repo.get_all()),
 )
 ```
 
@@ -679,6 +677,7 @@ When releasing, only the `is_bot_owner` line is removed. The `TODO(release):` ta
 ```python
 _ask_last_used: dict[int, float] = {}
 
+
 async def ask(ctx, query):
     cooldown = config.chat.ask_cooldown_seconds
     if cooldown > 0:
@@ -752,6 +751,7 @@ Example pattern (same as existing repos):
 ```python
 _embedder: Embedder | None = None
 
+
 def _get_embedder() -> Embedder:
     global _embedder
     if _embedder is None:
@@ -780,9 +780,11 @@ Following existing `mock_year_repo` / `mock_marker_repo` patterns:
 @pytest.fixture
 def make_message_doc():
     """factory for MessageDocument - for pipeline unit tests"""
-    def _make(channel_id=TEST_CHANNEL, author_id=TEST_USER, content='test message',
-               timestamp=1700000000, reply_to=None, is_bot=False): ...
+
+    def _make(channel_id=TEST_CHANNEL, author_id=TEST_USER, content='test message', timestamp=1700000000, reply_to=None, is_bot=False): ...
+
     return _make
+
 
 @pytest.fixture
 def mock_chat_source_repo():
@@ -790,13 +792,15 @@ def mock_chat_source_repo():
     with patch('attubot.ingestor.registry._get_repo', return_value=repo):
         yield repo
 
+
 @pytest.fixture
 def mock_embedder():
     embedder = MagicMock()
-    embedder.embed.return_value = [0.0] * 384       # all-MiniLM-L6-v2 dim
+    embedder.embed.return_value = [0.0] * 384  # all-MiniLM-L6-v2 dim
     embedder.embed_batch.return_value = [[0.0] * 384]
     with patch('attubot.ingestor.embedder._get_embedder', return_value=embedder):
         yield embedder
+
 
 @pytest.fixture
 def mock_vector_store():
@@ -804,6 +808,7 @@ def mock_vector_store():
     store.search.return_value = []  # override per-test as needed
     with patch('attubot.ingestor.vector_store._get_vector_store', return_value=store):
         yield store
+
 
 @pytest.fixture
 def mock_summarizer():

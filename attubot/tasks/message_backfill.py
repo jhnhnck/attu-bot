@@ -233,7 +233,7 @@ class MessageBackfillTask(BaseTask):
                 if channel is None:
                     continue
                 fresh_msg = await channel.fetch_message(starred_doc.message_id)  # type: ignore[union-attr]
-                await backfill_message_reactions(fresh_msg, guild_id, replace=True)
+                await backfill_message_reactions(fresh_msg, guild_id)
                 updated = await sb_repo.get(starred_doc.message_id)
                 if updated:
                     await _sync_starboard_post(guild_id, updated, guild_config)

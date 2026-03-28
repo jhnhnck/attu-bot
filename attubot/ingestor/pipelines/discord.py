@@ -31,6 +31,7 @@ def _get_msg_repo() -> 'MessageRepository':
     global _msg_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _msg_repo is None:
         from attubot import db
+
         _msg_repo = MessageRepository(db.get_db())
     return _msg_repo
 
@@ -39,11 +40,13 @@ def _get_char_repo() -> 'ChatCharacterRepository':
     global _char_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _char_repo is None:
         from attubot import db
+
         _char_repo = ChatCharacterRepository(db.get_db())
     return _char_repo
 
 
 # --- pure functions (no I/O; fully unit-testable) ---
+
 
 def token_count(text: str) -> int:
     """approximate token count by splitting on whitespace"""
@@ -152,6 +155,7 @@ def group_by_time_window(
 
 # --- pipeline class ---
 
+
 class DiscordPipeline:
     """fetches discord messages, groups into windows, summarizes, and upserts into qdrant"""
 
@@ -191,7 +195,6 @@ class DiscordPipeline:
         # process per channel
         by_channel: dict[int, list[MessageDocument]] = {}
         for m in all_messages:
-            cid = m.channel_id if m.parent_channel_id is None else m.parent_channel_id
             effective_id = m.channel_id
             by_channel.setdefault(effective_id, []).append(m)
 
@@ -260,13 +263,15 @@ class DiscordPipeline:
                     message_id = entry.get('message_id')
                     if user_id and character_name and message_id:
                         source_msg = next((m for m in filtered if m.message_id == message_id), filtered[0])
-                        await _get_char_repo().upsert(ChatCharacterDocument(
-                            user_id=int(user_id),
-                            character_name=str(character_name),
-                            first_seen_timestamp=source_msg.created_at,
-                            first_seen_message_id=source_msg.message_id,
-                            source_channel_id=channel_id,
-                        ))
+                        await _get_char_repo().upsert(
+                            ChatCharacterDocument(
+                                user_id=int(user_id),
+                                character_name=str(character_name),
+                                first_seen_timestamp=source_msg.created_at,
+                                first_seen_message_id=source_msg.message_id,
+                                source_channel_id=channel_id,
+                            )
+                        )
             except Exception as e:
                 logger.warn(f'character extraction failed for {source_id}: {e!s}')
 
@@ -294,19 +299,21 @@ class DiscordPipeline:
         store = _get_vector_store()
         await store.upsert(_DISCORD_COLLECTION, [PointStruct(id=point_id, vector=vector, payload=payload)])
 
-        await upsert_source(ChatSourceDocument(
-            source_id=source_id,
-            source_type='discord_window',
-            content_hash='',   # discord windows don't use content hashing
-            last_ingested=int(time.time()),
-            qdrant_point_ids=[point_id],
-            metadata={
-                'channel_id': channel_id,
-                'message_ids': [m.message_id for m in filtered],
-                'timestamp_start': ts_start,
-                'timestamp_end': ts_end,
-            },
-        ))
+        await upsert_source(
+            ChatSourceDocument(
+                source_id=source_id,
+                source_type='discord_window',
+                content_hash='',  # discord windows don't use content hashing
+                last_ingested=int(time.time()),
+                qdrant_point_ids=[point_id],
+                metadata={
+                    'channel_id': channel_id,
+                    'message_ids': [m.message_id for m in filtered],
+                    'timestamp_start': ts_start,
+                    'timestamp_end': ts_end,
+                },
+            )
+        )
 
         logger.debug(f'ingested discord window {source_id} ({len(filtered)} messages, type={content_type})')
 

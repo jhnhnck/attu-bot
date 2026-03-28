@@ -296,10 +296,12 @@ class TestChannelLogs:
         actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         # two calls: _is_bot_audit_action then _get_audit_actor
-        after.guild.audit_logs = MagicMock(side_effect=[
-            _make_audit_log([_make_audit_entry(after.id, bot=False)]),
-            _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
-        ])
+        after.guild.audit_logs = MagicMock(
+            side_effect=[
+                _make_audit_log([_make_audit_entry(after.id, bot=False)]),
+                _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
+            ]
+        )
 
         with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
             await on_guild_channel_update(before, after)
@@ -375,10 +377,12 @@ class TestRoleLogs:
         actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         # two calls: _is_bot_audit_action then _get_audit_actor
-        after.guild.audit_logs = MagicMock(side_effect=[
-            _make_audit_log([_make_audit_entry(after.id, bot=False)]),
-            _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
-        ])
+        after.guild.audit_logs = MagicMock(
+            side_effect=[
+                _make_audit_log([_make_audit_entry(after.id, bot=False)]),
+                _make_audit_log([_make_kick_audit_entry(after.id, actor_id)]),
+            ]
+        )
 
         with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
             await on_guild_role_update(before, after)
@@ -464,9 +468,7 @@ class TestMemberUpdateLogs:
         after.roles = [_make_role(role_id=10, mention='@new')]
         actor_id = test_user + 1
         logs_channel = _make_logs_channel()
-        after.guild.audit_logs = MagicMock(
-            return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
-        )
+        after.guild.audit_logs = MagicMock(return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)]))
 
         with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
             await on_member_update(before, after)
@@ -500,9 +502,7 @@ class TestMemberUpdateLogs:
         after = _make_member()
         actor_id = test_user + 1
         logs_channel = _make_logs_channel()
-        after.guild.audit_logs = MagicMock(
-            return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
-        )
+        after.guild.audit_logs = MagicMock(return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)]))
 
         with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
             await on_member_update(before, after)

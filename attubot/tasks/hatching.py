@@ -27,7 +27,7 @@ class HatchTask(BaseTask):
     """
 
     name: str = 'HatchTask'
-    interval: timedelta = timedelta(hours=1)
+    interval: timedelta | None = timedelta(hours=1)
     run_immediately: bool = True
 
     async def on_start(self) -> None:
@@ -35,6 +35,7 @@ class HatchTask(BaseTask):
 
     async def run(self) -> None:
         from datetime import datetime
+
         today = datetime.now(tz=config.timezone).date()
 
         hatch_day = hatch_date(today.year)

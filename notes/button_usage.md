@@ -109,6 +109,7 @@ class MyView(discord.ui.View):
     async def button_callback(self, button, interaction):
         await interaction.response.send_message('You clicked the button!')
 
+
 @bot.slash_command()
 async def button(ctx):
     await ctx.respond('This is a button!', view=MyView())
@@ -137,6 +138,7 @@ use the `row` kwarg (0-4) to control which row a button appears in. default is a
 ```python
 @discord.ui.button(label='Button 1', row=0, style=discord.ButtonStyle.primary)
 async def first_button_callback(self, button, interaction): ...
+
 
 @discord.ui.button(label='Button 2', row=1, style=discord.ButtonStyle.primary)
 async def second_button_callback(self, button, interaction): ...
@@ -185,6 +187,7 @@ class MyView(discord.ui.View):
     @discord.ui.button(...)
     async def button_callback(self, button, interaction): ...
 
+
 # pass timeout when constructing the view
 await ctx.send('Press the button!', view=MyView(timeout=30))
 ```
@@ -211,6 +214,7 @@ persist across bot restarts. requires:
 @bot.event
 async def on_ready():
     bot.add_view(MyView())
+
 
 class MyView(discord.ui.View):
     def __init__(self):

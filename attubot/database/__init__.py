@@ -44,17 +44,17 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 
-async def _try_init_indexes(repo: object, label: str, timeout: float = 90.0) -> None:
+async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0) -> None:
     """Call repo.init_indexes(), logging a warning instead of raising on failure.
 
     FerretDB/DocumentDB builds RUM indexes non-concurrently and can block for minutes
     on large collections. This lets the bot start while indexes finish in the background.
     """
     try:
-        await asyncio.wait_for(repo.init_indexes(), timeout=timeout)  # type: ignore[union-attr]
+        await asyncio.wait_for(repo.init_indexes(), timeout=timeout_sec)  # type: ignore[union-attr]
         logger.debug(f'{label} indexes ready')
     except TimeoutError:
-        logger.warn(f'{label} index init timed out after {timeout:.0f}s (indexes may still be building in db)')
+        logger.warn(f'{label} index init timed out after {timeout_sec:.0f}s (indexes may still be building in db)')
     except Exception as e:
         logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
 
@@ -126,6 +126,7 @@ async def init_database(url: str, name: str):
     _starboard._starboard_repo = starboard_repo
 
     import attubot.eggs.hatching as _hatching
+
     _hatching._egg_repo = egg_repo
     _hatching._egg_user_repo = egg_user_repo
 

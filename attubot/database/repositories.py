@@ -540,16 +540,24 @@ class StarboardRepository:
 
         result = await self.db[self.COLLECTION].find_one_and_update(
             {'message_id': message_id},
-            [{'$set': {
-                'total_reactions': {'$add': [
-                    {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}},
-                    {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}},
-                ]},
-                'weighted_total': {'$add': [
-                    {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}}},
-                    {'$multiply': [1.5, {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}}}]},
-                ]},
-            }}],
+            [
+                {
+                    '$set': {
+                        'total_reactions': {
+                            '$add': [
+                                {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}},
+                                {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}},
+                            ]
+                        },
+                        'weighted_total': {
+                            '$add': [
+                                {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$reactions'}, 'in': {'$size': '$$this.v'}}}}},
+                                {'$multiply': [1.5, {'$toDouble': {'$sum': {'$map': {'input': {'$objectToArray': '$super_reactions'}, 'in': {'$size': '$$this.v'}}}}}]},
+                            ]
+                        },
+                    }
+                }
+            ],
             return_document=ReturnDocument.AFTER,
         )
         if result is None:
@@ -956,6 +964,7 @@ class EggRepository:
     async def get_oldest_ready(self, guild_id: int, user_id: int) -> EggDocument | None:
         """Fetch the oldest unhatched egg that is ready to hatch"""
         import time
+
         doc = await self.db[self.COLLECTION].find_one(
             {'guild_id': guild_id, 'user_id': user_id, 'hatched': False, 'hatches_at': {'$lte': time.time()}},
             sort=[('hatches_at', ASCENDING)],

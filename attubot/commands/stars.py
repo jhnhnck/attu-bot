@@ -97,6 +97,91 @@ async def stars_lost(ctx: ApplicationContext):
     await _show_random_message(ctx, min_total=1, max_total=1)
 
 
+async def _resolve_recheck_target(
+    ctx: ApplicationContext,
+    guild_config,
+    channel_id: int,
+    message_id: int,
+    discord_msg: discord.Message,
+) -> 'tuple[int, int, discord.Message, bool] | None':
+    """resolve the real target of a /stars recheck command.
+
+    if the message is a bot post in the starboard channel, redirects to the original.
+    returns (channel_id, message_id, discord_msg, force) or None if an error was already sent to ctx.
+    """
+    from attubot import bot as _bot
+    from attubot.client.messages import build_message_doc
+
+    sb = guild_config.starboard
+    if not (sb.channel_id and channel_id == sb.channel_id):
+        return (channel_id, message_id, discord_msg, False)
+
+    if discord_msg.author.bot:
+        # this is a starboard post - redirect recheck to the original message
+        sb_doc = await _get_sb_repo().get_by_starboard_message(message_id)
+        if sb_doc is None:
+            await ctx.respond('Failed: that looks like a starboard post but no matching original message was found', ephemeral=True)
+            return None
+        original_id = message_id
+        channel_id = sb_doc.channel_id
+        message_id = sb_doc.message_id
+        logger.info(f'recheck: bot message in starboard channel - redirecting to original {message_id} (was {original_id})')
+        try:
+            orig_channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)
+            discord_msg = await orig_channel.fetch_message(message_id)
+            orig_doc = await build_message_doc(discord_msg)
+            await _get_msg_repo().upsert(orig_doc)
+        except Exception as err:
+            await ctx.respond(f'Failed: could not fetch original message: {err}', ephemeral=True)
+            return None
+        return (channel_id, message_id, discord_msg, False)
+
+    # non-bot message in the starboard channel - force-bypass the channel guard
+    logger.info(f'recheck: non-bot message in starboard channel - force backfilling {message_id}')
+    return (channel_id, message_id, discord_msg, True)
+
+
+def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id: int) -> str:
+    """build the response string for a /stars recheck command.
+
+    determines status, formats emoji breakdown, and returns the full response string.
+    """
+    if doc_after is None or (not doc_after.reactions and not doc_after.super_reactions):
+        logger.info(f'recheck: complete for {message_id} - status=no stars counted weighted_total=0')
+        return 'recheck complete - no stars counted'
+
+    # determine update status
+    if (doc_before is None and doc_after.starboard_message_id is not None) or (doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None):
+        status = 'post created'
+    elif doc_before is None or doc_before.total_reactions != doc_after.total_reactions:
+        status = 'updated'
+    else:
+        status = 'no change'
+
+    logger.info(f'recheck: complete for {message_id} - status={status} weighted_total={doc_after.weighted_total}')
+
+    # format emoji breakdown
+    emoji_parts = []
+    all_emojis = set(doc_after.reactions) | set(doc_after.super_reactions)
+    for emoji in sorted(all_emojis, key=lambda e: -(len(doc_after.reactions.get(e, [])) + len(doc_after.super_reactions.get(e, [])))):
+        normal = len(doc_after.reactions.get(emoji, []))
+        super_ = len(doc_after.super_reactions.get(emoji, []))
+        if normal + super_ == 0:
+            continue
+        if super_:
+            emoji_parts.append(f'{emoji} {normal + super_} ({super_} super)')
+        else:
+            emoji_parts.append(f'{emoji} {normal}')
+    count_str = ' | '.join(emoji_parts) if emoji_parts else 'no stars counted'
+
+    if doc_after.starboard_message_id and sb.channel_id:
+        sb_link = f'https://discord.com/channels/{guild_id}/{sb.channel_id}/{doc_after.starboard_message_id}'
+        return f'recheck complete - {status} - {count_str} | {sb_link}'
+    if doc_after.weighted_total < 2:
+        return f'recheck complete - {status} - {count_str} (below threshold, no post)'
+    return f'recheck complete - {status} - {count_str}'
+
+
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
 @discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
 async def stars_recheck(ctx: ApplicationContext, message_link: str):
@@ -127,7 +212,6 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
     await ctx.defer()
 
     from attubot import bot as _bot
-    from attubot.client.messages import _get_repo as _get_msg_repo
     from attubot.client.messages import build_message_doc
 
     logger.debug(f'recheck: message {message_id} in channel {channel_id}')
@@ -146,76 +230,16 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
     except Exception as err:
         logger.warn(f'recheck: failed to store message {message_id}: {err}')
 
-    # handle messages in the starboard channel
-    force = False
-    sb = guild_config.starboard
-    if sb.channel_id and channel_id == sb.channel_id:
-        if discord_msg.author.bot:
-            # this is a starboard post - redirect recheck to the original message
-            sb_doc = await _get_sb_repo().get_by_starboard_message(message_id)
-            if sb_doc is None:
-                await ctx.respond('Failed: that looks like a starboard post but no matching original message was found', ephemeral=True)
-                return
-            original_id = message_id
-            channel_id = sb_doc.channel_id
-            message_id = sb_doc.message_id
-            logger.info(f'recheck: bot message in starboard channel - redirecting to original {message_id} (was {original_id})')
-            try:
-                orig_channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)
-                discord_msg = await orig_channel.fetch_message(message_id)
-                orig_doc = await build_message_doc(discord_msg)
-                await _get_msg_repo().upsert(orig_doc)
-            except Exception as err:
-                await ctx.respond(f'Failed: could not fetch original message: {err}', ephemeral=True)
-                return
-        else:
-            # non-bot message in the starboard channel - force-bypass the channel guard
-            logger.info(f'recheck: non-bot message in starboard channel - force backfilling {message_id}')
-            force = True
+    resolved = await _resolve_recheck_target(ctx, guild_config, channel_id, message_id, discord_msg)
+    if resolved is None:
+        return
+    channel_id, message_id, discord_msg, force = resolved
 
     doc_before = await _get_sb_repo().get(message_id)
-
-    await backfill_message_reactions(discord_msg, ctx.guild.id, force=force, replace=True)
-
+    await backfill_message_reactions(discord_msg, ctx.guild.id, force=force)
     doc_after = await _get_sb_repo().get(message_id)
 
-    # determine update status
-    if doc_after is None or (not doc_after.reactions and not doc_after.super_reactions):
-        status = 'no stars counted'
-    elif (doc_before is None and doc_after.starboard_message_id is not None) or (doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None):
-        status = 'post created'
-    elif doc_before is None or doc_before.total_reactions != doc_after.total_reactions:
-        status = 'updated'
-    else:
-        status = 'no change'
-
-    logger.info(f'recheck: complete for {message_id} - status={status} weighted_total={doc_after.weighted_total if doc_after else 0}')
-
-    if doc_after is None or (not doc_after.reactions and not doc_after.super_reactions):
-        await ctx.respond(f'recheck complete - {status}')
-        return
-
-    # format emoji breakdown
-    emoji_parts = []
-    all_emojis = set(doc_after.reactions) | set(doc_after.super_reactions)
-    for emoji in sorted(all_emojis, key=lambda e: -(len(doc_after.reactions.get(e, [])) + len(doc_after.super_reactions.get(e, [])))):
-        normal = len(doc_after.reactions.get(emoji, []))
-        super_ = len(doc_after.super_reactions.get(emoji, []))
-        if normal + super_ == 0:
-            continue
-        if super_:
-            emoji_parts.append(f'{emoji} {normal + super_} ({super_} super)')
-        else:
-            emoji_parts.append(f'{emoji} {normal}')
-    count_str = ' | '.join(emoji_parts) if emoji_parts else 'no stars counted'
-
-    if doc_after.starboard_message_id and sb.channel_id:
-        sb_link = f'https://discord.com/channels/{ctx.guild.id}/{sb.channel_id}/{doc_after.starboard_message_id}'
-        await ctx.respond(f'recheck complete - {status} - {count_str} | {sb_link}')
-    elif doc_after.weighted_total < 2:
-        await ctx.respond(f'recheck complete - {status} - {count_str} (below threshold, no post)')
-    else:
-        await ctx.respond(f'recheck complete - {status} - {count_str}')
+    await ctx.respond(_build_recheck_response(doc_before, doc_after, guild_config.starboard, ctx.guild.id, message_id))
 
 
 async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_key: str, value_label: str, title: str) -> None:

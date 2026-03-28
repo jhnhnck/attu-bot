@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from attubot.client.calendar import seconds_per_day, AttuYearSpan
+from attubot.client.calendar import AttuYearSpan, seconds_per_day
 from attubot.client.years import Year
 from tests.conftest import test_guild
 

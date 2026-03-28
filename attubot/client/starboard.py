@@ -250,7 +250,7 @@ def parse_jump_url(url: str) -> tuple[int, int, int] | None:
 # --- Embed Builder ---
 
 
-async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many optional message content types
+async def build_embeds(  # noqa: PLR0912, PLR0915 - embed assembly requires handling many optional message content types
     message_doc: 'MessageDocument',
     guild_id: int,
     color: int,
@@ -296,10 +296,7 @@ async def build_embeds(  # noqa: PLR0912 - embed assembly requires handling many
                     reply_embed.description = ref_doc.content.poll_text
                 else:
                     first = ref_doc.content.embeds[0] if ref_doc.content.embeds else None
-                    reply_embed.description = (
-                        (first.get('title') or first.get('description') if first else None)
-                        or '*message has no text preview*'
-                    )
+                    reply_embed.description = (first.get('title') or first.get('description') if first else None) or '*message has no text preview*'
             # show first image attachment from the referenced message
             if ref_doc.content.attachments and ref_doc.content.attachments[0].get('url'):
                 reply_embed.set_image(url=ref_doc.content.attachments[0]['url'])
@@ -363,6 +360,7 @@ def _is_image(attachment: dict) -> bool:
 async def _remove_reaction_from_discord(channel_id: int, message_id: int, user_id: int, emoji_str: str) -> None:
     """remove an invalid reaction from discord, suppressing all errors."""
     from attubot.client.core import bot
+
     try:
         channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
         message = await channel.fetch_message(message_id)
@@ -436,14 +434,14 @@ async def _fetch_store_and_backfill(
     return doc
 
 
-async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False, replace: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
+async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
     """process all existing reactions on a discord message for starboard backfill.
 
     intended to be called during channel backfill for messages we hadn't seen before.
     no-ops on the starboard channel itself (unless force=True) or unconfigured emojis.
     force=True bypasses the starboard channel guard so /stars recheck can process
     non-bot messages posted directly in the starboard channel.
-    replace=True rebuilds the stored reactions from scratch instead of merging.
+    always merges into existing data - never removes stars not found in discord.
     """
     from attubot.client.core import config
     from attubot.client.messages import _get_repo as _get_msg_repo
@@ -487,25 +485,12 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
 
     existing = await repo.get(message.id)
 
-    if not new_reactions and not (replace and existing is not None):
+    if not new_reactions:
         return
 
     total_new = sum(len(v) for v in new_reactions.values())
 
-    if replace and existing is not None:
-        doc = StarredMessageDocument(
-            message_id=existing.message_id,
-            channel_id=existing.channel_id,
-            guild_id=existing.guild_id,
-            author_id=existing.author_id,
-            starboard_message_id=existing.starboard_message_id,
-            reactions=new_reactions,
-            super_reactions={},
-            total_reactions=total_new,
-            weighted_total=float(total_new),
-        )
-        await repo.upsert(doc)
-    elif existing is None:
+    if existing is None:
         msg_doc = await msg_repo.get(message.id)
         author_id = msg_doc.author.id if msg_doc else message.author.id
         doc = StarredMessageDocument(
@@ -640,11 +625,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         # one vote per user per message - ignore subsequent emoji reactions
         current_doc = await repo.get(real_message_id)
         if current_doc is not None:
-            already_voted = any(
-                user_id in users
-                for bucket in (current_doc.reactions, current_doc.super_reactions)
-                for users in bucket.values()
-            )
+            already_voted = any(user_id in users for bucket in (current_doc.reactions, current_doc.super_reactions) for users in bucket.values())
             if already_voted:
                 logger.debug(f'starboard: removing extra reaction from user {user_id} on message {real_message_id} - already has a vote')
                 await _remove_reaction_from_discord(channel_id, orig_message_id, user_id, emoji_str)
@@ -778,7 +759,7 @@ async def handle_star_clear_emoji(guild_id: int, channel_id: int, message_id: in
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
-async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
+async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild_config) -> None:  # noqa: PLR0911, PLR0912, PLR0915 - branchy post create/update/replace logic with multiple discord error cases
     """create or update (or do nothing for) the starboard channel post for a starred message."""
     from attubot.client.core import bot
     from attubot.client.messages import _get_repo as _get_msg_repo
@@ -803,8 +784,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
 
     if doc.starboard_message_id is None:
         max_weight = max(
-            (_weighted_count(e, doc.reactions, doc.super_reactions)
-             for e in (set(doc.reactions) | set(doc.super_reactions))),
+            (_weighted_count(e, doc.reactions, doc.super_reactions) for e in (set(doc.reactions) | set(doc.super_reactions))),
             default=0.0,
         )
         if max_weight < 2:
@@ -846,7 +826,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                 if attempt == 2:
                     logger.warn(f'starboard: failed to edit notification post {sb_msg.id} to final content after 3 attempts: {err}')
                 else:
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(2**attempt)
         logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
         await _check_and_announce_sweep(guild_id, doc.author_id, channel)
         return
@@ -856,8 +836,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         return
     # delete post if it fell below threshold
     max_weight = max(
-        (_weighted_count(e, doc.reactions, doc.super_reactions)
-         for e in (set(doc.reactions) | set(doc.super_reactions))),
+        (_weighted_count(e, doc.reactions, doc.super_reactions) for e in (set(doc.reactions) | set(doc.super_reactions))),
         default=0.0,
     )
     if max_weight < 2:

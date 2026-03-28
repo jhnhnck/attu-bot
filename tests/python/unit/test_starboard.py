@@ -457,8 +457,7 @@ async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make
     existing_doc = _make_star_doc(reactions={emoji_star: [user_a]})
     sb_repo.get = AsyncMock(return_value=existing_doc)
 
-    with patch('attubot.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove, \
-         patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('attubot.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_glow)
 
     sb_repo.add_reaction.assert_not_called()
@@ -519,9 +518,7 @@ async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild,
     channel = AsyncMock()
     msg_doc = _make_msg_doc()
 
-    with patch('attubot.client.core.bot') as mock_bot, \
-         patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
@@ -542,10 +539,7 @@ async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_
     channel.send = AsyncMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('attubot.client.core.bot') as mock_bot, \
-         patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]), \
-         patch('attubot.client.starboard._check_and_announce_sweep', new_callable=AsyncMock):
+    with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]), patch('attubot.client.starboard._check_and_announce_sweep', new_callable=AsyncMock):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
@@ -567,9 +561,7 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
     channel.fetch_message = AsyncMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('attubot.client.core.bot') as mock_bot, \
-         patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
@@ -593,9 +585,7 @@ async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock
     channel.fetch_message = AsyncMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('attubot.client.core.bot') as mock_bot, \
-         patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
@@ -646,8 +636,7 @@ async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb
     mock_sb_repo.get = AsyncMock(return_value=None)
     mock_sb_repo.upsert = AsyncMock()
 
-    with patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
         await backfill_message_reactions(message, test_guild)
 
@@ -678,8 +667,7 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
 
     mock_sb_repo.get = AsyncMock(return_value=None)
 
-    with patch('attubot.client.messages._message_repo') as mock_msg_repo, \
-         patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
         await backfill_message_reactions(message, test_guild)
 

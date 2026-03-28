@@ -42,6 +42,7 @@ def _get_char_repo():
     if _char_repo is None:
         from attubot import db
         from attubot.database.repositories import ChatCharacterRepository
+
         _char_repo = ChatCharacterRepository(db.get_db())
     return _char_repo
 
@@ -108,7 +109,7 @@ def _build_context_block(results: list[dict]) -> str:
 @commands.check(is_bot_owner)  # TODO(release): remove - testing phase only
 @commands.check(is_authorized_guild)
 @option('query', description='Your question about the Attu world', required=True)
-async def command_ask(ctx: ApplicationContext, query: str):  # noqa: PLR0915 TODO: split up maybe
+async def command_ask(ctx: ApplicationContext, query: str):  # noqa: PLR0912, PLR0915 TODO: split up maybe
     # cooldown check
     cooldown = config.chat.ask_cooldown_seconds
     if cooldown > 0:

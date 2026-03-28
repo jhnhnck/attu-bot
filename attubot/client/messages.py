@@ -428,7 +428,7 @@ async def _get_message_delete_actor(guild: discord.Guild, author_id: int, channe
     return None
 
 
-async def log_delete(payload: RawMessageDeleteEvent) -> None:
+async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912 - multiple early-exit guard branches for bot/starboard filtering
     """Post a message-deleted embed to the guild's logs channel."""
     if payload.guild_id is None:
         return
@@ -448,20 +448,22 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
     # skip known starboard posts (reference still in db - e.g. mod deleted the post)
     try:
         from attubot.client.starboard import _get_repo as _get_sb_repo
+
         if await _get_sb_repo().get_by_starboard_message(payload.message_id) is not None:
             return
     except Exception:
-        pass
+        logger.debug(f'starboard repo not ready for delete check: {payload.message_id}')
 
     # skip bot-deleted starboard posts where the reference was already cleared before the event fired
     if stored is None:
         try:
             from attubot.client.core import config as _config
+
             gc = _config.guild(payload.guild_id)
             if gc.starboard.channel_id and gc.starboard.channel_id == payload.channel_id:
                 return
         except Exception:
-            pass
+            logger.debug(f'guild config not available for starboard channel check: {payload.guild_id}')
 
     # always update the stored record, even if we can't post to logs
     try:
@@ -493,6 +495,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:
 
     if stored:
         from attubot.client.core import bot as _bot
+
         guild = _bot.get_guild(payload.guild_id)
         if guild:
             actor = await _get_message_delete_actor(guild, stored.author.id, payload.channel_id)

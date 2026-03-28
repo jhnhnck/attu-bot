@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import contextlib
 
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
@@ -54,10 +55,8 @@ class MongoStorage:
 
             # close any client left over from a previous failed attempt
             if self.client is not None:
-                try:
+                async with contextlib.suppress(Exception):
                     await self.client.close()
-                except Exception:
-                    pass
                 self.client = None
 
             try:

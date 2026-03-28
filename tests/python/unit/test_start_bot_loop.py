@@ -289,12 +289,16 @@ class TestEventHandlerModules:
     bad attribute reference or missing import raises here immediately.
     """
 
-    @pytest.mark.parametrize('module', [
-        'attubot.client.events',
-        'attubot.client.modlog',
-    ])
+    @pytest.mark.parametrize(
+        'module',
+        [
+            'attubot.client.events',
+            'attubot.client.modlog',
+        ],
+    )
     def test_event_handler_module_imports_cleanly(self, module):
         import importlib
+
         importlib.import_module(module)
 
 
@@ -310,6 +314,7 @@ class TestExtensionImports:
     @pytest.mark.parametrize('ext', attubot.extensions_list)
     def test_extension_imports_cleanly(self, ext):
         import importlib
+
         importlib.import_module(ext)
 
 

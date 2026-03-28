@@ -196,6 +196,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 Always use the custom logger - never the stdlib `logging` module directly:
 ```python
 from attubot.logging import get_logger
+
 logger = get_logger(__name__)
 ```
 Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.

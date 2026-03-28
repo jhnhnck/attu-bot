@@ -35,9 +35,9 @@ class ResolvedMarker:
     guild: int
     channel: int
     year: int
-    message: int      # message snowflake; 0 if not found
-    exact: bool       # true if bot or author header
-    source: str       # 'bot' | 'author' | 'first' | 'primary' | 'override' | 'none'
+    message: int  # message snowflake; 0 if not found
+    exact: bool  # true if bot or author header
+    source: str  # 'bot' | 'author' | 'first' | 'primary' | 'override' | 'none'
 ```
 
 resolution order:

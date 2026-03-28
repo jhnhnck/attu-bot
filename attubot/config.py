@@ -305,7 +305,7 @@ class NovaConfig:
 
     # --- Event Calls ---
 
-    def on_init(self):  # called first upon startup, load config file only
+    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915 - sequential config section loading with try/except per section
         logger.info('starting initial config loading stage')
 
         if not self.path.exists():

@@ -19,7 +19,7 @@ class ChatInitTask(BaseTask):
     """initialize chat subsystems (embedder, reranker, vector store, llm) at startup"""
 
     name = 'ChatInit'
-    interval = None        # one-shot; next_run() returns far future
+    interval = None  # one-shot; next_run() returns far future
     run_immediately = True
 
     async def on_start(self) -> None:
@@ -37,11 +37,11 @@ class ChatInitTask(BaseTask):
 
         logger.info('initializing chat subsystems')
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, _get_embedder)   # blocking model load
-        await loop.run_in_executor(None, _get_reranker)   # blocking model load
+        await loop.run_in_executor(None, _get_embedder)  # blocking model load
+        await loop.run_in_executor(None, _get_reranker)  # blocking model load
         _get_vector_store()
         _get_llm()
-        _get_summarizer()   # loads anthropic client + prompt templates
+        _get_summarizer()  # loads anthropic client + prompt templates
         _get_system_prompt()
         logger.info('chat subsystems ready')
 

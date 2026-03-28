@@ -69,8 +69,7 @@ logger = get_logger(__name__)
 # --- utilities ---
 
 
-def some_function():
-    ...
+def some_function(): ...
 ```
 
 avoid decorative styles like `# ======`, `# ####`, or bare `# ---` without a label.

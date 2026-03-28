@@ -25,6 +25,7 @@ logger.info('initializing')
 
 # --- Commands ---
 
+
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx: ApplicationContext):
     await ctx.respond('Pong! <:rockball:1308981475114225694>')
@@ -33,10 +34,7 @@ async def command_ping(ctx: ApplicationContext):
 # --- Extensions ---
 
 # auto-discovered from attubot/commands/; sorted for deterministic loading order
-extensions_list = sorted(
-    f'attubot.commands.{mod.name}'
-    for mod in pkgutil.iter_modules(attubot.commands.__path__)
-)
+extensions_list = sorted(f'attubot.commands.{mod.name}' for mod in pkgutil.iter_modules(attubot.commands.__path__))
 
 
 # --- Startup Helpers ---

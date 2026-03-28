@@ -131,8 +131,8 @@ from attubot.web.audit import compare_configs, get_client_ip
 changes = compare_configs(old_config.model_dump(), new_config.model_dump())
 await web_app.audit_logger.log_change(
     ip=get_client_ip(request),
-    config_type='guild',   # 'guild' | 'theme' | 'system' | 'year' | 'marker'
-    action='update',       # 'create' | 'update' | 'delete'
+    config_type='guild',  # 'guild' | 'theme' | 'system' | 'year' | 'marker'
+    action='update',  # 'create' | 'update' | 'delete'
     changes=changes,
     guild_id=guild_id,
 )
@@ -215,6 +215,7 @@ All routes are defined inside `register_routes(app)` in `routes.py`. Auth is enf
 async def api_example():
     # validate input, hit db, return json
     return jsonify({'data': ...})
+
 
 # on failure:
 return jsonify({'error': 'reason'}), 400

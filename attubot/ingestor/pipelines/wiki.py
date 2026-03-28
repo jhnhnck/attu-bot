@@ -136,14 +136,16 @@ class WikiPipeline:
             await store.upsert(_WIKI_COLLECTION, [PointStruct(id=point_id, vector=vector, payload=payload)])
 
             # update chat_sources
-            await upsert_source(ChatSourceDocument(
-                source_id=source_id,
-                source_type='wiki_section',
-                content_hash=content_hash,
-                last_ingested=int(time.time()),
-                qdrant_point_ids=[point_id],
-                metadata={'page_title': title, 'section': section_title or '(intro)', 'categories': categories},
-            ))
+            await upsert_source(
+                ChatSourceDocument(
+                    source_id=source_id,
+                    source_type='wiki_section',
+                    content_hash=content_hash,
+                    last_ingested=int(time.time()),
+                    qdrant_point_ids=[point_id],
+                    metadata={'page_title': title, 'section': section_title or '(intro)', 'categories': categories},
+                )
+            )
 
             logger.debug(f'ingested wiki section: {source_id}')
 

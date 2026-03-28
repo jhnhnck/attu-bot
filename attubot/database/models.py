@@ -236,10 +236,10 @@ class ChatCharacterDocument(BaseModel):
 
     user_id: int
     character_name: str
-    first_seen_timestamp: int    # unix timestamp of the source message
+    first_seen_timestamp: int  # unix timestamp of the source message
     first_seen_message_id: int
     source_channel_id: int
-    notes: str = ''              # e.g. "abdicated in favor of X"
+    notes: str = ''  # e.g. "abdicated in favor of X"
 
 
 class EggDocument(BaseModel):
@@ -247,14 +247,14 @@ class EggDocument(BaseModel):
 
     model_config = ConfigDict(extra='ignore')
 
-    egg_id: str          # uuid4, unique
+    egg_id: str  # uuid4, unique
     guild_id: int
     user_id: int
-    rarity: str          # 'common' | 'uncommon' | 'rare' | 'legendary' | 'mythical'
+    rarity: str  # 'common' | 'uncommon' | 'rare' | 'legendary' | 'mythical'
     collected_at: float  # unix timestamp
-    hatches_at: float    # collected_at + rarity hatch duration
+    hatches_at: float  # collected_at + rarity hatch duration
     hatched: bool = False
-    result: str | None = None   # unicode emoji char after hatching
+    result: str | None = None  # unicode emoji char after hatching
     message_id: int | None = None  # id of the message in user's thread
 
 
@@ -265,5 +265,5 @@ class EggUserDocument(BaseModel):
 
     guild_id: int
     user_id: int
-    thread_id: int = 0           # user's egg collection thread
+    thread_id: int = 0  # user's egg collection thread
     last_collected_at: float = 0.0  # unix timestamp; reboot-safe cooldown

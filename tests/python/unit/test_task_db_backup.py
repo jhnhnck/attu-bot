@@ -163,9 +163,7 @@ class TestRun:
 
         cfg = _make_config(path='/backups', time='03:00')
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, \
-             patch('attubot.tasks.db_backup._cleanup_old_backups'):
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, patch('attubot.tasks.db_backup._cleanup_old_backups'):
             await task.run()
 
         assert mock_exec.call_count == 2
@@ -180,9 +178,7 @@ class TestRun:
 
         cfg = _make_config(path='/backups', time='03:00')
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, \
-             patch('attubot.tasks.db_backup._cleanup_old_backups'):
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, patch('attubot.tasks.db_backup._cleanup_old_backups'):
             await task.run()
 
         dump_args = mock_exec.call_args_list[0][0]
@@ -195,9 +191,7 @@ class TestRun:
 
         cfg = _make_config(path='/backups')
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, \
-             patch('attubot.tasks.db_backup._cleanup_old_backups'):
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc()]) as mock_exec, patch('attubot.tasks.db_backup._cleanup_old_backups'):
             await task.run()
 
         tar_args = mock_exec.call_args_list[1][0]
@@ -211,9 +205,7 @@ class TestRun:
 
         cfg = _make_config(path='/backups')
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(returncode=1)]) as mock_exec, \
-             patch('attubot.tasks.db_backup._cleanup_old_backups') as mock_cleanup:
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(returncode=1)]) as mock_exec, patch('attubot.tasks.db_backup._cleanup_old_backups') as mock_cleanup:
             await task.run()
 
         assert mock_exec.call_count == 1
@@ -225,9 +217,7 @@ class TestRun:
 
         cfg = _make_config(path='/backups')
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc(returncode=1)]), \
-             patch('attubot.tasks.db_backup._cleanup_old_backups') as mock_cleanup:
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=[_make_proc(), _make_proc(returncode=1)]), patch('attubot.tasks.db_backup._cleanup_old_backups') as mock_cleanup:
             await task.run()
 
         mock_cleanup.assert_not_called()
@@ -241,9 +231,7 @@ class TestRun:
         proc = _make_proc(returncode=1)
         proc.communicate = AsyncMock(return_value=(b'', b'connection refused'))
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', return_value=proc), \
-             patch('attubot.tasks.db_backup.logger') as mock_logger:
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', return_value=proc), patch('attubot.tasks.db_backup.logger') as mock_logger:
             await task.run()
 
         mock_logger.error.assert_called_once()
@@ -262,9 +250,7 @@ class TestRun:
             captured.extend(args)
             return _make_proc()
 
-        with patch('attubot.tasks.db_backup.config', cfg), \
-             patch('asyncio.create_subprocess_exec', side_effect=fake_exec), \
-             patch('attubot.tasks.db_backup._cleanup_old_backups'):
+        with patch('attubot.tasks.db_backup.config', cfg), patch('asyncio.create_subprocess_exec', side_effect=fake_exec), patch('attubot.tasks.db_backup._cleanup_old_backups'):
             await task.run()
 
         # archive path is the first positional arg after '-cjf' in the tar call

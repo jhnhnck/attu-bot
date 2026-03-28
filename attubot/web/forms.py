@@ -224,7 +224,7 @@ class ChatConfigForm(BaseModel):
     @classmethod
     def parse_channel_id(cls, v):
         """treat 0 or empty string as None"""
-        if v == 0 or v == '' or v is None:
+        if v in {0, ''} or v is None:
             return None
         return int(v)
 

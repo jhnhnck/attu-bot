@@ -17,7 +17,7 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 _LLM_CONNECT_TIMEOUT = 10.0  # seconds; fail fast if server isn't reachable
-_LLM_READ_TIMEOUT = None      # no cap; let inference take as long as it needs on cpu
+_LLM_READ_TIMEOUT = None  # no cap; let inference take as long as it needs on cpu
 
 _llm: 'LLMClient | None' = None
 
@@ -64,17 +64,17 @@ class LLMClient:
         if config.chat.llm_api_key:
             headers['Authorization'] = f'Bearer {config.chat.llm_api_key}'
         async with httpx.AsyncClient(timeout=timeout) as client, client.stream('POST', f'{base_url}/v1/chat/completions', json=payload, headers=headers) as res:
-                res.raise_for_status()
-                async for line in res.aiter_lines():
-                    if not line.startswith('data: '):
-                        continue
-                    data = line[6:]
-                    if data == '[DONE]':
-                        return
-                    try:
-                        chunk = json.loads(data)
-                        token = chunk['choices'][0]['delta'].get('content', '')
-                        if token:
-                            yield token
-                    except (KeyError, json.JSONDecodeError):
-                        continue
+            res.raise_for_status()
+            async for line in res.aiter_lines():
+                if not line.startswith('data: '):
+                    continue
+                data = line[6:]
+                if data == '[DONE]':
+                    return
+                try:
+                    chunk = json.loads(data)
+                    token = chunk['choices'][0]['delta'].get('content', '')
+                    if token:
+                        yield token
+                except (KeyError, json.JSONDecodeError):
+                    continue

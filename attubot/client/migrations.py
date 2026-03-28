@@ -117,7 +117,7 @@ async def migration_2_2_0():
 @migration(old='2.2.0', new='2.2.1')
 async def migration_backfill_years():
     """Backfill Year documents from existing YearMarker timestamps"""
-    from attubot.client.calendar import seconds_per_day, get_year_status
+    from attubot.client.calendar import get_year_status, seconds_per_day
     from attubot.client.core import db
     from attubot.client.markers import YearMarker
     from attubot.database.repositories import YearRepository
@@ -167,7 +167,7 @@ async def migration_2_2_3():
 @migration(old='2.2.3', new='2.2.4')
 async def migration_fix_year_data():
     """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
-    from attubot.client.calendar import seconds_per_day, get_year_status
+    from attubot.client.calendar import get_year_status, seconds_per_day
     from attubot.client.core import db
     from attubot.database.repositories import YearRepository
 

@@ -325,7 +325,7 @@ async def on_guild_role_update(before: Role, after: Role):
 
 
 @bot.listen()
-async def on_member_update(before: Member, after: Member):
+async def on_member_update(before: Member, after: Member):  # noqa: PLR0912, PLR0915 - single event handler covering nick + role changes with audit log calls
     if after.guild.id not in config.valid_guilds or after.bot:
         return
 

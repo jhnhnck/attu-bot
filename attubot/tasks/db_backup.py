@@ -105,7 +105,12 @@ class DatabaseBackupTask(BaseTask):
                 return
 
             tar_proc = await asyncio.create_subprocess_exec(
-                'tar', '-cjf', archive_path, '-C', tmp_dir, timestamp,
+                'tar',
+                '-cjf',
+                archive_path,
+                '-C',
+                tmp_dir,
+                timestamp,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

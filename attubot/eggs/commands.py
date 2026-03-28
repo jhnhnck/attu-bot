@@ -54,6 +54,7 @@ async def eggs_hatch(ctx: ApplicationContext):
     if result == 'no_eggs':
         await ctx.respond('you have no eggs', ephemeral=True)
     elif result == '':
+        assert next_ts is not None  # noqa: S101 - guaranteed float when result is empty string by contract
         await ctx.respond(f'your next egg hatches <t:{int(next_ts)}:R>', ephemeral=True)
     else:
         await ctx.respond(f'hatching! {result}', ephemeral=True)
@@ -68,6 +69,7 @@ async def eggs_view(ctx: ApplicationContext):
         return
 
     from attubot.eggs.hatching import _egg_user_repo
+
     user_doc = await _egg_user_repo.get(ctx.guild_id, ctx.author.id)
 
     if user_doc is None or not user_doc.thread_id:

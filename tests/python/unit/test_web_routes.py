@@ -671,9 +671,12 @@ class TestChatAPI:
     @pytest.mark.asyncio
     async def test_save_chat_config_invalid_channel_type(self, client):
         """Test POST /api/chat rejects unknown channel_type"""
-        response = await client.post('/api/chat', json={
-            'chat_channels': {'123': {'channel_type': 'invalid'}},
-        })
+        response = await client.post(
+            '/api/chat',
+            json={
+                'chat_channels': {'123': {'channel_type': 'invalid'}},
+            },
+        )
         assert response.status_code == 400
 
         data = await response.get_json()

@@ -687,8 +687,7 @@ class TestLogDelete:
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=sb_doc)
 
         logs_ch = _make_logs_channel()
-        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.client.starboard._get_repo', return_value=mock_sb_repo):
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.starboard._get_repo', return_value=mock_sb_repo):
             await log_delete(_make_raw_delete_payload())
 
         mock_message_repo.mark_deleted.assert_not_called()
@@ -737,8 +736,7 @@ class TestLogDelete:
         mock_guild.audit_logs = MagicMock(return_value=_audit_log_iter())
 
         logs_ch = _make_logs_channel()
-        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.client.core.bot') as mock_bot:
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.core.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await log_delete(_make_raw_delete_payload())
 
@@ -763,8 +761,7 @@ class TestLogDelete:
         mock_guild.audit_logs = MagicMock(return_value=_empty_audit_log())
 
         logs_ch = _make_logs_channel()
-        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), \
-             patch('attubot.client.core.bot') as mock_bot:
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.core.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await log_delete(_make_raw_delete_payload())
 

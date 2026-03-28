@@ -23,8 +23,8 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 # module-level repo singletons; wired by database/__init__.py
-_egg_repo: EggRepository = None
-_egg_user_repo: EggUserRepository = None
+_egg_repo: EggRepository | None = None
+_egg_user_repo: EggUserRepository | None = None
 
 
 def hatch_date(year: int) -> date:
@@ -114,8 +114,8 @@ async def get_or_create_user_thread(guild_id: int, user_id: int, username: str) 
     return thread
 
 
-async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, str]:
-    """Collect an egg for a user. Returns (jump_url, cooldown_msg | '').
+async def collect_egg(guild_id: int, user_id: int, username: str) -> str:
+    """Collect an egg for a user. Returns the jump_url to the new egg message.
 
     Raises ValueError if the user is still on cooldown.
     """
@@ -209,10 +209,15 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
     msg = await thread.fetch_message(egg.message_id)  # type: ignore[union-attr]
     jump_url = msg.jump_url
 
+    if egg.result is None:
+        raise RuntimeError(f'egg {egg.egg_id} has no result set')
+
     # mark hatched before animation so a restart won't double-hatch
     await _egg_repo.mark_hatched(egg.egg_id, egg.result)
 
     # run animation in background; caller responds to discord first
-    asyncio.create_task(run_hatch_animation(msg, egg.result, egg.rarity))
+    from attubot.tasks import scheduler
+
+    scheduler.add_job(run_hatch_animation(msg, egg.result, egg.rarity), f'HatchAnimation[{egg.egg_id}]')
 
     return (jump_url, None)
