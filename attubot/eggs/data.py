@@ -36,6 +36,7 @@ hatch_pools: dict[str, list[str]] = {
         '🐞',
         '🐟',
         '🪱',
+        '🍬',
     ],
     'uncommon': [
         '🦉',
@@ -52,6 +53,7 @@ hatch_pools: dict[str, list[str]] = {
         '🐠',
         '🦐',
         '🦀',
+        '🍭',
     ],
     'rare': [
         '🦩',
@@ -65,6 +67,7 @@ hatch_pools: dict[str, list[str]] = {
         '🦈',
         '🕷️',
         '🦂',
+        '🍫',
     ],
     'legendary': ['🦅', '🦤', '🦖', '🦕', '🪼'],
     'mythical': ['🐉'],  # always dragon
