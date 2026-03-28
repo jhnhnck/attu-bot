@@ -22,8 +22,8 @@ import pytest_asyncio
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
-TEST_GUILD = 1234567890
-TEST_GUILD_2 = 9876543210
+test_guild = 1234567890
+test_guild_2 = 9876543210
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -34,7 +34,7 @@ async def web_app():
 
     # Create test guild configs
     guild1 = GuildConfig(
-        id=TEST_GUILD,
+        id=test_guild,
         channels=GuildChannels(
             activity=111111,
             announcements=222222,
@@ -56,7 +56,7 @@ async def web_app():
     )
 
     guild2 = GuildConfig(
-        id=TEST_GUILD_2,
+        id=test_guild_2,
         channels=GuildChannels(),
         epoch=GuildEpoch(),
         roles=GuildRoles(),
@@ -72,19 +72,19 @@ async def web_app():
     )
 
     # Set up test configuration directly on web_app_module.config
-    web_app_module.config.authorized_guilds = {TEST_GUILD, TEST_GUILD_2}
-    web_app_module.config.valid_guilds = [TEST_GUILD]
-    web_app_module.config.primary_guild = TEST_GUILD
+    web_app_module.config.authorized_guilds = {test_guild, test_guild_2}
+    web_app_module.config.valid_guilds = [test_guild]
+    web_app_module.config.primary_guild = test_guild
     web_app_module.config.guilds = {
-        TEST_GUILD: guild1,
-        TEST_GUILD_2: guild2,
+        test_guild: guild1,
+        test_guild_2: guild2,
     }
     web_app_module.config.theme = theme
     web_app_module.config.load_guild = AsyncMock(return_value=True)
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, 123456)
+    web_app_module.config.error_log = (test_guild, 123456)
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
 
@@ -122,7 +122,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.all_for_guild = AsyncMock(return_value=[])
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years')
+            response = await client.get(f'/api/guilds/{test_guild}/years')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -135,7 +135,7 @@ class TestYearsAPI:
         """Test GET /api/guilds/<id>/years returns year records"""
         # Create mock year instances
         mock_year1 = MagicMock()
-        mock_year1.guild = TEST_GUILD
+        mock_year1.guild = test_guild
         mock_year1.year = 1
         mock_year1.start_time = 1704067200
         mock_year1.end_time = 1705708800
@@ -143,7 +143,7 @@ class TestYearsAPI:
         mock_year1.notes = 'First year'
 
         mock_year2 = MagicMock()
-        mock_year2.guild = TEST_GUILD
+        mock_year2.guild = test_guild
         mock_year2.year = 2
         mock_year2.start_time = 1705708800
         mock_year2.end_time = 0
@@ -153,7 +153,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.all_for_guild = AsyncMock(return_value=[mock_year1, mock_year2])
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years')
+            response = await client.get(f'/api/guilds/{test_guild}/years')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -167,7 +167,7 @@ class TestYearsAPI:
     async def test_get_year_specific(self, client):
         """Test GET /api/guilds/<id>/years/<year> returns specific year"""
         mock_year = MagicMock()
-        mock_year.guild = TEST_GUILD
+        mock_year.guild = test_guild
         mock_year.year = 5
         mock_year.start_time = 1704067200
         mock_year.end_time = 1705708800
@@ -177,7 +177,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=mock_year)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years/5')
+            response = await client.get(f'/api/guilds/{test_guild}/years/5')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -190,7 +190,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=None)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years/999')
+            response = await client.get(f'/api/guilds/{test_guild}/years/999')
             assert response.status_code == 404
 
             data = await response.get_json()
@@ -200,7 +200,7 @@ class TestYearsAPI:
     async def test_get_latest_year(self, client):
         """Test GET /api/guilds/<id>/years/latest returns most recent year"""
         mock_year = MagicMock()
-        mock_year.guild = TEST_GUILD
+        mock_year.guild = test_guild
         mock_year.year = 10
         mock_year.start_time = 1750000000
         mock_year.end_time = 0
@@ -210,7 +210,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get_latest = AsyncMock(return_value=mock_year)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years/latest')
+            response = await client.get(f'/api/guilds/{test_guild}/years/latest')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -222,7 +222,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get_latest = AsyncMock(return_value=None)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/years/latest')
+            response = await client.get(f'/api/guilds/{test_guild}/years/latest')
             assert response.status_code == 404
 
             data = await response.get_json()
@@ -237,7 +237,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_create_year_missing_start_time(self, client):
         """Test POST /api/guilds/<id>/years/<year> returns 400 when start_time missing"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/years/1', json={'notes': 'no start time'})
+        response = await client.post(f'/api/guilds/{test_guild}/years/1', json={'notes': 'no start time'})
         assert response.status_code == 400
 
         data = await response.get_json()
@@ -246,7 +246,7 @@ class TestYearsAPI:
     @pytest.mark.asyncio
     async def test_create_year_no_data(self, client):
         """Test POST /api/guilds/<id>/years/<year> returns 400 when no body"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/years/1')
+        response = await client.post(f'/api/guilds/{test_guild}/years/1')
         assert response.status_code == 400
 
         data = await response.get_json()
@@ -258,7 +258,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.post(f'/api/guilds/{TEST_GUILD}/years/1', json={'start_time': 1704067200})
+            response = await client.post(f'/api/guilds/{test_guild}/years/1', json={'start_time': 1704067200})
             assert response.status_code == 500
 
             data = await response.get_json()
@@ -276,7 +276,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(return_value=None)
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/years/999')
+            response = await client.delete(f'/api/guilds/{test_guild}/years/999')
             assert response.status_code == 404
 
             data = await response.get_json()
@@ -288,7 +288,7 @@ class TestYearsAPI:
         with patch('attubot.client.years.Year') as mock_year_class:
             mock_year_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/years/5')
+            response = await client.delete(f'/api/guilds/{test_guild}/years/5')
             assert response.status_code == 500
 
             data = await response.get_json()
@@ -311,7 +311,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.all_for_guild = AsyncMock(return_value=[])
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers')
+            response = await client.get(f'/api/guilds/{test_guild}/markers')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -323,14 +323,14 @@ class TestMarkersAPI:
     async def test_get_markers_with_data(self, client):
         """Test GET /api/guilds/<id>/markers returns markers"""
         mock_marker1 = MagicMock()
-        mock_marker1.channel = TEST_GUILD
+        mock_marker1.channel = test_guild
         mock_marker1.message = 123456789012345678
         mock_marker1.year = 1
         mock_marker1.exact = True
         mock_marker1.wiki_page = False
 
         mock_marker2 = MagicMock()
-        mock_marker2.channel = TEST_GUILD
+        mock_marker2.channel = test_guild
         mock_marker2.message = 223456789012345678
         mock_marker2.year = 2
         mock_marker2.exact = False
@@ -339,7 +339,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.all_for_guild = AsyncMock(return_value=[mock_marker1, mock_marker2])
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers')
+            response = await client.get(f'/api/guilds/{test_guild}/markers')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -353,7 +353,7 @@ class TestMarkersAPI:
     async def test_get_marker_specific(self, client):
         """Test GET /api/guilds/<id>/markers/<year>/<channel> returns specific marker"""
         mock_marker = MagicMock()
-        mock_marker.guild = TEST_GUILD
+        mock_marker.guild = test_guild
         mock_marker.channel = self.TEST_CHANNEL_ID
         mock_marker.message = 123456789012345678
         mock_marker.year = 5
@@ -363,7 +363,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=mock_marker)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
+            response = await client.get(f'/api/guilds/{test_guild}/markers/5/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -376,7 +376,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
+            response = await client.get(f'/api/guilds/{test_guild}/markers/999/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -385,7 +385,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.timestamp = AsyncMock(return_value=1704067200)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/5/timestamp')
+            response = await client.get(f'/api/guilds/{test_guild}/markers/5/timestamp')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -397,13 +397,13 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.timestamp = AsyncMock(return_value=None)
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/markers/999/timestamp')
+            response = await client.get(f'/api/guilds/{test_guild}/markers/999/timestamp')
             assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_create_marker_missing_message(self, client):
         """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 400 when message missing"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}', json={})
+        response = await client.post(f'/api/guilds/{test_guild}/markers/5/{self.TEST_CHANNEL_ID}', json={})
         assert response.status_code == 400
 
         data = await response.get_json()
@@ -412,7 +412,7 @@ class TestMarkersAPI:
     @pytest.mark.asyncio
     async def test_create_marker_no_data(self, client):
         """Test POST /api/guilds/<id>/markers/<year>/<channel> returns 400 when no body"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
+        response = await client.post(f'/api/guilds/{test_guild}/markers/5/{self.TEST_CHANNEL_ID}')
         assert response.status_code == 400
 
     @pytest.mark.asyncio
@@ -421,7 +421,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.post(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}', json={'message': '123456789012345678'})
+            response = await client.post(f'/api/guilds/{test_guild}/markers/5/{self.TEST_CHANNEL_ID}', json={'message': '123456789012345678'})
             assert response.status_code == 500
 
     @pytest.mark.asyncio
@@ -436,7 +436,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(return_value=None)
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/999/{self.TEST_CHANNEL_ID}')
+            response = await client.delete(f'/api/guilds/{test_guild}/markers/999/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 404
 
             data = await response.get_json()
@@ -448,7 +448,7 @@ class TestMarkersAPI:
         with patch('attubot.client.markers.YearMarker') as mock_marker_class:
             mock_marker_class.get = AsyncMock(side_effect=Exception('DB connection lost'))
 
-            response = await client.delete(f'/api/guilds/{TEST_GUILD}/markers/5/{self.TEST_CHANNEL_ID}')
+            response = await client.delete(f'/api/guilds/{test_guild}/markers/5/{self.TEST_CHANNEL_ID}')
             assert response.status_code == 500
 
     @pytest.mark.asyncio
@@ -469,7 +469,7 @@ class TestTimeAPI:
             mock_status.return_value = (50, 5)  # 50 days elapsed, year 5
             mock_next.return_value = MagicMock(timestamp=MagicMock(return_value=1750000000), strftime=MagicMock(return_value='2025-06-15 17:00:00 UTC'))
 
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/time')
+            response = await client.get(f'/api/guilds/{test_guild}/time')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -482,7 +482,7 @@ class TestTimeAPI:
     @pytest.mark.asyncio
     async def test_get_time_status_guild_not_valid(self, client):
         """Test GET /api/guilds/<id>/time returns 200 for authorized guild with default/paused epoch"""
-        response = await client.get(f'/api/guilds/{TEST_GUILD_2}/time')
+        response = await client.get(f'/api/guilds/{test_guild_2}/time')
         # Guild is authorized and has a config (paused=True by default), so time status is still valid
         assert response.status_code == 200
 
@@ -498,7 +498,7 @@ class TestTimeAPI:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705708800, duration=19)
 
         with patch('attubot.client.calendar.get_year_span', new=AsyncMock(return_value=mock_span)):
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/time/year-span/5')
+            response = await client.get(f'/api/guilds/{test_guild}/time/year-span/5')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -551,7 +551,7 @@ class TestPageRoutes:
     @pytest.mark.asyncio
     async def test_years_page_authorized(self, client):
         """Test GET /guild/<id>/years renders years page"""
-        response = await client.get(f'/guild/{TEST_GUILD}/years')
+        response = await client.get(f'/guild/{test_guild}/years')
         assert response.status_code == 200
         html = await response.get_data(as_text=True)
         assert 'Year' in html
@@ -565,7 +565,7 @@ class TestPageRoutes:
     @pytest.mark.asyncio
     async def test_markers_page_authorized(self, client):
         """Test GET /guild/<id>/markers renders markers page"""
-        response = await client.get(f'/guild/{TEST_GUILD}/markers')
+        response = await client.get(f'/guild/{test_guild}/markers')
         assert response.status_code == 200
         html = await response.get_data(as_text=True)
         assert 'Marker' in html
@@ -579,7 +579,7 @@ class TestPageRoutes:
     @pytest.mark.asyncio
     async def test_time_page_authorized(self, client):
         """Test GET /guild/<id>/time renders time status page"""
-        response = await client.get(f'/guild/{TEST_GUILD}/time')
+        response = await client.get(f'/guild/{test_guild}/time')
         assert response.status_code == 200
         html = await response.get_data(as_text=True)
         assert 'Time' in html or 'Epoch' in html
@@ -607,24 +607,24 @@ class TestGuildInfoAPI:
     async def test_get_guild_info_success(self, client):
         """Test GET /api/guilds/<id>/info returns guild name and icon"""
         mock_info = {
-            'id': str(TEST_GUILD),
+            'id': str(test_guild),
             'name': 'Test Server',
             'icon_url': 'https://cdn.discordapp.com/icons/123/abc.png',
         }
         with patch('attubot.web.routes.get_guild_info', new=AsyncMock(return_value=mock_info)):
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/info')
+            response = await client.get(f'/api/guilds/{test_guild}/info')
             assert response.status_code == 200
 
             data = await response.get_json()
             assert data['name'] == 'Test Server'
-            assert data['id'] == str(TEST_GUILD)
+            assert data['id'] == str(test_guild)
             assert 'icon_url' in data
 
     @pytest.mark.asyncio
     async def test_get_guild_info_fetch_failure(self, client):
         """Test GET /api/guilds/<id>/info returns 500 when Discord fetch fails"""
         with patch('attubot.web.routes.get_guild_info', new=AsyncMock(return_value=None)):
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/info')
+            response = await client.get(f'/api/guilds/{test_guild}/info')
             assert response.status_code == 500
 
             data = await response.get_json()

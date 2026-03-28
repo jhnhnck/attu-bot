@@ -21,13 +21,13 @@ import pytest
 
 from attubot.client.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
 from attubot.database.models import YearMarkerDocument
-from tests.conftest import TEST_GUILD
+from tests.conftest import test_guild
 
 
-TEST_CHANNEL = 666666
-TEST_CHANNEL_2 = 777777
-TEST_MSG_ID = 123456789012345678
-TEST_YEAR = 5
+test_channel = 666666
+test_channel_2 = 777777
+test_msg_id = 123456789012345678
+test_year = 5
 
 # --- has_year_marker ---
 
@@ -71,25 +71,25 @@ class TestHasYearMarker:
 
 class TestResolvedMarker:
     def test_found_true_when_message_nonzero(self):
-        m = ResolvedMarker(guild=TEST_GUILD, channel=TEST_CHANNEL, year=1, message=TEST_MSG_ID, exact=True, source='bot')
+        m = ResolvedMarker(guild=test_guild, channel=test_channel, year=1, message=test_msg_id, exact=True, source='bot')
         assert m.found is True
 
     def test_found_false_when_message_zero(self):
-        m = ResolvedMarker(guild=TEST_GUILD, channel=TEST_CHANNEL, year=1, message=0, exact=False, source='none')
+        m = ResolvedMarker(guild=test_guild, channel=test_channel, year=1, message=0, exact=False, source='none')
         assert m.found is False
 
 
 # --- resolve_marker ---
 
 
-def _make_year_marker_doc(channel=TEST_CHANNEL, year=TEST_YEAR, message=TEST_MSG_ID, guild=TEST_GUILD, exact=True):
+def _make_year_marker_doc(channel=test_channel, year=test_year, message=test_msg_id, guild=test_guild, exact=True):
     return YearMarkerDocument(guild=guild, channel=channel, message=message, year=year, exact=exact)
 
 
-def _make_year_doc(year=TEST_YEAR, start_time=1_700_000_000, end_time=1_701_000_000):
+def _make_year_doc(year=test_year, start_time=1_700_000_000, end_time=1_701_000_000):
     from attubot.database.models import YearDocument
 
-    return YearDocument(guild=TEST_GUILD, year=year, start_time=start_time, end_time=end_time, duration=1)
+    return YearDocument(guild=test_guild, year=year, start_time=start_time, end_time=end_time, duration=1)
 
 
 class TestResolveMarkerOverride:
@@ -103,10 +103,10 @@ class TestResolveMarkerOverride:
             repo.get = AsyncMock(return_value=doc)
             mock_repo_fn.return_value = repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'override'
-        assert result.message == TEST_MSG_ID
+        assert result.message == test_msg_id
         assert result.exact is True
         assert result.found is True
 
@@ -130,7 +130,7 @@ class TestResolveMarkerOverride:
             # patch config for marker authors and lore channels
             with patch('attubot.client.markers.config') as mock_cfg:
                 mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
-                result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+                result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'none'
         assert result.found is False
@@ -149,15 +149,15 @@ class TestResolveMarkerBotHeader:
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
 
             msg_repo = AsyncMock()
-            msg_repo.find_bot_header = AsyncMock(return_value=TEST_MSG_ID)
+            msg_repo.find_bot_header = AsyncMock(return_value=test_msg_id)
             msg_repo.find_author_message = AsyncMock(return_value=None)
             msg_repo.find_first_message = AsyncMock(return_value=None)
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'bot'
-        assert result.message == TEST_MSG_ID
+        assert result.message == test_msg_id
         assert result.exact is True
 
 
@@ -176,24 +176,24 @@ class TestResolveMarkerAuthorHeader:
             from attubot.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
-                message_id=TEST_MSG_ID,
-                guild_id=TEST_GUILD,
-                channel_id=TEST_CHANNEL,
+                message_id=test_msg_id,
+                guild_id=test_guild,
+                channel_id=test_channel,
                 author=MessageAuthor(id=999, name='marker-person'),
-                content=MessageContent(text=f'=== Year {TEST_YEAR} PC ==='),
+                content=MessageContent(text=f'=== Year {test_year} PC ==='),
                 created_at=1_700_000_001,
             )
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
-            msg_repo.find_author_message = AsyncMock(return_value=TEST_MSG_ID)
+            msg_repo.find_author_message = AsyncMock(return_value=test_msg_id)
             msg_repo.get = AsyncMock(return_value=msg_doc)
             msg_repo.find_first_message = AsyncMock(return_value=None)
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'author'
-        assert result.message == TEST_MSG_ID
+        assert result.message == test_msg_id
         assert result.exact is True
 
     @pytest.mark.asyncio
@@ -209,21 +209,21 @@ class TestResolveMarkerAuthorHeader:
             from attubot.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
-                message_id=TEST_MSG_ID,
-                guild_id=TEST_GUILD,
-                channel_id=TEST_CHANNEL,
+                message_id=test_msg_id,
+                guild_id=test_guild,
+                channel_id=test_channel,
                 author=MessageAuthor(id=999, name='marker-person'),
                 content=MessageContent(text='hello there, nothing to do with years'),
                 created_at=1_700_000_001,
             )
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
-            msg_repo.find_author_message = AsyncMock(return_value=TEST_MSG_ID)
+            msg_repo.find_author_message = AsyncMock(return_value=test_msg_id)
             msg_repo.get = AsyncMock(return_value=msg_doc)
-            msg_repo.find_first_message = AsyncMock(return_value=TEST_MSG_ID + 1)
+            msg_repo.find_first_message = AsyncMock(return_value=test_msg_id + 1)
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         # fell through to 'first' because content didn't match
         assert result.source == 'first'
@@ -245,13 +245,13 @@ class TestResolveMarkerFirstMessage:
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
             msg_repo.find_author_message = AsyncMock(return_value=None)
-            msg_repo.find_first_message = AsyncMock(return_value=TEST_MSG_ID)
+            msg_repo.find_first_message = AsyncMock(return_value=test_msg_id)
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'first'
-        assert result.message == TEST_MSG_ID
+        assert result.message == test_msg_id
         assert result.exact is False
 
 
@@ -264,26 +264,26 @@ class TestResolveMarkerPrimaryFallback:
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
         with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
-            # target channel has no messages; primary channel is TEST_CHANNEL_2
+            # target channel has no messages; primary channel is test_channel_2
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
-            mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[TEST_CHANNEL_2, TEST_CHANNEL]))
+            mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[test_channel_2, test_channel]))
 
             msg_repo = AsyncMock()
 
             async def first_message_side_effect(guild_id, channel_id, after, before):
-                if channel_id == TEST_CHANNEL:
+                if channel_id == test_channel:
                     return None
-                return TEST_MSG_ID + 1
+                return test_msg_id + 1
 
             msg_repo.find_bot_header = AsyncMock(return_value=None)
             msg_repo.find_author_message = AsyncMock(return_value=None)
             msg_repo.find_first_message = first_message_side_effect
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'primary'
-        assert result.message == TEST_MSG_ID + 1
+        assert result.message == test_msg_id + 1
         assert result.exact is False
 
     @pytest.mark.asyncio
@@ -295,7 +295,7 @@ class TestResolveMarkerPrimaryFallback:
         with patch('attubot.client.markers._get_message_repo') as mock_msg_fn, patch('attubot.client.years.Year') as mock_year_cls, patch('attubot.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             # target channel is the primary channel
-            mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[TEST_CHANNEL]))
+            mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[test_channel]))
 
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
@@ -303,7 +303,7 @@ class TestResolveMarkerPrimaryFallback:
             msg_repo.find_first_message = AsyncMock(return_value=None)
             mock_msg_fn.return_value = msg_repo
 
-            result = await resolve_marker(TEST_GUILD, TEST_CHANNEL, TEST_YEAR)
+            result = await resolve_marker(test_guild, test_channel, test_year)
 
         assert result.source == 'none'
         assert result.found is False
@@ -317,52 +317,52 @@ class TestYearMarkerModel:
     async def test_get_returns_marker(self, mock_marker_repo):
         doc = _make_year_marker_doc()
         mock_marker_repo.get = AsyncMock(return_value=doc)
-        result = await YearMarker.get(TEST_CHANNEL, TEST_YEAR)
+        result = await YearMarker.get(test_channel, test_year)
         assert result is not None
-        assert result.channel == TEST_CHANNEL
-        assert result.year == TEST_YEAR
+        assert result.channel == test_channel
+        assert result.year == test_year
         assert result.exact is True
-        mock_marker_repo.get.assert_called_once_with(TEST_CHANNEL, TEST_YEAR)
+        mock_marker_repo.get.assert_called_once_with(test_channel, test_year)
 
     @pytest.mark.asyncio
     async def test_get_returns_none(self, mock_marker_repo):
         mock_marker_repo.get = AsyncMock(return_value=None)
-        result = await YearMarker.get(TEST_CHANNEL, TEST_YEAR)
+        result = await YearMarker.get(test_channel, test_year)
         assert result is None
 
     @pytest.mark.asyncio
     async def test_save_calls_upsert(self, mock_marker_repo):
-        marker = YearMarker(guild=TEST_GUILD, channel=TEST_CHANNEL, message=TEST_MSG_ID, year=TEST_YEAR)
+        marker = YearMarker(guild=test_guild, channel=test_channel, message=test_msg_id, year=test_year)
         await marker.save()
         mock_marker_repo.upsert.assert_called_once_with(
-            guild=TEST_GUILD,
-            channel=TEST_CHANNEL,
-            message=TEST_MSG_ID,
-            year=TEST_YEAR,
+            guild=test_guild,
+            channel=test_channel,
+            message=test_msg_id,
+            year=test_year,
             exact=True,
             wiki_page=False,
         )
 
     @pytest.mark.asyncio
     async def test_delete_calls_repo(self, mock_marker_repo):
-        marker = YearMarker(guild=TEST_GUILD, channel=TEST_CHANNEL, message=TEST_MSG_ID, year=TEST_YEAR)
+        marker = YearMarker(guild=test_guild, channel=test_channel, message=test_msg_id, year=test_year)
         await marker.delete()
-        mock_marker_repo.delete.assert_called_once_with(TEST_CHANNEL, TEST_YEAR)
+        mock_marker_repo.delete.assert_called_once_with(test_channel, test_year)
 
     @pytest.mark.asyncio
     async def test_mark_stores_override(self, mock_marker_repo, guild):
-        await YearMarker.mark(year=TEST_YEAR, message_id=TEST_MSG_ID, channel=TEST_CHANNEL, guild=TEST_GUILD)
+        await YearMarker.mark(year=test_year, message_id=test_msg_id, channel=test_channel, guild=test_guild)
         mock_marker_repo.upsert.assert_called_once()
         call_kwargs = mock_marker_repo.upsert.call_args.kwargs
-        assert call_kwargs['year'] == TEST_YEAR
-        assert call_kwargs['message'] == TEST_MSG_ID
+        assert call_kwargs['year'] == test_year
+        assert call_kwargs['message'] == test_msg_id
         assert call_kwargs['exact'] is True
 
     @pytest.mark.asyncio
     async def test_all_for_guild_returns_list(self, mock_marker_repo):
         docs = [_make_year_marker_doc(year=y) for y in range(1, 4)]
         mock_marker_repo.all_for_guild = AsyncMock(return_value=docs)
-        result = await YearMarker.all_for_guild(TEST_GUILD)
+        result = await YearMarker.all_for_guild(test_guild)
         assert len(result) == 3
         assert all(isinstance(m, YearMarker) for m in result)
         assert [m.year for m in result] == [1, 2, 3]
@@ -370,9 +370,9 @@ class TestYearMarkerModel:
     @pytest.mark.asyncio
     async def test_exists_true(self, mock_marker_repo):
         mock_marker_repo.exists = AsyncMock(return_value=True)
-        assert await YearMarker.exists(TEST_CHANNEL, TEST_YEAR) is True
+        assert await YearMarker.exists(test_channel, test_year) is True
 
     @pytest.mark.asyncio
     async def test_exists_false(self, mock_marker_repo):
         mock_marker_repo.exists = AsyncMock(return_value=False)
-        assert await YearMarker.exists(TEST_CHANNEL, TEST_YEAR) is False
+        assert await YearMarker.exists(test_channel, test_year) is False

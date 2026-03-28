@@ -22,8 +22,8 @@ import pytest_asyncio
 from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
-TEST_GUILD = 1234567890
-TEST_GUILD_2 = 9876543210
+test_guild = 1234567890
+test_guild_2 = 9876543210
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -34,7 +34,7 @@ async def web_app():
 
     # Create test guild configs
     guild1 = GuildConfig(
-        id=TEST_GUILD,
+        id=test_guild,
         channels=GuildChannels(
             activity=111111,
             announcements=222222,
@@ -56,7 +56,7 @@ async def web_app():
     )
 
     guild2 = GuildConfig(
-        id=TEST_GUILD_2,
+        id=test_guild_2,
         channels=GuildChannels(),
         epoch=GuildEpoch(),
         roles=GuildRoles(),
@@ -72,19 +72,19 @@ async def web_app():
     )
 
     # Set up test configuration directly on web_app_module.config
-    web_app_module.config.authorized_guilds = {TEST_GUILD, TEST_GUILD_2}
-    web_app_module.config.valid_guilds = [TEST_GUILD]
-    web_app_module.config.primary_guild = TEST_GUILD
+    web_app_module.config.authorized_guilds = {test_guild, test_guild_2}
+    web_app_module.config.valid_guilds = [test_guild]
+    web_app_module.config.primary_guild = test_guild
     web_app_module.config.guilds = {
-        TEST_GUILD: guild1,
-        TEST_GUILD_2: guild2,
+        test_guild: guild1,
+        test_guild_2: guild2,
     }
     web_app_module.config.theme = theme
     web_app_module.config.load_guild = AsyncMock(return_value=True)
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, 123456)
+    web_app_module.config.error_log = (test_guild, 123456)
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
 
@@ -121,8 +121,8 @@ class TestMissingGuildRoutes:
         # Simulate guild being in authorized_guilds but missing from config.guilds
         # (This shouldn't happen in normal operation but good to test handling)
         with patch.dict(config.guilds, {}, clear=False):
-            del config.guilds[TEST_GUILD]
-            response = await client.get(f'/api/guilds/{TEST_GUILD}')
+            del config.guilds[test_guild]
+            response = await client.get(f'/api/guilds/{test_guild}')
             assert response.status_code == 404
             data = await response.get_json()
             assert 'error' in data
@@ -133,8 +133,8 @@ class TestMissingGuildRoutes:
         from attubot.web.app import config
 
         with patch.dict(config.guilds, {}, clear=False):
-            del config.guilds[TEST_GUILD]
-            response = await client.post(f'/api/guilds/{TEST_GUILD}', json={})
+            del config.guilds[test_guild]
+            response = await client.post(f'/api/guilds/{test_guild}', json={})
             assert response.status_code == 404
             data = await response.get_json()
             assert 'error' in data
@@ -145,8 +145,8 @@ class TestMissingGuildRoutes:
         from attubot.web.app import config
 
         with patch.dict(config.guilds, {}, clear=False):
-            del config.guilds[TEST_GUILD]
-            response = await client.get(f'/guild/{TEST_GUILD}')
+            del config.guilds[test_guild]
+            response = await client.get(f'/guild/{test_guild}')
             assert response.status_code == 404
             html = await response.get_data(as_text=True)
             assert 'Not Found' in html

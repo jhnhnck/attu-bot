@@ -33,30 +33,30 @@ from attubot.database.models import MessageAuthor, MessageContent, MessageDocume
 # ---- constants ----
 
 # real guild/channel/message IDs from the dump - used only for pure function tests
-REAL_GUILD = 1001828025756819456
-REAL_CHANNEL = 1001829427409334292
-REAL_MESSAGE = 1293683225524179035
+real_guild = 1001828025756819456
+real_channel = 1001829427409334292
+real_message = 1293683225524179035
 
 # synthetic IDs used for integration tests (must match make_guild() default)
-TEST_GUILD = 1234567890
-TEST_CHANNEL = 5555555555
-TEST_STARBOARD_CHANNEL = 9999999999
-TEST_MESSAGE = 111000111000111000
-TEST_STARBOARD_MSG = 222000222000222000
-TEST_AUTHOR = 573360359566737409
-USER_A = 100000001
-USER_B = 100000002
-USER_C = 100000003
+test_guild = 1234567890
+test_channel = 5555555555
+test_starboard_channel = 9999999999
+test_message = 111000111000111000
+test_starboard_msg = 222000222000222000
+test_author = 573360359566737409
+user_a = 100000001
+user_b = 100000002
+user_c = 100000003
 
-EMOJI_STAR = '⭐'
-EMOJI_COLOR = '#EEDD20'
-EMOJI_MAP = {EMOJI_STAR: EMOJI_COLOR}
+emoji_star = '⭐'
+emoji_color = '#EEDD20'
+emoji_map = {emoji_star: emoji_color}
 
 # convenience for pure function tests
-GUILD = REAL_GUILD
-CHANNEL = REAL_CHANNEL
-MESSAGE = REAL_MESSAGE
-JUMP_URL = f'https://discord.com/channels/{GUILD}/{CHANNEL}/{MESSAGE}'
+guild = real_guild
+channel = real_channel
+message = real_message
+jump_url = f'https://discord.com/channels/{guild}/{channel}/{message}'
 
 
 # ---- pure function unit tests ----
@@ -71,62 +71,62 @@ def test_parse_color_without_hash():
 
 
 def test_build_content_single_emoji():
-    reactions = {EMOJI_STAR: [USER_A, USER_B, USER_C]}
-    result = build_content(reactions, JUMP_URL, EMOJI_MAP)
-    assert result == f'{EMOJI_STAR} **3** | {JUMP_URL}'
+    reactions = {emoji_star: [user_a, user_b, user_c]}
+    result = build_content(reactions, jump_url, emoji_map)
+    assert result == f'{emoji_star} **3** | {jump_url}'
 
 
 def test_build_content_multiple_emojis_sorted_by_count():
     emoji2 = '🌟'
-    reactions = {EMOJI_STAR: [USER_A, USER_B], emoji2: [USER_A, USER_B, USER_C]}
-    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
-    result = build_content(reactions, JUMP_URL, emoji_map)
+    reactions = {emoji_star: [user_a, user_b], emoji2: [user_a, user_b, user_c]}
+    emoji_map = {emoji_star: '#EEDD20', emoji2: '#FF0000'}
+    result = build_content(reactions, jump_url, emoji_map)
     # emoji2 has 3 reactions vs star's 2, so emoji2 should come first
-    assert result.startswith(f'{emoji2} **3** | {EMOJI_STAR} **2**')
-    assert result.endswith(JUMP_URL)
+    assert result.startswith(f'{emoji2} **3** | {emoji_star} **2**')
+    assert result.endswith(jump_url)
 
 
 def test_build_content_skips_unconfigured_emojis():
-    reactions = {EMOJI_STAR: [USER_A], '❤️': [USER_B]}  # ❤️ not configured
-    result = build_content(reactions, JUMP_URL, EMOJI_MAP)
+    reactions = {emoji_star: [user_a], '❤️': [user_b]}  # ❤️ not configured
+    result = build_content(reactions, jump_url, emoji_map)
     assert '❤️' not in result
-    assert EMOJI_STAR in result
+    assert emoji_star in result
 
 
 def test_build_content_skips_empty_reaction_lists():
-    reactions = {EMOJI_STAR: [], '🌟': [USER_A]}
-    emoji_map = {EMOJI_STAR: '#EEDD20', '🌟': '#FF0000'}
-    result = build_content(reactions, JUMP_URL, emoji_map)
-    assert EMOJI_STAR not in result
+    reactions = {emoji_star: [], '🌟': [user_a]}
+    emoji_map = {emoji_star: '#EEDD20', '🌟': '#FF0000'}
+    result = build_content(reactions, jump_url, emoji_map)
+    assert emoji_star not in result
     assert '🌟' in result
 
 
 def test_dominant_color_single_emoji():
-    reactions = {EMOJI_STAR: [USER_A, USER_B]}
-    assert dominant_color(reactions, EMOJI_MAP) == 0xEEDD20
+    reactions = {emoji_star: [user_a, user_b]}
+    assert dominant_color(reactions, emoji_map) == 0xEEDD20
 
 
 def test_dominant_color_returns_highest_count_emoji():
     emoji2 = '🌟'
-    reactions = {EMOJI_STAR: [USER_A], emoji2: [USER_A, USER_B]}
-    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
+    reactions = {emoji_star: [user_a], emoji2: [user_a, user_b]}
+    emoji_map = {emoji_star: '#EEDD20', emoji2: '#FF0000'}
     assert dominant_color(reactions, emoji_map) == 0xFF0000
 
 
 def test_dominant_color_fallback_when_no_configured_emoji():
-    reactions = {'❤️': [USER_A]}  # not in emoji_map
+    reactions = {'❤️': [user_a]}  # not in emoji_map
     fallback = 0xABCDEF
-    assert dominant_color(reactions, EMOJI_MAP, fallback=fallback) == fallback
+    assert dominant_color(reactions, emoji_map, fallback=fallback) == fallback
 
 
 def test_dominant_color_fallback_when_all_lists_empty():
-    reactions = {EMOJI_STAR: []}
-    assert dominant_color(reactions, EMOJI_MAP, fallback=0x123456) == 0x123456
+    reactions = {emoji_star: []}
+    assert dominant_color(reactions, emoji_map, fallback=0x123456) == 0x123456
 
 
 def test_parse_jump_url_valid():
-    result = parse_jump_url(JUMP_URL)
-    assert result == (GUILD, CHANNEL, MESSAGE)
+    result = parse_jump_url(jump_url)
+    assert result == (guild, channel, message)
 
 
 def test_parse_jump_url_invalid():
@@ -135,22 +135,22 @@ def test_parse_jump_url_invalid():
 
 
 def test_parse_starboard_content_single_emoji():
-    content = f'{EMOJI_STAR} **4** | {JUMP_URL}'
+    content = f'{emoji_star} **4** | {jump_url}'
     counts, url = parse_starboard_content(content)
-    assert counts == {EMOJI_STAR: 4}
-    assert url == JUMP_URL
+    assert counts == {emoji_star: 4}
+    assert url == jump_url
 
 
 def test_parse_starboard_content_multiple_emojis():
     emoji2 = '🌟'
-    content = f'{EMOJI_STAR} **4** | {emoji2} **1** | {JUMP_URL}'
+    content = f'{emoji_star} **4** | {emoji2} **1** | {jump_url}'
     counts, url = parse_starboard_content(content)
-    assert counts == {EMOJI_STAR: 4, emoji2: 1}
-    assert url == JUMP_URL
+    assert counts == {emoji_star: 4, emoji2: 1}
+    assert url == jump_url
 
 
 def test_parse_starboard_content_no_url():
-    _, url = parse_starboard_content(f'{EMOJI_STAR} **3** | no url here')
+    _, url = parse_starboard_content(f'{emoji_star} **3** | no url here')
     assert url is None
 
 
@@ -232,7 +232,7 @@ async def test_build_embeds_merges_link_preview_with_empty_content(monkeypatch):
     mock_user.display_avatar = mock_avatar
     monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
-    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].description == 'preview text'
 
 
@@ -245,7 +245,7 @@ async def test_build_embeds_forwarded_sets_footer(monkeypatch):
     mock_user.display_avatar = mock_avatar
     monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
-    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].footer.text == 'forwarded message'
 
 
@@ -258,7 +258,7 @@ async def test_build_embeds_not_forwarded_no_footer(monkeypatch):
     mock_user.display_avatar = mock_avatar
     monkeypatch.setattr('attubot.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
-    embeds = await build_embeds(msg_doc, TEST_GUILD, 0xEEDD20)
+    embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].footer is None
 
 
@@ -267,12 +267,12 @@ async def test_build_embeds_not_forwarded_no_footer(monkeypatch):
 
 def _make_msg_doc(**kwargs) -> MessageDocument:
     return MessageDocument(
-        message_id=kwargs.pop('message_id', TEST_MESSAGE),
-        guild_id=kwargs.pop('guild_id', TEST_GUILD),
-        channel_id=kwargs.pop('channel_id', TEST_CHANNEL),
+        message_id=kwargs.pop('message_id', test_message),
+        guild_id=kwargs.pop('guild_id', test_guild),
+        channel_id=kwargs.pop('channel_id', test_channel),
         parent_channel_id=kwargs.pop('parent_channel_id', None),
         author=MessageAuthor(
-            id=kwargs.pop('author_id', TEST_AUTHOR),
+            id=kwargs.pop('author_id', test_author),
             name=kwargs.pop('author_name', 'TestUser'),
             bot=kwargs.pop('author_bot', False),
         ),
@@ -294,10 +294,10 @@ def _make_msg_doc(**kwargs) -> MessageDocument:
 
 def _make_star_doc(**kwargs) -> StarredMessageDocument:
     defaults = {
-        'message_id': TEST_MESSAGE,
-        'channel_id': TEST_CHANNEL,
-        'guild_id': TEST_GUILD,
-        'author_id': TEST_AUTHOR,
+        'message_id': test_message,
+        'channel_id': test_channel,
+        'guild_id': test_guild,
+        'author_id': test_author,
     }
     defaults.update(kwargs)
     return StarredMessageDocument(**defaults)  # pyright: ignore[reportArgumentType]
@@ -328,7 +328,7 @@ def make_starboard_guild(make_guild):
         cfg = make_guild()
         from attubot.config import GuildStarboard
 
-        cfg.starboard = GuildStarboard(channel_id=TEST_STARBOARD_CHANNEL, emojis={EMOJI_STAR: EMOJI_COLOR})
+        cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color})
         return cfg
 
     return _make
@@ -341,10 +341,10 @@ async def test_handle_star_add_self_star_ignored(make_starboard_guild, mock_sb_a
     make_starboard_guild()
 
     # author stars their own message
-    msg_doc = _make_msg_doc(author_id=USER_A)
+    msg_doc = _make_msg_doc(author_id=user_a)
     msg_repo.get = AsyncMock(return_value=msg_doc)
 
-    await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+    await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     sb_repo.add_reaction.assert_not_called()
 
@@ -355,7 +355,7 @@ async def test_handle_star_add_unconfigured_emoji_ignored(make_starboard_guild, 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str='❤️')
+    await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str='❤️')
 
     sb_repo.add_reaction.assert_not_called()
     msg_repo.get.assert_not_called()
@@ -367,18 +367,18 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_doc = _make_msg_doc(author_id=test_author)
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=None)  # no existing document
 
-    updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+    updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+        await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     sb_repo.upsert.assert_called_once()
-    sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
     mock_sync.assert_called_once()
 
 
@@ -389,22 +389,22 @@ async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make
     make_starboard_guild()
 
     # existing doc links starboard post -> original message
-    existing_doc = _make_star_doc(starboard_message_id=TEST_STARBOARD_MSG, message_id=TEST_MESSAGE)
+    existing_doc = _make_star_doc(starboard_message_id=test_starboard_msg, message_id=test_message)
     sb_repo.get_by_starboard_message = AsyncMock(return_value=existing_doc)
 
-    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_doc = _make_msg_doc(author_id=test_author)
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=existing_doc)
 
-    updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+    updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         # reaction is on the STARBOARD channel/message, not the original
-        await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR)
+        await handle_star_add(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
 
-    sb_repo.get_by_starboard_message.assert_called_once_with(TEST_STARBOARD_MSG)
-    sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.get_by_starboard_message.assert_called_once_with(test_starboard_msg)
+    sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
 
 async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, mock_sb_and_msg_repos):
@@ -415,7 +415,7 @@ async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, m
 
     msg_repo.get = AsyncMock(return_value=None)
 
-    await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+    await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     sb_repo.add_reaction.assert_not_called()
 
@@ -426,21 +426,21 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    updated = _make_star_doc(reactions={EMOJI_STAR: []}, total_reactions=0)
+    updated = _make_star_doc(reactions={emoji_star: []}, total_reactions=0)
     sb_repo.remove_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_remove(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+        await handle_star_remove(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
-    sb_repo.remove_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_a)
     mock_sync.assert_called_once()
 
 
 # ---- one-vote-per-user, auto-remove, and threshold tests ----
 
-EMOJI_GLOW = '🌟'
-EMOJI_GLOW_COLOR = '#FF0000'
-RESPONSE_MSG_ID = 333000333000333000
+emoji_glow = '🌟'
+emoji_glow_color = '#FF0000'
+response_msg_id = 333000333000333000
 
 
 async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make_starboard_guild, mock_sb_and_msg_repos):
@@ -449,21 +449,21 @@ async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     cfg = make_starboard_guild()
-    cfg.starboard = GuildStarboard(channel_id=TEST_STARBOARD_CHANNEL, emojis={EMOJI_STAR: EMOJI_COLOR, EMOJI_GLOW: EMOJI_GLOW_COLOR})
+    cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color, emoji_glow: emoji_glow_color})
 
-    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_doc = _make_msg_doc(author_id=test_author)
     msg_repo.get = AsyncMock(return_value=msg_doc)
 
-    existing_doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A]})
+    existing_doc = _make_star_doc(reactions={emoji_star: [user_a]})
     sb_repo.get = AsyncMock(return_value=existing_doc)
 
     with patch('attubot.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove, \
          patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_GLOW)
+        await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_glow)
 
     sb_repo.add_reaction.assert_not_called()
     mock_sync.assert_not_called()
-    mock_remove.assert_called_once_with(TEST_CHANNEL, TEST_MESSAGE, USER_A, EMOJI_GLOW)
+    mock_remove.assert_called_once_with(test_channel, test_message, user_a, emoji_glow)
 
 
 async def test_handle_star_add_self_star_auto_removes(make_starboard_guild, mock_sb_and_msg_repos):
@@ -472,14 +472,14 @@ async def test_handle_star_add_self_star_auto_removes(make_starboard_guild, mock
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    msg_doc = _make_msg_doc(author_id=USER_A)  # reactor IS the author
+    msg_doc = _make_msg_doc(author_id=user_a)  # reactor IS the author
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=None)
 
     with patch('attubot.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+        await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
-    mock_remove.assert_called_once_with(TEST_CHANNEL, TEST_MESSAGE, USER_A, EMOJI_STAR)
+    mock_remove.assert_called_once_with(test_channel, test_message, user_a, emoji_star)
     sb_repo.add_reaction.assert_not_called()
 
 
@@ -490,20 +490,20 @@ async def test_handle_star_add_self_star_on_star_response_uses_orig_ids(make_sta
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    response_doc = _make_msg_doc(message_id=RESPONSE_MSG_ID, author_id=TEST_AUTHOR, starboard_reference_id=TEST_MESSAGE)
-    original_doc = _make_msg_doc(message_id=TEST_MESSAGE, author_id=USER_A)
+    response_doc = _make_msg_doc(message_id=response_msg_id, author_id=test_author, starboard_reference_id=test_message)
+    original_doc = _make_msg_doc(message_id=test_message, author_id=user_a)
 
     def _msg_get(mid):
-        return response_doc if mid == RESPONSE_MSG_ID else original_doc
+        return response_doc if mid == response_msg_id else original_doc
 
     msg_repo.get = AsyncMock(side_effect=_msg_get)
     sb_repo.get = AsyncMock(return_value=None)
 
     with patch('attubot.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, RESPONSE_MSG_ID, user_id=USER_A, emoji_str=EMOJI_STAR)
+        await handle_star_add(test_guild, test_channel, response_msg_id, user_id=user_a, emoji_str=emoji_star)
 
     # remove must target the response message the user actually reacted on
-    mock_remove.assert_called_once_with(TEST_CHANNEL, RESPONSE_MSG_ID, USER_A, EMOJI_STAR)
+    mock_remove.assert_called_once_with(test_channel, response_msg_id, user_a, emoji_star)
     sb_repo.add_reaction.assert_not_called()
 
 
@@ -512,9 +512,9 @@ async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild,
     from attubot.config import GuildStarboard
 
     cfg = make_starboard_guild()
-    cfg.starboard = GuildStarboard(channel_id=TEST_STARBOARD_CHANNEL, emojis={EMOJI_STAR: EMOJI_COLOR, EMOJI_GLOW: EMOJI_GLOW_COLOR})
+    cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color, emoji_glow: emoji_glow_color})
 
-    doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A], EMOJI_GLOW: [USER_A]}, weighted_total=2.0)
+    doc = _make_star_doc(reactions={emoji_star: [user_a], emoji_glow: [user_a]}, weighted_total=2.0)
 
     channel = AsyncMock()
     msg_doc = _make_msg_doc()
@@ -525,7 +525,7 @@ async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild,
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
-        await _sync_starboard_post(TEST_GUILD, doc, cfg)
+        await _sync_starboard_post(test_guild, doc, cfg)
 
     channel.send.assert_not_called()
 
@@ -534,10 +534,10 @@ async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_
     from attubot.client.starboard import _sync_starboard_post
 
     cfg = make_starboard_guild()
-    doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A, USER_B]}, weighted_total=2.0)
+    doc = _make_star_doc(reactions={emoji_star: [user_a, user_b]}, weighted_total=2.0)
 
     sb_msg = AsyncMock()
-    sb_msg.id = TEST_STARBOARD_MSG
+    sb_msg.id = test_starboard_msg
     channel = AsyncMock()
     channel.send = AsyncMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
@@ -550,7 +550,7 @@ async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
 
-        await _sync_starboard_post(TEST_GUILD, doc, cfg)
+        await _sync_starboard_post(test_guild, doc, cfg)
 
     channel.send.assert_called_once()
 
@@ -560,7 +560,7 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
 
     cfg = make_starboard_guild()
     # post exists but only one user reacted - max per-emoji weight is 1.0 < 2
-    doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, starboard_message_id=TEST_STARBOARD_MSG, weighted_total=1.0)
+    doc = _make_star_doc(reactions={emoji_star: [user_a]}, starboard_message_id=test_starboard_msg, weighted_total=1.0)
 
     sb_msg = AsyncMock()
     channel = AsyncMock()
@@ -574,10 +574,10 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
 
-        await _sync_starboard_post(TEST_GUILD, doc, cfg)
+        await _sync_starboard_post(test_guild, doc, cfg)
 
     sb_msg.delete.assert_called_once()
-    mock_sb_repo.set_starboard_message.assert_called_once_with(TEST_MESSAGE, None)
+    mock_sb_repo.set_starboard_message.assert_called_once_with(test_message, None)
     sb_msg.edit.assert_not_called()
 
 
@@ -586,7 +586,7 @@ async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock
 
     cfg = make_starboard_guild()
     # post exists and two users reacted - max per-emoji weight is 2.0 >= 2
-    doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A, USER_B]}, starboard_message_id=TEST_STARBOARD_MSG, weighted_total=2.0)
+    doc = _make_star_doc(reactions={emoji_star: [user_a, user_b]}, starboard_message_id=test_starboard_msg, weighted_total=2.0)
 
     sb_msg = AsyncMock()
     channel = AsyncMock()
@@ -599,7 +599,7 @@ async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
-        await _sync_starboard_post(TEST_GUILD, doc, cfg)
+        await _sync_starboard_post(test_guild, doc, cfg)
 
     sb_msg.edit.assert_called_once()
     sb_msg.delete.assert_not_called()
@@ -631,15 +631,15 @@ async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb
     from attubot.config import GuildStarboard
 
     cfg = make_starboard_guild()
-    cfg.starboard = GuildStarboard(channel_id=TEST_STARBOARD_CHANNEL, emojis={EMOJI_STAR: EMOJI_COLOR, EMOJI_GLOW: EMOJI_GLOW_COLOR})
+    cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color, emoji_glow: emoji_glow_color})
 
     message = MagicMock()
-    message.id = TEST_MESSAGE
-    message.author.id = TEST_AUTHOR
-    message.channel.id = TEST_CHANNEL
+    message.id = test_message
+    message.author.id = test_author
+    message.channel.id = test_channel
     message.reactions = [
-        _make_discord_reaction(EMOJI_STAR, [_make_discord_user(USER_A), _make_discord_user(USER_B)]),
-        _make_discord_reaction(EMOJI_GLOW, [_make_discord_user(USER_A)]),
+        _make_discord_reaction(emoji_star, [_make_discord_user(user_a), _make_discord_user(user_b)]),
+        _make_discord_reaction(emoji_glow, [_make_discord_user(user_a)]),
     ]
     message.remove_reaction = AsyncMock()
 
@@ -649,16 +649,16 @@ async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb
     with patch('attubot.client.messages._message_repo') as mock_msg_repo, \
          patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
-        await backfill_message_reactions(message, TEST_GUILD)
+        await backfill_message_reactions(message, test_guild)
 
     upserted_doc = mock_sb_repo.upsert.call_args[0][0]
-    assert USER_A in upserted_doc.reactions.get(EMOJI_STAR, [])
-    assert USER_A not in upserted_doc.reactions.get(EMOJI_GLOW, [])
-    # USER_A's duplicate EMOJI_GLOW reaction should be auto-removed
+    assert user_a in upserted_doc.reactions.get(emoji_star, [])
+    assert user_a not in upserted_doc.reactions.get(emoji_glow, [])
+    # user_a's duplicate emoji_glow reaction should be auto-removed
     message.remove_reaction.assert_called_once()
     emoji_arg, obj_arg = message.remove_reaction.call_args.args
-    assert emoji_arg == EMOJI_GLOW
-    assert obj_arg.id == USER_A
+    assert emoji_arg == emoji_glow
+    assert obj_arg.id == user_a
 
 
 async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
@@ -668,11 +668,11 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
     make_starboard_guild()
 
     message = MagicMock()
-    message.id = TEST_MESSAGE
-    message.author.id = TEST_AUTHOR
-    message.channel.id = TEST_CHANNEL
+    message.id = test_message
+    message.author.id = test_author
+    message.channel.id = test_channel
     message.reactions = [
-        _make_discord_reaction(EMOJI_STAR, [_make_discord_user(TEST_AUTHOR)]),
+        _make_discord_reaction(emoji_star, [_make_discord_user(test_author)]),
     ]
     message.remove_reaction = AsyncMock()
 
@@ -681,12 +681,12 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
     with patch('attubot.client.messages._message_repo') as mock_msg_repo, \
          patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
-        await backfill_message_reactions(message, TEST_GUILD)
+        await backfill_message_reactions(message, test_guild)
 
     message.remove_reaction.assert_called_once()
     emoji_arg, obj_arg = message.remove_reaction.call_args.args
-    assert emoji_arg == EMOJI_STAR
-    assert obj_arg.id == TEST_AUTHOR
+    assert emoji_arg == emoji_star
+    assert obj_arg.id == test_author
     mock_sb_repo.upsert.assert_not_called()
 
 
@@ -702,9 +702,9 @@ async def test_handle_star_clear_wipes_reactions_and_syncs(make_starboard_guild,
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_clear(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE)
+        await handle_star_clear(test_guild, test_channel, test_message)
 
-    mock_sb_repo.clear_all_reactions.assert_called_once_with(TEST_MESSAGE)
+    mock_sb_repo.clear_all_reactions.assert_called_once_with(test_message)
     mock_sync.assert_called_once()
 
 
@@ -716,7 +716,7 @@ async def test_handle_star_clear_no_doc_does_nothing(make_starboard_guild, mock_
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=None)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_clear(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE)
+        await handle_star_clear(test_guild, test_channel, test_message)
 
     mock_sync.assert_not_called()
 
@@ -730,9 +730,9 @@ async def test_handle_star_clear_emoji_removes_one_emoji(make_starboard_guild, m
     mock_sb_repo.clear_emoji_reactions = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_clear_emoji(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, EMOJI_STAR)
+        await handle_star_clear_emoji(test_guild, test_channel, test_message, emoji_star)
 
-    mock_sb_repo.clear_emoji_reactions.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR)
+    mock_sb_repo.clear_emoji_reactions.assert_called_once_with(test_message, emoji_star)
     mock_sync.assert_called_once()
 
 
@@ -744,7 +744,7 @@ async def test_handle_star_clear_emoji_ignores_unconfigured_emoji(make_starboard
     mock_sb_repo.clear_emoji_reactions = AsyncMock()
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
-        await handle_star_clear_emoji(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, '❤️')
+        await handle_star_clear_emoji(test_guild, test_channel, test_message, '❤️')
 
     mock_sb_repo.clear_emoji_reactions.assert_not_called()
     mock_sync.assert_not_called()
@@ -755,17 +755,17 @@ async def test_handle_star_clear_redirects_starboard_channel(make_starboard_guil
 
     make_starboard_guild()
 
-    original_doc = _make_star_doc(message_id=TEST_MESSAGE)
+    original_doc = _make_star_doc(message_id=test_message)
     mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=original_doc)
 
     updated = _make_star_doc(reactions={}, total_reactions=0, weighted_total=0.0)
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-        await handle_star_clear(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG)
+        await handle_star_clear(test_guild, test_starboard_channel, test_starboard_msg)
 
-    mock_sb_repo.get_by_starboard_message.assert_called_once_with(TEST_STARBOARD_MSG)
-    mock_sb_repo.clear_all_reactions.assert_called_once_with(TEST_MESSAGE)
+    mock_sb_repo.get_by_starboard_message.assert_called_once_with(test_starboard_msg)
+    mock_sb_repo.clear_all_reactions.assert_called_once_with(test_message)
 
 
 # ---- recount starboard skip-unchanged tests ----
@@ -799,17 +799,17 @@ class TestRecountStarboard:
 
         make_starboard_guild()
 
-        # stored doc already has exactly [USER_A, USER_B]
+        # stored doc already has exactly [user_a, user_b]
         doc = _make_star_doc(
-            reactions={EMOJI_STAR: [USER_A, USER_B]},
+            reactions={emoji_star: [user_a, user_b]},
             total_reactions=2,
             starboard_message_id=0,  # no sb post - skips the second fetch
         )
         mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
 
         orig_msg = MagicMock()
-        orig_msg.author = MagicMock(id=TEST_AUTHOR)
-        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+        orig_msg.author = MagicMock(id=test_author)
+        orig_msg.reactions = [self._make_reaction(emoji_star, [user_a, user_b])]
 
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
@@ -817,7 +817,7 @@ class TestRecountStarboard:
         # bot and _sync_starboard_post are imported inside the function, so patch at source
         with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
-            await job_recount_starboard(TEST_GUILD)
+            await job_recount_starboard(test_guild)
 
         mock_sync.assert_not_called()
         mock_sb_repo.upsert.assert_not_called()
@@ -832,7 +832,7 @@ class TestRecountStarboard:
 
         # stored doc has 1 reaction, live has 2
         doc = _make_star_doc(
-            reactions={EMOJI_STAR: [USER_A]},
+            reactions={emoji_star: [user_a]},
             total_reactions=1,
             starboard_message_id=0,
         )
@@ -840,15 +840,15 @@ class TestRecountStarboard:
         mock_sb_repo.upsert = AsyncMock()
 
         orig_msg = MagicMock()
-        orig_msg.author = MagicMock(id=TEST_AUTHOR)
-        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+        orig_msg.author = MagicMock(id=test_author)
+        orig_msg.reactions = [self._make_reaction(emoji_star, [user_a, user_b])]
 
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         with patch('attubot.bot') as mock_bot, patch('attubot.commands.fix._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
-            await job_recount_starboard(TEST_GUILD)
+            await job_recount_starboard(test_guild)
 
         mock_sync.assert_called_once()
         mock_sb_repo.upsert.assert_called_once()
@@ -863,7 +863,7 @@ class TestRecountStarboard:
 
         make_starboard_guild()
 
-        doc = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        doc = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         mock_sb_repo.all_for_guild = AsyncMock(return_value=[doc])
 
         orig_channel = AsyncMock()
@@ -871,7 +871,7 @@ class TestRecountStarboard:
 
         with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
-            await job_recount_starboard(TEST_GUILD)  # must not raise
+            await job_recount_starboard(test_guild)  # must not raise
 
         mock_sync.assert_not_called()
 
@@ -917,9 +917,9 @@ class TestRecountStarboard:
 
         make_starboard_guild()
 
-        # stored doc has [USER_B, USER_A] (different order than live)
+        # stored doc has [user_b, user_a] (different order than live)
         doc = _make_star_doc(
-            reactions={EMOJI_STAR: [USER_B, USER_A]},
+            reactions={emoji_star: [user_b, user_a]},
             total_reactions=2,
             starboard_message_id=0,
         )
@@ -927,15 +927,15 @@ class TestRecountStarboard:
 
         # live returns in a different order
         orig_msg = MagicMock()
-        orig_msg.author = MagicMock(id=TEST_AUTHOR)
-        orig_msg.reactions = [self._make_reaction(EMOJI_STAR, [USER_A, USER_B])]
+        orig_msg.author = MagicMock(id=test_author)
+        orig_msg.reactions = [self._make_reaction(emoji_star, [user_a, user_b])]
 
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         with patch('attubot.bot') as mock_bot, patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
-            await job_recount_starboard(TEST_GUILD)
+            await job_recount_starboard(test_guild)
 
         # same users, just different storage order - should be skipped
         mock_sync.assert_not_called()
@@ -956,18 +956,18 @@ class TestStarboardChannelFallthrough:
         # message is in the starboard channel but has no known starboard post lookup
         sb_repo.get_by_starboard_message = AsyncMock(return_value=None)
 
-        msg_doc = _make_msg_doc(author_id=TEST_AUTHOR, channel_id=TEST_STARBOARD_CHANNEL)
+        msg_doc = _make_msg_doc(author_id=test_author, channel_id=test_starboard_channel)
         msg_repo.get = AsyncMock(return_value=msg_doc)
         sb_repo.get = AsyncMock(return_value=None)
 
-        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
         with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR)
+            await handle_star_add(test_guild, test_starboard_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
         # should NOT have been dropped - add_reaction must have been called
-        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+        sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
     async def test_known_starboard_post_still_redirects_to_original(self, make_starboard_guild, mock_sb_and_msg_repos):
         """reaction on a known starboard post should still redirect to the original message"""
@@ -978,21 +978,21 @@ class TestStarboardChannelFallthrough:
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
 
-        existing_doc = _make_star_doc(starboard_message_id=TEST_STARBOARD_MSG, message_id=TEST_MESSAGE)
+        existing_doc = _make_star_doc(starboard_message_id=test_starboard_msg, message_id=test_message)
         sb_repo.get_by_starboard_message = AsyncMock(return_value=existing_doc)
 
-        msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+        msg_doc = _make_msg_doc(author_id=test_author)
         msg_repo.get = AsyncMock(return_value=msg_doc)
         sb_repo.get = AsyncMock(return_value=existing_doc)
 
-        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
         with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_add(TEST_GUILD, TEST_STARBOARD_CHANNEL, TEST_STARBOARD_MSG, user_id=USER_A, emoji_str=EMOJI_STAR)
+            await handle_star_add(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
 
         # should have been redirected to the original message ID
-        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+        sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
 
 class TestStarReferenceRedirect:
@@ -1004,19 +1004,19 @@ class TestStarReferenceRedirect:
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
 
-        response_id = TEST_STARBOARD_MSG + 1
-        response_doc = _make_msg_doc(message_id=response_id, channel_id=TEST_CHANNEL, starboard_reference_id=TEST_MESSAGE)
-        original_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+        response_id = test_starboard_msg + 1
+        response_doc = _make_msg_doc(message_id=response_id, channel_id=test_channel, starboard_reference_id=test_message)
+        original_doc = _make_msg_doc(author_id=test_author)
         msg_repo.get = AsyncMock(side_effect=[response_doc, original_doc, original_doc])
         sb_repo.get = AsyncMock(return_value=None)
 
-        updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1)
+        updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
         with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_add(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
+            await handle_star_add(test_guild, test_channel, response_id, user_id=user_a, emoji_str=emoji_star)
 
-        sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+        sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
     async def test_handle_star_remove_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
         from unittest.mock import AsyncMock, patch
@@ -1026,35 +1026,35 @@ class TestStarReferenceRedirect:
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
 
-        response_id = TEST_STARBOARD_MSG + 2
-        response_doc = _make_msg_doc(message_id=response_id, starboard_reference_id=TEST_MESSAGE)
+        response_id = test_starboard_msg + 2
+        response_doc = _make_msg_doc(message_id=response_id, starboard_reference_id=test_message)
         msg_repo.get = AsyncMock(return_value=response_doc)
-        sb_repo.remove_reaction = AsyncMock(return_value=_make_star_doc(reactions={EMOJI_STAR: []}, total_reactions=0))
+        sb_repo.remove_reaction = AsyncMock(return_value=_make_star_doc(reactions={emoji_star: []}, total_reactions=0))
 
         with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-            await handle_star_remove(TEST_GUILD, TEST_CHANNEL, response_id, user_id=USER_A, emoji_str=EMOJI_STAR)
+            await handle_star_remove(test_guild, test_channel, response_id, user_id=user_a, emoji_str=emoji_star)
 
-        sb_repo.remove_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+        sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
 
 # ---- super reaction (burst) tests ----
 
 
 def test_weighted_count_normal_only():
-    assert _weighted_count(EMOJI_STAR, {EMOJI_STAR: [USER_A, USER_B]}, {}) == 2.0
+    assert _weighted_count(emoji_star, {emoji_star: [user_a, user_b]}, {}) == 2.0
 
 
 def test_weighted_count_super_only():
-    assert _weighted_count(EMOJI_STAR, {}, {EMOJI_STAR: [USER_A, USER_B]}) == 3.0
+    assert _weighted_count(emoji_star, {}, {emoji_star: [user_a, user_b]}) == 3.0
 
 
 def test_weighted_count_mixed():
     # 2 normal (2.0) + 1 super (1.5) = 3.5
-    assert _weighted_count(EMOJI_STAR, {EMOJI_STAR: [USER_A, USER_B]}, {EMOJI_STAR: [USER_C]}) == 3.5
+    assert _weighted_count(emoji_star, {emoji_star: [user_a, user_b]}, {emoji_star: [user_c]}) == 3.5
 
 
 def test_weighted_count_missing_emoji():
-    assert _weighted_count(EMOJI_STAR, {}, {}) == 0.0
+    assert _weighted_count(emoji_star, {}, {}) == 0.0
 
 
 def test_fmt_count_whole_number():
@@ -1071,37 +1071,37 @@ def test_fmt_count_one_and_half():
 
 def test_build_content_super_only():
     """one super reactor should display as 1.5"""
-    result = build_content({}, JUMP_URL, EMOJI_MAP, super_reactions={EMOJI_STAR: [USER_A]})
-    assert f'{EMOJI_STAR} **1.5**' in result
-    assert JUMP_URL in result
+    result = build_content({}, jump_url, emoji_map, super_reactions={emoji_star: [user_a]})
+    assert f'{emoji_star} **1.5**' in result
+    assert jump_url in result
 
 
 def test_build_content_normal_and_super_no_double_count():
     """two normal + one super should display as 3.5, not 3"""
-    reactions = {EMOJI_STAR: [USER_A, USER_B]}
-    super_reactions = {EMOJI_STAR: [USER_C]}
-    result = build_content(reactions, JUMP_URL, EMOJI_MAP, super_reactions=super_reactions)
-    assert f'{EMOJI_STAR} **3.5**' in result
+    reactions = {emoji_star: [user_a, user_b]}
+    super_reactions = {emoji_star: [user_c]}
+    result = build_content(reactions, jump_url, emoji_map, super_reactions=super_reactions)
+    assert f'{emoji_star} **3.5**' in result
 
 
 def test_build_content_super_reaction_sorts_correctly():
     """emoji with higher weighted count (via super) should sort before one with more raw reactors"""
     emoji2 = '🌟'
-    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
+    emoji_map = {emoji_star: '#EEDD20', emoji2: '#FF0000'}
     # star: 1 normal + 1 super = 2.5; emoji2: 2 normal = 2.0 - star should win
-    reactions = {EMOJI_STAR: [USER_A], emoji2: [USER_A, USER_B]}
-    super_reactions = {EMOJI_STAR: [USER_B]}
-    result = build_content(reactions, JUMP_URL, emoji_map, super_reactions=super_reactions)
-    assert result.index(EMOJI_STAR) < result.index(emoji2)
+    reactions = {emoji_star: [user_a], emoji2: [user_a, user_b]}
+    super_reactions = {emoji_star: [user_b]}
+    result = build_content(reactions, jump_url, emoji_map, super_reactions=super_reactions)
+    assert result.index(emoji_star) < result.index(emoji2)
 
 
 def test_dominant_color_super_reaction_wins():
     """emoji with lower raw count but higher weighted count should win dominant color"""
     emoji2 = '🌟'
-    emoji_map = {EMOJI_STAR: '#EEDD20', emoji2: '#FF0000'}
+    emoji_map = {emoji_star: '#EEDD20', emoji2: '#FF0000'}
     # star: 0 normal + 2 super = 3.0; emoji2: 2 normal = 2.0
-    reactions = {emoji2: [USER_A, USER_B]}
-    super_reactions = {EMOJI_STAR: [USER_A, USER_B]}
+    reactions = {emoji2: [user_a, user_b]}
+    super_reactions = {emoji_star: [user_a, user_b]}
     assert dominant_color(reactions, emoji_map, super_reactions=super_reactions) == 0xEEDD20
 
 
@@ -1112,17 +1112,17 @@ async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_gui
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_doc = _make_msg_doc(author_id=test_author)
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=None)
 
-    updated = _make_star_doc(super_reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.5)
+    updated = _make_star_doc(super_reactions={emoji_star: [user_a]}, total_reactions=1, weighted_total=1.5)
     sb_repo.add_super_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
+        await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=True)
 
-    sb_repo.add_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.add_super_reaction.assert_called_once_with(test_message, emoji_star, user_a)
     sb_repo.add_reaction.assert_not_called()
 
 
@@ -1133,17 +1133,17 @@ async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    msg_doc = _make_msg_doc(author_id=TEST_AUTHOR)
+    msg_doc = _make_msg_doc(author_id=test_author)
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=None)
 
-    updated = _make_star_doc(reactions={EMOJI_STAR: [USER_A]}, total_reactions=1, weighted_total=1.0)
+    updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1, weighted_total=1.0)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-        await handle_star_add(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=False)
+        await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=False)
 
-    sb_repo.add_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
     sb_repo.add_super_reaction.assert_not_called()
 
 
@@ -1154,13 +1154,13 @@ async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboa
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
 
-    updated = _make_star_doc(super_reactions={EMOJI_STAR: []}, total_reactions=0, weighted_total=0.0)
+    updated = _make_star_doc(super_reactions={emoji_star: []}, total_reactions=0, weighted_total=0.0)
     sb_repo.remove_super_reaction = AsyncMock(return_value=updated)
 
     with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock):
-        await handle_star_remove(TEST_GUILD, TEST_CHANNEL, TEST_MESSAGE, user_id=USER_A, emoji_str=EMOJI_STAR, is_burst=True)
+        await handle_star_remove(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=True)
 
-    sb_repo.remove_super_reaction.assert_called_once_with(TEST_MESSAGE, EMOJI_STAR, USER_A)
+    sb_repo.remove_super_reaction.assert_called_once_with(test_message, emoji_star, user_a)
     sb_repo.remove_reaction.assert_not_called()
 
 
@@ -1190,126 +1190,126 @@ def test_parse_real_dump_samples():
 
 
 def test_count_streak_empty_list():
-    assert _count_streak([], TEST_AUTHOR) == 0
+    assert _count_streak([], test_author) == 0
 
 
 def test_count_streak_single_match():
-    docs = [_make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001)]
-    assert _count_streak(docs, TEST_AUTHOR) == 1
+    docs = [_make_star_doc(message_id=1001, author_id=test_author, starboard_message_id=2001)]
+    assert _count_streak(docs, test_author) == 1
 
 
 def test_count_streak_single_mismatch():
-    docs = [_make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001)]
-    assert _count_streak(docs, TEST_AUTHOR) == 0
+    docs = [_make_star_doc(message_id=1001, author_id=user_a, starboard_message_id=2001)]
+    assert _count_streak(docs, test_author) == 0
 
 
 def test_count_streak_three_in_a_row():
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
-    assert _count_streak(docs, TEST_AUTHOR) == 3
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(3)]
+    assert _count_streak(docs, test_author) == 3
 
 
 def test_count_streak_five_in_a_row():
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(5)]
-    assert _count_streak(docs, TEST_AUTHOR) == 5
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(5)]
+    assert _count_streak(docs, test_author) == 5
 
 
 def test_count_streak_eleven_in_a_row():
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(11)]
-    assert _count_streak(docs, TEST_AUTHOR) == 11
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(11)]
+    assert _count_streak(docs, test_author) == 11
 
 
 def test_count_streak_broken_by_other_author():
-    # 2 by TEST_AUTHOR at tail, 1 by USER_A before, then TEST_AUTHOR earlier - streak is 2
+    # 2 by test_author at tail, 1 by user_a before, then test_author earlier - streak is 2
     docs = [
-        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
-        _make_star_doc(message_id=1002, author_id=USER_A, starboard_message_id=2002),
-        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=2003),
-        _make_star_doc(message_id=1004, author_id=TEST_AUTHOR, starboard_message_id=2004),
+        _make_star_doc(message_id=1001, author_id=test_author, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=user_a, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=test_author, starboard_message_id=2003),
+        _make_star_doc(message_id=1004, author_id=test_author, starboard_message_id=2004),
     ]
-    assert _count_streak(docs, TEST_AUTHOR) == 2
+    assert _count_streak(docs, test_author) == 2
 
 
 def test_count_streak_other_author_at_tail():
     docs = [
-        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
-        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
-        _make_star_doc(message_id=1003, author_id=USER_A, starboard_message_id=2003),
+        _make_star_doc(message_id=1001, author_id=test_author, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=test_author, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=user_a, starboard_message_id=2003),
     ]
-    assert _count_streak(docs, TEST_AUTHOR) == 0
+    assert _count_streak(docs, test_author) == 0
 
 
 def test_count_streak_unordered_input():
     # same docs as three_in_a_row but reversed - should still return 3
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
-    assert _count_streak(list(reversed(docs)), TEST_AUTHOR) == 3
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(3)]
+    assert _count_streak(list(reversed(docs)), test_author) == 3
 
 
 def test_count_streak_author_in_middle_only():
     docs = [
-        _make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001),
-        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
-        _make_star_doc(message_id=1003, author_id=USER_B, starboard_message_id=2003),
+        _make_star_doc(message_id=1001, author_id=user_a, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=test_author, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=user_b, starboard_message_id=2003),
     ]
-    assert _count_streak(docs, TEST_AUTHOR) == 0
+    assert _count_streak(docs, test_author) == 0
 
 
 # ---- _sweep_message pure function tests ----
 
 
 def test_sweep_message_streak_3():
-    result = _sweep_message(3, TEST_AUTHOR)
+    result = _sweep_message(3, test_author)
     assert result is not None
-    assert f'<@{TEST_AUTHOR}>' in result
+    assert f'<@{test_author}>' in result
     assert 'sweeps!' in result
     assert ':broom:' in result
 
 
 def test_sweep_message_streak_5():
-    result = _sweep_message(5, TEST_AUTHOR)
+    result = _sweep_message(5, test_author)
     assert result is not None
     assert 'sweeps more!' in result
     assert ':silver_medal:' in result
 
 
 def test_sweep_message_streak_11():
-    result = _sweep_message(11, TEST_AUTHOR)
+    result = _sweep_message(11, test_author)
     assert result is not None
     assert 'sweeps even more!' in result
     assert ':gold_medal:' in result
 
 
 def test_sweep_message_streak_0_is_none():
-    assert _sweep_message(0, TEST_AUTHOR) is None
+    assert _sweep_message(0, test_author) is None
 
 
 def test_sweep_message_streak_1_is_none():
-    assert _sweep_message(1, TEST_AUTHOR) is None
+    assert _sweep_message(1, test_author) is None
 
 
 def test_sweep_message_streak_2_is_none():
-    assert _sweep_message(2, TEST_AUTHOR) is None
+    assert _sweep_message(2, test_author) is None
 
 
 def test_sweep_message_streak_4_is_none():
-    assert _sweep_message(4, TEST_AUTHOR) is None
+    assert _sweep_message(4, test_author) is None
 
 
 def test_sweep_message_streak_6_is_none():
-    assert _sweep_message(6, TEST_AUTHOR) is None
+    assert _sweep_message(6, test_author) is None
 
 
 def test_sweep_message_streak_10_is_none():
-    assert _sweep_message(10, TEST_AUTHOR) is None
+    assert _sweep_message(10, test_author) is None
 
 
 def test_sweep_message_streak_12_is_none():
-    assert _sweep_message(12, TEST_AUTHOR) is None
+    assert _sweep_message(12, test_author) is None
 
 
 def test_sweep_message_mention_format():
-    result = _sweep_message(3, TEST_AUTHOR)
+    result = _sweep_message(3, test_author)
     assert result is not None
-    assert result.startswith(f'<@{TEST_AUTHOR}>')
+    assert result.startswith(f'<@{test_author}>')
 
 
 # ---- _check_and_announce_sweep integration tests ----
@@ -1326,26 +1326,26 @@ def mock_sb_repo_for_sweep():
 
 async def test_check_and_announce_sweep_sends_on_streak_3(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(3)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_called_once()
     text = channel.send.call_args.kwargs['content']
-    assert f'<@{TEST_AUTHOR}>' in text
+    assert f'<@{test_author}>' in text
     assert 'sweeps!' in text
     assert ':broom:' in text
 
 
 async def test_check_and_announce_sweep_sends_on_streak_5(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(5)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(5)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_called_once()
     text = channel.send.call_args.kwargs['content']
@@ -1355,11 +1355,11 @@ async def test_check_and_announce_sweep_sends_on_streak_5(mock_sb_repo_for_sweep
 
 async def test_check_and_announce_sweep_sends_on_streak_11(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(11)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(11)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_called_once()
     text = channel.send.call_args.kwargs['content']
@@ -1369,54 +1369,54 @@ async def test_check_and_announce_sweep_sends_on_streak_11(mock_sb_repo_for_swee
 
 async def test_check_and_announce_sweep_no_send_on_streak_2(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(2)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(2)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_not_called()
 
 
 async def test_check_and_announce_sweep_no_send_on_streak_4(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(4)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(4)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_not_called()
 
 
 async def test_check_and_announce_sweep_no_send_when_streak_broken(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    # 2 by TEST_AUTHOR at tail, then USER_A breaks the streak
+    # 2 by test_author at tail, then user_a breaks the streak
     docs = [
-        _make_star_doc(message_id=1001, author_id=USER_A, starboard_message_id=2001),
-        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
-        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=2003),
+        _make_star_doc(message_id=1001, author_id=user_a, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=test_author, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=test_author, starboard_message_id=2003),
     ]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_not_called()
 
 
 async def test_check_and_announce_sweep_ignores_unposted_docs(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    # 3 docs by TEST_AUTHOR but one lacks starboard_message_id - only 2 are "posted"
+    # 3 docs by test_author but one lacks starboard_message_id - only 2 are "posted"
     docs = [
-        _make_star_doc(message_id=1001, author_id=TEST_AUTHOR, starboard_message_id=2001),
-        _make_star_doc(message_id=1002, author_id=TEST_AUTHOR, starboard_message_id=2002),
-        _make_star_doc(message_id=1003, author_id=TEST_AUTHOR, starboard_message_id=None),
+        _make_star_doc(message_id=1001, author_id=test_author, starboard_message_id=2001),
+        _make_star_doc(message_id=1002, author_id=test_author, starboard_message_id=2002),
+        _make_star_doc(message_id=1003, author_id=test_author, starboard_message_id=None),
     ]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
 
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     # streak of 2 posted docs - no announce
     channel.send.assert_not_called()
@@ -1428,17 +1428,17 @@ async def test_check_and_announce_sweep_swallows_repo_error(mock_sb_repo_for_swe
     channel = AsyncMock()
 
     # must not raise
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)
 
     channel.send.assert_not_called()
 
 
 async def test_check_and_announce_sweep_swallows_send_error(mock_sb_repo_for_sweep):
     repo = mock_sb_repo_for_sweep
-    docs = [_make_star_doc(message_id=1000 + i, author_id=TEST_AUTHOR, starboard_message_id=2000 + i) for i in range(3)]
+    docs = [_make_star_doc(message_id=1000 + i, author_id=test_author, starboard_message_id=2000 + i) for i in range(3)]
     repo.all_for_guild = AsyncMock(return_value=docs)
     channel = AsyncMock()
     channel.send = AsyncMock(side_effect=RuntimeError('discord error'))
 
     # must not raise
-    await _check_and_announce_sweep(TEST_GUILD, TEST_AUTHOR, channel)
+    await _check_and_announce_sweep(test_guild, test_author, channel)

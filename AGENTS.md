@@ -176,6 +176,7 @@ Quart application with route registration, WebAuthn passkey auth, Discord OAuth 
 - **Quotes**: single quotes for inline strings, double quotes for docstrings
 - **Imports**: stdlib → third-party → local; one blank line after each import block (isort)
 - **Docstrings**: Google-style convention (`[tool.ruff.lint.pydocstyle]`)
+- **Constants**: use regular lowercase names (`seconds_per_day`, not `SECONDS_PER_DAY`); screaming snake case is not used
 - **Type annotations**: use modern union syntax (`X | Y`, `list[X]`, etc.); `from __future__ import annotations` is not needed under Python 3.13
 - **Type checking**: basedpyright in `standard` mode; `typeCheckingMode = "standard"` (several optional-access rules are suppressed)
 - **Forward type references**: keep as strings (`'ClassName'`) - `UP037` is ignored

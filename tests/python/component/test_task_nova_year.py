@@ -21,11 +21,11 @@ from attubot.database.repositories import YearRepository
 
 pytestmark = pytest.mark.component
 
-TEST_GUILD = 1234567890
-LORE_CHANNEL_1 = 1000000001
-LORE_CHANNEL_2 = 1000000002
-YEAR_VC = 1000000003
-ANNOUNCE_CH = 1000000004
+test_guild = 1234567890
+lore_channel_1 = 1000000001
+lore_channel_2 = 1000000002
+year_vc = 1000000003
+announce_ch = 1000000004
 
 
 async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
@@ -38,11 +38,11 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     from attubot.tasks.nova_year import NovaYearTask
     from attubot.tasks.scheduler import scheduler as _scheduler
 
-    all_lore_ids = [LORE_CHANNEL_1] + (extra_lore_ids or [])
+    all_lore_ids = [lore_channel_1] + (extra_lore_ids or [])
     cfg.channels = GuildChannels(
         lore_channels=all_lore_ids,
-        year_vc=YEAR_VC,
-        announcements=ANNOUNCE_CH,
+        year_vc=year_vc,
+        announcements=announce_ch,
     )
 
     # fake lore channels - each returns a fake message with jump_url
@@ -50,7 +50,7 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     for ch_id in all_lore_ids:
         ch = MagicMock()
         ch.id = ch_id
-        fake_msg = MagicMock(jump_url=f'https://discord.com/channels/{TEST_GUILD}/{ch_id}/9999')
+        fake_msg = MagicMock(jump_url=f'https://discord.com/channels/{test_guild}/{ch_id}/9999')
         ch.send = AsyncMock(return_value=fake_msg)
         lore_channels[ch_id] = ch
 
@@ -61,9 +61,9 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     fake_announce.send = AsyncMock()
 
     def _get_channel(cid):
-        if cid == YEAR_VC:
+        if cid == year_vc:
             return fake_vc
-        if cid == ANNOUNCE_CH:
+        if cid == announce_ch:
             return fake_announce
         return lore_channels.get(cid)
 
@@ -96,14 +96,14 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
             await _run_advance_year(cfg, 2, year_repo)
 
-            doc = await year_repo.get(TEST_GUILD, 2)
+            doc = await year_repo.get(test_guild, 2)
             assert doc is not None
             assert doc.year == 2
             assert doc.start_time > 0
@@ -115,9 +115,9 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         # seed year 1 so finalize has something to update
-        await year_repo.create(TEST_GUILD, year=1, start_time=1704067200)
+        await year_repo.create(test_guild, year=1, start_time=1704067200)
 
         import attubot.client.years as _years
 
@@ -125,7 +125,7 @@ class TestAdvanceYear:
         try:
             await _run_advance_year(cfg, 2, year_repo)
 
-            year1 = await year_repo.get(TEST_GUILD, 1)
+            year1 = await year_repo.get(test_guild, 1)
             assert year1 is not None
             assert year1.end_time > 0
             assert year1.duration > 0
@@ -137,15 +137,15 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import attubot.client.years as _years
 
         _years._year_repo = year_repo
         try:
-            _, _, lore_channels = await _run_advance_year(cfg, 2, year_repo, extra_lore_ids=[LORE_CHANNEL_2])
+            _, _, lore_channels = await _run_advance_year(cfg, 2, year_repo, extra_lore_ids=[lore_channel_2])
 
-            lore_channels[LORE_CHANNEL_1].send.assert_called_once()
-            lore_channels[LORE_CHANNEL_2].send.assert_called_once()
+            lore_channels[lore_channel_1].send.assert_called_once()
+            lore_channels[lore_channel_2].send.assert_called_once()
         finally:
             _years._year_repo = None
 
@@ -154,7 +154,7 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import attubot.client.years as _years
 
         _years._year_repo = year_repo
@@ -172,19 +172,19 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import attubot.client.years as _years
         import attubot.tasks.nova_year as nova_year_mod
         from attubot.tasks.nova_year import NovaYearTask
         from attubot.tasks.scheduler import scheduler as _scheduler
 
-        cfg.channels = GuildChannels(lore_channels=[LORE_CHANNEL_1], year_vc=YEAR_VC, announcements=ANNOUNCE_CH)
+        cfg.channels = GuildChannels(lore_channels=[lore_channel_1], year_vc=year_vc, announcements=announce_ch)
         fake_msg = MagicMock(jump_url='https://discord.com/channels/1/2/3')
-        fake_lore = MagicMock(id=LORE_CHANNEL_1)
+        fake_lore = MagicMock(id=lore_channel_1)
         fake_lore.send = AsyncMock(return_value=fake_msg)
 
         def _get_channel(cid):
-            if cid == LORE_CHANNEL_1:
+            if cid == lore_channel_1:
                 return fake_lore
             ch = MagicMock()
             ch.edit = AsyncMock()
@@ -228,7 +228,7 @@ class TestAdvanceYear:
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
 
-        cfg = make_guild(guild_id=TEST_GUILD, year=1, time=1704067200, length=14)
+        cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import attubot.client.years as _years
 
         _years._year_repo = year_repo
@@ -236,9 +236,9 @@ class TestAdvanceYear:
             await _run_advance_year(cfg, 1, year_repo)
 
             # year 0 should not exist
-            assert await year_repo.get(TEST_GUILD, 0) is None
+            assert await year_repo.get(test_guild, 0) is None
             # year 1 should be created
-            assert await year_repo.get(TEST_GUILD, 1) is not None
+            assert await year_repo.get(test_guild, 1) is not None
         finally:
             _years._year_repo = None
 
@@ -249,7 +249,7 @@ class TestRolloverGuildGuards:
         """_rollover_guild returns early when elapsed days mod year length is not zero"""
         from attubot.tasks.nova_year import NovaYearTask
 
-        cfg = make_guild(guild_id=TEST_GUILD, time=1704067200, year=1, length=14)
+        cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
         with patch.object(NovaYearTask, '_advance_year', new=AsyncMock()) as mock_advance:
             task = NovaYearTask()
@@ -261,7 +261,7 @@ class TestRolloverGuildGuards:
         """_rollover_guild returns early when epoch.paused is True"""
         from attubot.tasks.nova_year import NovaYearTask
 
-        cfg = make_guild(guild_id=TEST_GUILD, paused=True)
+        cfg = make_guild(guild_id=test_guild, paused=True)
 
         with patch.object(NovaYearTask, '_advance_year', new=AsyncMock()) as mock_advance:
             task = NovaYearTask()
@@ -274,12 +274,12 @@ class TestRolloverGuildGuards:
         """_rollover_guild does nothing when the DB already has a year >= the computed current year"""
         from attubot.tasks.nova_year import NovaYearTask
 
-        cfg = make_guild(guild_id=TEST_GUILD, time=1704067200, year=1, length=14)
+        cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
         # year 2 already recorded - rollover already happened
-        await year_repo.create(TEST_GUILD, year=2, start_time=1705276800)
+        await year_repo.create(test_guild, year=2, start_time=1705276800)
 
         import attubot.client.years as _years
 
@@ -298,7 +298,7 @@ class TestRolloverGuildGuards:
         """_rollover_guild calls _advance_year when at the boundary and no year record exists yet"""
         from attubot.tasks.nova_year import NovaYearTask
 
-        cfg = make_guild(guild_id=TEST_GUILD, time=1704067200, year=1, length=14)
+        cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
         year_repo = YearRepository(component_db)
         await year_repo.init_indexes()
@@ -346,7 +346,7 @@ class TestNextRun:
 
         from attubot.tasks.nova_year import NovaYearTask
 
-        make_guild(guild_id=TEST_GUILD, paused=True)
+        make_guild(guild_id=test_guild, paused=True)
         task = NovaYearTask()
         result = await task.next_run()
 

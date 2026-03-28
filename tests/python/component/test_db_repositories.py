@@ -257,15 +257,15 @@ class TestConfigRepositorySystem:
 # ============================================================
 
 
-GUILD = 2222222222
+guild = 2222222222
 
 
 class TestYearRepository:
     async def test_create_and_get(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=1704067200)
-        doc = await repo.get(GUILD, 1)
+        await repo.create(guild, year=1, start_time=1704067200)
+        doc = await repo.get(guild, 1)
         assert doc is not None
         assert doc.year == 1
         assert doc.start_time == 1704067200
@@ -273,89 +273,89 @@ class TestYearRepository:
     async def test_get_missing_returns_none(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        assert await repo.get(GUILD, 999) is None
+        assert await repo.get(guild, 999) is None
 
     async def test_upsert_idempotent(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.upsert(GUILD, year=1, start_time=100)
-        await repo.upsert(GUILD, year=1, start_time=200)
-        doc = await repo.get(GUILD, 1)
+        await repo.upsert(guild, year=1, start_time=100)
+        await repo.upsert(guild, year=1, start_time=200)
+        doc = await repo.get(guild, 1)
         assert doc.start_time == 200
 
     async def test_update_fields(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=1704067200)
-        await repo.update(GUILD, 1, end_time=1705276800, duration=14)
-        doc = await repo.get(GUILD, 1)
+        await repo.create(guild, year=1, start_time=1704067200)
+        await repo.update(guild, 1, end_time=1705276800, duration=14)
+        doc = await repo.get(guild, 1)
         assert doc.end_time == 1705276800
         assert doc.duration == 14
 
     async def test_delete(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=1704067200)
-        await repo.delete(GUILD, 1)
-        assert await repo.get(GUILD, 1) is None
+        await repo.create(guild, year=1, start_time=1704067200)
+        await repo.delete(guild, 1)
+        assert await repo.get(guild, 1) is None
 
     async def test_total(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=100)
-        await repo.create(GUILD, year=2, start_time=200)
-        assert await repo.total(GUILD) == 2
+        await repo.create(guild, year=1, start_time=100)
+        await repo.create(guild, year=2, start_time=200)
+        assert await repo.total(guild) == 2
 
     async def test_exists_true_and_false(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=100)
-        assert await repo.exists(GUILD, 1) is True
-        assert await repo.exists(GUILD, 2) is False
+        await repo.create(guild, year=1, start_time=100)
+        assert await repo.exists(guild, 1) is True
+        assert await repo.exists(guild, 2) is False
 
     async def test_all_for_guild_sorted(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=3, start_time=300)
-        await repo.create(GUILD, year=1, start_time=100)
-        await repo.create(GUILD, year=2, start_time=200)
-        docs = await repo.all_for_guild(GUILD)
+        await repo.create(guild, year=3, start_time=300)
+        await repo.create(guild, year=1, start_time=100)
+        await repo.create(guild, year=2, start_time=200)
+        docs = await repo.all_for_guild(guild)
         assert [d.year for d in docs] == [1, 2, 3]
 
     async def test_all_for_guild_excludes_other_guilds(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=100)
+        await repo.create(guild, year=1, start_time=100)
         await repo.create(9999999999, year=1, start_time=100)
-        docs = await repo.all_for_guild(GUILD)
+        docs = await repo.all_for_guild(guild)
         assert len(docs) == 1
 
     async def test_get_latest(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=100)
-        await repo.create(GUILD, year=5, start_time=500)
-        await repo.create(GUILD, year=3, start_time=300)
-        latest = await repo.get_latest(GUILD)
+        await repo.create(guild, year=1, start_time=100)
+        await repo.create(guild, year=5, start_time=500)
+        await repo.create(guild, year=3, start_time=300)
+        latest = await repo.get_latest(guild)
         assert latest.year == 5
 
     async def test_get_latest_empty(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        assert await repo.get_latest(GUILD) is None
+        assert await repo.get_latest(guild) is None
 
     async def test_get_or_create_creates(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        doc, created = await repo.get_or_create(GUILD, year=1, start_time=100)
+        doc, created = await repo.get_or_create(guild, year=1, start_time=100)
         assert created is True
         assert doc.year == 1
 
     async def test_get_or_create_returns_existing(self, db):
         repo = YearRepository(db)
         await repo.init_indexes()
-        await repo.create(GUILD, year=1, start_time=100)
-        doc, created = await repo.get_or_create(GUILD, year=1, start_time=999)
+        await repo.create(guild, year=1, start_time=100)
+        doc, created = await repo.get_or_create(guild, year=1, start_time=999)
         assert created is False
         assert doc.start_time == 100  # not overwritten
 
@@ -365,16 +365,16 @@ class TestYearRepository:
 # ============================================================
 
 
-CHANNEL = 3333333333
-MARKER_GUILD = 4444444444
+channel = 3333333333
+marker_guild = 4444444444
 
 
 class TestYearMarkerRepository:
     async def test_create_and_get(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, channel=CHANNEL, message=100, year=1)
-        doc = await repo.get(CHANNEL, 1)
+        await repo.create(marker_guild, channel=channel, message=100, year=1)
+        doc = await repo.get(channel, 1)
         assert doc is not None
         assert doc.message == 100
         assert doc.exact is False
@@ -382,88 +382,88 @@ class TestYearMarkerRepository:
     async def test_get_missing_returns_none(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        assert await repo.get(CHANNEL, 999) is None
+        assert await repo.get(channel, 999) is None
 
     async def test_upsert_idempotent(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.upsert(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.upsert(MARKER_GUILD, CHANNEL, message=200, year=1, exact=True)
-        doc = await repo.get(CHANNEL, 1)
+        await repo.upsert(marker_guild, channel, message=100, year=1)
+        await repo.upsert(marker_guild, channel, message=200, year=1, exact=True)
+        doc = await repo.get(channel, 1)
         assert doc.message == 200
         assert doc.exact is True
 
     async def test_update(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.update(CHANNEL, 1, message=999, exact=True)
-        doc = await repo.get(CHANNEL, 1)
+        await repo.create(marker_guild, channel, message=100, year=1)
+        await repo.update(channel, 1, message=999, exact=True)
+        doc = await repo.get(channel, 1)
         assert doc.message == 999
         assert doc.exact is True
 
     async def test_delete(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.delete(CHANNEL, 1)
-        assert await repo.get(CHANNEL, 1) is None
+        await repo.create(marker_guild, channel, message=100, year=1)
+        await repo.delete(channel, 1)
+        assert await repo.get(channel, 1) is None
 
     async def test_exists(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        assert await repo.exists(CHANNEL, 1) is True
-        assert await repo.exists(CHANNEL, 2) is False
+        await repo.create(marker_guild, channel, message=100, year=1)
+        assert await repo.exists(channel, 1) is True
+        assert await repo.exists(channel, 2) is False
 
     async def test_total(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.create(MARKER_GUILD, CHANNEL + 1, message=200, year=1)
-        assert await repo.total(MARKER_GUILD) == 2
+        await repo.create(marker_guild, channel, message=100, year=1)
+        await repo.create(marker_guild, channel + 1, message=200, year=1)
+        assert await repo.total(marker_guild) == 2
 
     async def test_all_for_guild(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.create(MARKER_GUILD, CHANNEL, message=200, year=2)
-        docs = await repo.all_for_guild(MARKER_GUILD)
+        await repo.create(marker_guild, channel, message=100, year=1)
+        await repo.create(marker_guild, channel, message=200, year=2)
+        docs = await repo.all_for_guild(marker_guild)
         assert len(docs) == 2
 
     async def test_all_for_guild_excludes_other_guilds(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        await repo.create(9999999999, CHANNEL + 99, message=999, year=1)
-        docs = await repo.all_for_guild(MARKER_GUILD)
+        await repo.create(marker_guild, channel, message=100, year=1)
+        await repo.create(9999999999, channel + 99, message=999, year=1)
+        docs = await repo.all_for_guild(marker_guild)
         assert len(docs) == 1
 
     async def test_get_any_for_guild_year(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=5)
-        doc = await repo.get_any_for_guild_year(MARKER_GUILD, 5)
+        await repo.create(marker_guild, channel, message=100, year=5)
+        doc = await repo.get_any_for_guild_year(marker_guild, 5)
         assert doc is not None
         assert doc.year == 5
 
     async def test_get_any_for_guild_year_missing(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        assert await repo.get_any_for_guild_year(MARKER_GUILD, 999) is None
+        assert await repo.get_any_for_guild_year(marker_guild, 999) is None
 
     async def test_get_or_create_creates(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        doc, created = await repo.get_or_create(MARKER_GUILD, CHANNEL, year=1, message=100)
+        doc, created = await repo.get_or_create(marker_guild, channel, year=1, message=100)
         assert created is True
         assert doc.message == 100
 
     async def test_get_or_create_existing(self, db):
         repo = YearMarkerRepository(db)
         await repo.init_indexes()
-        await repo.create(MARKER_GUILD, CHANNEL, message=100, year=1)
-        doc, created = await repo.get_or_create(MARKER_GUILD, CHANNEL, year=1, message=999)
+        await repo.create(marker_guild, channel, message=100, year=1)
+        doc, created = await repo.get_or_create(marker_guild, channel, year=1, message=999)
         assert created is False
         assert doc.message == 100  # not overwritten
 
@@ -473,15 +473,15 @@ class TestYearMarkerRepository:
 # ============================================================
 
 
-MSG_GUILD = 5555555555
-MSG_CHANNEL = 6666666666
+msg_guild = 5555555555
+msg_channel = 6666666666
 
 
 class TestMessageRepository:
     async def test_upsert_and_get(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL)
+        doc = _make_message_doc(message_id=1, guild_id=msg_guild, channel_id=msg_channel)
         await repo.upsert(doc)
         result = await repo.get(1)
         assert result is not None
@@ -495,7 +495,7 @@ class TestMessageRepository:
     async def test_upsert_overwrites(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL)
+        doc = _make_message_doc(message_id=1, guild_id=msg_guild, channel_id=msg_channel)
         await repo.upsert(doc)
         doc.content.text = 'updated'
         await repo.upsert(doc)
@@ -505,7 +505,7 @@ class TestMessageRepository:
     async def test_mark_edited(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL)
+        doc = _make_message_doc(message_id=1, guild_id=msg_guild, channel_id=msg_channel)
         await repo.upsert(doc)
         await repo.mark_edited(1, content='edited text', edited_at=9999)
         result = await repo.get(1)
@@ -515,7 +515,7 @@ class TestMessageRepository:
     async def test_mark_deleted(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL)
+        doc = _make_message_doc(message_id=1, guild_id=msg_guild, channel_id=msg_channel)
         await repo.upsert(doc)
         await repo.mark_deleted(1, deleted_at=8888)
         result = await repo.get(1)
@@ -526,7 +526,7 @@ class TestMessageRepository:
         repo = MessageRepository(db)
         await repo.init_indexes()
         for i in range(1, 4):
-            await repo.upsert(_make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL))
+            await repo.upsert(_make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel))
         await repo.mark_bulk_deleted([1, 2, 3], deleted_at=7777)
         for i in range(1, 4):
             result = await repo.get(i)
@@ -536,45 +536,45 @@ class TestMessageRepository:
         repo = MessageRepository(db)
         await repo.init_indexes()
         for mid in [10, 30, 20]:
-            await repo.upsert(_make_message_doc(message_id=mid, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL))
-        latest = await repo.get_latest_in_channel(MSG_GUILD, MSG_CHANNEL)
+            await repo.upsert(_make_message_doc(message_id=mid, guild_id=msg_guild, channel_id=msg_channel))
+        latest = await repo.get_latest_in_channel(msg_guild, msg_channel)
         assert latest == 30
 
     async def test_get_latest_in_channel_empty(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        assert await repo.get_latest_in_channel(MSG_GUILD, MSG_CHANNEL) is None
+        assert await repo.get_latest_in_channel(msg_guild, msg_channel) is None
 
     async def test_count_for_guild(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
         for i in range(1, 4):
-            await repo.upsert(_make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL))
-        assert await repo.count_for_guild(MSG_GUILD) == 3
+            await repo.upsert(_make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel))
+        assert await repo.count_for_guild(msg_guild) == 3
 
     async def test_count_for_channel(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        ch_a, ch_b = MSG_CHANNEL, MSG_CHANNEL + 1
-        await repo.upsert(_make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=ch_a))
-        await repo.upsert(_make_message_doc(message_id=2, guild_id=MSG_GUILD, channel_id=ch_b))
-        assert await repo.count_for_channel(MSG_GUILD, ch_a) == 1
-        assert await repo.count_for_channel(MSG_GUILD, ch_b) == 1
+        ch_a, ch_b = msg_channel, msg_channel + 1
+        await repo.upsert(_make_message_doc(message_id=1, guild_id=msg_guild, channel_id=ch_a))
+        await repo.upsert(_make_message_doc(message_id=2, guild_id=msg_guild, channel_id=ch_b))
+        assert await repo.count_for_channel(msg_guild, ch_a) == 1
+        assert await repo.count_for_channel(msg_guild, ch_b) == 1
 
     async def test_distinct_author_ids(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
         for i, author in enumerate([100, 200, 100], start=1):
-            doc = _make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL, author_id=author)
+            doc = _make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel, author_id=author)
             await repo.upsert(doc)
-        ids = await repo.distinct_author_ids(MSG_GUILD)
+        ids = await repo.distinct_author_ids(msg_guild)
         assert set(ids) == {100, 200}
 
     async def test_update_author_name(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
         for i in range(1, 3):
-            doc = _make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL, author_id=100)
+            doc = _make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel, author_id=100)
             await repo.upsert(doc)
         count = await repo.update_author_name(100, 'NewName')
         assert count == 2
@@ -587,43 +587,43 @@ class TestMessageRepository:
         t = int(time.time())
         doc = MessageDocument(
             message_id=1,
-            guild_id=MSG_GUILD,
-            channel_id=MSG_CHANNEL,
+            guild_id=msg_guild,
+            channel_id=msg_channel,
             author=MessageAuthor(id=0, name='Bot', bot=True),
             content=MessageContent(text='Year 5 begins'),
             created_at=t,
         )
         await repo.upsert(doc)
-        result = await repo.find_bot_header(MSG_GUILD, MSG_CHANNEL, 'Year 5', after=t - 1, before=t + 100)
+        result = await repo.find_bot_header(msg_guild, msg_channel, 'Year 5', after=t - 1, before=t + 100)
         assert result == 1
 
     async def test_find_bot_header_no_match(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        assert await repo.find_bot_header(MSG_GUILD, MSG_CHANNEL, 'Year 5', after=0, before=1) is None
+        assert await repo.find_bot_header(msg_guild, msg_channel, 'Year 5', after=0, before=1) is None
 
     async def test_find_author_message(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
         t = int(time.time())
-        doc = _make_message_doc(message_id=1, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL, author_id=999, created_at=t)
+        doc = _make_message_doc(message_id=1, guild_id=msg_guild, channel_id=msg_channel, author_id=999, created_at=t)
         await repo.upsert(doc)
-        result = await repo.find_author_message(MSG_GUILD, MSG_CHANNEL, [999], after=t - 1, before=t + 100)
+        result = await repo.find_author_message(msg_guild, msg_channel, [999], after=t - 1, before=t + 100)
         assert result == 1
 
     async def test_find_author_message_empty_ids(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
-        assert await repo.find_author_message(MSG_GUILD, MSG_CHANNEL, [], after=0, before=999999999999) is None
+        assert await repo.find_author_message(msg_guild, msg_channel, [], after=0, before=999999999999) is None
 
     async def test_find_first_message(self, db):
         repo = MessageRepository(db)
         await repo.init_indexes()
         t = int(time.time())
         for i, delta in enumerate([5, 0, 10], start=1):
-            doc = _make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL, created_at=t + delta)
+            doc = _make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel, created_at=t + delta)
             await repo.upsert(doc)
-        result = await repo.find_first_message(MSG_GUILD, MSG_CHANNEL, after=t - 1, before=t + 100)
+        result = await repo.find_first_message(msg_guild, msg_channel, after=t - 1, before=t + 100)
         # message_id=2 was created at t+0 = earliest
         assert result == 2
 
@@ -631,8 +631,8 @@ class TestMessageRepository:
         repo = MessageRepository(db)
         await repo.init_indexes()
         for i in range(1, 4):
-            await repo.upsert(_make_message_doc(message_id=i, guild_id=MSG_GUILD, channel_id=MSG_CHANNEL))
-        ids = await repo.get_all_message_ids_in_channel(MSG_GUILD, MSG_CHANNEL)
+            await repo.upsert(_make_message_doc(message_id=i, guild_id=msg_guild, channel_id=msg_channel))
+        ids = await repo.get_all_message_ids_in_channel(msg_guild, msg_channel)
         assert ids == {1, 2, 3}
 
 
@@ -641,15 +641,15 @@ class TestMessageRepository:
 # ============================================================
 
 
-SB_GUILD = 7777777777
-SB_CHANNEL = 8888888888
+sb_guild = 7777777777
+sb_channel = 8888888888
 
 
 class TestStarboardRepository:
     async def test_upsert_and_get(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = _make_star_doc(message_id=1, guild_id=SB_GUILD, channel_id=SB_CHANNEL)
+        doc = _make_star_doc(message_id=1, guild_id=sb_guild, channel_id=sb_channel)
         await repo.upsert(doc)
         result = await repo.get(1)
         assert result is not None
@@ -663,7 +663,7 @@ class TestStarboardRepository:
     async def test_get_by_starboard_message(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = _make_star_doc(message_id=1, guild_id=SB_GUILD, channel_id=SB_CHANNEL)
+        doc = _make_star_doc(message_id=1, guild_id=sb_guild, channel_id=sb_channel)
         await repo.upsert(doc)
         await repo.set_starboard_message(1, starboard_message_id=42)
         result = await repo.get_by_starboard_message(42)
@@ -678,7 +678,7 @@ class TestStarboardRepository:
     async def test_add_reaction(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10)
         await repo.upsert(doc)
         result = await repo.add_reaction(1, '⭐', user_id=99)
         assert 99 in result.reactions.get('⭐', [])
@@ -692,7 +692,7 @@ class TestStarboardRepository:
     async def test_add_reaction_deduplicates(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10)
         await repo.upsert(doc)
         await repo.add_reaction(1, '⭐', user_id=99)
         await repo.add_reaction(1, '⭐', user_id=99)
@@ -702,7 +702,7 @@ class TestStarboardRepository:
     async def test_add_super_reaction(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10)
         await repo.upsert(doc)
         result = await repo.add_super_reaction(1, '⭐', user_id=99)
         assert 99 in result.super_reactions.get('⭐', [])
@@ -711,7 +711,7 @@ class TestStarboardRepository:
         """adding a super reaction should evict the same user from normal reactions"""
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, reactions={'⭐': [99]})
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, reactions={'⭐': [99]})
         await repo.upsert(doc)
         result = await repo.add_super_reaction(1, '⭐', user_id=99)
         assert 99 not in result.reactions.get('⭐', [])
@@ -720,7 +720,7 @@ class TestStarboardRepository:
     async def test_remove_reaction(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, reactions={'⭐': [1, 2, 3]}, total_reactions=3)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, reactions={'⭐': [1, 2, 3]}, total_reactions=3)
         await repo.upsert(doc)
         result = await repo.remove_reaction(1, '⭐', user_id=2)
         assert 2 not in result.reactions.get('⭐', [])
@@ -734,7 +734,7 @@ class TestStarboardRepository:
     async def test_remove_super_reaction(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, super_reactions={'⭐': [99]}, total_reactions=1, weighted_total=1.5)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, super_reactions={'⭐': [99]}, total_reactions=1, weighted_total=1.5)
         await repo.upsert(doc)
         result = await repo.remove_super_reaction(1, '⭐', user_id=99)
         assert 99 not in result.super_reactions.get('⭐', [])
@@ -742,7 +742,7 @@ class TestStarboardRepository:
     async def test_set_starboard_message(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = _make_star_doc(message_id=1, guild_id=SB_GUILD, channel_id=SB_CHANNEL)
+        doc = _make_star_doc(message_id=1, guild_id=sb_guild, channel_id=sb_channel)
         await repo.upsert(doc)
         await repo.set_starboard_message(1, 42)
         result = await repo.get(1)
@@ -751,7 +751,7 @@ class TestStarboardRepository:
     async def test_set_starboard_message_unlink(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = _make_star_doc(message_id=1, guild_id=SB_GUILD, channel_id=SB_CHANNEL)
+        doc = _make_star_doc(message_id=1, guild_id=sb_guild, channel_id=sb_channel)
         await repo.upsert(doc)
         await repo.set_starboard_message(1, 42)
         await repo.set_starboard_message(1, None)
@@ -762,73 +762,73 @@ class TestStarboardRepository:
         repo = StarboardRepository(db)
         await repo.init_indexes()
         for i in range(1, 4):
-            await repo.upsert(_make_star_doc(message_id=i, guild_id=SB_GUILD, channel_id=SB_CHANNEL))
-        assert await repo.total_for_guild(SB_GUILD) == 3
+            await repo.upsert(_make_star_doc(message_id=i, guild_id=sb_guild, channel_id=sb_channel))
+        assert await repo.total_for_guild(sb_guild) == 3
 
     async def test_sum_reactions_for_guild(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc1 = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, total_reactions=5, weighted_total=5.0)
-        doc2 = StarredMessageDocument(message_id=2, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, total_reactions=3, weighted_total=3.0)
+        doc1 = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, total_reactions=5, weighted_total=5.0)
+        doc2 = StarredMessageDocument(message_id=2, channel_id=sb_channel, guild_id=sb_guild, author_id=10, total_reactions=3, weighted_total=3.0)
         await repo.upsert(doc1)
         await repo.upsert(doc2)
-        total = await repo.sum_reactions_for_guild(SB_GUILD)
+        total = await repo.sum_reactions_for_guild(sb_guild)
         assert total == 8
 
     async def test_all_for_guild(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
         for i in range(1, 3):
-            await repo.upsert(_make_star_doc(message_id=i, guild_id=SB_GUILD, channel_id=SB_CHANNEL))
-        docs = await repo.all_for_guild(SB_GUILD)
+            await repo.upsert(_make_star_doc(message_id=i, guild_id=sb_guild, channel_id=sb_channel))
+        docs = await repo.all_for_guild(sb_guild)
         assert len(docs) == 2
 
     async def test_leaderboard_most_stars(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
         # author 10 has 3 stars, author 20 has 5
-        doc1 = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, reactions={'⭐': [1, 2, 3]})
-        doc2 = StarredMessageDocument(message_id=2, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=20, reactions={'⭐': [1, 2, 3, 4, 5]})
+        doc1 = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, reactions={'⭐': [1, 2, 3]})
+        doc2 = StarredMessageDocument(message_id=2, channel_id=sb_channel, guild_id=sb_guild, author_id=20, reactions={'⭐': [1, 2, 3, 4, 5]})
         await repo.upsert(doc1)
         await repo.upsert(doc2)
-        rows = await repo.leaderboard_most_stars(SB_GUILD)
+        rows = await repo.leaderboard_most_stars(sb_guild)
         assert rows[0]['_id'] == 20
         assert rows[0]['total_stars'] == 5
 
     async def test_leaderboard_most_starred(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc1 = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, starboard_message_id=100)
-        doc2 = StarredMessageDocument(message_id=2, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, starboard_message_id=200)
-        doc3 = StarredMessageDocument(message_id=3, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=20, starboard_message_id=None)
+        doc1 = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, starboard_message_id=100)
+        doc2 = StarredMessageDocument(message_id=2, channel_id=sb_channel, guild_id=sb_guild, author_id=10, starboard_message_id=200)
+        doc3 = StarredMessageDocument(message_id=3, channel_id=sb_channel, guild_id=sb_guild, author_id=20, starboard_message_id=None)
         await repo.upsert(doc1)
         await repo.upsert(doc2)
         await repo.upsert(doc3)
-        rows = await repo.leaderboard_most_starred(SB_GUILD)
+        rows = await repo.leaderboard_most_starred(sb_guild)
         assert rows[0]['_id'] == 10
         assert rows[0]['starred_messages'] == 2
 
     async def test_leaderboard_most_given(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, reactions={'⭐': [1, 2, 3]})
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, reactions={'⭐': [1, 2, 3]})
         await repo.upsert(doc)
-        rows = await repo.leaderboard_most_given(SB_GUILD)
+        rows = await repo.leaderboard_most_given(sb_guild)
         assert len(rows) == 3
 
     async def test_get_random(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, total_reactions=5)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, total_reactions=5)
         await repo.upsert(doc)
-        result = await repo.get_random(SB_GUILD, min_total=1)
+        result = await repo.get_random(sb_guild, min_total=1)
         assert result is not None
         assert result.message_id == 1
 
     async def test_get_random_no_match(self, db):
         repo = StarboardRepository(db)
         await repo.init_indexes()
-        result = await repo.get_random(SB_GUILD, min_total=99)
+        result = await repo.get_random(sb_guild, min_total=99)
         assert result is None
 
     async def test_total_synced_after_add_reaction(self, db):
@@ -836,7 +836,7 @@ class TestStarboardRepository:
         repo = StarboardRepository(db)
         await repo.init_indexes()
         # store a doc with deliberately wrong totals
-        doc = StarredMessageDocument(message_id=1, channel_id=SB_CHANNEL, guild_id=SB_GUILD, author_id=10, reactions={'⭐': []}, total_reactions=99, weighted_total=99.0)
+        doc = StarredMessageDocument(message_id=1, channel_id=sb_channel, guild_id=sb_guild, author_id=10, reactions={'⭐': []}, total_reactions=99, weighted_total=99.0)
         await repo.upsert(doc)
         result = await repo.add_reaction(1, '⭐', user_id=1)
         # total should now be 1, not 99

@@ -18,7 +18,7 @@ from attubot.database.repositories import ConfigRepository, ReloadSignalReposito
 
 pytestmark = pytest.mark.component
 
-TEST_GUILD = 1234567890
+test_guild = 1234567890
 
 
 def _make_task():
@@ -35,7 +35,7 @@ class TestReloadWatcherSignalConsumption:
         signal_repo = ReloadSignalRepository(component_db)
         await signal_repo.init_indexes()
 
-        guild_cfg = make_guild(guild_id=TEST_GUILD)
+        guild_cfg = make_guild(guild_id=test_guild)
         saved_config_repo = config.config_repo
         config.config_repo = config_repo
 
@@ -43,14 +43,14 @@ class TestReloadWatcherSignalConsumption:
             # save year=5 to DB, then reset in-memory to year=1
             guild_cfg.epoch.year = 5
             await config_repo.save_guild(guild_cfg)
-            config.guilds[TEST_GUILD].epoch.year = 1
+            config.guilds[test_guild].epoch.year = 1
 
-            await signal_repo.send('guild', TEST_GUILD)
+            await signal_repo.send('guild', test_guild)
 
             with patch('attubot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
-            assert config.guilds[TEST_GUILD].epoch.year == 5
+            assert config.guilds[test_guild].epoch.year == 5
         finally:
             config.config_repo = saved_config_repo
 
@@ -61,13 +61,13 @@ class TestReloadWatcherSignalConsumption:
         signal_repo = ReloadSignalRepository(component_db)
         await signal_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
         saved_config_repo = config.config_repo
         config.config_repo = config_repo
 
         try:
-            await config_repo.save_guild(config.guilds[TEST_GUILD])
-            await signal_repo.send('guild', TEST_GUILD)
+            await config_repo.save_guild(config.guilds[test_guild])
+            await signal_repo.send('guild', test_guild)
 
             with patch('attubot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
@@ -123,9 +123,9 @@ class TestReloadWatcherSignalConsumption:
         try:
             system = SystemConfigDocument(
                 version='2.5.1',
-                error_log=[TEST_GUILD, 0],
+                error_log=[test_guild, 0],
                 error_hook='https://discord.com/api/webhooks/test/new-hook',
-                primary_guild=TEST_GUILD,
+                primary_guild=test_guild,
             )
             await config_repo.save_system(system)
             config.error_hook = 'https://old-hook.example.com'
@@ -150,32 +150,32 @@ class TestReloadWatcherSignalConsumption:
         signal_repo = ReloadSignalRepository(component_db)
         await signal_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
         saved_config_repo = config.config_repo
         saved_theme = config.theme
         saved_error_hook = config.error_hook
         config.config_repo = config_repo
 
         try:
-            config.guilds[TEST_GUILD].epoch.year = 7
-            await config_repo.save_guild(config.guilds[TEST_GUILD])
-            config.guilds[TEST_GUILD].epoch.year = 1
+            config.guilds[test_guild].epoch.year = 7
+            await config_repo.save_guild(config.guilds[test_guild])
+            config.guilds[test_guild].epoch.year = 1
 
             await config_repo.save_theme(BotTheme(rotation=90.0, max_rate=0.5, bot_color='#00ff00', guild_color='#ffffff'))
             config.theme = None
 
-            system = SystemConfigDocument(version='2.5.1', error_log=[TEST_GUILD, 0], error_hook='https://new-hook', primary_guild=TEST_GUILD)
+            system = SystemConfigDocument(version='2.5.1', error_log=[test_guild, 0], error_hook='https://new-hook', primary_guild=test_guild)
             await config_repo.save_system(system)
             config.error_hook = 'old'
 
-            await signal_repo.send('guild', TEST_GUILD)
+            await signal_repo.send('guild', test_guild)
             await signal_repo.send('theme')
             await signal_repo.send('system')
 
             with patch('attubot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
-            assert config.guilds[TEST_GUILD].epoch.year == 7
+            assert config.guilds[test_guild].epoch.year == 7
             assert config.theme is not None
             assert config.theme.bot_color == '#00ff00'
             assert config.error_hook == 'https://new-hook'
@@ -203,24 +203,24 @@ class TestReloadWatcherSignalConsumption:
         signal_repo = ReloadSignalRepository(component_db)
         await signal_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
         saved_config_repo = config.config_repo
         config.config_repo = config_repo
 
         try:
-            config.guilds[TEST_GUILD].epoch.year = 3
-            await config_repo.save_guild(config.guilds[TEST_GUILD])
-            config.guilds[TEST_GUILD].epoch.year = 1
+            config.guilds[test_guild].epoch.year = 3
+            await config_repo.save_guild(config.guilds[test_guild])
+            config.guilds[test_guild].epoch.year = 1
 
             # send the same guild signal twice - they coalesce in the DB
-            await signal_repo.send('guild', TEST_GUILD)
-            await signal_repo.send('guild', TEST_GUILD)
+            await signal_repo.send('guild', test_guild)
+            await signal_repo.send('guild', test_guild)
 
             with patch('attubot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             # effect should still apply
-            assert config.guilds[TEST_GUILD].epoch.year == 3
+            assert config.guilds[test_guild].epoch.year == 3
             # and signals are gone
             assert await signal_repo.consume_all() == []
         finally:

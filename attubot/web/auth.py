@@ -125,8 +125,8 @@ def b64url_decode(s: str) -> bytes:
 # Session helpers
 # ---------------------------------------------------------------------------
 
-SESSION_KEY = 'authenticated'
-CHALLENGE_KEY = 'webauthn_challenge'
+session_key = 'authenticated'
+challenge_key = 'webauthn_challenge'
 
 
 def get_csrf_token() -> str:
@@ -137,11 +137,11 @@ def get_csrf_token() -> str:
 
 
 def is_authenticated() -> bool:
-    return session.get(SESSION_KEY) is True
+    return session.get(session_key) is True
 
 
 def set_authenticated():
-    session[SESSION_KEY] = True
+    session[session_key] = True
     session.permanent = True
 
 
@@ -242,7 +242,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
         )
 
         # Store challenge in session for verification
-        session[CHALLENGE_KEY] = b64url_encode(options.challenge)
+        session[challenge_key] = b64url_encode(options.challenge)
 
         from webauthn.helpers.options_to_json import options_to_json
 
@@ -258,7 +258,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     async def auth_login_complete():
         db = _db_store.get_db()
 
-        challenge_b64 = session.get(CHALLENGE_KEY)
+        challenge_b64 = session.get(challenge_key)
         if not challenge_b64:
             return jsonify({'error': 'No challenge in session — restart login'}), 400
 
@@ -294,7 +294,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             await update_sign_count(db, raw_id, verification.new_sign_count)
 
             # Clear the challenge
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
 
             # Mark session as authenticated
             set_authenticated()
@@ -304,7 +304,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
         except Exception as e:
             logger.warn(f'passkey login failed from {request.remote_addr}: {e}')
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
             return jsonify({'error': 'Passkey verification failed'}), 403
 
     # ---- Logout ------------------------------------------------------------
@@ -353,7 +353,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             ),
         )
 
-        session[CHALLENGE_KEY] = b64url_encode(options.challenge)
+        session[challenge_key] = b64url_encode(options.challenge)
         session['pending_passkey_name'] = name
 
         from webauthn.helpers.options_to_json import options_to_json
@@ -374,7 +374,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
         if n > 0 and not is_authenticated():
             return jsonify({'error': 'Setup is locked — passkeys already exist'}), 403
 
-        challenge_b64 = session.get(CHALLENGE_KEY)
+        challenge_b64 = session.get(challenge_key)
         if not challenge_b64:
             return jsonify({'error': 'No challenge in session — restart setup'}), 400
 
@@ -401,7 +401,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
             await save_credential(db, cred_id_b64, pub_key_b64, verification.sign_count, name)
 
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
             set_authenticated()
 
             logger.info(f'passkey registered via setup from {request.remote_addr}: {name}')
@@ -409,7 +409,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
         except Exception as e:
             logger.warn(f'passkey setup failed from {request.remote_addr}: {e}')
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 
     # ---- Passkey management page (authenticated) ---------------------------
@@ -444,7 +444,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             ),
         )
 
-        session[CHALLENGE_KEY] = b64url_encode(options.challenge)
+        session[challenge_key] = b64url_encode(options.challenge)
         session['pending_passkey_name'] = name
 
         from webauthn.helpers.options_to_json import options_to_json
@@ -464,7 +464,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
         db = _db_store.get_db()
 
-        challenge_b64 = session.get(CHALLENGE_KEY)
+        challenge_b64 = session.get(challenge_key)
         if not challenge_b64:
             return jsonify({'error': 'No challenge in session'}), 400
 
@@ -490,14 +490,14 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             name = session.pop('pending_passkey_name', 'Passkey')
 
             await save_credential(db, cred_id_b64, pub_key_b64, verification.sign_count, name)
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
 
             logger.info(f'additional passkey registered from {request.remote_addr}: {name}')
             return jsonify({'success': True, 'message': f'Passkey "{name}" registered successfully'})
 
         except Exception as e:
             logger.warn(f'passkey registration failed from {request.remote_addr}: {e}')
-            session.pop(CHALLENGE_KEY, None)
+            session.pop(challenge_key, None)
             return jsonify({'error': f'Passkey registration failed: {e}'}), 400
 
     # ---- Delete passkey ----------------------------------------------------

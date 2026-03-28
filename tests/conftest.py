@@ -27,9 +27,9 @@ from attubot import config
 from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
-TEST_GUILD = 1234567890
-TEST_USER = 9876543210
-TEST_CHANNEL = 5555555555
+test_guild = 1234567890
+test_user = 9876543210
+test_channel = 5555555555
 
 
 @pytest.fixture(autouse=True)
@@ -97,7 +97,7 @@ def make_guild():
     """Factory fixture: creates a GuildConfig with a custom epoch and registers it in config."""
     created = []
 
-    def _make(guild_id=TEST_GUILD, **epoch_kwargs):
+    def _make(guild_id=test_guild, **epoch_kwargs):
         defaults = {
             'time': 1704067200,  # 2024-01-01 00:00:00 UTC
             'year': 1,
@@ -145,9 +145,9 @@ def mock_ctx_factory():
     """Factory fixture: creates a mock ApplicationContext for command testing."""
 
     def _make_ctx(
-        guild_id=TEST_GUILD,
-        user_id=TEST_USER,
-        channel_id=TEST_CHANNEL,
+        guild_id=test_guild,
+        user_id=test_user,
+        channel_id=test_channel,
         is_owner=False,
         channel_name='test-channel',
         channel_type=None,
@@ -273,7 +273,7 @@ def mock_year_repo():
         @pytest.mark.asyncio
         async def test_year_get(mock_year_repo):
             mock_year_repo.get = AsyncMock(return_value=some_doc)
-            result = await Year.get(TEST_GUILD, 1)
+            result = await Year.get(test_guild, 1)
             assert result is not None
     """
     repo = AsyncMock()
@@ -333,7 +333,7 @@ def make_year_doc():
             assert doc.year == 5
     """
 
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
+    def _make(guild=test_guild, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
         from attubot.database.models import YearDocument
 
         return YearDocument(
@@ -411,7 +411,7 @@ def make_year():
             assert year.year == 5
     """
 
-    def _make(guild=TEST_GUILD, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
+    def _make(guild=test_guild, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
         from attubot.client.years import Year
 
         return Year(

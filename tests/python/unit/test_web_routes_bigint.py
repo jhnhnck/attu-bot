@@ -24,8 +24,8 @@ from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, Gui
 
 # Use a large integer that would lose precision in JS (MAX_SAFE_INTEGER is 9007199254740991)
 # Discord IDs are uint64, which can go up to 18446744073709551615
-LARGE_ID = 900719925474099200  # Larger than JS max safe integer
-TEST_GUILD = 1234567890
+large_id = 900719925474099200  # Larger than JS max safe integer
+test_guild = 1234567890
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -36,9 +36,9 @@ async def web_app():
 
     # Create test guild configs
     guild1 = GuildConfig(
-        id=TEST_GUILD,
+        id=test_guild,
         channels=GuildChannels(
-            activity=LARGE_ID,  # Use large ID here
+            activity=large_id,  # Use large ID here
             announcements=222222,
         ),
         epoch=GuildEpoch(),
@@ -47,18 +47,18 @@ async def web_app():
     )
 
     # Set up test configuration directly on web_app_module.config
-    web_app_module.config.authorized_guilds = {TEST_GUILD}
-    web_app_module.config.valid_guilds = [TEST_GUILD]
-    web_app_module.config.primary_guild = TEST_GUILD
+    web_app_module.config.authorized_guilds = {test_guild}
+    web_app_module.config.valid_guilds = [test_guild]
+    web_app_module.config.primary_guild = test_guild
     web_app_module.config.guilds = {
-        TEST_GUILD: guild1,
+        test_guild: guild1,
     }
     web_app_module.config.theme = BotTheme()
     web_app_module.config.load_guild = AsyncMock(return_value=True)
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, LARGE_ID)  # Use large ID here
+    web_app_module.config.error_log = (test_guild, large_id)  # Use large ID here
     web_app_module.config.error_hook = ''
     web_app_module.config.config_version = '2.2.0'
 
@@ -87,17 +87,17 @@ class TestBigIntSupport:
     @pytest.mark.asyncio
     async def test_get_guild_returns_strings_for_ids(self, client):
         """Test that guild IDs in GET response are strings"""
-        response = await client.get(f'/api/guilds/{TEST_GUILD}')
+        response = await client.get(f'/api/guilds/{test_guild}')
         assert response.status_code == 200
 
         data = await response.get_json()
 
         # Verify IDs are strings
         assert isinstance(data['guild_id'], str)
-        assert data['guild_id'] == str(TEST_GUILD)
+        assert data['guild_id'] == str(test_guild)
 
         assert isinstance(data['channels']['activity'], str)
-        assert data['channels']['activity'] == str(LARGE_ID)
+        assert data['channels']['activity'] == str(large_id)
 
     @pytest.mark.asyncio
     async def test_save_guild_accepts_strings_and_ints(self, client):
@@ -107,27 +107,27 @@ class TestBigIntSupport:
         # Case 1: Sending IDs as strings (like JS would for BigInts)
         payload_strings = {
             'channels': {
-                'activity': str(LARGE_ID),
+                'activity': str(large_id),
             },
         }
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}', json=payload_strings)
+        response = await client.post(f'/api/guilds/{test_guild}', json=payload_strings)
         assert response.status_code == 200
 
         # Verify it was stored as int in backend
-        assert config.guilds[TEST_GUILD].channels.activity == LARGE_ID
+        assert config.guilds[test_guild].channels.activity == large_id
 
         # Case 2: Sending IDs as ints (standard JSON)
         payload_ints = {
             'channels': {
-                'activity': LARGE_ID,
+                'activity': large_id,
             },
         }
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}', json=payload_ints)
+        response = await client.post(f'/api/guilds/{test_guild}', json=payload_ints)
         assert response.status_code == 200
 
-        assert config.guilds[TEST_GUILD].channels.activity == LARGE_ID
+        assert config.guilds[test_guild].channels.activity == large_id
 
     @pytest.mark.asyncio
     async def test_system_config_returns_ids_as_strings(self, client):
@@ -139,13 +139,13 @@ class TestBigIntSupport:
 
         # Verify IDs are strings
         assert isinstance(data['primary_guild'], str)
-        assert data['primary_guild'] == str(TEST_GUILD)
+        assert data['primary_guild'] == str(test_guild)
 
         assert isinstance(data['error_log_guild'], str)
-        assert data['error_log_guild'] == str(TEST_GUILD)
+        assert data['error_log_guild'] == str(test_guild)
 
         assert isinstance(data['error_log_channel'], str)
-        assert data['error_log_channel'] == str(LARGE_ID)
+        assert data['error_log_channel'] == str(large_id)
 
     @pytest.mark.asyncio
     async def test_list_guilds_returns_strings(self, client):

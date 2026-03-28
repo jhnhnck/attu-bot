@@ -20,7 +20,7 @@ import pytest
 from discord.enums import ChannelType
 from freezegun import freeze_time
 
-from tests.conftest import TEST_GUILD
+from tests.conftest import test_guild
 
 
 # --- /year check Command Tests ---
@@ -263,11 +263,11 @@ class TestYearLinkCommand:
         from attubot.commands.year import year_link
 
         cfg = make_guild()
-        cfg.channels.lore_channels = [TEST_GUILD + 100]
+        cfg.channels.lore_channels = [test_guild + 100]
 
         # Mock channel
         mock_channel = MagicMock()
-        mock_channel.id = TEST_GUILD + 100
+        mock_channel.id = test_guild + 100
         mock_channel.type = ChannelType.text
         mock_ctx.guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
@@ -290,11 +290,11 @@ class TestYearLinkCommand:
         from attubot.commands.year import year_link
 
         cfg = make_guild()
-        cfg.channels.lore_channels = [TEST_GUILD + 100]
+        cfg.channels.lore_channels = [test_guild + 100]
 
         # Mock channel
         mock_channel = MagicMock()
-        mock_channel.id = TEST_GUILD + 100
+        mock_channel.id = test_guild + 100
         mock_channel.type = ChannelType.text
         mock_ctx.guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
@@ -342,11 +342,11 @@ class TestYearLinkCommand:
         from attubot.commands.year import year_link
 
         cfg = make_guild()
-        cfg.channels.lore_channels = [TEST_GUILD + 100]
+        cfg.channels.lore_channels = [test_guild + 100]
 
         # Mock channel that's NOT in lore channels
         mock_channel = MagicMock()
-        mock_channel.id = TEST_GUILD + 999
+        mock_channel.id = test_guild + 999
         mock_channel.type = ChannelType.text
         mock_channel.mention = '#bad-channel'
 
@@ -365,11 +365,11 @@ class TestYearLinkCommand:
         from attubot.commands.year import year_link
 
         cfg = make_guild()
-        cfg.channels.lore_channels = [TEST_GUILD + 100]
+        cfg.channels.lore_channels = [test_guild + 100]
 
         # Mock voice channel
         mock_channel = MagicMock()
-        mock_channel.id = TEST_GUILD + 100
+        mock_channel.id = test_guild + 100
         mock_channel.type = ChannelType.voice
         mock_channel.mention = '#voice-channel'
 

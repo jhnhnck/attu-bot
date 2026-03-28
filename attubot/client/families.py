@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 # module-level singleton seeded by database/__init__.py
 _family_repo: FamilyRepository | None = None
 
-FAMILYECHO_API = 'https://www.familyecho.com/api/'
+familyecho_api = 'https://www.familyecho.com/api/'
 
 # matches the first three lines of a FamilyScript (.txt) file; \r? handles windows line endings
 _FAMILYSCRIPT_HEADER_RE = re.compile(r'^# .+\r?\n#\r?\n# FamilyScript downloaded by ')
@@ -52,7 +52,7 @@ async def get_viewer_url(file_content: str) -> str:
     """
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            FAMILYECHO_API,
+            familyecho_api,
             data={'format': 'json', 'operation': 'temp_view', 'family': file_content},
         )
         resp.raise_for_status()

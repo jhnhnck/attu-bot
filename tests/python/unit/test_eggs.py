@@ -27,21 +27,21 @@ from attubot.eggs.hatching import (
 
 # ---- constants ----
 
-TEST_GUILD = 1234567890
-TEST_USER = 9876543210
-TEST_USER2 = 1111111111
-TEST_THREAD = 5555555555
-TEST_MESSAGE = 222222222222
+test_guild = 1234567890
+test_user = 9876543210
+test_user2 = 1111111111
+test_thread = 5555555555
+test_message = 222222222222
 
 
 # ---- helpers ----
 
 
-def _make_egg(*, hatched=False, hatches_at=0.0, message_id=TEST_MESSAGE, rarity='common', result='🐣'):
+def _make_egg(*, hatched=False, hatches_at=0.0, message_id=test_message, rarity='common', result='🐣'):
     return EggDocument(
         egg_id='test-egg-id',
-        guild_id=TEST_GUILD,
-        user_id=TEST_USER,
+        guild_id=test_guild,
+        user_id=test_user,
         rarity=rarity,
         collected_at=1000.0,
         hatches_at=hatches_at,
@@ -51,10 +51,10 @@ def _make_egg(*, hatched=False, hatches_at=0.0, message_id=TEST_MESSAGE, rarity=
     )
 
 
-def _make_user_doc(*, thread_id=TEST_THREAD, last_collected_at=0.0):
+def _make_user_doc(*, thread_id=test_thread, last_collected_at=0.0):
     return EggUserDocument(
-        guild_id=TEST_GUILD,
-        user_id=TEST_USER,
+        guild_id=test_guild,
+        user_id=test_user,
         thread_id=thread_id,
         last_collected_at=last_collected_at,
     )
@@ -92,9 +92,9 @@ class TestCollectEgg:
         # mock user egg thread (returned by create_thread)
         mock_thread = MagicMock()
         mock_msg = MagicMock()
-        mock_msg.jump_url = f'https://discord.com/channels/{TEST_GUILD}/{TEST_THREAD}/{TEST_MESSAGE}'
+        mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
         mock_thread.send = AsyncMock(return_value=mock_msg)
-        mock_thread.id = TEST_THREAD
+        mock_thread.id = test_thread
 
         # mock the eggs channel (bot.get_channel returns this; also serves as thread in existing-user path)
         mock_eggs_channel = MagicMock()
@@ -122,12 +122,12 @@ class TestCollectEgg:
 
         # supply a guild config with a valid eggs channel
         mock_guild_cfg = MagicMock()
-        mock_guild_cfg.channels.eggs = TEST_THREAD
+        mock_guild_cfg.channels.eggs = test_thread
 
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
 
-            result = await collect_egg(TEST_GUILD, TEST_USER, 'testuser')
+            result = await collect_egg(test_guild, test_user, 'testuser')
 
         assert isinstance(result, str)
         assert 'discord.com' in result
@@ -140,7 +140,7 @@ class TestCollectEgg:
         self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=time.time() - 60)
 
         with pytest.raises(ValueError, match='try again in'):
-            await collect_egg(TEST_GUILD, TEST_USER, 'testuser')
+            await collect_egg(test_guild, test_user, 'testuser')
 
     async def test_cooldown_expired_succeeds(self):
         """user collected 1000s ago - cooldown has elapsed"""
@@ -149,12 +149,12 @@ class TestCollectEgg:
         self.egg_repo.insert.return_value = None
 
         mock_guild_cfg = MagicMock()
-        mock_guild_cfg.channels.eggs = TEST_THREAD
+        mock_guild_cfg.channels.eggs = test_thread
 
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
 
-            result = await collect_egg(TEST_GUILD, TEST_USER, 'testuser')
+            result = await collect_egg(test_guild, test_user, 'testuser')
 
         assert isinstance(result, str)
         self.egg_repo.insert.assert_called_once()
@@ -187,7 +187,7 @@ class TestHatchEgg:
         self.egg_repo.get_oldest_ready.return_value = None
         self.egg_repo.get_next_unhatched.return_value = None
 
-        result, ts = await hatch_egg(TEST_GUILD, TEST_USER)
+        result, ts = await hatch_egg(test_guild, test_user)
 
         assert result == 'no_eggs'
         assert ts is None
@@ -197,7 +197,7 @@ class TestHatchEgg:
         next_egg = _make_egg(hatches_at=9999.0)
         self.egg_repo.get_next_unhatched.return_value = next_egg
 
-        result, ts = await hatch_egg(TEST_GUILD, TEST_USER)
+        result, ts = await hatch_egg(test_guild, test_user)
 
         assert result == ''
         assert ts == 9999.0
@@ -212,11 +212,11 @@ class TestHatchEgg:
 
         mock_thread = MagicMock()
         mock_msg = AsyncMock()
-        mock_msg.jump_url = f'https://discord.com/channels/{TEST_GUILD}/{TEST_THREAD}/{TEST_MESSAGE}'
+        mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
         mock_thread.fetch_message = AsyncMock(return_value=mock_msg)
         self.mock_bot.get_channel.return_value = mock_thread
 
-        result, ts = await hatch_egg(TEST_GUILD, TEST_USER)
+        result, ts = await hatch_egg(test_guild, test_user)
 
         assert 'discord.com' in result
         assert ts is None
@@ -274,7 +274,7 @@ class TestEnsureEggsReady:
         mock_discord_guild.get_channel.return_value = MagicMock(category=None)
 
         mock_guild_cfg = MagicMock()
-        mock_guild_cfg.id = TEST_GUILD
+        mock_guild_cfg.id = test_guild
         mock_guild_cfg.channels.eggs = 0
         mock_guild_cfg.channels.general = 0
 
@@ -291,7 +291,7 @@ class TestEnsureEggsReady:
             await ensure_eggs_ready()
 
         mock_discord_guild.create_text_channel.assert_called_once_with('eggs', category=None)
-        mock_config_repo.update_guild_field.assert_called_once_with(TEST_GUILD, 'channels.eggs', mock_channel.id)
+        mock_config_repo.update_guild_field.assert_called_once_with(test_guild, 'channels.eggs', mock_channel.id)
 
     async def test_skips_if_channel_exists(self):
         """channels.eggs already set - should not create another channel"""
@@ -299,7 +299,7 @@ class TestEnsureEggsReady:
         mock_discord_guild.create_text_channel = AsyncMock()
 
         mock_guild_cfg = MagicMock()
-        mock_guild_cfg.id = TEST_GUILD
+        mock_guild_cfg.id = test_guild
         mock_guild_cfg.channels.eggs = 12345
 
         with (

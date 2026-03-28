@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 import discord
 
 from attubot.client.util import has_announcements_role, is_authorized_guild, is_bot_owner
-from tests.conftest import TEST_GUILD, TEST_USER
+from tests.conftest import test_guild, test_user
 
 
 _ROLE_ID = 111222333444
@@ -34,19 +34,19 @@ class TestIsBotOwner:
     def test_returns_true_for_owner(self, mock_ctx_factory):
         from attubot.client.core import config
 
-        config.owner_ids.add(TEST_USER)
-        ctx = mock_ctx_factory(user_id=TEST_USER)
+        config.owner_ids.add(test_user)
+        ctx = mock_ctx_factory(user_id=test_user)
         assert is_bot_owner(ctx) is True
 
     def test_returns_false_for_non_owner(self, mock_ctx_factory):
         from attubot.client.core import config
 
-        config.owner_ids.add(TEST_USER)
-        ctx = mock_ctx_factory(user_id=TEST_USER + 1)
+        config.owner_ids.add(test_user)
+        ctx = mock_ctx_factory(user_id=test_user + 1)
         assert is_bot_owner(ctx) is False
 
     def test_returns_false_when_owner_ids_empty(self, mock_ctx_factory):
-        ctx = mock_ctx_factory(user_id=TEST_USER)
+        ctx = mock_ctx_factory(user_id=test_user)
         assert is_bot_owner(ctx) is False
 
 
@@ -59,12 +59,12 @@ class TestIsAuthorizedGuild:
     """unit: is_authorized_guild predicate"""
 
     def test_returns_true_for_authorized_guild(self, mock_ctx_factory, guild):
-        # guild fixture registers TEST_GUILD in config.authorized_guilds
+        # guild fixture registers test_guild in config.authorized_guilds
         ctx = mock_ctx_factory()
         assert is_authorized_guild(ctx) is True
 
     def test_returns_false_for_unauthorized_guild(self, mock_ctx_factory):
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD + 1)
+        ctx = mock_ctx_factory(guild_id=test_guild + 1)
         assert is_authorized_guild(ctx) is False
 
 
@@ -106,7 +106,7 @@ class TestHasAnnouncementsRole:
 
     def test_returns_false_for_unauthorized_guild(self, mock_ctx_factory):
         # guild not in config at all; config.guild() raises; predicate catches and returns False
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD + 1)
+        ctx = mock_ctx_factory(guild_id=test_guild + 1)
         assert has_announcements_role(ctx) is False
 
     def test_returns_false_for_non_member_author(self, mock_ctx_factory, make_guild):

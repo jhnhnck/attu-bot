@@ -21,8 +21,8 @@ import pytest_asyncio
 from attubot.database.models import ReloadSignalDocument
 
 
-TEST_GUILD = 1234567890
-TEST_GUILD_2 = 9876543210
+test_guild = 1234567890
+test_guild_2 = 9876543210
 
 
 # --- ReloadSignalDocument ---
@@ -30,9 +30,9 @@ TEST_GUILD_2 = 9876543210
 
 class TestReloadSignalDocument:
     def test_make_guild(self):
-        doc = ReloadSignalDocument.make('guild', TEST_GUILD)
+        doc = ReloadSignalDocument.make('guild', test_guild)
         assert doc.signal_type == 'guild'
-        assert doc.guild_id == TEST_GUILD
+        assert doc.guild_id == test_guild
         assert doc.timestamp > 0
 
     def test_make_theme(self):
@@ -83,10 +83,10 @@ class TestReloadSignalRepository:
 
     async def test_send_upserts_guild(self, signal_repo):
         signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
-        await signal_repo.send('guild', TEST_GUILD)
+        await signal_repo.send('guild', test_guild)
         signal_repo.db[signal_repo.COLLECTION].update_one.assert_called_once()
         call_args = signal_repo.db[signal_repo.COLLECTION].update_one.call_args
-        assert call_args[0][0] == {'signal_type': 'guild', 'guild_id': TEST_GUILD}
+        assert call_args[0][0] == {'signal_type': 'guild', 'guild_id': test_guild}
         assert call_args[1]['upsert'] is True
 
     async def test_send_upserts_theme(self, signal_repo):
@@ -117,7 +117,7 @@ class TestReloadSignalRepository:
 
     async def test_consume_all_returns_signals(self, signal_repo):
         fake_id = 'fake_oid_1'
-        raw_docs = [{'_id': fake_id, 'signal_type': 'guild', 'guild_id': TEST_GUILD, 'timestamp': 1000}]
+        raw_docs = [{'_id': fake_id, 'signal_type': 'guild', 'guild_id': test_guild, 'timestamp': 1000}]
         mock_cursor = MagicMock()
         mock_cursor.to_list = AsyncMock(return_value=raw_docs)
         signal_repo.db[signal_repo.COLLECTION].find = MagicMock(return_value=mock_cursor)
@@ -125,7 +125,7 @@ class TestReloadSignalRepository:
         result = await signal_repo.consume_all()
         assert len(result) == 1
         assert result[0].signal_type == 'guild'
-        assert result[0].guild_id == TEST_GUILD
+        assert result[0].guild_id == test_guild
 
     async def test_consume_all_deletes_processed(self, signal_repo):
         fake_id = 'fake_oid_1'
@@ -139,7 +139,7 @@ class TestReloadSignalRepository:
 
     async def test_consume_all_multiple_signals(self, signal_repo):
         raw_docs = [
-            {'_id': 'id1', 'signal_type': 'guild', 'guild_id': TEST_GUILD, 'timestamp': 1000},
+            {'_id': 'id1', 'signal_type': 'guild', 'guild_id': test_guild, 'timestamp': 1000},
             {'_id': 'id2', 'signal_type': 'theme', 'guild_id': None, 'timestamp': 1001},
             {'_id': 'id3', 'signal_type': 'system', 'guild_id': None, 'timestamp': 1002},
         ]
@@ -174,8 +174,8 @@ class TestSendSignalHelper:
     async def test_sends_guild_signal(self, mock_signal_repo):
         from attubot.signals import send_signal
 
-        await send_signal('guild', TEST_GUILD)
-        mock_signal_repo.send.assert_called_once_with('guild', TEST_GUILD)
+        await send_signal('guild', test_guild)
+        mock_signal_repo.send.assert_called_once_with('guild', test_guild)
 
     async def test_sends_theme_signal(self, mock_signal_repo):
         from attubot.signals import send_signal
@@ -194,7 +194,7 @@ class TestSendSignalHelper:
 
         mock_signal_repo.send = AsyncMock(side_effect=Exception('db gone'))
         # should not raise - errors are logged but never re-raised
-        await send_signal('guild', TEST_GUILD)
+        await send_signal('guild', test_guild)
 
     async def test_swallows_connection_error(self, mock_signal_repo):
         from attubot.signals import send_signal
@@ -239,13 +239,13 @@ class TestReloadWatcher:
     async def test_guild_signal_reloads_guild(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(
             return_value=[
-                ReloadSignalDocument(signal_type='guild', guild_id=TEST_GUILD, timestamp=1000),
+                ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
             ],
         )
         from attubot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
-        mock_cfg.load_guild.assert_called_once_with(TEST_GUILD)
+        mock_cfg.load_guild.assert_called_once_with(test_guild)
 
     async def test_theme_signal_reloads_theme(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(
@@ -285,21 +285,21 @@ class TestReloadWatcher:
     async def test_multiple_guild_signals(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(
             return_value=[
-                ReloadSignalDocument(signal_type='guild', guild_id=TEST_GUILD, timestamp=1000),
-                ReloadSignalDocument(signal_type='guild', guild_id=TEST_GUILD_2, timestamp=1001),
+                ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
+                ReloadSignalDocument(signal_type='guild', guild_id=test_guild_2, timestamp=1001),
             ],
         )
         from attubot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         assert mock_cfg.load_guild.call_count == 2
-        mock_cfg.load_guild.assert_any_call(TEST_GUILD)
-        mock_cfg.load_guild.assert_any_call(TEST_GUILD_2)
+        mock_cfg.load_guild.assert_any_call(test_guild)
+        mock_cfg.load_guild.assert_any_call(test_guild_2)
 
     async def test_mixed_signal_types(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(
             return_value=[
-                ReloadSignalDocument(signal_type='guild', guild_id=TEST_GUILD, timestamp=1000),
+                ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1001),
                 ReloadSignalDocument(signal_type='system', guild_id=None, timestamp=1002),
             ],
@@ -307,7 +307,7 @@ class TestReloadWatcher:
         from attubot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
-        mock_cfg.load_guild.assert_called_once_with(TEST_GUILD)
+        mock_cfg.load_guild.assert_called_once_with(test_guild)
         mock_cfg.load_theme.assert_called_once()
         mock_cfg.load_globals.assert_called_once()
 
@@ -316,7 +316,7 @@ class TestReloadWatcher:
         mock_cfg.load_guild = AsyncMock(side_effect=Exception('db fail'))
         mock_signal_repo.consume_all = AsyncMock(
             return_value=[
-                ReloadSignalDocument(signal_type='guild', guild_id=TEST_GUILD, timestamp=1000),
+                ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1001),
             ],
         )
@@ -358,7 +358,7 @@ async def web_app_with_signals():
     from attubot.web.app import create_app
 
     guild = GuildConfig(
-        id=TEST_GUILD,
+        id=test_guild,
         channels=GuildChannels(activity=111111, announcements=222222),
         epoch=GuildEpoch(time=1704067200, year=5, length=14, paused=False, rollover_minutes=1020),
         roles=GuildRoles(announcements=999999),
@@ -366,16 +366,16 @@ async def web_app_with_signals():
     )
     theme = BotTheme(rotation=0.0, max_rate=0.5, bot_color='#ff0000', guild_color='#ffffff')
 
-    web_app_module.config.authorized_guilds = {TEST_GUILD}
-    web_app_module.config.valid_guilds = [TEST_GUILD]
-    web_app_module.config.primary_guild = TEST_GUILD
-    web_app_module.config.guilds = {TEST_GUILD: guild}
+    web_app_module.config.authorized_guilds = {test_guild}
+    web_app_module.config.valid_guilds = [test_guild]
+    web_app_module.config.primary_guild = test_guild
+    web_app_module.config.guilds = {test_guild: guild}
     web_app_module.config.theme = theme
     web_app_module.config.load_guild = AsyncMock(return_value=True)
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, 123456)
+    web_app_module.config.error_log = (test_guild, 123456)
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
 
@@ -405,9 +405,9 @@ class TestWebRoutesEmitSignals:
             'epoch': {'year': 3},
         }
         with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
-            response = await signal_client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+            response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 200
-            mock_send.assert_called_once_with('guild', TEST_GUILD)
+            mock_send.assert_called_once_with('guild', test_guild)
 
     @pytest.mark.asyncio
     async def test_theme_save_emits_theme_signal(self, signal_client):
@@ -423,8 +423,8 @@ class TestWebRoutesEmitSignals:
     @pytest.mark.asyncio
     async def test_system_save_emits_system_signal(self, signal_client):
         payload = {
-            'primary_guild': TEST_GUILD,
-            'error_log_guild': TEST_GUILD,
+            'primary_guild': test_guild,
+            'error_log_guild': test_guild,
             'error_log_channel': 123456,
             'error_hook': 'https://discord.com/api/webhooks/123/abc',
         }
@@ -440,7 +440,7 @@ class TestWebRoutesEmitSignals:
             'epoch': {'year': -999, 'length': -1, 'time': 0, 'paused': False, 'rollover_minutes': 1020},
         }
         with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
-            response = await signal_client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+            response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 400
             mock_send.assert_not_called()
 
@@ -448,10 +448,10 @@ class TestWebRoutesEmitSignals:
     async def test_guild_save_db_error_does_not_emit(self, signal_client):
         from attubot.web.app import config as web_config
 
-        web_config.guilds[TEST_GUILD].save.side_effect = Exception('db gone')
+        web_config.guilds[test_guild].save.side_effect = Exception('db gone')
         payload = {'channels': {'activity': 1}}
         with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
-            response = await signal_client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+            response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 500
             mock_send.assert_not_called()
-        web_config.guilds[TEST_GUILD].save.side_effect = None
+        web_config.guilds[test_guild].save.side_effect = None

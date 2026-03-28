@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from pydantic import BaseModel
 
-from attubot.client.calendar import SECONDS_PER_DAY
+from attubot.client.calendar import seconds_per_day
 from attubot.client.core import config, db
 from attubot.database.repositories import YearRepository
 from attubot.logging import get_logger
@@ -165,6 +165,6 @@ class Year(BaseModel):
             logger.error(f'cannot finalize year {year} for guild {guild}: not found')
             return None
 
-        duration = round((end_time - existing.start_time) / SECONDS_PER_DAY)
+        duration = round((end_time - existing.start_time) / seconds_per_day)
         await existing.update(end_time=end_time, duration=duration)
         return existing

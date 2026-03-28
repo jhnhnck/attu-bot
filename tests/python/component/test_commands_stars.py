@@ -20,19 +20,19 @@ from attubot.database.repositories import MessageRepository, StarboardRepository
 
 pytestmark = pytest.mark.component
 
-TEST_GUILD = 1234567890
-SB_CHANNEL = 4000000001
-MSG_CHANNEL = 4000000002
+test_guild = 1234567890
+sb_channel = 4000000001
+msg_channel = 4000000002
 
 # author ids for seeding
-AUTHOR_A = 100000001
-AUTHOR_B = 100000002
-AUTHOR_C = 100000003
+author_a = 100000001
+author_b = 100000002
+author_c = 100000003
 
 # reactor ids
-USER_1 = 200000001
-USER_2 = 200000002
-USER_3 = 200000003
+user_1 = 200000001
+user_2 = 200000002
+user_3 = 200000003
 
 
 def _sb_doc(message_id: int, author_id: int, reactions: dict | None = None, starboard_message_id: int | None = None, total_reactions: int = 0) -> StarredMessageDocument:
@@ -40,8 +40,8 @@ def _sb_doc(message_id: int, author_id: int, reactions: dict | None = None, star
     total = total_reactions or sum(len(v) for v in r.values())
     return StarredMessageDocument(
         message_id=message_id,
-        channel_id=MSG_CHANNEL,
-        guild_id=TEST_GUILD,
+        channel_id=msg_channel,
+        guild_id=test_guild,
         author_id=author_id,
         reactions=r,
         total_reactions=total,
@@ -49,11 +49,11 @@ def _sb_doc(message_id: int, author_id: int, reactions: dict | None = None, star
     )
 
 
-def _msg_doc(message_id: int, author_id: int = AUTHOR_A) -> MessageDocument:
+def _msg_doc(message_id: int, author_id: int = author_a) -> MessageDocument:
     return MessageDocument(
         message_id=message_id,
-        guild_id=TEST_GUILD,
-        channel_id=MSG_CHANNEL,
+        guild_id=test_guild,
+        channel_id=msg_channel,
         author=MessageAuthor(id=author_id, name='testuser'),
         content=MessageContent(text=f'message {message_id}'),
         created_at=1704067200,
@@ -68,8 +68,8 @@ async def stars_repos(component_db, make_guild):
     msg_repo = MessageRepository(component_db)
     await msg_repo.init_indexes()
 
-    cfg = make_guild(guild_id=TEST_GUILD)
-    cfg.starboard.channel_id = SB_CHANNEL
+    cfg = make_guild(guild_id=test_guild)
+    cfg.starboard.channel_id = sb_channel
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
     import attubot.client.messages as _messages
@@ -88,12 +88,12 @@ class TestStarsLeaderboards:
     async def test_most_stars_embed_ranks_by_stars_received(self, stars_repos, mock_ctx_factory):
         """most-stars orders authors by total reactions received on their messages"""
         sb = stars_repos['sb']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         # author A has 3 stars, B has 2, C has 1
-        await sb.upsert(_sb_doc(1001, AUTHOR_A, {'⭐': [USER_1, USER_2, USER_3]}))
-        await sb.upsert(_sb_doc(1002, AUTHOR_B, {'⭐': [USER_1, USER_2]}))
-        await sb.upsert(_sb_doc(1003, AUTHOR_C, {'⭐': [USER_1]}))
+        await sb.upsert(_sb_doc(1001, author_a, {'⭐': [user_1, user_2, user_3]}))
+        await sb.upsert(_sb_doc(1002, author_b, {'⭐': [user_1, user_2]}))
+        await sb.upsert(_sb_doc(1003, author_c, {'⭐': [user_1]}))
 
         from attubot.commands.stars import stars_most_stars
 
@@ -104,22 +104,22 @@ class TestStarsLeaderboards:
         desc = embed.description
 
         # A (3 stars) should appear before B (2 stars) and C (1 star)
-        assert f'<@{AUTHOR_A}>' in desc
-        assert f'<@{AUTHOR_B}>' in desc
-        assert desc.index(f'<@{AUTHOR_A}>') < desc.index(f'<@{AUTHOR_B}>')
-        assert desc.index(f'<@{AUTHOR_B}>') < desc.index(f'<@{AUTHOR_C}>')
+        assert f'<@{author_a}>' in desc
+        assert f'<@{author_b}>' in desc
+        assert desc.index(f'<@{author_a}>') < desc.index(f'<@{author_b}>')
+        assert desc.index(f'<@{author_b}>') < desc.index(f'<@{author_c}>')
 
     async def test_most_starred_embed_ranks_by_message_count(self, stars_repos, mock_ctx_factory):
         """most-starred counts messages that reached the starboard (have a starboard_message_id)"""
         sb = stars_repos['sb']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         # author A has 2 starboarded messages, B has 1
-        await sb.upsert(_sb_doc(2001, AUTHOR_A, {'⭐': [USER_1]}, starboard_message_id=9001))
-        await sb.upsert(_sb_doc(2002, AUTHOR_A, {'⭐': [USER_2]}, starboard_message_id=9002))
-        await sb.upsert(_sb_doc(2003, AUTHOR_B, {'⭐': [USER_1]}, starboard_message_id=9003))
+        await sb.upsert(_sb_doc(2001, author_a, {'⭐': [user_1]}, starboard_message_id=9001))
+        await sb.upsert(_sb_doc(2002, author_a, {'⭐': [user_2]}, starboard_message_id=9002))
+        await sb.upsert(_sb_doc(2003, author_b, {'⭐': [user_1]}, starboard_message_id=9003))
         # this one has no starboard post - excluded from count
-        await sb.upsert(_sb_doc(2004, AUTHOR_B, {'⭐': [USER_1]}, starboard_message_id=None))
+        await sb.upsert(_sb_doc(2004, author_b, {'⭐': [user_1]}, starboard_message_id=None))
 
         from attubot.commands.stars import stars_most_starred
 
@@ -127,16 +127,16 @@ class TestStarsLeaderboards:
 
         embed = ctx._responses[0]['kwargs']['embed']
         desc = embed.description
-        assert desc.index(f'<@{AUTHOR_A}>') < desc.index(f'<@{AUTHOR_B}>')
+        assert desc.index(f'<@{author_a}>') < desc.index(f'<@{author_b}>')
 
     async def test_most_given_embed_ranks_by_stars_given(self, stars_repos, mock_ctx_factory):
         """most-given counts how many stars each user has given across all messages"""
         sb = stars_repos['sb']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
-        # USER_1 gives 3 stars total (2 on msg 3001, 1 on msg 3002)
-        await sb.upsert(_sb_doc(3001, AUTHOR_A, {'⭐': [USER_1, USER_2]}))
-        await sb.upsert(_sb_doc(3002, AUTHOR_A, {'⭐': [USER_1, USER_3]}))
+        # user_1 gives 3 stars total (2 on msg 3001, 1 on msg 3002)
+        await sb.upsert(_sb_doc(3001, author_a, {'⭐': [user_1, user_2]}))
+        await sb.upsert(_sb_doc(3002, author_a, {'⭐': [user_1, user_3]}))
 
         from attubot.commands.stars import stars_most_given
 
@@ -144,13 +144,13 @@ class TestStarsLeaderboards:
 
         embed = ctx._responses[0]['kwargs']['embed']
         desc = embed.description
-        # USER_1 gave 2 stars, USER_2 and USER_3 each gave 1
-        assert f'<@{USER_1}>' in desc
-        assert desc.index(f'<@{USER_1}>') < desc.index(f'<@{USER_2}>')
+        # user_1 gave 2 stars, user_2 and user_3 each gave 1
+        assert f'<@{user_1}>' in desc
+        assert desc.index(f'<@{user_1}>') < desc.index(f'<@{user_2}>')
 
     async def test_most_stars_responds_ephemeral_when_empty(self, stars_repos, mock_ctx_factory):
         """most-stars responds with 'no data yet' when there are no starred messages"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         from attubot.commands.stars import stars_most_stars
 
@@ -162,7 +162,7 @@ class TestStarsLeaderboards:
 
     async def test_most_starred_responds_ephemeral_when_empty(self, stars_repos, mock_ctx_factory):
         """most-starred responds with 'no data yet' when no messages have a starboard post"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         from attubot.commands.stars import stars_most_starred
 
@@ -173,7 +173,7 @@ class TestStarsLeaderboards:
 
     async def test_most_given_responds_ephemeral_when_empty(self, stars_repos, mock_ctx_factory):
         """most-given responds with 'no data yet' when there are no starred messages"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         from attubot.commands.stars import stars_most_given
 
@@ -188,9 +188,9 @@ class TestStarsRandom:
         """stars random returns a message with >= 2 total reactions"""
         sb = stars_repos['sb']
         msg_repo = stars_repos['msg']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
-        await sb.upsert(_sb_doc(5001, AUTHOR_A, {'⭐': [USER_1, USER_2]}, total_reactions=2))
+        await sb.upsert(_sb_doc(5001, author_a, {'⭐': [user_1, user_2]}, total_reactions=2))
         await msg_repo.upsert(_msg_doc(5001))
 
         from attubot.commands.stars import stars_random
@@ -204,7 +204,7 @@ class TestStarsRandom:
 
     async def test_random_no_match_responds_no_messages(self, stars_repos, mock_ctx_factory):
         """stars random responds ephemeral when no messages with >= 2 stars exist"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
         # repo is empty
 
         from attubot.commands.stars import stars_random
@@ -219,15 +219,15 @@ class TestStarsRandom:
         """stars lost returns a message with exactly 1 total reaction"""
         sb = stars_repos['sb']
         msg_repo = stars_repos['msg']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         # doc with 1 star - matches lost (min=1, max=1)
-        await sb.upsert(_sb_doc(6001, AUTHOR_A, {'⭐': [USER_1]}, total_reactions=1))
+        await sb.upsert(_sb_doc(6001, author_a, {'⭐': [user_1]}, total_reactions=1))
         await msg_repo.upsert(_msg_doc(6001))
 
         # doc with 3 stars - should not be returned by lost
-        await sb.upsert(_sb_doc(6002, AUTHOR_B, {'⭐': [USER_1, USER_2, USER_3]}, total_reactions=3))
-        await msg_repo.upsert(_msg_doc(6002, AUTHOR_B))
+        await sb.upsert(_sb_doc(6002, author_b, {'⭐': [user_1, user_2, user_3]}, total_reactions=3))
+        await msg_repo.upsert(_msg_doc(6002, author_b))
 
         from attubot.commands.stars import stars_lost
 
@@ -242,9 +242,9 @@ class TestStarsRandom:
     async def test_random_no_match_when_only_one_star_messages(self, stars_repos, mock_ctx_factory):
         """stars random with min=2 returns no match when only 1-star messages exist"""
         sb = stars_repos['sb']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
-        await sb.upsert(_sb_doc(7001, AUTHOR_A, {'⭐': [USER_1]}, total_reactions=1))
+        await sb.upsert(_sb_doc(7001, author_a, {'⭐': [user_1]}, total_reactions=1))
 
         from attubot.commands.stars import stars_random
 
@@ -257,10 +257,10 @@ class TestStarsRecheck:
     async def test_recheck_stores_message_and_calls_backfill(self, stars_repos, mock_ctx_factory):
         """recheck fetches the message, stores it in the repo, and calls backfill_message_reactions"""
         msg_repo = stars_repos['msg']
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         message_id = 8001
-        message_link = f'https://discord.com/channels/{TEST_GUILD}/{MSG_CHANNEL}/{message_id}'
+        message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{message_id}'
 
         fake_discord_msg = MagicMock()
         fake_discord_msg.id = message_id
@@ -287,11 +287,11 @@ class TestStarsRecheck:
         assert await msg_repo.get(message_id) is not None
 
         # backfill should have been invoked with the fetched message (force=False for normal channel, replace=True always)
-        mock_backfill.assert_called_once_with(fake_discord_msg, TEST_GUILD, force=False, replace=True)
+        mock_backfill.assert_called_once_with(fake_discord_msg, test_guild, force=False, replace=True)
 
     async def test_recheck_rejects_invalid_link(self, stars_repos, mock_ctx_factory):
         """recheck responds ephemeral when given a non-discord message link"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
 
         from attubot.commands.stars import stars_recheck
 
@@ -302,9 +302,9 @@ class TestStarsRecheck:
 
     async def test_recheck_rejects_wrong_guild_link(self, stars_repos, mock_ctx_factory):
         """recheck responds ephemeral when the message link is from a different guild"""
-        ctx = mock_ctx_factory(guild_id=TEST_GUILD)
+        ctx = mock_ctx_factory(guild_id=test_guild)
         other_guild = 9999999999
-        message_link = f'https://discord.com/channels/{other_guild}/{MSG_CHANNEL}/8002'
+        message_link = f'https://discord.com/channels/{other_guild}/{msg_channel}/8002'
 
         from attubot.commands.stars import stars_recheck
 

@@ -117,7 +117,7 @@ async def migration_2_2_0():
 @migration(old='2.2.0', new='2.2.1')
 async def migration_backfill_years():
     """Backfill Year documents from existing YearMarker timestamps"""
-    from attubot.client.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.calendar import seconds_per_day, get_year_status
     from attubot.client.core import db
     from attubot.client.markers import YearMarker
     from attubot.database.repositories import YearRepository
@@ -143,7 +143,7 @@ async def migration_backfill_years():
                 continue
 
             end_ts = await YearMarker.timestamp(yr + 1, guild_id) or 0 if yr < current_year else 0
-            duration = round((end_ts - start_ts) / SECONDS_PER_DAY) if end_ts > 0 else 0
+            duration = round((end_ts - start_ts) / seconds_per_day) if end_ts > 0 else 0
 
             await year_repo.upsert(
                 guild=guild_id,
@@ -167,7 +167,7 @@ async def migration_2_2_3():
 @migration(old='2.2.3', new='2.2.4')
 async def migration_fix_year_data():
     """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
-    from attubot.client.calendar import SECONDS_PER_DAY, get_year_status
+    from attubot.client.calendar import seconds_per_day, get_year_status
     from attubot.client.core import db
     from attubot.database.repositories import YearRepository
 
@@ -194,7 +194,7 @@ async def migration_fix_year_data():
                 next_year = years_by_num.get(year_doc.year + 1)
                 if next_year and next_year.start_time > 0:
                     updates['end_time'] = next_year.start_time
-                    updates['duration'] = round((next_year.start_time - year_doc.start_time) / SECONDS_PER_DAY)
+                    updates['duration'] = round((next_year.start_time - year_doc.start_time) / seconds_per_day)
 
             if updates:
                 await year_repo.update(guild_id, year_doc.year, **updates)

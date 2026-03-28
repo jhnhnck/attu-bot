@@ -22,9 +22,9 @@ from attubot.wiki.search import SearchApi
 
 pytestmark = pytest.mark.unit
 
-ACTION = 'https://wiki.example.test/api.php'
-REST = 'https://wiki.example.test/rest.php/v1'
-BASE = 'https://wiki.example.test'
+action = 'https://wiki.example.test/api.php'
+rest = 'https://wiki.example.test/rest.php/v1'
+base = 'https://wiki.example.test'
 
 
 # ============================================================
@@ -35,7 +35,7 @@ BASE = 'https://wiki.example.test'
 @pytest.fixture
 def http_client():
     """real httpx async client pointed at the test base url"""
-    client = httpx.AsyncClient(base_url=BASE)
+    client = httpx.AsyncClient(base_url=base)
     return client
 
 
@@ -62,27 +62,27 @@ def admin(http_client, auth):
 class TestAuthApiGetCsrf:
     @respx.mock
     async def test_success_returns_token(self, auth):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'abc+\\'}}}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'abc+\\'}}}))
         token = await auth.get_csrf()
         assert token == 'abc+\\'  # noqa: S105
 
     @respx.mock
     async def test_non_2xx_raises(self, auth):
-        respx.get(ACTION).mock(return_value=httpx.Response(403, text='forbidden'))
+        respx.get(action).mock(return_value=httpx.Response(403, text='forbidden'))
         with pytest.raises(httpx.HTTPStatusError):
             await auth.get_csrf()
 
     @respx.mock
     async def test_missing_key_raises(self, auth):
         """documents current behavior: malformed payload raises KeyError"""
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {}}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {}}))
         with pytest.raises(KeyError):
             await auth.get_csrf()
 
     @respx.mock
     async def test_request_params(self, auth):
         """assert correct query params are sent"""
-        route = respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        route = respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
         await auth.get_csrf()
         assert route.called
         params = dict(route.calls[0].request.url.params)
@@ -95,29 +95,29 @@ class TestAuthApiLogin:
     @respx.mock
     async def test_success_path(self, auth):
         """two-step: GET login token then POST credentials"""
-        get_route = respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'lt123'}}}))
-        post_route = respx.post(ACTION).mock(return_value=httpx.Response(200, json={'login': {'result': 'Success'}}))
+        get_route = respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'lt123'}}}))
+        post_route = respx.post(action).mock(return_value=httpx.Response(200, json={'login': {'result': 'Success'}}))
         await auth.login('WikiBot@Bot', 'secret-key')
         assert get_route.called
         assert post_route.called
 
     @respx.mock
     async def test_login_token_fetch_failure_raises(self, auth):
-        respx.get(ACTION).mock(return_value=httpx.Response(500))
+        respx.get(action).mock(return_value=httpx.Response(500))
         with pytest.raises(httpx.HTTPStatusError):
             await auth.login('user', 'key')
 
     @respx.mock
     async def test_login_post_failure_raises(self, auth):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'tok'}}}))
-        respx.post(ACTION).mock(return_value=httpx.Response(403, text='denied'))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'tok'}}}))
+        respx.post(action).mock(return_value=httpx.Response(403, text='denied'))
         with pytest.raises(httpx.HTTPStatusError):
             await auth.login('user', 'key')
 
     @respx.mock
     async def test_post_body_contains_credentials(self, auth):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'mytoken'}}}))
-        post_route = respx.post(ACTION).mock(return_value=httpx.Response(200, json={}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'logintoken': 'mytoken'}}}))
+        post_route = respx.post(action).mock(return_value=httpx.Response(200, json={}))
         await auth.login('MyUser@Bot', 'my-secret')
         content = post_route.calls[0].request.content.decode()
         assert 'lgname=MyUser%40Bot' in content or 'lgname=MyUser' in content
@@ -132,7 +132,7 @@ class TestAuthApiLogin:
 class TestSearchApiSearch:
     @respx.mock
     async def test_returns_results(self, search):
-        respx.get(f'{REST}/search/page').mock(
+        respx.get(f'{rest}/search/page').mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -151,26 +151,26 @@ class TestSearchApiSearch:
     @respx.mock
     async def test_truncates_to_limit(self, search):
         """api returned more results than requested; client truncates"""
-        respx.get(f'{REST}/search/page').mock(return_value=httpx.Response(200, json={'pages': [{'title': str(i), 'key': str(i)} for i in range(10)]}))
+        respx.get(f'{rest}/search/page').mock(return_value=httpx.Response(200, json={'pages': [{'title': str(i), 'key': str(i)} for i in range(10)]}))
         results = await search.search('q', limit=3)
         assert len(results) == 3
 
     @respx.mock
     async def test_missing_pages_key_returns_empty(self, search):
-        respx.get(f'{REST}/search/page').mock(return_value=httpx.Response(200, json={}))
+        respx.get(f'{rest}/search/page').mock(return_value=httpx.Response(200, json={}))
         results = await search.search('q', limit=5)
         assert results == []
 
     @respx.mock
     async def test_non_2xx_raises(self, search):
-        respx.get(f'{REST}/search/page').mock(return_value=httpx.Response(404))
+        respx.get(f'{rest}/search/page').mock(return_value=httpx.Response(404))
         with pytest.raises(httpx.HTTPStatusError):
             await search.search('q', limit=5)
 
     @respx.mock
     async def test_optional_fields_absent(self, search):
         """pages with only required fields should parse correctly"""
-        respx.get(f'{REST}/search/page').mock(
+        respx.get(f'{rest}/search/page').mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -187,7 +187,7 @@ class TestSearchApiSearch:
 
     @respx.mock
     async def test_all_optional_fields_present(self, search):
-        respx.get(f'{REST}/search/page').mock(
+        respx.get(f'{rest}/search/page').mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -211,7 +211,7 @@ class TestSearchApiSearch:
 
     @respx.mock
     async def test_request_params(self, search):
-        route = respx.get(f'{REST}/search/page').mock(return_value=httpx.Response(200, json={'pages': []}))
+        route = respx.get(f'{rest}/search/page').mock(return_value=httpx.Response(200, json={'pages': []}))
         await search.search('my query', limit=7)
         params = dict(route.calls[0].request.url.params)
         assert params['q'] == 'my query'
@@ -221,7 +221,7 @@ class TestSearchApiSearch:
 class TestSearchApiSearchTitle:
     @respx.mock
     async def test_returns_results(self, search):
-        respx.get(f'{REST}/search/title').mock(
+        respx.get(f'{rest}/search/title').mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -237,19 +237,19 @@ class TestSearchApiSearchTitle:
 
     @respx.mock
     async def test_truncates_to_limit(self, search):
-        respx.get(f'{REST}/search/title').mock(return_value=httpx.Response(200, json={'pages': [{'title': str(i), 'key': str(i)} for i in range(5)]}))
+        respx.get(f'{rest}/search/title').mock(return_value=httpx.Response(200, json={'pages': [{'title': str(i), 'key': str(i)} for i in range(5)]}))
         results = await search.search_title('q', limit=2)
         assert len(results) == 2
 
     @respx.mock
     async def test_missing_pages_key_returns_empty(self, search):
-        respx.get(f'{REST}/search/title').mock(return_value=httpx.Response(200, json={}))
+        respx.get(f'{rest}/search/title').mock(return_value=httpx.Response(200, json={}))
         results = await search.search_title('q', limit=1)
         assert results == []
 
     @respx.mock
     async def test_non_2xx_raises(self, search):
-        respx.get(f'{REST}/search/title').mock(return_value=httpx.Response(503))
+        respx.get(f'{rest}/search/title').mock(return_value=httpx.Response(503))
         with pytest.raises(httpx.HTTPStatusError):
             await search.search_title('q', limit=1)
 
@@ -257,7 +257,7 @@ class TestSearchApiSearchTitle:
 class TestSearchApiSiteInfo:
     @respx.mock
     async def test_success_parses_aliases(self, search):
-        respx.post(ACTION).mock(
+        respx.post(action).mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -281,7 +281,7 @@ class TestSearchApiSiteInfo:
 
     @respx.mock
     async def test_optional_fields_default(self, search):
-        respx.post(ACTION).mock(
+        respx.post(action).mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -300,19 +300,19 @@ class TestSearchApiSiteInfo:
 
     @respx.mock
     async def test_page_url_uses_article_path(self, search):
-        respx.post(ACTION).mock(return_value=httpx.Response(200, json={'query': {'general': {'server': 'https://wiki.example.test', 'articlepath': '/w/$1'}}}))
+        respx.post(action).mock(return_value=httpx.Response(200, json={'query': {'general': {'server': 'https://wiki.example.test', 'articlepath': '/w/$1'}}}))
         info = await search.site_info()
         assert info.page_url('Foo_Bar') == 'https://wiki.example.test/w/Foo_Bar'
 
     @respx.mock
     async def test_non_2xx_raises(self, search):
-        respx.post(ACTION).mock(return_value=httpx.Response(500))
+        respx.post(action).mock(return_value=httpx.Response(500))
         with pytest.raises(httpx.HTTPStatusError):
             await search.site_info()
 
     @respx.mock
     async def test_malformed_payload_raises(self, search):
-        respx.post(ACTION).mock(return_value=httpx.Response(200, json={'not_query': {}}))
+        respx.post(action).mock(return_value=httpx.Response(200, json={'not_query': {}}))
         with pytest.raises(KeyError):
             await search.site_info()
 
@@ -326,9 +326,9 @@ class TestAdminApiBlock:
     @respx.mock
     async def test_success_returns_true(self, admin):
         # csrf fetch
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
         # block post
-        respx.post(ACTION).mock(return_value=httpx.Response(200, json={'block': {'user': 'BadUser'}}))
+        respx.post(action).mock(return_value=httpx.Response(200, json={'block': {'user': 'BadUser'}}))
 
         with patch('asyncio.sleep', new=AsyncMock()) as mock_sleep:
             result = await admin.block('BadUser', reason='spam')
@@ -338,9 +338,9 @@ class TestAdminApiBlock:
 
     @respx.mock
     async def test_retry_then_success_returns_true(self, admin):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
         # fail twice, succeed on third
-        respx.post(ACTION).mock(
+        respx.post(action).mock(
             side_effect=[
                 httpx.Response(503),
                 httpx.Response(503),
@@ -356,8 +356,8 @@ class TestAdminApiBlock:
 
     @respx.mock
     async def test_exhaust_retries_returns_false(self, admin):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
-        respx.post(ACTION).mock(return_value=httpx.Response(500))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.post(action).mock(return_value=httpx.Response(500))
 
         with patch('asyncio.sleep', new=AsyncMock()) as mock_sleep:
             result = await admin.block('User', reason='spam', max_retries=3)
@@ -367,8 +367,8 @@ class TestAdminApiBlock:
 
     @respx.mock
     async def test_backoff_uses_3_second_sleep(self, admin):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
-        respx.post(ACTION).mock(return_value=httpx.Response(500))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.post(action).mock(return_value=httpx.Response(500))
 
         sleep_calls = []
 
@@ -383,8 +383,8 @@ class TestAdminApiBlock:
     @respx.mock
     async def test_csrf_fetch_on_each_block_call(self, admin):
         """get_csrf is called once per block() call"""
-        csrf_route = respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
-        respx.post(ACTION).mock(return_value=httpx.Response(200, json={'block': {}}))
+        csrf_route = respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.post(action).mock(return_value=httpx.Response(200, json={'block': {}}))
 
         with patch('asyncio.sleep', new=AsyncMock()):
             await admin.block('User', reason='test')
@@ -393,8 +393,8 @@ class TestAdminApiBlock:
 
     @respx.mock
     async def test_block_post_body(self, admin):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'mycsrf'}}}))
-        post_route = respx.post(ACTION).mock(return_value=httpx.Response(200, json={'block': {}}))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'mycsrf'}}}))
+        post_route = respx.post(action).mock(return_value=httpx.Response(200, json={'block': {}}))
 
         with patch('asyncio.sleep', new=AsyncMock()):
             await admin.block('TargetUser', reason='vandalism')
@@ -407,8 +407,8 @@ class TestAdminApiBlock:
 
     @respx.mock
     async def test_default_max_retries_is_3(self, admin):
-        respx.get(ACTION).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
-        respx.post(ACTION).mock(return_value=httpx.Response(500))
+        respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'tok'}}}))
+        respx.post(action).mock(return_value=httpx.Response(500))
 
         with patch('asyncio.sleep', new=AsyncMock()) as mock_sleep:
             result = await admin.block('User', reason='test')  # uses default max_retries=3

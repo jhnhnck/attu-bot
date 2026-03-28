@@ -20,13 +20,13 @@ from attubot.database.repositories import MessageRepository
 
 pytestmark = pytest.mark.component
 
-TEST_GUILD = 1234567890
-CH_READABLE = 2000000001
-CH_READABLE_2 = 2000000002
-CH_LOGS = 2000000003
+test_guild = 1234567890
+ch_readable = 2000000001
+ch_readable_2 = 2000000002
+ch_logs = 2000000003
 
 
-def _fake_msg(message_id: int, channel_id: int, guild_id: int = TEST_GUILD) -> MagicMock:
+def _fake_msg(message_id: int, channel_id: int, guild_id: int = test_guild) -> MagicMock:
     msg = MagicMock()
     msg.id = message_id
     msg.channel = MagicMock()
@@ -75,7 +75,7 @@ def _capturing_history(messages, captured: list):
 def _doc_for(message_id: int, channel_id: int) -> MessageDocument:
     return MessageDocument(
         message_id=message_id,
-        guild_id=TEST_GUILD,
+        guild_id=test_guild,
         channel_id=channel_id,
         author=MessageAuthor(id=111, name='testuser'),
         content=MessageContent(text=f'message {message_id}'),
@@ -89,13 +89,13 @@ class TestBackfillChannel:
         msg_repo = MessageRepository(component_db)
         await msg_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
-        ch = _fake_channel(CH_READABLE)
+        ch = _fake_channel(ch_readable)
         ch.history = _as_history(
-            _fake_msg(101, CH_READABLE),
-            _fake_msg(102, CH_READABLE),
-            _fake_msg(103, CH_READABLE),
+            _fake_msg(101, ch_readable),
+            _fake_msg(102, ch_readable),
+            _fake_msg(103, ch_readable),
         )
 
         import attubot.client.messages as _messages
@@ -105,10 +105,10 @@ class TestBackfillChannel:
             with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
                 from attubot.tasks.message_backfill import MessageBackfillTask
 
-                count = await MessageBackfillTask()._backfill_channel(TEST_GUILD, ch)
+                count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
             assert count == 3
-            assert await msg_repo.count_for_channel(TEST_GUILD, CH_READABLE) == 3
+            assert await msg_repo.count_for_channel(test_guild, ch_readable) == 3
         finally:
             _messages._message_repo = None
 
@@ -117,15 +117,15 @@ class TestBackfillChannel:
         msg_repo = MessageRepository(component_db)
         await msg_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
         # seed message 100 so get_latest_in_channel returns 100
-        await msg_repo.upsert(_doc_for(100, CH_READABLE))
+        await msg_repo.upsert(_doc_for(100, ch_readable))
 
-        new_messages = [_fake_msg(101, CH_READABLE), _fake_msg(102, CH_READABLE)]
+        new_messages = [_fake_msg(101, ch_readable), _fake_msg(102, ch_readable)]
         history_calls: list = []
 
-        ch = _fake_channel(CH_READABLE)
+        ch = _fake_channel(ch_readable)
         ch.history = _capturing_history(new_messages, history_calls)
 
         import attubot.client.messages as _messages
@@ -135,13 +135,13 @@ class TestBackfillChannel:
             with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
                 from attubot.tasks.message_backfill import MessageBackfillTask
 
-                count = await MessageBackfillTask()._backfill_channel(TEST_GUILD, ch)
+                count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
             assert count == 2
             assert len(history_calls) == 1
             assert history_calls[0]['after'].id == 100
             # 1 pre-existing + 2 new
-            assert await msg_repo.count_for_channel(TEST_GUILD, CH_READABLE) == 3
+            assert await msg_repo.count_for_channel(test_guild, ch_readable) == 3
         finally:
             _messages._message_repo = None
 
@@ -150,11 +150,11 @@ class TestBackfillChannel:
         msg_repo = MessageRepository(component_db)
         await msg_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
         history_calls: list = []
-        ch = _fake_channel(CH_READABLE)
-        ch.history = _capturing_history([_fake_msg(200, CH_READABLE)], history_calls)
+        ch = _fake_channel(ch_readable)
+        ch.history = _capturing_history([_fake_msg(200, ch_readable)], history_calls)
 
         import attubot.client.messages as _messages
 
@@ -163,7 +163,7 @@ class TestBackfillChannel:
             with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
                 from attubot.tasks.message_backfill import MessageBackfillTask
 
-                await MessageBackfillTask()._backfill_channel(TEST_GUILD, ch)
+                await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
             assert 'after' not in history_calls[0]
         finally:
@@ -176,9 +176,9 @@ class TestBackfillChannel:
         msg_repo = MessageRepository(component_db)
         await msg_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
-        ch = _fake_channel(CH_READABLE)
+        ch = _fake_channel(ch_readable)
 
         async def _forbidden_gen():
             raise discord.Forbidden(MagicMock(), 'missing permissions')
@@ -194,7 +194,7 @@ class TestBackfillChannel:
             with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock()):
                 from attubot.tasks.message_backfill import MessageBackfillTask
 
-                count = await MessageBackfillTask()._backfill_channel(TEST_GUILD, ch)
+                count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
             assert count == 0
         finally:
@@ -207,15 +207,15 @@ class TestRunChannelFiltering:
         msg_repo = MessageRepository(component_db)
         await msg_repo.init_indexes()
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
-        ch1 = _fake_channel(CH_READABLE)
-        ch1.history = _as_history(_fake_msg(301, CH_READABLE), _fake_msg(302, CH_READABLE))
-        ch2 = _fake_channel(CH_READABLE_2)
-        ch2.history = _as_history(_fake_msg(303, CH_READABLE_2))
+        ch1 = _fake_channel(ch_readable)
+        ch1.history = _as_history(_fake_msg(301, ch_readable), _fake_msg(302, ch_readable))
+        ch2 = _fake_channel(ch_readable_2)
+        ch2.history = _as_history(_fake_msg(303, ch_readable_2))
 
         fake_guild = MagicMock()
-        fake_guild.id = TEST_GUILD
+        fake_guild.id = test_guild
         fake_guild.me = MagicMock()
 
         import attubot.client.messages as _messages
@@ -232,8 +232,8 @@ class TestRunChannelFiltering:
 
                 await MessageBackfillTask().run()
 
-            assert await msg_repo.count_for_channel(TEST_GUILD, CH_READABLE) == 2
-            assert await msg_repo.count_for_channel(TEST_GUILD, CH_READABLE_2) == 1
+            assert await msg_repo.count_for_channel(test_guild, ch_readable) == 2
+            assert await msg_repo.count_for_channel(test_guild, ch_readable_2) == 1
         finally:
             _messages._message_repo = None
 
@@ -241,17 +241,17 @@ class TestRunChannelFiltering:
         """_collect_channels omits the logs channel from the returned list"""
         import discord
 
-        make_guild(guild_id=TEST_GUILD)
-        cfg = config.guild(TEST_GUILD)
-        cfg.channels.logs = CH_LOGS
+        make_guild(guild_id=test_guild)
+        cfg = config.guild(test_guild)
+        cfg.channels.logs = ch_logs
 
         me = MagicMock()
         logs_ch = MagicMock(spec=discord.TextChannel)
-        logs_ch.id = CH_LOGS
+        logs_ch.id = ch_logs
         logs_ch.permissions_for = MagicMock(return_value=MagicMock(read_message_history=True))
 
         readable_ch = MagicMock(spec=discord.TextChannel)
-        readable_ch.id = CH_READABLE
+        readable_ch.id = ch_readable
         readable_ch.permissions_for = MagicMock(return_value=MagicMock(read_message_history=True))
 
         fake_guild = MagicMock()
@@ -260,25 +260,25 @@ class TestRunChannelFiltering:
 
         from attubot.tasks.message_backfill import MessageBackfillTask
 
-        channels = await MessageBackfillTask()._collect_channels(fake_guild, CH_LOGS, me)
+        channels = await MessageBackfillTask()._collect_channels(fake_guild, ch_logs, me)
         ids = [c.id for c in channels]
 
-        assert CH_LOGS not in ids
-        assert CH_READABLE in ids
+        assert ch_logs not in ids
+        assert ch_readable in ids
 
     async def test_collect_channels_excludes_unreadable_channels(self, make_guild):
         """_collect_channels omits channels where read_message_history permission is False"""
         import discord
 
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
         me = MagicMock()
         readable_ch = MagicMock(spec=discord.TextChannel)
-        readable_ch.id = CH_READABLE
+        readable_ch.id = ch_readable
         readable_ch.permissions_for = MagicMock(return_value=MagicMock(read_message_history=True))
 
         unreadable_ch = MagicMock(spec=discord.TextChannel)
-        unreadable_ch.id = CH_READABLE_2
+        unreadable_ch.id = ch_readable_2
         unreadable_ch.permissions_for = MagicMock(return_value=MagicMock(read_message_history=False))
 
         fake_guild = MagicMock()
@@ -290,27 +290,27 @@ class TestRunChannelFiltering:
         channels = await MessageBackfillTask()._collect_channels(fake_guild, 0, me)
         ids = [c.id for c in channels]
 
-        assert CH_READABLE in ids
-        assert CH_READABLE_2 not in ids
+        assert ch_readable in ids
+        assert ch_readable_2 not in ids
 
     async def test_collect_channels_includes_active_threads(self, make_guild):
         """_collect_channels includes readable active threads that are not children of logs"""
         import discord
 
-        make_guild(guild_id=TEST_GUILD)
-        cfg = config.guild(TEST_GUILD)
-        cfg.channels.logs = CH_LOGS
+        make_guild(guild_id=test_guild)
+        cfg = config.guild(test_guild)
+        cfg.channels.logs = ch_logs
 
         me = MagicMock()
 
         fake_thread = MagicMock(spec=discord.Thread)
         fake_thread.id = 3000000001
-        fake_thread.parent_id = CH_READABLE  # not logs
+        fake_thread.parent_id = ch_readable  # not logs
         fake_thread.permissions_for = MagicMock(return_value=MagicMock(read_message_history=True))
 
         logs_thread = MagicMock(spec=discord.Thread)
         logs_thread.id = 3000000002
-        logs_thread.parent_id = CH_LOGS  # child of logs - should be excluded
+        logs_thread.parent_id = ch_logs  # child of logs - should be excluded
         logs_thread.permissions_for = MagicMock(return_value=MagicMock(read_message_history=True))
 
         fake_guild = MagicMock()
@@ -319,7 +319,7 @@ class TestRunChannelFiltering:
 
         from attubot.tasks.message_backfill import MessageBackfillTask
 
-        channels = await MessageBackfillTask()._collect_channels(fake_guild, CH_LOGS, me)
+        channels = await MessageBackfillTask()._collect_channels(fake_guild, ch_logs, me)
         ids = [c.id for c in channels]
 
         assert fake_thread.id in ids
@@ -327,7 +327,7 @@ class TestRunChannelFiltering:
 
     async def test_run_skips_guild_not_in_bot_cache(self, make_guild):
         """run() skips a guild when bot.get_guild() returns None"""
-        make_guild(guild_id=TEST_GUILD)
+        make_guild(guild_id=test_guild)
 
         with (
             patch('attubot.tasks.message_backfill.bot') as mock_bot,

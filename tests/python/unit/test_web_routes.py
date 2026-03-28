@@ -23,8 +23,8 @@ from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, Gui
 from attubot.database.models import ChatChannelConfig, ChatConfigDocument
 
 
-TEST_GUILD = 1234567890
-TEST_GUILD_2 = 9876543210
+test_guild = 1234567890
+test_guild_2 = 9876543210
 
 
 @pytest_asyncio.fixture(scope='function')
@@ -35,7 +35,7 @@ async def web_app():
 
     # Create test guild configs
     guild1 = GuildConfig(
-        id=TEST_GUILD,
+        id=test_guild,
         channels=GuildChannels(
             activity=111111,
             announcements=222222,
@@ -57,7 +57,7 @@ async def web_app():
     )
 
     guild2 = GuildConfig(
-        id=TEST_GUILD_2,
+        id=test_guild_2,
         channels=GuildChannels(),
         epoch=GuildEpoch(),
         roles=GuildRoles(),
@@ -73,19 +73,19 @@ async def web_app():
     )
 
     # Set up test configuration directly on web_app_module.config
-    web_app_module.config.authorized_guilds = {TEST_GUILD, TEST_GUILD_2}
-    web_app_module.config.valid_guilds = [TEST_GUILD]
-    web_app_module.config.primary_guild = TEST_GUILD
+    web_app_module.config.authorized_guilds = {test_guild, test_guild_2}
+    web_app_module.config.valid_guilds = [test_guild]
+    web_app_module.config.primary_guild = test_guild
     web_app_module.config.guilds = {
-        TEST_GUILD: guild1,
-        TEST_GUILD_2: guild2,
+        test_guild: guild1,
+        test_guild_2: guild2,
     }
     web_app_module.config.theme = theme
     web_app_module.config.load_guild = AsyncMock(return_value=True)
     web_app_module.config.load_globals = AsyncMock()
     web_app_module.config.config_repo = MagicMock()
     web_app_module.config.config_repo.update_system_field = AsyncMock()
-    web_app_module.config.error_log = (TEST_GUILD, 123456)
+    web_app_module.config.error_log = (test_guild, 123456)
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
 
@@ -158,12 +158,12 @@ class TestPageRoutes:
 
         html = await response.get_data(as_text=True)
         assert 'Dashboard' in html
-        assert str(TEST_GUILD) in html
+        assert str(test_guild) in html
 
     @pytest.mark.asyncio
     async def test_guild_config_page_authorized(self, client):
         """Test guild config page for authorized guild"""
-        response = await client.get(f'/guild/{TEST_GUILD}')
+        response = await client.get(f'/guild/{test_guild}')
         assert response.status_code == 200
 
         html = await response.get_data(as_text=True)
@@ -212,17 +212,17 @@ class TestGuildAPI:
         assert len(data['guilds']) == 2
 
         guild_ids = [g['id'] for g in data['guilds']]
-        assert str(TEST_GUILD) in guild_ids  # Guild IDs are strings to preserve precision
-        assert str(TEST_GUILD_2) in guild_ids
+        assert str(test_guild) in guild_ids  # Guild IDs are strings to preserve precision
+        assert str(test_guild_2) in guild_ids
 
     @pytest.mark.asyncio
     async def test_get_guild_config(self, client):
         """Test GET /api/guilds/<id> returns guild configuration"""
-        response = await client.get(f'/api/guilds/{TEST_GUILD}')
+        response = await client.get(f'/api/guilds/{test_guild}')
         assert response.status_code == 200
 
         data = await response.get_json()
-        assert data['guild_id'] == str(TEST_GUILD)  # Guild ID is string to preserve precision
+        assert data['guild_id'] == str(test_guild)  # Guild ID is string to preserve precision
         assert data['channels']['activity'] == '111111'  # All snowflake IDs as strings
         assert data['channels']['announcements'] == '222222'
         assert data['channels']['lore_channels'] == ['666666', '777777']
@@ -268,10 +268,10 @@ class TestGuildAPI:
         }
 
         # Reset the mock to clear any previous calls
-        config.guilds[TEST_GUILD].save.reset_mock()
+        config.guilds[test_guild].save.reset_mock()
 
         response = await client.post(
-            f'/api/guilds/{TEST_GUILD}',
+            f'/api/guilds/{test_guild}',
             json=payload,
         )
         assert response.status_code == 200
@@ -281,10 +281,10 @@ class TestGuildAPI:
         assert 'message' in data
 
         # Verify guild.save() was called
-        config.guilds[TEST_GUILD].save.assert_called_once()
+        config.guilds[test_guild].save.assert_called_once()
 
         # Verify configuration was updated
-        guild = config.guilds[TEST_GUILD]
+        guild = config.guilds[test_guild]
         assert guild.channels.activity == 123456
         assert guild.epoch.year == 10
         assert guild.roles.announcements == 555555
@@ -301,13 +301,13 @@ class TestGuildAPI:
         }
 
         response = await client.post(
-            f'/api/guilds/{TEST_GUILD}',
+            f'/api/guilds/{test_guild}',
             json=payload,
         )
         assert response.status_code == 200
 
         # Verify configuration was updated
-        guild = config.guilds[TEST_GUILD]
+        guild = config.guilds[test_guild]
         assert guild.channels.activity == 654321
         assert guild.epoch.year == 15
         assert guild.roles.announcements == 777777
@@ -326,7 +326,7 @@ class TestGuildAPI:
         }
 
         response = await client.post(
-            f'/api/guilds/{TEST_GUILD}',
+            f'/api/guilds/{test_guild}',
             json=payload,
         )
         assert response.status_code == 400
@@ -338,7 +338,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_save_guild_no_data(self, client):
         """Test POST /api/guilds/<id> with no data"""
-        response = await client.post(f'/api/guilds/{TEST_GUILD}')
+        response = await client.post(f'/api/guilds/{test_guild}')
         assert response.status_code == 400
 
         data = await response.get_json()
@@ -353,7 +353,7 @@ class TestGuildAPI:
         }
 
         response = await client.post(
-            f'/api/guilds/{TEST_GUILD}/validate',
+            f'/api/guilds/{test_guild}/validate',
             json=payload,
         )
         assert response.status_code == 200
@@ -376,7 +376,7 @@ class TestGuildAPI:
         }
 
         response = await client.post(
-            f'/api/guilds/{TEST_GUILD}/validate',
+            f'/api/guilds/{test_guild}/validate',
             json=payload,
         )
         assert response.status_code == 400
@@ -390,14 +390,14 @@ class TestGuildAPI:
         """Test POST /api/guilds/<id>/reset reloads from database"""
         from attubot.web.app import config
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/reset')
+        response = await client.post(f'/api/guilds/{test_guild}/reset')
         assert response.status_code == 200
 
         data = await response.get_json()
         assert data['success'] is True
 
         # Verify load_guild was called
-        config.load_guild.assert_called_once_with(TEST_GUILD)
+        config.load_guild.assert_called_once_with(test_guild)
 
     @pytest.mark.asyncio
     async def test_reset_guild_config_failure(self, client):
@@ -406,7 +406,7 @@ class TestGuildAPI:
 
         config.load_guild = AsyncMock(return_value=False)
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}/reset')
+        response = await client.post(f'/api/guilds/{test_guild}/reset')
         assert response.status_code == 500
 
         data = await response.get_json()
@@ -421,7 +421,7 @@ class TestGuildAPI:
         ]
 
         with patch('attubot.web.routes.get_guild_channels', new=AsyncMock(return_value=mock_channels)):
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/channels')
+            response = await client.get(f'/api/guilds/{test_guild}/channels')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -437,7 +437,7 @@ class TestGuildAPI:
         ]
 
         with patch('attubot.web.routes.get_guild_roles', new=AsyncMock(return_value=mock_roles)):
-            response = await client.get(f'/api/guilds/{TEST_GUILD}/roles')
+            response = await client.get(f'/api/guilds/{test_guild}/roles')
             assert response.status_code == 200
 
             data = await response.get_json()
@@ -449,12 +449,12 @@ class TestGuildAPI:
     async def test_refresh_discord_cache(self, client):
         """Test POST /api/guilds/<id>/refresh clears cache"""
         with patch('attubot.web.routes.invalidate_guild_cache') as mock_invalidate:
-            response = await client.post(f'/api/guilds/{TEST_GUILD}/refresh')
+            response = await client.post(f'/api/guilds/{test_guild}/refresh')
             assert response.status_code == 200
 
             data = await response.get_json()
             assert data['success'] is True
-            mock_invalidate.assert_called_once_with(TEST_GUILD)
+            mock_invalidate.assert_called_once_with(test_guild)
 
 
 # ========== Theme API Tests ==========
@@ -542,8 +542,8 @@ class TestSystemAPI:
 
         data = await response.get_json()
         assert data['version'] == '2.2.0'
-        assert data['primary_guild'] == str(TEST_GUILD)
-        assert data['error_log_guild'] == str(TEST_GUILD)
+        assert data['primary_guild'] == str(test_guild)
+        assert data['error_log_guild'] == str(test_guild)
         assert data['error_log_channel'] == str(123456)
         assert data['error_hook'] == 'https://discord.com/api/webhooks/123/abc'
 
@@ -553,8 +553,8 @@ class TestSystemAPI:
         from attubot.web.app import config
 
         payload = {
-            'primary_guild': TEST_GUILD_2,
-            'error_log_guild': TEST_GUILD,
+            'primary_guild': test_guild_2,
+            'error_log_guild': test_guild,
             'error_log_channel': 999999,
             'error_hook': 'https://discord.com/api/webhooks/456/xyz',
         }
@@ -573,7 +573,7 @@ class TestSystemAPI:
     async def test_save_system_config_invalid_webhook(self, client):
         """Test POST /api/system with invalid webhook URL"""
         payload = {
-            'primary_guild': TEST_GUILD,
+            'primary_guild': test_guild,
             'error_hook': 'http://example.com',  # Invalid: not Discord webhook
         }
 
@@ -754,7 +754,7 @@ class TestAuditLogAPI:
                 'ip_address': '127.0.0.1',
                 'config_type': 'guild',
                 'action': 'update',
-                'guild_id': TEST_GUILD,
+                'guild_id': test_guild,
                 'success': True,
                 'changes': [
                     {'field': 'channels.activity', 'old_value': 111111, 'new_value': 222222},
@@ -805,7 +805,7 @@ class TestAuditLogAPI:
                 'ip_address': '127.0.0.1',
                 'config_type': 'guild',
                 'action': 'update',
-                'guild_id': TEST_GUILD,
+                'guild_id': test_guild,
                 'success': True,
                 'changes': [],
             },
@@ -840,7 +840,7 @@ class TestAuditLogAPI:
                 'ip_address': '127.0.0.1',
                 'config_type': 'guild',
                 'action': 'update',
-                'guild_id': TEST_GUILD,
+                'guild_id': test_guild,
                 'success': True,
                 'changes': [],
             },
@@ -848,16 +848,16 @@ class TestAuditLogAPI:
         mock_audit_logger.get_logs = AsyncMock(return_value=guild_logs)
         web_app_module.audit_logger = mock_audit_logger
 
-        response = await client.get(f'/api/audit?guild_id={TEST_GUILD}')
+        response = await client.get(f'/api/audit?guild_id={test_guild}')
         assert response.status_code == 200
 
         data = await response.get_json()
         assert len(data['logs']) == 1
-        assert data['logs'][0]['guild_id'] == str(TEST_GUILD)  # Guild IDs are strings to preserve precision
+        assert data['logs'][0]['guild_id'] == str(test_guild)  # Guild IDs are strings to preserve precision
 
         # Verify get_logs was called with correct parameters
         call_kwargs = mock_audit_logger.get_logs.call_args.kwargs
-        assert call_kwargs['guild_id'] == TEST_GUILD
+        assert call_kwargs['guild_id'] == test_guild
 
     @pytest.mark.asyncio
     async def test_get_audit_logs_with_pagination(self, client):
@@ -911,7 +911,7 @@ class TestAuditLogAPI:
             },
         }
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+        response = await client.post(f'/api/guilds/{test_guild}', json=payload)
         assert response.status_code == 200
 
         # Verify log_change was called
@@ -920,7 +920,7 @@ class TestAuditLogAPI:
 
         assert call_kwargs['config_type'] == 'guild'
         assert call_kwargs['action'] == 'update'
-        assert call_kwargs['guild_id'] == TEST_GUILD
+        assert call_kwargs['guild_id'] == test_guild
         assert call_kwargs['success'] is True
         assert len(call_kwargs['changes']) > 0
 
@@ -964,14 +964,14 @@ class TestAuditLogAPI:
 
         # Mock load_globals to update config values
         async def mock_load_globals():
-            config.primary_guild = TEST_GUILD_2
-            config.error_log = (TEST_GUILD, 888888)
+            config.primary_guild = test_guild_2
+            config.error_log = (test_guild, 888888)
             config.error_hook = 'https://discord.com/api/webhooks/123/abc'
 
         config.load_globals = AsyncMock(side_effect=mock_load_globals)
 
         payload = {
-            'primary_guild': TEST_GUILD_2,
+            'primary_guild': test_guild_2,
             'error_log_channel': 888888,
         }
 
@@ -999,13 +999,13 @@ class TestAuditLogAPI:
         web_app_module.audit_logger = mock_audit_logger
 
         # Configure the mock to raise an exception
-        config.guilds[TEST_GUILD].save.side_effect = Exception('Database error')
+        config.guilds[test_guild].save.side_effect = Exception('Database error')
 
         payload = {
             'channels': {'activity': 123456},
         }
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+        response = await client.post(f'/api/guilds/{test_guild}', json=payload)
         assert response.status_code == 500
 
         # Verify log_change was called with success=False
@@ -1016,7 +1016,7 @@ class TestAuditLogAPI:
         assert call_kwargs['error_message'] is not None
 
         # Reset the mock for other tests
-        config.guilds[TEST_GUILD].save.side_effect = None
+        config.guilds[test_guild].save.side_effect = None
 
     @pytest.mark.asyncio
     async def test_audit_logging_on_chat_save(self, client):
@@ -1072,16 +1072,16 @@ class TestErrorHandling:
         }
 
         # Configure the mock to raise an exception
-        config.guilds[TEST_GUILD].save.side_effect = Exception('Database error')
+        config.guilds[test_guild].save.side_effect = Exception('Database error')
 
-        response = await client.post(f'/api/guilds/{TEST_GUILD}', json=payload)
+        response = await client.post(f'/api/guilds/{test_guild}', json=payload)
         assert response.status_code == 500
 
         data = await response.get_json()
         assert 'error' in data
 
         # Reset the mock for other tests
-        config.guilds[TEST_GUILD].save.side_effect = None
+        config.guilds[test_guild].save.side_effect = None
 
     @pytest.mark.asyncio
     async def test_save_theme_database_error(self, client):

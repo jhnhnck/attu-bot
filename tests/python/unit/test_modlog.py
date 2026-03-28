@@ -13,9 +13,9 @@ import pytest
 from attubot.config import GuildChannels
 
 
-TEST_GUILD = 1234567890
-TEST_USER = 9876543210
-TEST_LOGS = 1111111111
+test_guild = 1234567890
+test_user = 9876543210
+test_logs = 1111111111
 
 
 def _make_logs_channel():
@@ -26,15 +26,15 @@ def _make_logs_channel():
 
 def _make_guild():
     guild = MagicMock()
-    guild.id = TEST_GUILD
+    guild.id = test_guild
     return guild
 
 
 def _make_member(bot: bool = False):
     member = MagicMock()
-    member.id = TEST_USER
+    member.id = test_user
     member.bot = bot
-    member.mention = f'<@{TEST_USER}>'
+    member.mention = f'<@{test_user}>'
     member.name = 'TestUser'
     member.global_name = 'TestGlobal'
     member.created_at = datetime(2024, 1, 1, tzinfo=UTC)
@@ -126,8 +126,8 @@ def _make_audit_log(entries: list[MagicMock]):
 
 @pytest.fixture
 def guild_with_logs(make_guild):
-    guild = make_guild(guild_id=TEST_GUILD)
-    guild.channels = GuildChannels(logs=TEST_LOGS)
+    guild = make_guild(guild_id=test_guild)
+    guild.channels = GuildChannels(logs=test_logs)
     return guild
 
 
@@ -173,7 +173,7 @@ class TestMemberLogs:
         from attubot.client.modlog import on_member_remove
 
         member = _make_member()
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         member.guild.audit_logs = MagicMock(
             side_effect=[
@@ -191,7 +191,7 @@ class TestMemberLogs:
         from attubot.client.modlog import on_member_remove
 
         member = _make_member()
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         member.guild.audit_logs = MagicMock(
             side_effect=[
@@ -293,7 +293,7 @@ class TestChannelLogs:
 
         before = _make_channel(name='old')
         after = _make_channel(name='new')
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         # two calls: _is_bot_audit_action then _get_audit_actor
         after.guild.audit_logs = MagicMock(side_effect=[
@@ -353,7 +353,7 @@ class TestRoleLogs:
     async def test_role_update_skips_bot_color_role(self, guild_with_logs, make_guild):
         from attubot.client.modlog import on_guild_role_update
 
-        gc = make_guild(guild_id=TEST_GUILD)
+        gc = make_guild(guild_id=test_guild)
         bot_color_role_id = 9999
         gc.roles.bot_color = bot_color_role_id
 
@@ -372,7 +372,7 @@ class TestRoleLogs:
 
         before = _make_role(name='old')
         after = _make_role(name='new')
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         # two calls: _is_bot_audit_action then _get_audit_actor
         after.guild.audit_logs = MagicMock(side_effect=[
@@ -426,7 +426,7 @@ class TestMemberUpdateLogs:
         before = _make_member()
         after = _make_member()
         after.nick = 'NewNick'
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         actor_mention = f'<@{actor_id}>'
         logs_channel = _make_logs_channel()
         after.guild.audit_logs = MagicMock(
@@ -462,7 +462,7 @@ class TestMemberUpdateLogs:
         before = _make_member()
         after = _make_member()
         after.roles = [_make_role(role_id=10, mention='@new')]
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         after.guild.audit_logs = MagicMock(
             return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
@@ -498,7 +498,7 @@ class TestMemberUpdateLogs:
         before = _make_member()
         before.roles = [_make_role(role_id=10, mention='@old')]
         after = _make_member()
-        actor_id = TEST_USER + 1
+        actor_id = test_user + 1
         logs_channel = _make_logs_channel()
         after.guild.audit_logs = MagicMock(
             return_value=_make_audit_log([_make_kick_audit_entry(after.id, actor_id)])
