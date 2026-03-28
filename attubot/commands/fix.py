@@ -149,7 +149,7 @@ async def fix_year_links(ctx: ApplicationContext):
     cfg = config.guild(ctx.guild.id)
 
     await ctx.respond(f'starting year links rebuild on <#{cfg.channels.year_links}>')
-    scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job[construct_year_links]')
+    scheduler.add_job(job_construct_year_links(ctx.guild.id), 'Job', 'construct_year_links')
 
 
 @fix_group.command(name='messages', description='Verifies all messages in a channel are stored and backfills any missing ones')
@@ -165,7 +165,7 @@ async def fix_messages(ctx: ApplicationContext, channel: discord.TextChannel):
 
     await ctx.respond(f'scanning <#{channel.id}>...', ephemeral=True)
     status_msg = await ctx.channel.send(f'Scanning <#{channel.id}>...')
-    scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, status_msg), f'Job[fix_messages:#{channel.name}]')
+    scheduler.add_job(job_backfill_channel(channel.id, ctx.guild.id, status_msg), 'Job', 'fix_messages', f'#{channel.name}')
 
 
 @fix_group.command(name='author_names', description='Re-resolves global usernames and updates all stored messages')
@@ -180,17 +180,13 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
         return
 
     if user is not None:
-        label = f'Job[fix_author_names:{user.id}]'
         await ctx.respond(f'updating author name for <@{user.id}>...', ephemeral=True)
         status_msg = await ctx.channel.send(f'Updating author name for <@{user.id}>...')
-        coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg, user_id=user.id)
+        scheduler.add_job(job_fix_author_names(ctx.guild.id, status_msg=status_msg, user_id=user.id), 'Job', 'fix_author_names', user.id)
     else:
-        label = 'Job[fix_author_names:all]'
         await ctx.respond('resolving all author names...', ephemeral=True)
         status_msg = await ctx.channel.send('Resolving all author names...')
-        coro = job_fix_author_names(ctx.guild.id, status_msg=status_msg)
-
-    scheduler.add_job(coro, label)
+        scheduler.add_job(job_fix_author_names(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_author_names', 'all')
 
 
 async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - live discord fetch loop with many error/skip branches
@@ -407,7 +403,7 @@ async def fix_reconcile(ctx: ApplicationContext, days: int = 1):
 
     await ctx.respond(f'starting full reconciliation (last {days} day(s))...', ephemeral=True)
     status_msg = await ctx.channel.send(f'Starting full reconciliation (last {days} day(s))...')
-    scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg, lookback=timedelta(days=days)), 'Job[fix_reconcile]')
+    scheduler.add_job(job_reconcile_guild(ctx.guild.id, status_msg=status_msg, lookback=timedelta(days=days)), 'Job', 'fix_reconcile')
 
 
 async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - recovery scan with many error/skip branches
@@ -562,7 +558,7 @@ async def fix_starboard_recover(ctx: ApplicationContext, days: int = 7):
 
     await ctx.respond(f'scanning last {days} days of starboard channel...', ephemeral=True)
     status_msg = await ctx.channel.send(f'Scanning last {days} days of starboard channel...')
-    scheduler.add_job(job_recover_starboard_from_channel(ctx.guild.id, days=days, status_msg=status_msg), 'Job[fix_starboard_recover]')
+    scheduler.add_job(job_recover_starboard_from_channel(ctx.guild.id, days=days, status_msg=status_msg), 'Job', 'fix_starboard_recover')
 
 
 @fix_starboard.command(name='recount', description='Re-fetches live Discord reactions for all starred messages and updates counts')
@@ -578,7 +574,7 @@ async def fix_starboard_recount(ctx: ApplicationContext):
 
     await ctx.respond('starting starboard recount...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting starboard recount...')
-    scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_recount]')
+    scheduler.add_job(job_recount_starboard(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_starboard_recount')
 
 
 @fix_starboard.command(name='regen', description='Rebuilds every starboard post for this guild')
@@ -592,7 +588,7 @@ async def fix_starboard_regen(ctx: ApplicationContext):
 
     await ctx.respond('starting starboard regeneration...', ephemeral=True)
     status_msg = await ctx.channel.send('Regenerating starboard posts...')
-    scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job[fix_starboard_regen]')
+    scheduler.add_job(job_regen_starboard(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_starboard_regen')
 
 
 @fix_starboard.command(name='purge', description='Removes a message from the starboard database given its message link')

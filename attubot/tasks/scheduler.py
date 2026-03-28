@@ -32,12 +32,21 @@ class TaskScheduler:
         self._registered_tasks: list[BaseTask] = []
         self._running: bool = False
 
-    def add_job(self, coro: Coroutine, name: str | None = None) -> None:
-        """Add a fire-and-forget background task."""
-        if not name:
-            from uuid import uuid4
+    def add_job(self, coro: Coroutine, kind: str, *parts: object) -> None:
+        """Add a fire-and-forget background task.
 
-            name = f'Task[{uuid4().hex[:16]}]'
+        Args:
+            coro: coroutine to run
+            kind: CamelCase task kind (e.g. 'Job', 'HatchAnimation', 'PresenceUpdate')
+            *parts: optional context values joined with ':' inside brackets
+                    e.g. add_job(coro, 'Job', 'fix_messages', '#general')
+                    produces name 'Job[fix_messages:#general]'
+        """
+        if parts:
+            context = ':'.join(str(p) for p in parts)
+            name = f'{kind}[{context}]'
+        else:
+            name = kind
 
         async def run_and_forget():
             try:

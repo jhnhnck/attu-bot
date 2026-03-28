@@ -183,7 +183,7 @@ async def run_hatch_animation(message: discord.Message, result: str, rarity: str
     from attubot.tasks.presence import presence_update_task
     from attubot.tasks.scheduler import scheduler  # local import avoids circular dep
 
-    scheduler.add_job(presence_update_task.run(), 'presence_update')
+    scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'immediate')
 
 
 async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
@@ -227,6 +227,6 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
     # run animation in background; caller responds to discord first
     from attubot.tasks import scheduler
 
-    scheduler.add_job(run_hatch_animation(msg, egg.result, egg.rarity), f'HatchAnimation[{egg.egg_id}]')
+    scheduler.add_job(run_hatch_animation(msg, egg.result, egg.rarity), 'HatchAnimation', egg.egg_id)
 
     return (jump_url, None)

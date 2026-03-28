@@ -67,7 +67,7 @@ class ReloadWatcherTask(BaseTask):
                     from attubot.tasks.logo_update import logo_update_task  # local import avoids circular dependency with tasks/__init__.py
                     from attubot.tasks.scheduler import scheduler  # local import avoids circular dependency with tasks/__init__.py
 
-                    scheduler.add_job(logo_update_task.run(), 'logo_update_immediate')
+                    scheduler.add_job(logo_update_task.run(), 'LogoUpdate', 'immediate')
                     logger.info('triggered immediate logo update from theme reload')
 
                 elif signal.signal_type == 'system':

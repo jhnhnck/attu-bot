@@ -31,10 +31,7 @@ async def time_advance(ctx: ApplicationContext):
 
     logger.info(f'weap. year forced by admin: expected={year} doing={forced_year}')
     await ctx.respond('Weap. No longer going to try my best, just forcing new year instead')
-    scheduler.add_job(
-        nova_year_task._advance_year(cfg, forced_year),
-        f'ManualYearAdvance[{cfg.guild.id}]',
-    )
+    scheduler.add_job(nova_year_task._advance_year(cfg, forced_year), 'ManualYearAdvance', cfg.guild.id)
 
 
 @time_group.command(name='pause', description='Pause the passage of time')

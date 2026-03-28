@@ -55,7 +55,7 @@ class HatchTask(BaseTask):
         from attubot.tasks.presence import presence_update_task
         from attubot.tasks.scheduler import scheduler  # local import avoids circular dep with tasks/__init__.py
 
-        scheduler.add_job(presence_update_task.run(), 'presence_update_hatch_day')
+        scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'hatch_day')
 
         await ensure_eggs_ready()
 

@@ -345,6 +345,7 @@ Notes in `notes/` with relevant implementation details:
 - [`dev_setup.md`](notes/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 - [`attu-chat-architecture.md`](notes/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
 - [`eggs.md`](notes/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
+- [`tasks.md`](notes/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
 - [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
 ---
 

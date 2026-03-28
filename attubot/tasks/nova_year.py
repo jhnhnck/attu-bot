@@ -197,7 +197,7 @@ class NovaYearTask(BaseTask):
         # queue year links update
         from attubot.tasks import scheduler
 
-        scheduler.add_job(job_construct_year_links(cfg.id), f'NovaYearEvent[{cfg!s}]')
+        scheduler.add_job(job_construct_year_links(cfg.id), 'NovaYearEvent', cfg)
 
 
 # singleton instance for registration

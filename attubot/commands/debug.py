@@ -50,7 +50,7 @@ async def command_pong(ctx: ApplicationContext):
         await ctx.respond('Ping! <:rockball:1308981475114225694>')
         from attubot.tasks import scheduler
 
-        scheduler.add_job(wait_random(), f'PongTask[{ctx.author.name}]')
+        scheduler.add_job(wait_random(), 'PongTask', ctx.author.name)
 
 
 @discord.slash_command(name='test', description='Simple command to test with')

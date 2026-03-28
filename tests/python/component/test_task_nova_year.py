@@ -202,8 +202,8 @@ class TestAdvanceYear:
 
         add_job_calls = []
 
-        def _capture(coro, name):
-            add_job_calls.append(name)
+        def _capture(coro, kind, *parts):
+            add_job_calls.append(kind)
             coro.close()
 
         _years._year_repo = year_repo

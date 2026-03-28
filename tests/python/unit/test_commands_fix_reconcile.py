@@ -88,7 +88,8 @@ async def test_fix_reconcile_schedules_job(mock_ctx_factory):
 
     mock_sched.assert_called_once()
     args, _ = mock_sched.call_args
-    assert args[1] == 'Job[fix_reconcile]'
+    assert args[1] == 'Job'
+    assert args[2] == 'fix_reconcile'
     assert mock_job.call_args[0][0] == ctx.guild.id
 
 
