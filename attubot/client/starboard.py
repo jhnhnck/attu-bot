@@ -488,7 +488,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
     if not new_reactions:
         return
 
-    total_new = sum(len(v) for v in new_reactions.values())
+    discord_reaction_count = sum(len(v) for v in new_reactions.values())
 
     if existing is None:
         msg_doc = await msg_repo.get(message.id)
@@ -499,17 +499,26 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
             guild_id=guild_id,
             author_id=author_id,
             reactions=new_reactions,
-            total_reactions=total_new,
-            weighted_total=float(total_new),
+            total_reactions=discord_reaction_count,
+            weighted_total=float(discord_reaction_count),
         )
         await repo.upsert(doc)
+        logger.info(f'starboard: backfilled {discord_reaction_count} reaction(s) on message {message.id} during channel scan')
     else:
         # merge into existing - new_reactions is already deduplicated per user
         merged = {k: list(v) for k, v in existing.reactions.items()}
+        added_count = 0
         for emoji, users in new_reactions.items():
             current = set(merged.get(emoji, []))
+            before = len(current)
             current.update(users)
+            added_count += len(current) - before
             merged[emoji] = list(current)
+
+        if added_count == 0:
+            logger.debug(f'starboard: reconciled message {message.id} - no new reactions (saw {discord_reaction_count} from discord, all already stored)')
+            return
+
         total_normal = sum(len(v) for v in merged.values())
         total_super = sum(len(v) for v in existing.super_reactions.values())
         doc = StarredMessageDocument(
@@ -524,8 +533,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
             weighted_total=float(total_normal) + float(total_super) * 1.5,
         )
         await repo.upsert(doc)
-
-    logger.info(f'starboard: backfilled {total_new} reaction(s) on message {message.id} during channel scan')
+        logger.info(f'starboard: backfilled {added_count} new reaction(s) on message {message.id} during channel scan ({discord_reaction_count} seen from discord)')
 
     updated = await repo.get(message.id)
     if updated:
