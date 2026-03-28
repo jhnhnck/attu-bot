@@ -103,3 +103,5 @@ RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
 
 # Install npm dependencies
 RUN npm install > /dev/null;
+
+CMD ["python", "/home/doom/scripts/run_tests.py"]

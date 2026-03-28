@@ -135,7 +135,6 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
     user: doom:doom
-    command: python /home/doom/scripts/run_tests.py
     depends_on:
       ferret:
         condition: service_started
