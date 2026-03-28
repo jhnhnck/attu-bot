@@ -999,6 +999,10 @@ class EggRepository:
             {'$set': {'message_id': message_id}},
         )
 
+    async def count_hatched(self) -> int:
+        """Return total count of hatched eggs across all guilds"""
+        return await self.db[self.COLLECTION].count_documents({'hatched': True})
+
 
 class EggUserRepository:
     """Repository for per-user egg state documents"""
