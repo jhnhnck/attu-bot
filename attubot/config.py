@@ -72,6 +72,7 @@ class BotTheme(BaseModel):
     max_rate: float = 0.5
     bot_color: str = '#ff0000'
     guild_color: str = '#ffffff'
+    egg_emojis: dict[str, int] = {}
 
     async def save(self):
         """Save theme to MongoDB"""
@@ -95,6 +96,7 @@ class GuildChannels(BaseModel):
     meta_chat: int = 0
     general: int = 0
     logs: int = 0
+    eggs: int = 0
     lore_channels: list[int] = []
     canon_channels: list[int] = []  # additional channels included in year search/link lookups
 
@@ -263,6 +265,7 @@ class NovaConfig:
         self.theme: BotTheme = None
         self.bot_token: str = None
         self.authorized_guilds: set[int] = set()
+        self.secondary_server: int = None
         self.valid_guilds: list[int] = []
         self.error_log: tuple[int, int] = None
         self.error_hook: str = None
@@ -323,7 +326,11 @@ class NovaConfig:
 
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
-        self.authorized_guilds = {*self._raw['discord']['guilds']['authorized']}
+        guilds_raw = self._raw['discord']['guilds']
+        primary_id: int = guilds_raw['primary']
+        secondary_id: int = guilds_raw['secondary']
+        self.authorized_guilds = {primary_id, secondary_id}
+        self.secondary_server = secondary_id
 
         try:
             self.paths = PathsConfig(**self._raw.get('paths', {}))
@@ -385,7 +392,7 @@ class NovaConfig:
                 version='0.0.0',
                 error_log=[0, 0],
                 error_hook=f'{self.wiki.endpoint}/invalid-webhook',
-                primary_guild=next(iter(self.authorized_guilds)),
+                primary_guild=self._raw['discord']['guilds']['primary'],
             )
             await self.config_repo.save_system(system_config)
 
@@ -621,6 +628,7 @@ class NovaConfig:
                     max_rate=doc.max_rate,
                     bot_color=doc.bot_color,
                     guild_color=doc.guild_color,
+                    egg_emojis=doc.egg_emojis,
                 )
             else:
                 # Create defaults

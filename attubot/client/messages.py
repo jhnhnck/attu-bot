@@ -12,7 +12,6 @@ from typing import NamedTuple
 import anyio
 import discord
 from discord import Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
-
 from pymongo.errors import AutoReconnect
 
 from attubot.client.core import bot, config

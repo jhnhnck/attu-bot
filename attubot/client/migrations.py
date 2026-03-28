@@ -544,3 +544,10 @@ async def migration_restructure_messages():
         logger.error('migration 2.5.2 failed - restoring messages collection from snapshot')
         await _restore_collection(database, MessageRepository.COLLECTION, backup)
         raise
+
+
+# Version 2.5.3
+@migration(old='2.5.2', new='2.5.3')
+async def migration_2_5_3():
+    """Guild config: primary/secondary keys replace authorized list in attu-bot.toml."""
+    logger.info('running migration to 2.5.3')

@@ -18,6 +18,7 @@ class GuildChannelsForm(BaseModel):
     meta_chat: int = Field(default=0, ge=0)
     general: int = Field(default=0, ge=0)
     logs: int = Field(default=0, ge=0)
+    eggs: int = Field(default=0, ge=0)
     lore_channels: list[int] = Field(default_factory=list)
     canon_channels: list[int] = Field(default_factory=list)
 

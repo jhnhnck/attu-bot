@@ -74,6 +74,7 @@ async def command_test(ctx: ApplicationContext):
 
 debug_group = SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
 # debug_admin_group = debug_group.create_subgroup('admin', description='Like the normal debug commands except scarier (Admin Only)', )
+debug_eggs = debug_group.create_subgroup('eggs', 'Egg game debug commands')
 
 
 @debug_group.command(name='version', description='Displays the current version and container build time')
@@ -281,6 +282,41 @@ async def debug_dump_starboard(ctx: ApplicationContext):
     buf.seek(0)
 
     await ctx.respond(f'found {len(found)} total, dumping {len(picked)}', file=discord.File(buf, filename='starboard_dump.json'))
+
+
+_RARITY_CHOICES = ['common', 'uncommon', 'rare', 'legendary', 'mythical']
+
+
+@debug_eggs.command(name='show', description='Show rarity egg emoji and hatch pool')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='rarity', required=True, description='Egg rarity', choices=_RARITY_CHOICES, input_type=str)
+async def debug_eggs_show(ctx: ApplicationContext, rarity: str):
+    from attubot.eggs.data import hatch_pools
+
+    emoji_id = config.theme.egg_emojis.get(rarity)
+    egg_str = f'<:{rarity}_egg:{emoji_id}>' if emoji_id else f':{rarity}_egg:'
+    pool_str = ' '.join(hatch_pools[rarity])
+
+    await ctx.respond(f'{egg_str}\n{pool_str}')
+
+
+@debug_eggs.command(name='preview', description='Run the full hatch animation in this channel (no DB writes)')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='rarity', required=True, description='Egg rarity', choices=_RARITY_CHOICES, input_type=str)
+async def debug_eggs_preview(ctx: ApplicationContext, rarity: str):
+    import random as _random
+
+    from attubot.eggs.data import hatch_pools
+    from attubot.eggs.hatching import run_hatch_animation
+
+    emoji_id = config.theme.egg_emojis.get(rarity)
+    egg_str = f'<:{rarity}_egg:{emoji_id}>' if emoji_id else f':{rarity}_egg:'
+    result = _random.choice(hatch_pools[rarity])
+
+    # post the egg message and run animation (no db writes)
+    msg = await ctx.channel.send(egg_str)
+    await ctx.respond('hatching preview started', ephemeral=True)
+    await run_hatch_animation(msg, result, rarity)
 
 
 # --- Extension Def ---

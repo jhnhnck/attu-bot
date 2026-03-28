@@ -182,9 +182,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
     # determine update status
     if doc_after is None or (not doc_after.reactions and not doc_after.super_reactions):
         status = 'no stars counted'
-    elif doc_before is None and doc_after.starboard_message_id is not None:
-        status = 'post created'
-    elif doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None:
+    elif (doc_before is None and doc_after.starboard_message_id is not None) or (doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None):
         status = 'post created'
     elif doc_before is None or doc_before.total_reactions != doc_after.total_reactions:
         status = 'updated'

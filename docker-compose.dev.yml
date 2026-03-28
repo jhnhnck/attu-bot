@@ -85,6 +85,6 @@ services:
     user: doom:doom
     command: python /home/doom/scripts/run_tests.py
     depends_on:
-      mongo-init:
-        condition: service_completed_successfully
+      ferret:
+        condition: service_started
 

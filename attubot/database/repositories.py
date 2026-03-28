@@ -14,6 +14,8 @@ from attubot.database.models import (
     ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
+    EggDocument,
+    EggUserDocument,
     FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
@@ -91,6 +93,7 @@ class ConfigRepository:
             max_rate=theme.max_rate,
             bot_color=theme.bot_color,
             guild_color=theme.guild_color,
+            egg_emojis=theme.egg_emojis,
         ).model_dump()
         await self.db[self.GLOBAL_COLLECTION].update_one(
             {'config_type': 'theme'},
@@ -919,5 +922,110 @@ class ChatCharacterRepository:
                     'first_seen_message_id': doc.first_seen_message_id,
                 },
             },
+            upsert=True,
+        )
+
+
+class EggRepository:
+    """Repository for egg collection documents"""
+
+    COLLECTION = 'eggs'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self) -> None:
+        """Create required indexes"""
+        await self.db[self.COLLECTION].create_index('egg_id', unique=True)
+        await self.db[self.COLLECTION].create_index(
+            [('guild_id', ASCENDING), ('user_id', ASCENDING)],
+        )
+
+    async def insert(self, doc: EggDocument) -> None:
+        """Insert a new egg"""
+        await self.db[self.COLLECTION].insert_one(doc.model_dump())
+
+    async def get(self, egg_id: str) -> EggDocument | None:
+        """Fetch egg by egg_id"""
+        doc = await self.db[self.COLLECTION].find_one({'egg_id': egg_id})
+        if doc:
+            doc.pop('_id', None)
+            return EggDocument(**doc)
+        return None
+
+    async def get_oldest_ready(self, guild_id: int, user_id: int) -> EggDocument | None:
+        """Fetch the oldest unhatched egg that is ready to hatch"""
+        import time
+        doc = await self.db[self.COLLECTION].find_one(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': False, 'hatches_at': {'$lte': time.time()}},
+            sort=[('hatches_at', ASCENDING)],
+        )
+        if doc:
+            doc.pop('_id', None)
+            return EggDocument(**doc)
+        return None
+
+    async def get_next_unhatched(self, guild_id: int, user_id: int) -> EggDocument | None:
+        """Fetch the next unhatched egg (soonest hatches_at)"""
+        doc = await self.db[self.COLLECTION].find_one(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': False},
+            sort=[('hatches_at', ASCENDING)],
+        )
+        if doc:
+            doc.pop('_id', None)
+            return EggDocument(**doc)
+        return None
+
+    async def mark_hatched(self, egg_id: str, result: str) -> None:
+        """Mark an egg as hatched and set its result"""
+        await self.db[self.COLLECTION].update_one(
+            {'egg_id': egg_id},
+            {'$set': {'hatched': True, 'result': result}},
+        )
+
+    async def update_message_id(self, egg_id: str, message_id: int) -> None:
+        """Store the thread message id for this egg"""
+        await self.db[self.COLLECTION].update_one(
+            {'egg_id': egg_id},
+            {'$set': {'message_id': message_id}},
+        )
+
+
+class EggUserRepository:
+    """Repository for per-user egg state documents"""
+
+    COLLECTION = 'egg_users'
+
+    def __init__(self, db: AsyncDatabase):
+        self.db = db
+
+    async def init_indexes(self) -> None:
+        """Create required indexes"""
+        await self.db[self.COLLECTION].create_index(
+            [('guild_id', ASCENDING), ('user_id', ASCENDING)],
+            unique=True,
+        )
+
+    async def get(self, guild_id: int, user_id: int) -> EggUserDocument | None:
+        """Fetch user egg state"""
+        doc = await self.db[self.COLLECTION].find_one({'guild_id': guild_id, 'user_id': user_id})
+        if doc:
+            doc.pop('_id', None)
+            return EggUserDocument(**doc)
+        return None
+
+    async def upsert(self, doc: EggUserDocument) -> None:
+        """Insert or update user egg state"""
+        await self.db[self.COLLECTION].update_one(
+            {'guild_id': doc.guild_id, 'user_id': doc.user_id},
+            {'$set': doc.model_dump()},
+            upsert=True,
+        )
+
+    async def update_field(self, guild_id: int, user_id: int, field: str, value) -> None:
+        """Update a single field on the user egg state"""
+        await self.db[self.COLLECTION].update_one(
+            {'guild_id': guild_id, 'user_id': user_id},
+            {'$set': {field: value}},
             upsert=True,
         )

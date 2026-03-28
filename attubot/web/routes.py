@@ -231,6 +231,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'general_name': get_channel_name(guild.channels.general),
                 'logs': str(guild.channels.logs) if guild.channels.logs else '0',
                 'logs_name': get_channel_name(guild.channels.logs),
+                'eggs': str(guild.channels.eggs) if guild.channels.eggs else '0',
+                'eggs_name': get_channel_name(guild.channels.eggs),
                 'lore_channels': [str(ch) for ch in guild.channels.lore_channels],
                 'lore_channels_names': [get_channel_name(ch) for ch in guild.channels.lore_channels],
                 'canon_channels': [str(ch) for ch in guild.channels.canon_channels],
@@ -467,6 +469,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'max_rate': theme.max_rate,
             'bot_color': theme.bot_color,
             'guild_color': theme.guild_color,
+            'egg_emojis': theme.egg_emojis,
         })
 
     @app.route('/api/theme/icon.svg')

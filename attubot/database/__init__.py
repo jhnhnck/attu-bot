@@ -12,6 +12,8 @@ from attubot.database.models import (
     ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
+    EggDocument,
+    EggUserDocument,
     FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
@@ -27,6 +29,8 @@ from attubot.database.repositories import (
     ChatConfigRepository,
     ChatSourceRepository,
     ConfigRepository,
+    EggRepository,
+    EggUserRepository,
     FamilyRepository,
     MessageRepository,
     ReloadSignalRepository,
@@ -49,7 +53,7 @@ async def _try_init_indexes(repo: object, label: str, timeout: float = 90.0) -> 
     try:
         await asyncio.wait_for(repo.init_indexes(), timeout=timeout)  # type: ignore[union-attr]
         logger.debug(f'{label} indexes ready')
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warn(f'{label} index init timed out after {timeout:.0f}s (indexes may still be building in db)')
     except Exception as e:
         logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
@@ -101,6 +105,12 @@ async def init_database(url: str, name: str):
     chat_character_repo = ChatCharacterRepository(database)
     await _try_init_indexes(chat_character_repo, 'chat_character')
 
+    egg_repo = EggRepository(database)
+    await _try_init_indexes(egg_repo, 'egg')
+
+    egg_user_repo = EggUserRepository(database)
+    await _try_init_indexes(egg_user_repo, 'egg_user')
+
     import attubot.client.families as _families
     import attubot.client.markers as _markers
     import attubot.client.messages as _messages
@@ -114,6 +124,10 @@ async def init_database(url: str, name: str):
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
     _starboard._starboard_repo = starboard_repo
+
+    import attubot.eggs.hatching as _hatching
+    _hatching._egg_repo = egg_repo
+    _hatching._egg_user_repo = egg_user_repo
 
     # wire chat repos into config so on_load() can use them
     config.chat_config_repo = chat_config_repo
@@ -129,6 +143,10 @@ __all__ = [
     'ChatSourceDocument',
     'ChatSourceRepository',
     'ConfigRepository',
+    'EggDocument',
+    'EggRepository',
+    'EggUserDocument',
+    'EggUserRepository',
     'FamilyDocument',
     'FamilyRepository',
     'GuildConfigDocument',

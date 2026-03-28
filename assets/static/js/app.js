@@ -635,6 +635,25 @@ async function loadThemeConfig() {
         populateField('guild_color', data.guild_color);
 
         syncColorInputs();
+
+        // populate egg emojis display
+        const eggBody = document.getElementById('egg-emojis-body');
+        if (eggBody) {
+            const emojis = data.egg_emojis || {};
+            const rarities = ['common', 'uncommon', 'rare', 'legendary', 'mythical'];
+            const configured = rarities.filter(r => emojis[r]);
+            if (configured.length === 0) {
+                eggBody.innerHTML = '<p class="text-muted mb-0">no egg emojis configured - run <code>/fix eggs generate</code></p>';
+            } else {
+                const rows = rarities.map(r => {
+                    const id = emojis[r] || 0;
+                    const idStr = id ? String(id) : '<span class="text-muted">not set</span>';
+                    return `<tr><td>${r}</td><td><code>${idStr}</code></td></tr>`;
+                }).join('');
+                eggBody.innerHTML = `<table class="table table-sm mb-0"><thead><tr><th>rarity</th><th>emoji id</th></tr></thead><tbody>${rows}</tbody></table>`;
+            }
+        }
+
         showNotification('Theme loaded', 'success');
     } catch {
         showNotification('Failed to load theme', 'danger');

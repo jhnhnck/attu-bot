@@ -206,8 +206,9 @@ class MessageBackfillTask(BaseTask):
 
     async def _reconcile_pending_starred_docs(self, guild_id: int) -> None:
         """Re-check starred docs with no starboard post; catches stars added during an outage."""
-        from attubot.client.starboard import _get_repo as _get_sb_repo, _sync_starboard_post, backfill_message_reactions
         from attubot.client.core import config as _config
+        from attubot.client.starboard import _get_repo as _get_sb_repo
+        from attubot.client.starboard import _sync_starboard_post, backfill_message_reactions
 
         try:
             sb_repo = _get_sb_repo()

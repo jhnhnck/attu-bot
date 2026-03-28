@@ -129,6 +129,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
+fix_eggs = fix_group.create_subgroup('eggs', 'Commands to manage egg game state')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -647,6 +648,28 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         await ctx.respond(', '.join(parts))
     else:
         await ctx.respond(f'Failed: no entry deleted - message {message_id} not found', ephemeral=True)
+
+
+@fix_eggs.command(name='generate', description='Create egg emojis on the secondary server and save IDs')
+@commands.check(is_bot_owner)
+async def fix_eggs_generate(ctx: ApplicationContext):
+    await ctx.defer()
+
+    from attubot.eggs.emojis import ensure_egg_emojis
+
+    guild = bot.get_guild(config.secondary_server)
+    if guild is None:
+        await ctx.respond('secondary server not in cache', ephemeral=True)
+        return
+
+    emojis = await ensure_egg_emojis(guild)
+
+    # save emoji IDs to theme
+    config.theme.egg_emojis = {rarity: e.id for rarity, e in emojis.items()}
+    await config.theme.save()
+
+    mentions = ' '.join(str(e) for e in emojis.values())
+    await ctx.respond(mentions)
 
 
 # --- Extension Def ---

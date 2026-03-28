@@ -21,7 +21,6 @@ There are two runnable modes, both launched from `attu-bot.py`:
 1. Do not perform any interactions with Discord without asking.
 1. All noqa comments must include a valid reason
 
-
 ## Architecture
 
 ### Entry Point
@@ -60,6 +59,18 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
 | `models.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, etc. |
 | `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
+
+### Package: `attubot/eggs/`
+Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day by `HatchTask`.
+
+| File | Role |
+|---|---|
+| `data.py` | rarity constants, hatch durations, drop weights, hatch pools |
+| `emojis.py` | SVG→PNG rendering and Discord custom emoji upload (`ensure_egg_emojis`) |
+| `hatching.py` | core game logic - `hatch_date()`, `collect_egg()`, `hatch_egg()`, `run_hatch_animation()`, `ensure_eggs_ready()` |
+| `commands.py` | `/egg`, `/eggs hatch`, `/eggs view` slash commands; loaded dynamically via `bot.load_extension()` |
+
+See [`notes/eggs.md`](notes/eggs.md) for behavior rules, storage schema, and setup instructions.
 
 ### Package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
@@ -112,6 +123,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
 | `chat_init.py` | `ChatInitTask` - initializes chat subsystems (embedder, reranker, vector store, LLM client) at startup |
+| `hatching.py` | `HatchTask` - hourly check; loads egg commands extension and creates `#eggs` channel on hatch day |
 
 ### Package: `attubot/ingestor/`
 RAG ingestion pipeline. See [`notes/attu-chat-architecture.md`](notes/attu-chat-architecture.md) for the full design.
@@ -330,6 +342,7 @@ Notes in `notes/` with relevant implementation details:
 - [`timekeeping.md`](notes/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`dev_setup.md`](notes/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 - [`attu-chat-architecture.md`](notes/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
+- [`eggs.md`](notes/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
 - [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
 ---
 
@@ -360,3 +373,7 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 - use american english spelling and grammar
 - Use spaces for indentation always; avoid formats that require tabs
 - prefer brief statements over long explanations
+
+# Metadata
+
+- Last Updated: 28 March 2026

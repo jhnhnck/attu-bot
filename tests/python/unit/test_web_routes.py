@@ -1021,9 +1021,9 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_audit_logging_on_chat_save(self, client):
         """Test that saving chat config creates audit log entry"""
+        from attubot.database.models import ChatConfigDocument
         from attubot.web import app as web_app_module
         from attubot.web.app import config as app_config
-        from attubot.database.models import ChatConfigDocument
 
         mock_audit_logger = MagicMock()
         mock_audit_logger.log_change = AsyncMock()
