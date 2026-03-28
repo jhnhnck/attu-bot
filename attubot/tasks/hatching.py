@@ -15,15 +15,15 @@ from attubot.tasks.base import BaseTask
 
 logger = get_logger(__name__)
 
-_EXTENSION = 'attubot.eggs.commands'
+_extension = 'attubot.commands.eggs'
 
 
 class HatchTask(BaseTask):
     """Hourly task that enables the egg game on hatch day.
 
-    On hatch day (in the bot's configured timezone), loads the egg commands extension
-    and ensures the #eggs channel exists with its intro message.
-    Skips setup if the extension is already loaded (e.g. after a restart mid-event).
+    On hatch day (in the bot's configured timezone), reloads the egg commands extension
+    if the commands aren't yet registered, syncs them, and ensures the #eggs channel exists.
+    Skips command registration if already done (e.g. bot started on hatch day).
     """
 
     name: str = 'HatchTask'
@@ -40,17 +40,22 @@ class HatchTask(BaseTask):
 
         hatch_day = hatch_date(today.year)
 
-        if today != hatch_day:
-            logger.debug(f'hatch task: not hatch day yet (today={today}, hatch_day={hatch_day})')
+        if today < hatch_day:
+            logger.debug(f'hatch task: before hatch day (today={today}, hatch_day={hatch_day})')
             return
 
-        logger.info(f'hatch task: hatch day detected ({hatch_day}), ensuring egg extension is loaded')
+        logger.info(f'hatch task: hatch day detected ({hatch_day}), ensuring egg commands are registered')
 
-        if _EXTENSION not in bot.extensions:
-            logger.info(f'loading extension {_EXTENSION}')
-            bot.load_extension(_EXTENSION)
-            # sync commands so the new slash commands are registered
+        if not any(cmd.name == 'egg' for cmd in bot.pending_application_commands):
+            logger.info(f'reloading {_extension} to register egg commands for hatch day')
+            bot.reload_extension(_extension)
             await bot.sync_commands()
+
+        # trigger presence update
+        from attubot.tasks.presence import presence_update_task
+        from attubot.tasks.scheduler import scheduler  # local import avoids circular dep with tasks/__init__.py
+
+        scheduler.add_job(presence_update_task.run(), 'presence_update_hatch_day')
 
         await ensure_eggs_ready()
 

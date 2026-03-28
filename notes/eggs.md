@@ -6,7 +6,7 @@ Reference for the egg collection mini-game - behavior rules, storage schema, key
 
 ## Overview
 
-A seasonal event that activates automatically on hatch day each year. While active, players can run `/egg` to collect eggs that hatch into random creatures over time. The event's slash commands are dynamically loaded by `HatchTask` - they are not available outside the event window.
+A seasonal event that activates automatically on hatch day each year. While active, players can run `/egg` to collect eggs that hatch into random creatures over time. The event's slash commands are in `attubot/commands/eggs.py` and loaded at startup via the normal extension discovery; `setup()` guards registration to only occur on or after hatch day. `HatchTask` handles the mid-run case where the bot started before hatch day and needs to reload the extension when the day arrives.
 
 ---
 
@@ -26,7 +26,7 @@ A seasonal event that activates automatically on hatch day each year. While acti
 
 ## Hatch Day Detection
 
-`hatch_date(year: int) -> date` in `attubot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library). `HatchTask` runs hourly, compares today's date in `config.timezone` against the result, and triggers setup when they match.
+`hatch_date(year: int) -> date` in `attubot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library). `HatchTask` runs hourly and checks `today >= hatch_date(today.year)` - eggs are active from hatch day onward through the rest of the year.
 
 Known hatch days: 2024 = March 31, 2025 = April 20, 2026 = April 5.
 
@@ -63,6 +63,16 @@ Index: `(guild_id, user_id)` unique.
 
 ---
 
+## Bot Presence
+
+`PresenceUpdateTask` (`attubot/tasks/presence.py`) sets the bot's presence to "Watching X eggs hatch" where X is the total hatched egg count. It runs on a 30-minute fallback schedule and is triggered immediately via `scheduler.add_job()` on two events:
+- `HatchTask` fires it on hatch day start (or when the bot first detects it's on/after hatch day)
+- `run_hatch_animation()` fires it after each egg finishes hatching
+
+The task does nothing on non-hatch-day dates.
+
+---
+
 ## Key Functions (`attubot/eggs/hatching.py`)
 
 | Function | Purpose |
@@ -72,11 +82,13 @@ Index: `(guild_id, user_id)` unique.
 | `get_or_create_user_thread(guild_id, user_id, username)` | fetches or creates the user's egg thread; handles cache miss and deleted threads |
 | `collect_egg(guild_id, user_id, username)` | cooldown check, rarity roll, thread post, DB insert, cooldown update; raises `ValueError` on cooldown |
 | `hatch_egg(guild_id, user_id)` | finds oldest ready egg, marks hatched, fires animation task; returns `(jump_url, None)` / `('', next_ts)` / `('no_eggs', None)` |
-| `run_hatch_animation(message, result, rarity)` | three-stage edit sequence (egg → 💢 → result) |
+| `run_hatch_animation(message, result, rarity)` | three-stage edit sequence (egg → 💢 → result); triggers `PresenceUpdateTask` when done |
 
 ---
 
 ## Commands
+
+Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-loaded at startup; `setup()` only registers the commands if `today >= hatch_date(today.year)`. If the bot starts before hatch day, `HatchTask` calls `bot.reload_extension()` when hatch day arrives.
 
 | Command | Purpose |
 |---|---|

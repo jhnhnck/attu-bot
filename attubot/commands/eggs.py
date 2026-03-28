@@ -85,7 +85,14 @@ async def eggs_view(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    logger.info(f'registered: {__name__}')
+    from datetime import datetime
+    from attubot.eggs.hatching import hatch_date
 
+    today = datetime.now(tz=config.timezone).date()
+    if today < hatch_date(today.year):
+        logger.debug(f'{__name__}: before hatch day, skipping registration')
+        return
+
+    logger.info(f'registered: {__name__}')
     bot.add_application_command(cast(ApplicationCommand, egg_command))
     bot.add_application_command(cast(ApplicationCommand, eggs_group))
