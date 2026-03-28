@@ -445,7 +445,7 @@ class TestHatchEggCacheMiss:
         self.mock_bot.get_channel.return_value = None
         self.mock_bot.get_guild.return_value = mock_guild
 
-        result, ts = await hatch_egg(test_guild, test_user)
+        result, _ = await hatch_egg(test_guild, test_user)
 
         assert 'discord.com' in result
         mock_guild.fetch_channel.assert_called_once_with(test_thread)
@@ -466,7 +466,7 @@ class TestHatchEggCacheMiss:
 
     async def test_missing_message_id_raises(self):
         """egg with no message_id stored - should raise before attempting fetch"""
-        egg = _make_egg(hatches_at=100.0, result='🐣', message_id=None)
+        egg = _make_egg(hatches_at=100.0, result='🐣', message_id=None)  # pyright: ignore[reportArgumentType]
         self.egg_repo.get_oldest_ready.return_value = egg
 
         user_doc = _make_user_doc()
@@ -494,6 +494,7 @@ class TestEggCommands:
     async def test_egg_command_success(self):
         with patch('attubot.eggs.commands.hatching.collect_egg', new=AsyncMock(return_value='https://discord.com/channels/1/2/3')):
             from attubot.eggs.commands import egg_command
+
             await egg_command(self.ctx)
 
         assert 'discord.com' in self.ctx._responses[0]['args'][0]
@@ -501,6 +502,7 @@ class TestEggCommands:
     async def test_egg_command_cooldown(self):
         with patch('attubot.eggs.commands.hatching.collect_egg', new=AsyncMock(side_effect=ValueError('try again in 5m 0s'))):
             from attubot.eggs.commands import egg_command
+
             await egg_command(self.ctx)
 
         assert self.ctx._responses[0]['kwargs'].get('ephemeral') is True
@@ -510,24 +512,28 @@ class TestEggCommands:
         ctx = mock_ctx_factory()
         ctx.guild_id = 9999999999  # not in authorized_guilds
         from attubot.eggs.commands import egg_command
+
         await egg_command(ctx)
         assert ctx._responses[0]['args'][0] == 'not available here'
 
     async def test_eggs_hatch_no_eggs(self):
         with patch('attubot.eggs.commands.hatching.hatch_egg', new=AsyncMock(return_value=('no_eggs', None))):
             from attubot.eggs.commands import eggs_hatch
+
             await eggs_hatch(self.ctx)
         assert self.ctx._responses[0]['args'][0] == 'you have no eggs'
 
     async def test_eggs_hatch_not_ready(self):
         with patch('attubot.eggs.commands.hatching.hatch_egg', new=AsyncMock(return_value=('', 9999.0))):
             from attubot.eggs.commands import eggs_hatch
+
             await eggs_hatch(self.ctx)
         assert '<t:9999:R>' in self.ctx._responses[0]['args'][0]
 
     async def test_eggs_hatch_ready(self):
         with patch('attubot.eggs.commands.hatching.hatch_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
             from attubot.eggs.commands import eggs_hatch
+
             await eggs_hatch(self.ctx)
         assert 'hatching' in self.ctx._responses[0]['args'][0]
 
@@ -535,6 +541,7 @@ class TestEggCommands:
         with patch.object(hatching_mod, '_egg_user_repo') as mock_repo:
             mock_repo.get = AsyncMock(return_value=None)
             from attubot.eggs.commands import eggs_view
+
             await eggs_view(self.ctx)
         assert "haven't collected" in self.ctx._responses[0]['args'][0]
 
@@ -543,6 +550,7 @@ class TestEggCommands:
         with patch.object(hatching_mod, '_egg_user_repo') as mock_repo:
             mock_repo.get = AsyncMock(return_value=user_doc)
             from attubot.eggs.commands import eggs_view
+
             await eggs_view(self.ctx)
         assert str(test_thread) in self.ctx._responses[0]['args'][0]
 
@@ -558,6 +566,7 @@ class TestEmojis:
         fake_png = b'fakepng'
         with patch('attubot.eggs.emojis.svg_to_png', new=AsyncMock(return_value=fake_png)) as mock_svg:
             from attubot.eggs.emojis import render_egg
+
             result = await render_egg('rare')
 
         assert result == fake_png
@@ -574,6 +583,7 @@ class TestEmojis:
 
         with patch('attubot.eggs.emojis.render_egg', new=AsyncMock(return_value=b'png')):
             from attubot.eggs.emojis import ensure_egg_emojis
+
             result = await ensure_egg_emojis(mock_guild)
 
         assert len(result) == 5  # one per rarity
@@ -594,6 +604,7 @@ class TestEmojis:
         mock_guild.create_custom_emoji = AsyncMock()
 
         from attubot.eggs.emojis import ensure_egg_emojis
+
         result = await ensure_egg_emojis(mock_guild)
 
         assert len(result) == 5

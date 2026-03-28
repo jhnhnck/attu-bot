@@ -3,7 +3,6 @@
 
 import subprocess
 import sys
-from typing import Any
 
 from termcolor import colored
 

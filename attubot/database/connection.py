@@ -55,7 +55,7 @@ class MongoStorage:
 
             # close any client left over from a previous failed attempt
             if self.client is not None:
-                async with contextlib.suppress(Exception):
+                with contextlib.suppress(Exception):
                     await self.client.close()
                 self.client = None
 

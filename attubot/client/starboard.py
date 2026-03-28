@@ -434,7 +434,7 @@ async def _fetch_store_and_backfill(
     return doc
 
 
-async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False) -> None:  # noqa: PLR0912 - inherently branchy starboard backfill handler
+async def backfill_message_reactions(message: discord.Message, guild_id: int, *, force: bool = False) -> None:  # noqa: PLR0912, PLR0915 - inherently branchy starboard backfill handler
     """process all existing reactions on a discord message for starboard backfill.
 
     intended to be called during channel backfill for messages we hadn't seen before.
