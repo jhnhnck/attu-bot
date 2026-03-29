@@ -40,7 +40,7 @@ class HatchTask(BaseTask):
 
         hatch_day = hatch_date(today.year)
 
-        if today < hatch_day:
+        if today < hatch_day - timedelta(days=7):
             logger.debug(f'hatch task: before hatch day (today={today}, hatch_day={hatch_day})')
             return
 

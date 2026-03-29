@@ -38,7 +38,7 @@ class PresenceUpdateTask(BaseTask):
         from attubot.eggs.hatching import _egg_repo, hatch_date
 
         today = datetime.now(tz=config.timezone).date()
-        if today < hatch_date(today.year):
+        if today < hatch_date(today.year) - timedelta(days=7):
             return
 
         if _egg_repo is None:

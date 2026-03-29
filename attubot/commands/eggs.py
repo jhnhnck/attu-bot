@@ -307,12 +307,12 @@ async def eggs_progress(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     from attubot.eggs.hatching import hatch_date
 
     today = datetime.now(tz=config.timezone).date()
-    if today < hatch_date(today.year):
+    if today < hatch_date(today.year) - timedelta(days=7):
         logger.debug(f'{__name__}: before hatch day, skipping registration')
         return
 
