@@ -72,6 +72,8 @@ class BotTheme(BaseModel):
     max_rate: float = 0.5
     bot_color: str = '#ff0000'
     guild_color: str = '#ffffff'
+    saturation: float = 1.0
+    lightness: float = 0.5
     egg_emojis: dict[str, int] = {}
     progress_emojis: dict[str, int] = {}
 
@@ -629,6 +631,8 @@ class NovaConfig:
                     max_rate=doc.max_rate,
                     bot_color=doc.bot_color,
                     guild_color=doc.guild_color,
+                    saturation=doc.saturation,
+                    lightness=doc.lightness,
                     egg_emojis=doc.egg_emojis,
                     progress_emojis=doc.progress_emojis,
                 )

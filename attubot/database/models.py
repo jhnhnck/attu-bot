@@ -38,6 +38,8 @@ class ThemeDocument(BaseModel):
     max_rate: float
     bot_color: str
     guild_color: str
+    saturation: float = 1.0
+    lightness: float = 0.5
     egg_emojis: dict[str, int] = {}
     progress_emojis: dict[str, int] = {}
 

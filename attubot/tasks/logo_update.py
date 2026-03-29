@@ -6,7 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
-import math
+import colorsys
 from datetime import datetime, timedelta
 from random import random
 
@@ -26,48 +26,16 @@ logger = get_logger(__name__)
 class LogoUpdateTask(BaseTask):
     """Recurring task to keep the logo in sync with theme settings.
 
-    Runs once per 1/360th of the primary guild's current in-game year, aligned
-    to the year's start (rollover) time so that each tick corresponds to exactly
-    one degree of rotation.
+    Runs on a fixed 2.5-minute interval. Color is derived from HSL values stored in theme config.
     """
 
     name: str = 'LogoUpdateEvent'
-    interval: timedelta | None = None  # dynamic scheduling via next_run()
+    interval: timedelta | None = timedelta(minutes=2, seconds=30)
 
     async def on_start(self) -> None:
         await config.wait_for_load()
         await bot.wait_until_ready()
         await asyncio.sleep(10 * 60)  # don't start immediately
-
-    async def next_run(self) -> datetime | None:
-        """Return the datetime for the next 1/360th-year boundary."""
-        await config.wait_for_load()
-        epoch = config.primary().epoch
-
-        if not epoch.paused:
-            _, current_year = get_year_status()
-            year_span = await get_year_span(current_year)
-            duration = year_span.duration if year_span.duration > 0 else epoch.length
-            start_time = year_span.start_time
-        else:
-            duration = epoch.length
-            start_time = None
-
-        # segment length in seconds
-        segment_seconds = duration * 86400 / 360
-
-        now = datetime.now().astimezone()
-
-        if start_time is not None:
-            # align to year start so ticks are evenly spaced from rollover
-            elapsed = now.timestamp() - start_time
-            current_segment = math.floor(elapsed / segment_seconds)
-            next_tick = datetime.fromtimestamp(start_time + (current_segment + 1) * segment_seconds).astimezone()
-        else:
-            next_tick = now + timedelta(seconds=segment_seconds)
-
-        logger.debug(f'next logo update scheduled for {next_tick.isoformat()} ({segment_seconds / 60:.2f}min intervals)')
-        return next_tick
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
@@ -87,8 +55,13 @@ class LogoUpdateTask(BaseTask):
 
         logger.info(f'changing icon rotation from {theme.rotation} to {new_rotation}')
 
+        # derive hex color from hsl
+        hue = (new_rotation % 360) / 360.0
+        r, g, b = colorsys.hls_to_rgb(hue, config.theme.lightness, config.theme.saturation)
+        computed_color = f'#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}'
+
         # generate new icons
-        bot_avatar = await generate_png(new_rotation, theme.bot_color)
+        bot_avatar = await generate_png(new_rotation, computed_color)
         guild_icon = await generate_png(new_rotation, theme.guild_color)
 
         # edit guild and bot with new logos
@@ -112,11 +85,12 @@ class LogoUpdateTask(BaseTask):
         if role_id:
             role = guild.get_role(role_id)
             if role is not None:
-                await role.edit(color=discord.Color(int(theme.bot_color.lstrip('#'), 16)), reason='logo update task')
-                logger.debug(f'updated bot_color role {role.name} to {theme.bot_color}')
+                await role.edit(color=discord.Color(int(computed_color.lstrip('#'), 16)), reason='logo update task')
+                logger.debug(f'updated bot_color role {role.name} to {computed_color}')
 
-        # store new rotation in config
+        # store new rotation and computed hex (keeps web ui and util.py in sync)
         config.theme.rotation = new_rotation % 360
+        config.theme.bot_color = computed_color
         await config.theme.save()
 
 

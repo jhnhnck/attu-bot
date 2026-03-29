@@ -94,6 +94,8 @@ class ConfigRepository:
             max_rate=theme.max_rate,
             bot_color=theme.bot_color,
             guild_color=theme.guild_color,
+            saturation=theme.saturation,
+            lightness=theme.lightness,
             egg_emojis=theme.egg_emojis,
             progress_emojis=theme.progress_emojis,
         ).model_dump()
