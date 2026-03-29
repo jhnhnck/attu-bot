@@ -1354,6 +1354,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     total_years += await Year.total(guild_id)
                     total_markers += await YearMarker.total(guild_id)
 
+            total_eggs_hatched = 0
+            try:
+                from attubot.eggs.hatching import _egg_repo as egg_repo
+                if egg_repo is not None:
+                    total_eggs_hatched = await egg_repo.count_hatched()
+            except Exception:
+                pass
+
             # Database connection status
             try:
                 db_connected = db.get_db() is not None
@@ -1379,6 +1387,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     'total_markers': total_markers,
                     'total_starred_messages': total_starred_messages,
                     'total_stars': total_stars,
+                    'total_eggs_hatched': total_eggs_hatched,
                 },
                 'system': {
                     'db_connected': db_connected,

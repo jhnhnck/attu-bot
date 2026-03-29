@@ -67,6 +67,21 @@ function renderStats(stats) {
         markersTotalEl.textContent = stats.data.total_markers;
     }
 
+    const starredEl = document.getElementById('stats-starred-total');
+    if (starredEl && stats.data) {
+        starredEl.textContent = stats.data.total_starred_messages ?? '-';
+    }
+
+    const starsEl = document.getElementById('stats-stars-total');
+    if (starsEl && stats.data) {
+        starsEl.textContent = stats.data.total_stars ?? '-';
+    }
+
+    const eggsEl = document.getElementById('stats-eggs-total');
+    if (eggsEl && stats.data) {
+        eggsEl.textContent = stats.data.total_eggs_hatched ?? '-';
+    }
+
     // System stats
     const dbStatusEl = document.getElementById('stats-db-status');
     if (dbStatusEl && stats.system) {
