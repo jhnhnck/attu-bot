@@ -11,6 +11,7 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from attubot import config
+from attubot.client.embeds import make_embed
 from attubot.database.models import EggDocument
 from attubot.eggs import hatching
 from attubot.logging import get_logger
@@ -58,7 +59,7 @@ class EggGiftOfferView(discord.ui.View):
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.success)
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
         if interaction.user.id != self.to_id:
-            await interaction.response.send_message('this offer is not for you', ephemeral=True)
+            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
             return
         self.stop()
         try:
@@ -70,24 +71,24 @@ class EggGiftOfferView(discord.ui.View):
                 to_username=self.to_display,
             )
         except ValueError:
-            await interaction.response.edit_message(content='this egg is no longer available.', view=None)
+            await interaction.response.edit_message(content='this egg is no longer available', view=None)
             return
         await interaction.response.edit_message(content=f'sent! {new_jump_url}', view=None)
 
     @discord.ui.button(label='Decline', style=discord.ButtonStyle.danger)
     async def decline(self, button: discord.ui.Button, interaction: discord.Interaction):
         if interaction.user.id != self.to_id:
-            await interaction.response.send_message('this offer is not for you', ephemeral=True)
+            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
             return
         self.stop()
-        await interaction.response.edit_message(content='offer declined.', view=None)
+        await interaction.response.edit_message(content=f'{self.to_mention} said no', view=None)
 
     async def on_timeout(self):
         import contextlib
 
         if self.message:
             with contextlib.suppress(discord.NotFound):
-                await self.message.edit(content='offer expired.', view=None)
+                await self.message.edit(content=f'{self.to_mention} took too long', view=None)
 
 
 class _EggSelectMenu(discord.ui.Select):
@@ -104,7 +105,7 @@ class _EggSelectMenu(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.from_id:
-            await interaction.response.send_message('not your selection', ephemeral=True)
+            await interaction.response.send_message('not yours! <:crackerpeaty:1214140141245825024>', ephemeral=True)
             return
 
         value = self.values[0]
@@ -147,28 +148,29 @@ class EggSelectView(discord.ui.View):
 
 @discord.slash_command(name='egg', description='Collect an egg!')
 async def egg_command(ctx: ApplicationContext):
-    await ctx.defer(ephemeral=True)
+    await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
-    try:
-        jump_url = await hatching.collect_egg(
-            guild_id=ctx.guild_id,
-            user_id=ctx.author.id,
-            username=ctx.author.display_name,
-        )
-    except ValueError as err:
-        await ctx.respond(str(err), ephemeral=True)
+    result, remaining = await hatching.collect_egg(
+        guild_id=ctx.guild_id,
+        user_id=ctx.author.id,
+        username=ctx.author.display_name,
+    )
+    if result == 'cooldown':
+        assert remaining is not None  # noqa: S101 - guaranteed by cooldown sentinel
+        mins, secs = divmod(int(remaining), 60)
+        await ctx.respond(f'try again in {mins}m {secs}s', ephemeral=True)
         return
 
-    await ctx.respond(f'you received an egg. {jump_url}', ephemeral=True)
+    await ctx.respond(f'you received an egg: {result}')
 
 
 @eggs_group.command(name='hatch', description='Hatch your next ready egg')
 async def eggs_hatch(ctx: ApplicationContext):
-    await ctx.defer(ephemeral=True)
+    await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
@@ -177,17 +179,17 @@ async def eggs_hatch(ctx: ApplicationContext):
     result, next_ts = await hatching.hatch_egg(ctx.guild_id, ctx.author.id)
 
     if result == 'no_eggs':
-        await ctx.respond('you have no eggs', ephemeral=True)
+        await ctx.respond('you have no eggs')
     elif result == '':
         assert next_ts is not None  # noqa: S101 - guaranteed float when result is empty string by contract
-        await ctx.respond(f'your next egg hatches <t:{int(next_ts)}:R>', ephemeral=True)
+        await ctx.respond(f'your next egg hatches <t:{int(next_ts)}:R>')
     else:
-        await ctx.respond(f'hatching! {result}', ephemeral=True)
+        await ctx.respond(f'hatching! {result}')
 
 
 @eggs_group.command(name='view', description='View your egg collection thread')
 async def eggs_view(ctx: ApplicationContext):
-    await ctx.defer(ephemeral=True)
+    await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
@@ -198,26 +200,26 @@ async def eggs_view(ctx: ApplicationContext):
     user_doc = await _egg_user_repo.get(ctx.guild_id, ctx.author.id)
 
     if user_doc is None or not user_doc.thread_id:
-        await ctx.respond("you haven't collected any eggs yet", ephemeral=True)
+        await ctx.respond("you haven't collected any eggs yet")
         return
 
     guild = ctx.guild
     thread_url = f'https://discord.com/channels/{guild.id}/{user_doc.thread_id}'
-    await ctx.respond(thread_url, ephemeral=True)
+    await ctx.respond(thread_url)
 
 
 @eggs_group.command(name='give', description='Give one of your eggs to another user')
 @discord.commands.option(name='user', required=True, description='who to give the egg to', input_type=discord.Member)
 @discord.commands.option(name='rarity', required=False, description='which rarity to give (omit to pick from a list)', choices=_GIVE_RARITY_CHOICES)
 async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str | None = None):
-    await ctx.defer(ephemeral=True)
+    await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
     if ctx.author.id == user.id:
-        await ctx.respond('you cannot give eggs to yourself', ephemeral=True)
+        await ctx.respond('you cannot give eggs to yourself')
         return
 
     from attubot.eggs.hatching import _egg_repo, _egg_user_repo
@@ -300,7 +302,8 @@ async def eggs_progress(ctx: ApplicationContext):
     lines.append(f'total: {total_bar} {total_unique}/{total_possible}')
     lines.append(f'{total_collected} eggs collected; {total_hatched} eggs hatched')
 
-    await ctx.respond('\n'.join(lines))
+    embed = make_embed(description='\n'.join(lines), timestamp=False)
+    await ctx.respond(embed=embed)
 
 
 # --- Extension Def ---

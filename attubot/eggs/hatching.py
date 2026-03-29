@@ -114,10 +114,11 @@ async def get_or_create_user_thread(guild_id: int, user_id: int, username: str) 
     return thread
 
 
-async def collect_egg(guild_id: int, user_id: int, username: str) -> str:
-    """Collect an egg for a user. Returns the jump_url to the new egg message.
+async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, float | None]:
+    """Collect an egg for a user.
 
-    Raises ValueError if the user is still on cooldown.
+    Returns (jump_url, None) on success.
+    Returns ('cooldown', remaining_seconds) when the user is still on cooldown.
     """
     cooldown = 15 * 60  # 900 seconds
     now = time.time()
@@ -126,9 +127,8 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> str:
     if user_doc and user_doc.last_collected_at > 0:
         elapsed = now - user_doc.last_collected_at
         if elapsed < cooldown:
-            remaining = int(cooldown - elapsed)
-            mins, secs = divmod(remaining, 60)
-            raise ValueError(f'try again in {mins}m {secs}s')
+            remaining = cooldown - elapsed
+            return ('cooldown', remaining)
 
     # roll rarity
     rarity = random.choices(rarities, weights=drop_weights, k=1)[0]
@@ -163,7 +163,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> str:
         user_doc.last_collected_at = now
     await _egg_user_repo.upsert(user_doc)
 
-    return msg.jump_url
+    return (msg.jump_url, None)
 
 
 async def run_hatch_animation(message: discord.Message, result: str, rarity: str) -> None:

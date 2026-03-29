@@ -25,7 +25,7 @@ async def render_egg(rarity: str) -> bytes:
     return await svg_to_png(svg_text, height=128, width=128)
 
 
-_PROGRESS_SEGMENTS = ['left_full', 'left_empty', 'none_full', 'none_empty', 'right_full', 'right_empty']
+_progress_segments = ['left_full', 'left_empty', 'none_full', 'none_empty', 'right_full', 'right_empty']
 
 
 async def ensure_egg_emojis(guild: discord.Guild) -> dict[str, discord.Emoji]:
@@ -62,7 +62,7 @@ async def ensure_progress_emojis(guild: discord.Guild) -> dict[str, discord.Emoj
     existing = {e.name: e for e in guild.emojis}
     result: dict[str, discord.Emoji] = {}
 
-    for segment in _PROGRESS_SEGMENTS:
+    for segment in _progress_segments:
         name = f'progress_{segment}'
         if name not in existing:
             logger.info(f'creating emoji {name} on guild {guild.id}')
@@ -91,7 +91,7 @@ def render_progress_bar(filled: int, total: int, segments: int = 10) -> str:
 
     def _seg(key: str) -> str:
         emoji_id = emojis.get(key)
-        return f'<:progress_{key}:{emoji_id}>' if emoji_id else ('■' if 'full' in key else '□')
+        return f'<:pb:{emoji_id}>' if emoji_id else ('■' if 'full' in key else '□')
 
     left = _seg('left_full') if units >= 1 else _seg('left_empty')
     mids = [_seg('none_full') if units >= i + 2 else _seg('none_empty') for i in range(middles)]

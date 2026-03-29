@@ -130,10 +130,11 @@ class TestCollectEgg:
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
 
-            result = await collect_egg(test_guild, test_user, 'testuser')
+            result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
         assert isinstance(result, str)
         assert 'discord.com' in result
+        assert remaining is None
         self.egg_repo.insert.assert_called_once()
         # upsert called twice for new user: once in get_or_create_user_thread, once to update cooldown
         assert self.egg_user_repo.upsert.call_count == 2
@@ -142,8 +143,11 @@ class TestCollectEgg:
         """user collected 60s ago - still within 900s cooldown"""
         self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=time.time() - 60)
 
-        with pytest.raises(ValueError, match='try again in'):
-            await collect_egg(test_guild, test_user, 'testuser')
+        result, remaining = await collect_egg(test_guild, test_user, 'testuser')
+
+        assert result == 'cooldown'
+        assert remaining is not None
+        assert remaining > 0
 
     async def test_cooldown_expired_succeeds(self):
         """user collected 1000s ago - cooldown has elapsed"""
@@ -157,9 +161,10 @@ class TestCollectEgg:
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
 
-            result = await collect_egg(test_guild, test_user, 'testuser')
+            result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
         assert isinstance(result, str)
+        assert remaining is None
         self.egg_repo.insert.assert_called_once()
 
 
@@ -492,7 +497,7 @@ class TestEggCommands:
         self.ctx = ctx
 
     async def test_egg_command_success(self):
-        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value='https://discord.com/channels/1/2/3')):
+        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
             from attubot.commands.eggs import egg_command
 
             await egg_command(self.ctx)
@@ -500,7 +505,7 @@ class TestEggCommands:
         assert 'discord.com' in self.ctx._responses[0]['args'][0]
 
     async def test_egg_command_cooldown(self):
-        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(side_effect=ValueError('try again in 5m 0s'))):
+        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('cooldown', 300.0))):
             from attubot.commands.eggs import egg_command
 
             await egg_command(self.ctx)
@@ -834,7 +839,7 @@ class TestEggGiftOfferView:
         assert 'no longer available' in content
 
     async def test_decline_edits_offer_declined(self):
-        """recipient declines - message edited to 'offer declined.'"""
+        """recipient declines - message edited with their mention"""
         from attubot.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
@@ -843,7 +848,7 @@ class TestEggGiftOfferView:
         await EggGiftOfferView.decline(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
 
         content = interaction.response.edit_message.call_args.kwargs['content']
-        assert content == 'offer declined.'
+        assert content == f'<@{test_user2}> said no'
 
     async def test_decline_wrong_user_gets_ephemeral_error(self):
         """non-recipient clicking Decline gets ephemeral rejection"""
@@ -859,14 +864,14 @@ class TestEggGiftOfferView:
         interaction.response.edit_message.assert_not_called()
 
     async def test_timeout_edits_offer_expired(self):
-        """view timeout - message edited to 'offer expired.'"""
+        """view timeout - message edited with recipient mention"""
         view = _make_offer_view()
         mock_message = AsyncMock()
         view.message = mock_message
 
         await view.on_timeout()
 
-        mock_message.edit.assert_called_once_with(content='offer expired.', view=None)
+        mock_message.edit.assert_called_once_with(content=f'<@{test_user2}> took too long', view=None)
 
     async def test_timeout_no_message_is_noop(self):
         """timeout with no message stored - should not raise"""
