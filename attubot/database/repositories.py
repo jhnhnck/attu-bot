@@ -94,6 +94,7 @@ class ConfigRepository:
             bot_color=theme.bot_color,
             guild_color=theme.guild_color,
             egg_emojis=theme.egg_emojis,
+            progress_emojis=theme.progress_emojis,
         ).model_dump()
         await self.db[self.GLOBAL_COLLECTION].update_one(
             {'config_type': 'theme'},
@@ -1002,6 +1003,81 @@ class EggRepository:
     async def count_hatched(self) -> int:
         """Return total count of hatched eggs across all guilds"""
         return await self.db[self.COLLECTION].count_documents({'hatched': True})
+
+    async def get_user_egg_stats(self, guild_id: int, user_id: int) -> 'tuple[int, int, dict[str, int]]':
+        """Return (total_collected, total_hatched, unique_results_per_rarity) in one query.
+
+        unique_results_per_rarity maps rarity -> count of distinct creature emojis hatched.
+        """
+        cursor = self.db[self.COLLECTION].find(
+            {'guild_id': guild_id, 'user_id': user_id},
+            projection={'rarity': 1, 'result': 1, 'hatched': 1, '_id': 0},
+        )
+        total_collected = 0
+        total_hatched = 0
+        seen: dict[str, set[str]] = {}
+        async for doc in cursor:
+            total_collected += 1
+            if doc.get('hatched'):
+                total_hatched += 1
+                rarity = doc['rarity']
+                result = doc.get('result') or ''
+                if result:
+                    seen.setdefault(rarity, set()).add(result)
+        return total_collected, total_hatched, {r: len(s) for r, s in seen.items()}
+
+    async def transfer(self, egg_id: str, new_user_id: int, new_message_id: int) -> None:
+        """Transfer egg ownership and update its thread message id"""
+        await self.db[self.COLLECTION].update_one(
+            {'egg_id': egg_id},
+            {'$set': {'user_id': new_user_id, 'message_id': new_message_id}},
+        )
+
+    async def get_oldest_unhatched_by_rarity(self, guild_id: int, user_id: int, rarity: str) -> 'EggDocument | None':
+        """Fetch the oldest unhatched egg of a specific rarity for a user"""
+        doc = await self.db[self.COLLECTION].find_one(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': False, 'rarity': rarity},
+            sort=[('hatches_at', ASCENDING)],
+        )
+        if doc:
+            doc.pop('_id', None)
+            return EggDocument(**doc)
+        return None
+
+    async def get_oldest_hatched_by_result(self, guild_id: int, user_id: int, result: str) -> 'EggDocument | None':
+        """Fetch the oldest hatched egg with a specific result emoji for a user"""
+        doc = await self.db[self.COLLECTION].find_one(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': True, 'result': result},
+            sort=[('collected_at', ASCENDING)],
+        )
+        if doc:
+            doc.pop('_id', None)
+            return EggDocument(**doc)
+        return None
+
+    async def list_unhatched(self, guild_id: int, user_id: int) -> 'list[EggDocument]':
+        """Return all unhatched eggs for a user, sorted by hatches_at ascending"""
+        cursor = self.db[self.COLLECTION].find(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': False},
+            sort=[('hatches_at', ASCENDING)],
+        )
+        docs = []
+        async for doc in cursor:
+            doc.pop('_id', None)
+            docs.append(EggDocument(**doc))
+        return docs
+
+    async def list_hatched(self, guild_id: int, user_id: int) -> 'list[EggDocument]':
+        """Return all hatched eggs for a user, sorted by collected_at ascending"""
+        cursor = self.db[self.COLLECTION].find(
+            {'guild_id': guild_id, 'user_id': user_id, 'hatched': True},
+            sort=[('collected_at', ASCENDING)],
+        )
+        docs = []
+        async for doc in cursor:
+            doc.pop('_id', None)
+            docs.append(EggDocument(**doc))
+        return docs
 
 
 class EggUserRepository:

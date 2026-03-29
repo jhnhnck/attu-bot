@@ -121,6 +121,10 @@ ruff format --check .
 npm run lint
 ```
 
+## Credits
+
+- Progress bar emojis from [emoji.gg Progress Bar Pack](https://emoji.gg/pack/7783-progress-bar)
+
 ## License
 
 Copyright (c) 2026 John Hancock, The Attu Project

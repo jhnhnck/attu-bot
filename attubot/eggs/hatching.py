@@ -230,3 +230,41 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
     scheduler.add_job(run_hatch_animation(msg, egg.result, egg.rarity), 'HatchAnimation', egg.egg_id)
 
     return (jump_url, None)
+
+
+async def transfer_egg(guild_id: int, egg_id: str, from_user_id: int, to_user_id: int, to_username: str) -> str:
+    """Transfer an egg from one user to another. Returns the jump_url of the new message.
+
+    Deletes the original thread message and reposts the egg in the recipient's thread.
+    Raises ValueError if the egg is not found or not owned by from_user_id.
+    """
+    egg = await _egg_repo.get(egg_id)
+    if egg is None or egg.user_id != from_user_id or egg.guild_id != guild_id:
+        raise ValueError('egg not found')
+
+    # delete original thread message
+    from_user_doc = await _egg_user_repo.get(guild_id, from_user_id)
+    if from_user_doc and from_user_doc.thread_id and egg.message_id:
+        thread = bot.get_channel(from_user_doc.thread_id)
+        if thread is None:
+            guild = bot.get_guild(guild_id)
+            if guild:
+                try:
+                    thread = await guild.fetch_channel(from_user_doc.thread_id)
+                except discord.NotFound:
+                    thread = None
+        if thread is not None:
+            try:
+                old_msg = await thread.fetch_message(egg.message_id)  # type: ignore[union-attr]
+                await old_msg.delete()
+            except (discord.NotFound, discord.Forbidden):
+                pass  # already gone or no permission; proceed with transfer
+
+    # repost in recipient's thread
+    to_thread = await get_or_create_user_thread(guild_id, to_user_id, to_username)
+    content = egg.result if egg.hatched else _egg_emoji_str(egg.rarity)
+    new_msg = await to_thread.send(content)
+
+    await _egg_repo.transfer(egg_id, to_user_id, new_msg.id)
+    logger.info(f'transferred egg {egg_id} from {from_user_id} to {to_user_id}')
+    return new_msg.jump_url

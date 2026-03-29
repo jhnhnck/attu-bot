@@ -205,6 +205,17 @@ def mock_ctx_factory():
         ctx.command = MagicMock()
         ctx.command.name = 'test_command'
 
+        # Interaction (for commands that call original_response() after respond())
+        mock_message = MagicMock()
+        mock_message.id = 9999999999
+        mock_message.edit = AsyncMock()
+        ctx.interaction = MagicMock()
+        ctx.interaction.original_response = AsyncMock(return_value=mock_message)
+
+        # Convenience ids (pycord exposes these directly on ctx)
+        ctx.guild_id = guild_id
+        ctx.channel_id = channel_id
+
         # Track if owner
         ctx._is_owner = is_owner
 

@@ -39,6 +39,7 @@ class ThemeDocument(BaseModel):
     bot_color: str
     guild_color: str
     egg_emojis: dict[str, int] = {}
+    progress_emojis: dict[str, int] = {}
 
 
 class SystemConfigDocument(BaseModel):

@@ -319,6 +319,21 @@ async def debug_eggs_preview(ctx: ApplicationContext, rarity: str):
     await run_hatch_animation(msg, result, rarity)
 
 
+@debug_group.command(name='progress_bar', description='Preview the progress bar at each 10% increment')
+@commands.check(is_bot_owner)
+async def debug_progress_bar(ctx: ApplicationContext):
+    from attubot.eggs.emojis import render_progress_bar
+
+    bar = render_progress_bar(1, 10)
+    msg = await ctx.channel.send(f'10% {bar}')
+    await ctx.respond('progress bar preview started', ephemeral=True)
+
+    for step in range(2, 11):
+        await asyncio.sleep(2)
+        bar = render_progress_bar(step, 10)
+        await msg.edit(content=f'{step * 10}% {bar}')
+
+
 # --- Extension Def ---
 
 

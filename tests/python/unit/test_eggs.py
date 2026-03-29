@@ -609,3 +609,505 @@ class TestEmojis:
 
         assert len(result) == 5
         mock_guild.create_custom_emoji.assert_not_called()
+
+
+# ============================================================
+# transfer_egg()
+# ============================================================
+
+
+class TestTransferEgg:
+    @pytest.fixture(autouse=True)
+    def setup_repos(self):
+        mock_egg_repo = AsyncMock()
+        mock_egg_user_repo = AsyncMock()
+
+        mock_old_msg = AsyncMock()
+        mock_new_msg = MagicMock()
+        mock_new_msg.id = 333333333333
+        mock_new_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/333333333333'
+
+        mock_thread = MagicMock()
+        mock_thread.fetch_message = AsyncMock(return_value=mock_old_msg)
+        mock_thread.send = AsyncMock(return_value=mock_new_msg)
+
+        # both from-user and to-user get a doc with the same test_thread (simpler mocking)
+        async def mock_user_get(guild_id, user_id):
+            return EggUserDocument(guild_id=guild_id, user_id=user_id, thread_id=test_thread)
+
+        mock_egg_user_repo.get = AsyncMock(side_effect=mock_user_get)
+
+        with (
+            patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
+            patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
+            patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
+        ):
+            mock_bot.get_channel.return_value = mock_thread
+            mock_guild_cfg = MagicMock()
+            mock_guild_cfg.channels.eggs = test_thread
+            mock_config.guild.return_value = mock_guild_cfg
+
+            self.egg_repo = mock_egg_repo
+            self.egg_user_repo = mock_egg_user_repo
+            self.mock_bot = mock_bot
+            self.old_msg = mock_old_msg
+            self.new_msg = mock_new_msg
+            self.thread = mock_thread
+            yield
+
+    async def test_transfer_succeeds(self):
+        """happy path: deletes old message, reposts in recipient thread, updates db"""
+        from attubot.eggs.hatching import transfer_egg
+
+        egg = _make_egg(result='🐣', hatched=False)
+        self.egg_repo.get.return_value = egg
+
+        result = await transfer_egg(test_guild, egg.egg_id, test_user, test_user2, 'user2')
+
+        assert 'discord.com' in result
+        self.old_msg.delete.assert_called_once()
+        self.egg_repo.transfer.assert_called_once_with(egg.egg_id, test_user2, self.new_msg.id)
+
+    async def test_transfer_hatched_uses_result_emoji(self):
+        """hatched egg reposts the creature emoji, not the egg emoji"""
+        from attubot.eggs.hatching import transfer_egg
+
+        egg = _make_egg(hatched=True, result='🦄')
+        self.egg_repo.get.return_value = egg
+
+        await transfer_egg(test_guild, egg.egg_id, test_user, test_user2, 'user2')
+
+        send_call_content = self.thread.send.call_args.args[0]
+        assert send_call_content == '🦄'
+
+    async def test_transfer_wrong_owner_raises(self):
+        """egg belongs to a different user - should raise ValueError"""
+        from attubot.eggs.hatching import transfer_egg
+
+        egg = _make_egg()  # user_id=test_user
+        self.egg_repo.get.return_value = egg
+
+        with pytest.raises(ValueError, match='egg not found'):
+            await transfer_egg(test_guild, egg.egg_id, test_user2, test_user, 'user1')  # from_user is test_user2, not owner
+
+    async def test_transfer_egg_not_in_db_raises(self):
+        """egg not found in db - should raise ValueError"""
+        from attubot.eggs.hatching import transfer_egg
+
+        self.egg_repo.get.return_value = None
+
+        with pytest.raises(ValueError, match='egg not found'):
+            await transfer_egg(test_guild, 'missing-egg-id', test_user, test_user2, 'user2')
+
+    async def test_transfer_old_message_missing_proceeds(self):
+        """original thread message already deleted - should proceed without error"""
+        from attubot.eggs.hatching import transfer_egg
+
+        egg = _make_egg()
+        self.egg_repo.get.return_value = egg
+        self.old_msg.delete = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
+
+        result = await transfer_egg(test_guild, egg.egg_id, test_user, test_user2, 'user2')
+
+        assert 'discord.com' in result
+        self.egg_repo.transfer.assert_called_once()
+
+
+# ============================================================
+# _offer_text() helper
+# ============================================================
+
+
+class TestOfferText:
+    def test_unhatched_egg_shows_rarity(self):
+        """unhatched egg - shows rarity emoji and rarity name"""
+        from attubot.commands.eggs import _offer_text
+
+        egg = _make_egg(hatched=False, rarity='rare')
+
+        with patch('attubot.eggs.hatching._egg_emoji_str', return_value='<:rare_egg:999>'):
+            result = _offer_text('<@1>', '<@2>', egg, '')
+
+        assert '<:rare_egg:999>' in result
+        assert 'rare egg' in result
+        assert '<@1>' in result
+        assert '<@2>' in result
+
+    def test_hatched_egg_shows_creature(self):
+        """hatched egg - shows creature emoji directly"""
+        from attubot.commands.eggs import _offer_text
+
+        egg = _make_egg(hatched=True, result='🦄')
+
+        result = _offer_text('<@1>', '<@2>', egg, '')
+
+        assert '🦄' in result
+        assert 'egg' not in result
+
+    def test_includes_jump_url_when_provided(self):
+        """jump url is appended when non-empty"""
+        from attubot.commands.eggs import _offer_text
+
+        egg = _make_egg(hatched=True, result='🐉')
+        url = 'https://discord.com/channels/1/2/3'
+
+        result = _offer_text('<@1>', '<@2>', egg, url)
+
+        assert url in result
+
+    def test_no_jump_url_no_suffix(self):
+        """empty jump url - no extra newline or text appended"""
+        from attubot.commands.eggs import _offer_text
+
+        egg = _make_egg(hatched=True, result='🐉')
+
+        result = _offer_text('<@1>', '<@2>', egg, '')
+
+        assert '\n' not in result
+
+
+# ============================================================
+# EggGiftOfferView - button callbacks
+# ============================================================
+
+
+def _make_interaction(user_id: int) -> MagicMock:
+    """Create a minimal mock discord.Interaction for view callback testing."""
+    interaction = MagicMock()
+    interaction.user = MagicMock()
+    interaction.user.id = user_id
+    interaction.response = AsyncMock()
+    interaction.response.edit_message = AsyncMock()
+    interaction.response.send_message = AsyncMock()
+    return interaction
+
+
+def _make_offer_view(egg: EggDocument | None = None):
+    from attubot.commands.eggs import EggGiftOfferView
+
+    if egg is None:
+        egg = _make_egg()
+    return EggGiftOfferView(egg, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+
+
+class TestEggGiftOfferView:
+    async def test_accept_transfers_egg_and_edits_sent(self):
+        """recipient accepts - transfer_egg called, message edited to 'sent!'"""
+        from attubot.commands.eggs import EggGiftOfferView
+
+        view = _make_offer_view()
+        interaction = _make_interaction(test_user2)
+
+        with patch('attubot.commands.eggs.hatching.transfer_egg', new=AsyncMock(return_value='https://discord.com/1/2/3')):
+            await EggGiftOfferView.accept(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
+
+        interaction.response.edit_message.assert_called_once()
+        content = interaction.response.edit_message.call_args.kwargs['content']
+        assert content.startswith('sent!')
+        assert 'https://discord.com/1/2/3' in content
+
+    async def test_accept_wrong_user_gets_ephemeral_error(self):
+        """non-recipient clicking Accept gets ephemeral rejection"""
+        from attubot.commands.eggs import EggGiftOfferView
+
+        view = _make_offer_view()
+        interaction = _make_interaction(test_user)  # giver, not recipient
+
+        await EggGiftOfferView.accept(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
+
+        interaction.response.send_message.assert_called_once()
+        assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+        interaction.response.edit_message.assert_not_called()
+
+    async def test_accept_egg_gone_edits_no_longer_available(self):
+        """transfer_egg raises ValueError - message edited to 'no longer available'"""
+        from attubot.commands.eggs import EggGiftOfferView
+
+        view = _make_offer_view()
+        interaction = _make_interaction(test_user2)
+
+        with patch('attubot.commands.eggs.hatching.transfer_egg', new=AsyncMock(side_effect=ValueError('egg not found'))):
+            await EggGiftOfferView.accept(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
+
+        content = interaction.response.edit_message.call_args.kwargs['content']
+        assert 'no longer available' in content
+
+    async def test_decline_edits_offer_declined(self):
+        """recipient declines - message edited to 'offer declined.'"""
+        from attubot.commands.eggs import EggGiftOfferView
+
+        view = _make_offer_view()
+        interaction = _make_interaction(test_user2)
+
+        await EggGiftOfferView.decline(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
+
+        content = interaction.response.edit_message.call_args.kwargs['content']
+        assert content == 'offer declined.'
+
+    async def test_decline_wrong_user_gets_ephemeral_error(self):
+        """non-recipient clicking Decline gets ephemeral rejection"""
+        from attubot.commands.eggs import EggGiftOfferView
+
+        view = _make_offer_view()
+        interaction = _make_interaction(test_user)  # giver, not recipient
+
+        await EggGiftOfferView.decline(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
+
+        interaction.response.send_message.assert_called_once()
+        assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+        interaction.response.edit_message.assert_not_called()
+
+    async def test_timeout_edits_offer_expired(self):
+        """view timeout - message edited to 'offer expired.'"""
+        view = _make_offer_view()
+        mock_message = AsyncMock()
+        view.message = mock_message
+
+        await view.on_timeout()
+
+        mock_message.edit.assert_called_once_with(content='offer expired.', view=None)
+
+    async def test_timeout_no_message_is_noop(self):
+        """timeout with no message stored - should not raise"""
+        view = _make_offer_view()
+        view.message = None
+
+        await view.on_timeout()  # no error
+
+
+# ============================================================
+# _EggSelectMenu - callback
+# ============================================================
+
+
+def _make_select_menu(options: list | None = None):
+    from attubot.commands.eggs import _EggSelectMenu
+
+    if options is None:
+        options = [discord.SelectOption(label='common egg', value='unhatched:common')]
+    return _EggSelectMenu(options, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+
+
+class TestEggSelectMenu:
+    @pytest.fixture(autouse=True)
+    def setup_repos(self):
+        mock_egg_repo = AsyncMock()
+        mock_egg_user_repo = AsyncMock()
+        with (
+            patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
+            patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
+        ):
+            self.egg_repo = mock_egg_repo
+            self.egg_user_repo = mock_egg_user_repo
+            yield
+
+    async def test_select_unhatched_posts_offer(self):
+        """selecting an unhatched rarity queries by rarity and posts offer"""
+        select = _make_select_menu()
+        select._interaction = MagicMock()
+        select._selected_values = ['unhatched:common']
+
+        egg = _make_egg(rarity='common', hatched=False)
+        self.egg_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=egg)
+        self.egg_user_repo.get = AsyncMock(return_value=_make_user_doc())
+
+        interaction = _make_interaction(test_user)
+        interaction.channel = AsyncMock()
+        interaction.channel.send = AsyncMock(return_value=MagicMock())
+
+        with patch('attubot.eggs.hatching._egg_emoji_str', return_value='<:common_egg:1>'):
+            await select.callback(interaction)
+
+        self.egg_repo.get_oldest_unhatched_by_rarity.assert_called_once_with(test_guild, test_user, 'common')
+        interaction.channel.send.assert_called_once()
+        interaction.response.edit_message.assert_called_once_with(content='offer sent!', view=None)
+
+    async def test_select_hatched_posts_offer(self):
+        """selecting a hatched creature queries by result emoji and posts offer"""
+        select = _make_select_menu(options=[discord.SelectOption(label='🦄', value='hatched:🦄')])
+        select._interaction = MagicMock()
+        select._selected_values = ['hatched:🦄']
+
+        egg = _make_egg(hatched=True, result='🦄')
+        self.egg_repo.get_oldest_hatched_by_result = AsyncMock(return_value=egg)
+        self.egg_user_repo.get = AsyncMock(return_value=_make_user_doc())
+
+        interaction = _make_interaction(test_user)
+        interaction.channel = AsyncMock()
+        interaction.channel.send = AsyncMock(return_value=MagicMock())
+
+        await select.callback(interaction)
+
+        self.egg_repo.get_oldest_hatched_by_result.assert_called_once_with(test_guild, test_user, '🦄')
+        interaction.channel.send.assert_called_once()
+
+    async def test_select_wrong_user_gets_ephemeral_error(self):
+        """non-giver interacting with select gets ephemeral rejection"""
+        select = _make_select_menu()
+
+        interaction = _make_interaction(test_user2)  # recipient, not giver
+
+        await select.callback(interaction)
+
+        interaction.response.send_message.assert_called_once()
+        assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    async def test_select_egg_gone_edits_message(self):
+        """egg no longer exists when selected - message edited to 'no longer available'"""
+        select = _make_select_menu()
+        select._interaction = MagicMock()
+        select._selected_values = ['unhatched:common']
+
+        self.egg_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=None)
+
+        interaction = _make_interaction(test_user)
+
+        await select.callback(interaction)
+
+        content = interaction.response.edit_message.call_args.kwargs['content']
+        assert 'no longer available' in content
+
+
+# ============================================================
+# /eggs give command
+# ============================================================
+
+
+class TestEggsGiveCommand:
+    @pytest.fixture(autouse=True)
+    def setup(self, make_guild, mock_ctx_factory):
+        make_guild(guild_id=test_guild)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        ctx.guild_id = test_guild
+        ctx.channel.send = AsyncMock(return_value=MagicMock())
+        self.ctx = ctx
+
+        self.mock_user = MagicMock()
+        self.mock_user.id = test_user2
+        self.mock_user.mention = f'<@{test_user2}>'
+        self.mock_user.display_name = 'user2'
+
+    async def test_unauthorized_guild(self, mock_ctx_factory):
+        ctx = mock_ctx_factory()
+        ctx.guild_id = 9999999999
+        ctx.channel.send = AsyncMock()
+
+        from attubot.commands.eggs import eggs_give
+
+        await eggs_give(ctx, self.mock_user, None)
+        assert ctx._responses[0]['args'][0] == 'not available here'
+
+    async def test_give_to_self(self):
+        """giving an egg to yourself is rejected"""
+        self.ctx.author.id = test_user2  # same as mock_user.id
+        from attubot.commands.eggs import eggs_give
+
+        await eggs_give(self.ctx, self.mock_user, None)
+        assert 'yourself' in self.ctx._responses[0]['args'][0]
+
+    async def test_specific_rarity_found_sends_offer(self):
+        """rarity arg specified and egg exists - public offer posted"""
+        egg = _make_egg(rarity='rare')
+        user_doc = _make_user_doc()
+
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+            patch.object(hatching_mod, '_egg_user_repo') as mock_user_repo,
+            patch('attubot.eggs.hatching._egg_emoji_str', return_value='<:rare_egg:1>'),
+        ):
+            mock_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=egg)
+            mock_user_repo.get = AsyncMock(return_value=user_doc)
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, 'rare')
+
+        self.ctx.channel.send.assert_called_once()
+        assert self.ctx._responses[0]['args'][0] == 'offer sent!'
+
+    async def test_specific_rarity_no_eggs(self):
+        """rarity arg specified but user has no matching eggs"""
+        with patch.object(hatching_mod, '_egg_repo') as mock_repo:
+            mock_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=None)
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, 'legendary')
+
+        response = self.ctx._responses[0]
+        assert 'legendary' in response['args'][0]
+        assert response['kwargs'].get('ephemeral') is True
+
+    async def test_no_rarity_shows_select_menu(self):
+        """no rarity arg - ephemeral select menu shown with deduped options"""
+        unhatched = [
+            _make_egg(rarity='common'),
+            _make_egg(rarity='common'),  # duplicate - should be deduped
+            _make_egg(rarity='rare'),
+        ]
+        hatched_eggs = [_make_egg(hatched=True, result='🦄')]
+
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+        ):
+            mock_repo.list_unhatched = AsyncMock(return_value=unhatched)
+            mock_repo.list_hatched = AsyncMock(return_value=hatched_eggs)
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, None)
+
+        response = self.ctx._responses[0]
+        assert response['kwargs'].get('ephemeral') is True
+        # view should have been passed; check the select options count (2 unique rarities + 1 hatched)
+        view = response['kwargs']['view']
+        select = view.children[0]
+        assert len(select.options) == 3  # common, rare, 🦄
+
+    async def test_no_rarity_no_eggs_at_all(self):
+        """no rarity arg, user has no eggs - ephemeral error"""
+        with patch.object(hatching_mod, '_egg_repo') as mock_repo:
+            mock_repo.list_unhatched = AsyncMock(return_value=[])
+            mock_repo.list_hatched = AsyncMock(return_value=[])
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, None)
+
+        response = self.ctx._responses[0]
+        assert 'no eggs' in response['args'][0]
+        assert response['kwargs'].get('ephemeral') is True
+
+    async def test_hatched_arg_shows_creature_select_menu(self):
+        """rarity='hatched' - shows select menu of unique hatched creatures"""
+        hatched_eggs = [
+            _make_egg(hatched=True, result='🦄'),
+            _make_egg(hatched=True, result='🦄'),  # duplicate
+            _make_egg(hatched=True, result='🐉'),
+        ]
+
+        with patch.object(hatching_mod, '_egg_repo') as mock_repo:
+            mock_repo.list_hatched = AsyncMock(return_value=hatched_eggs)
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, 'hatched')
+
+        response = self.ctx._responses[0]
+        assert response['kwargs'].get('ephemeral') is True
+        select = response['kwargs']['view'].children[0]
+        assert len(select.options) == 2  # 🦄 and 🐉 (deduped)
+
+    async def test_hatched_arg_no_hatched_eggs(self):
+        """rarity='hatched' but user has no hatched eggs"""
+        with patch.object(hatching_mod, '_egg_repo') as mock_repo:
+            mock_repo.list_hatched = AsyncMock(return_value=[])
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, 'hatched')
+
+        response = self.ctx._responses[0]
+        assert 'hatched eggs' in response['args'][0]
+        assert response['kwargs'].get('ephemeral') is True

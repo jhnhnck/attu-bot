@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
@@ -129,7 +130,6 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
-fix_eggs = fix_group.create_subgroup('eggs', 'Commands to manage egg game state')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -646,26 +646,34 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         await ctx.respond(f'Failed: no entry deleted - message {message_id} not found', ephemeral=True)
 
 
-@fix_eggs.command(name='generate', description='Create egg emojis on the secondary server and save IDs')
+@fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')
 @commands.check(is_bot_owner)
-async def fix_eggs_generate(ctx: ApplicationContext):
+async def fix_emoji(ctx: ApplicationContext):
     await ctx.defer()
 
-    from attubot.eggs.emojis import ensure_egg_emojis
+    from attubot.eggs.emojis import ensure_egg_emojis, ensure_progress_emojis
 
     guild = bot.get_guild(config.secondary_server)
     if guild is None:
         await ctx.respond('secondary server not in cache', ephemeral=True)
         return
 
-    emojis = await ensure_egg_emojis(guild)
+    egg_emojis, progress_emojis = await asyncio.gather(
+        ensure_egg_emojis(guild),
+        ensure_progress_emojis(guild),
+    )
 
-    # save emoji IDs to theme
-    config.theme.egg_emojis = {rarity: e.id for rarity, e in emojis.items()}
+    config.theme.egg_emojis = {rarity: e.id for rarity, e in egg_emojis.items()}
+    config.theme.progress_emojis = {segment: e.id for segment, e in progress_emojis.items()}
     await config.theme.save()
 
-    mentions = ' '.join(str(e) for e in emojis.values())
-    await ctx.respond(mentions)
+    egg_names = ', '.join(egg_emojis.keys())
+    progress_names = ', '.join(progress_emojis.keys())
+    await ctx.respond(
+        f'egg emojis: {egg_names} ({len(egg_emojis)} ok)\n'
+        f'progress emojis: {progress_names} ({len(progress_emojis)} ok)\n'
+        f'all emojis saved.'
+    )
 
 
 # --- Extension Def ---

@@ -95,14 +95,80 @@ Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-
 | `/egg` | collect an egg (15m cooldown) |
 | `/eggs hatch` | hatch the oldest ready egg |
 | `/eggs view` | link to your egg collection thread |
+| `/eggs give @user [rarity]` | give one of your eggs to another user |
+| `/eggs progress` | show per-rarity and total unique creature progress with progress bars |
 | `/fix eggs generate` | upload custom egg emojis to secondary server and save IDs (owner only, run once) |
+| `/fix emoji progress` | upload progress bar emojis to secondary server and save IDs (owner only, run once) |
 | `/debug eggs show <rarity>` | display the emoji and full hatch pool for a rarity (owner only) |
 | `/debug eggs preview <rarity>` | run a full hatch animation in the current channel with no DB writes (owner only) |
+
+---
+
+## Egg Gifting
+
+`/eggs give @user [rarity]` lets any player transfer one of their eggs (hatched or unhatched) to another guild member. Unhatched eggs keep their original `hatches_at` timer after transfer.
+
+**Selection logic:**
+- If `rarity` is `common`/`uncommon`/`rare`/`legendary`/`mythical`: picks the giver's oldest unhatched egg of that rarity and goes straight to an offer.
+- If `rarity` is `hatched` or omitted: shows a Discord select menu with deduplicated options (one entry per distinct rarity for unhatched eggs, one entry per distinct creature emoji for hatched ones). Selecting an entry picks the oldest matching egg.
+
+**Offer flow:**
+1. A public message is posted in the current channel: "{giver} wants to give {recipient} a [emoji]. accept?" with a jump link to the egg in the giver's thread.
+2. The recipient has two buttons: **Accept** and **Decline** (only they can click). The offer expires after 5 minutes.
+3. On **Accept**: the original thread message is deleted from the giver's thread, the egg (or creature) is reposted in the recipient's thread (created if they don't have one), and the DB is updated with the new `user_id` and `message_id`.
+4. On **Decline** or timeout: the offer message is edited to say so; no DB changes occur.
+
+**Key functions (`attubot/eggs/hatching.py`):**
+
+| Function | Purpose |
+|---|---|
+| `transfer_egg(guild_id, egg_id, from_user_id, to_user_id, to_username)` | core transfer: delete old message, repost in recipient thread, update DB |
+
+**Key views (`attubot/commands/eggs.py`):**
+
+| Class | Purpose |
+|---|---|
+| `EggGiftOfferView` | public offer message with Accept/Decline buttons; 5-min timeout |
+| `EggSelectView` / `_EggSelectMenu` | ephemeral select menu showing deduplicated egg options |
+
+**New `EggRepository` methods (`attubot/database/repositories.py`):**
+
+| Method | Purpose |
+|---|---|
+| `transfer(egg_id, new_user_id, new_message_id)` | update ownership and thread message id |
+| `get_oldest_unhatched_by_rarity(guild_id, user_id, rarity)` | oldest unhatched egg of a specific rarity |
+| `get_oldest_hatched_by_result(guild_id, user_id, result)` | oldest hatched egg with a specific creature emoji |
+| `list_unhatched(guild_id, user_id)` | all unhatched eggs sorted by `hatches_at` asc |
+| `list_hatched(guild_id, user_id)` | all hatched eggs sorted by `collected_at` asc |
+
+---
+
+## Egg Progress
+
+`/eggs progress` shows a Pokédex-style completion tracker: how many distinct creatures you've hatched out of each rarity's full pool. Output is one line per rarity plus a totals line, each with a 10-segment progress bar and `n/pool_size` count. The last line shows raw totals: `X eggs collected; Y eggs hatched`.
+
+Pool sizes: common 27, uncommon 23, rare 20, legendary 12, mythical 3, total 85.
+
+**Progress bar rendering (`attubot/eggs/emojis.py`):**
+
+| Function | Purpose |
+|---|---|
+| `ensure_progress_emojis(guild)` | upload 6 PNG segments from `assets/emoji/7783-progress-bar-emojigg-pack/` to a guild; create only missing ones |
+| `render_progress_bar(filled, total, segments=10)` | build a bar string from `progress_emojis` IDs; falls back to unicode blocks if not configured |
+
+Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_full`, `none_empty`, `right_full`, `right_empty`. Discord emoji names: `progress_{key}`.
+
+**`EggRepository` method (`attubot/database/repositories.py`):**
+
+| Method | Purpose |
+|---|---|
+| `get_user_egg_stats(guild_id, user_id)` | single query returning `(total_collected, total_hatched, unique_per_rarity)` |
 
 ---
 
 ## Setup
 
 1. Run `/fix eggs generate` once in the secondary (emoji) server to create the five custom emojis and store their IDs.
-2. The `#eggs` channel is created automatically when `HatchTask` detects hatch day. No manual setup required.
-3. `/eggs hatch`, `/egg`, and `/eggs view` are only registered while the extension is loaded (hatch day onward for the season). Use `/debug eggs preview` to test the animation any time.
+2. Run `/fix emoji progress` once in the secondary (emoji) server to upload the six progress bar segment emojis and store their IDs.
+3. The `#eggs` channel is created automatically when `HatchTask` detects hatch day. No manual setup required.
+4. `/eggs hatch`, `/egg`, `/eggs view`, and `/eggs progress` are only registered while the extension is loaded (hatch day onward for the season). Use `/debug eggs preview` to test the animation any time.
