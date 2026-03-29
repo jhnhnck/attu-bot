@@ -120,7 +120,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     Returns (jump_url, None) on success.
     Returns ('cooldown', ready_at) when the user is still on cooldown (ready_at is a unix timestamp).
     """
-    cooldown = 15 * 60  # 900 seconds
+    cooldown = 10 * 60  # 600 seconds
     now = time.time()
 
     user_doc = await _egg_user_repo.get(guild_id, user_id)

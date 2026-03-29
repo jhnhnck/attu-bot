@@ -46,7 +46,7 @@ class EggGiftOfferView(discord.ui.View):
     """Public offer message with Accept/Decline buttons for egg gifting."""
 
     def __init__(self, egg: EggDocument, from_id: int, from_mention: str, to_id: int, to_mention: str, to_display: str, guild_id: int):
-        super().__init__(timeout=300)
+        super().__init__(timeout=3600)
         self.egg = egg
         self.from_id = from_id
         self.from_mention = from_mention

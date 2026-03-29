@@ -12,7 +12,7 @@ A seasonal event that activates automatically on hatch day each year. While acti
 
 ## Behavior Rules
 
-1. `/egg` has a 15-minute cooldown per user per guild. The cooldown timestamp is stored in MongoDB and survives bot restarts.
+1. `/egg` has a 10-minute cooldown per user per guild. The cooldown timestamp is stored in MongoDB and survives bot restarts.
 2. Each `/egg` call rolls a rarity: common 55%, uncommon 25%, rare 13%, legendary 5%, mythical 2%.
 3. The egg is posted as a rarity-specific custom emoji in the user's personal thread inside `#eggs`. One thread per user per guild, created on first collection and reused thereafter.
 4. Hatch durations: common 30m, uncommon 2h, rare 8h, legendary 24h, mythical 48h.
@@ -114,7 +114,7 @@ Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-
 
 **Offer flow:**
 1. A public message is posted in the current channel: "{giver} wants to give {recipient} a [emoji]. accept?" with a jump link to the egg in the giver's thread.
-2. The recipient has two buttons: **Accept** and **Decline** (only they can click). The offer expires after 5 minutes.
+2. The recipient has two buttons: **Accept** and **Decline** (only they can click). The offer expires after 60 minutes.
 3. On **Accept**: the original thread message is deleted from the giver's thread, the egg (or creature) is reposted in the recipient's thread (created if they don't have one), and the DB is updated with the new `user_id` and `message_id`.
 4. On **Decline** or timeout: the offer message is edited to say so; no DB changes occur.
 
