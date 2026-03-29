@@ -156,7 +156,7 @@ def _build_member_leave_embed(
 
 @bot.listen()
 async def on_member_join(member: Member):
-    if member.guild.id not in config.valid_guilds or member.bot:
+    if member.guild.id not in config.valid_guilds:
         return
     embed = _build_member_join_embed(member)
     await _send_embed(member.guild.id, embed)
@@ -164,7 +164,7 @@ async def on_member_join(member: Member):
 
 @bot.listen()
 async def on_member_remove(member: Member):
-    if member.guild.id not in config.valid_guilds or member.bot:
+    if member.guild.id not in config.valid_guilds:
         return
     reason, actor = await _get_remove_reason(member.guild, member.id)
     embed = _build_member_leave_embed(member, reason=reason, actor=actor)
@@ -173,7 +173,7 @@ async def on_member_remove(member: Member):
 
 @bot.listen()
 async def on_member_ban(guild: Guild, user: User | Member):
-    if guild.id not in config.valid_guilds or user.bot:
+    if guild.id not in config.valid_guilds:
         return
     embed = make_embed(
         'Member Banned',
@@ -187,7 +187,7 @@ async def on_member_ban(guild: Guild, user: User | Member):
 
 @bot.listen()
 async def on_member_unban(guild: Guild, user: User):
-    if guild.id not in config.valid_guilds or user.bot:
+    if guild.id not in config.valid_guilds:
         return
     embed = make_embed(
         'Member Unbanned',

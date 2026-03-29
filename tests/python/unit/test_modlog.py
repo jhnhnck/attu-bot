@@ -145,7 +145,7 @@ class TestMemberLogs:
         embed = logs_channel.send.call_args[1]['embed']
         assert embed.title == 'Member Joined'
 
-    async def test_member_join_skips_bots(self, guild_with_logs):
+    async def test_member_join_bot_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_join
 
         member = _make_member(bot=True)
@@ -154,7 +154,9 @@ class TestMemberLogs:
         with patch('attubot.client.modlog._get_logs_channel', return_value=logs_channel):
             await on_member_join(member)
 
-        logs_channel.send.assert_not_called()
+        logs_channel.send.assert_called_once()
+        embed = logs_channel.send.call_args[1]['embed']
+        assert embed.title == 'Member Joined'
 
     async def test_member_leave_sends_embed(self, guild_with_logs):
         from attubot.client.modlog import on_member_remove
