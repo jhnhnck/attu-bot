@@ -161,8 +161,7 @@ async def egg_command(ctx: ApplicationContext):
     )
     if result == 'cooldown':
         assert remaining is not None  # noqa: S101 - guaranteed by cooldown sentinel
-        mins, secs = divmod(int(remaining), 60)
-        await ctx.respond(f'try again in {mins}m {secs}s', ephemeral=True)
+        await ctx.respond(f'try again <t:{int(remaining)}:R>', ephemeral=True)
         return
 
     await ctx.respond(f'you received an egg: {result}')

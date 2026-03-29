@@ -118,7 +118,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     """Collect an egg for a user.
 
     Returns (jump_url, None) on success.
-    Returns ('cooldown', remaining_seconds) when the user is still on cooldown.
+    Returns ('cooldown', ready_at) when the user is still on cooldown (ready_at is a unix timestamp).
     """
     cooldown = 15 * 60  # 900 seconds
     now = time.time()
@@ -127,8 +127,8 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     if user_doc and user_doc.last_collected_at > 0:
         elapsed = now - user_doc.last_collected_at
         if elapsed < cooldown:
-            remaining = cooldown - elapsed
-            return ('cooldown', remaining)
+            ready_at = user_doc.last_collected_at + cooldown
+            return ('cooldown', ready_at)
 
     # roll rarity
     rarity = random.choices(rarities, weights=drop_weights, k=1)[0]

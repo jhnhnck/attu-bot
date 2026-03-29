@@ -147,7 +147,7 @@ class TestCollectEgg:
 
         assert result == 'cooldown'
         assert remaining is not None
-        assert remaining > 0
+        assert remaining > time.time()  # ready_at is a future unix timestamp
 
     async def test_cooldown_expired_succeeds(self):
         """user collected 1000s ago - cooldown has elapsed"""
@@ -505,13 +505,15 @@ class TestEggCommands:
         assert 'discord.com' in self.ctx._responses[0]['args'][0]
 
     async def test_egg_command_cooldown(self):
-        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('cooldown', 300.0))):
+        ready_at = time.time() + 300
+        with patch('attubot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('cooldown', ready_at))):
             from attubot.commands.eggs import egg_command
 
             await egg_command(self.ctx)
 
         assert self.ctx._responses[0]['kwargs'].get('ephemeral') is True
         assert 'try again' in self.ctx._responses[0]['args'][0]
+        assert f'<t:{int(ready_at)}:R>' in self.ctx._responses[0]['args'][0]
 
     async def test_egg_command_unauthorized(self, mock_ctx_factory):
         ctx = mock_ctx_factory()
