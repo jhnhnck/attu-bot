@@ -14,12 +14,37 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
+from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 import pytest
 
 from attubot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
+
+
+def _make_mock_view_repo():
+    """build a mock WikiViewRepository"""
+    repo = MagicMock()
+    repo.upsert = AsyncMock()
+    repo.get = AsyncMock(return_value=None)
+    repo.delete = AsyncMock()
+    return repo
+
+
+@contextmanager
+def _patch_wiki_multi(mock_wiki, mock_view_repo=None):
+    """patch context for multi-result wiki tests"""
+    if mock_view_repo is None:
+        mock_view_repo = _make_mock_view_repo()
+    mock_bot = MagicMock()
+    mock_bot.add_view = MagicMock()
+    with (
+        patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki),
+        patch('attubot.commands.wiki._wiki_view_repo', mock_view_repo),
+        patch('attubot.commands.wiki.bot', mock_bot),
+    ):
+        yield mock_bot
 
 
 def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSummary | None = None, title_pages: list[dict] | None = None):
@@ -96,11 +121,13 @@ class TestWikiLookupCommand:
             summary=summary,
         )
 
-        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with _patch_wiki_multi(mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
-        call_kwargs = mock_ctx._responses[0]['kwargs']
-        view = call_kwargs['view']
+        # multi-result: view is attached via message.edit, not the initial respond
+        message = await mock_ctx.interaction.original_response()
+        message.edit.assert_called_once()
+        view = message.edit.call_args.kwargs['view']
         assert view is not None
         non_link_buttons = [c for c in view.children if isinstance(c, discord.ui.Button) and c.style != discord.ButtonStyle.link]
         labels = [b.label for b in non_link_buttons if b.label is not None]
@@ -151,7 +178,7 @@ class TestWikiLookupCommand:
             summary=summary,
         )
 
-        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with _patch_wiki_multi(mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         mock_wiki.pages.get_summary.assert_called_once_with('Test Page')
@@ -200,7 +227,7 @@ class TestWikiLookupCommand:
             summary=summary,
         )
 
-        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with _patch_wiki_multi(mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         mock_wiki.pages.get_summary.assert_called_once_with('Title Match')
@@ -220,12 +247,13 @@ class TestWikiLookupCommand:
             summary=summary,
         )
 
-        with patch('attubot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with _patch_wiki_multi(mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         # only 2 unique pages - no duplicate of 'Shared Page'
-        call_kwargs = mock_ctx._responses[0]['kwargs']
-        view = call_kwargs['view']
+        # multi-result: view is attached via message.edit
+        message = await mock_ctx.interaction.original_response()
+        view = message.edit.call_args.kwargs['view']
         assert len(view._pages) == 2
 
     @pytest.mark.asyncio

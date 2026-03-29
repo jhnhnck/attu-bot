@@ -8,24 +8,39 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import asyncio
 import contextlib
 import re
+import time
+from typing import TYPE_CHECKING
 
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
-from attubot import config
+from attubot import bot, config
 from attubot.client.embeds import make_embed
 from attubot.client.util import is_authorized_guild
+from attubot.database.models import WikiViewDocument
 from attubot.logging import get_logger
 from attubot.wiki import get_wiki
 from attubot.wiki.models import PageSummary, SearchResult, SiteInfo
+
+if TYPE_CHECKING:
+    from attubot.database.repositories import WikiViewRepository
 
 
 # embed description is capped at 4096 chars; leave room for ellipsis
 _EMBED_DESC_LIMIT = 4000
 
-# view timeout in seconds (30 minutes)
+# view timeout in seconds (30 minutes); used for expires_at ttl
 _VIEW_TIMEOUT = 1800
+
+# module-level repo singleton; wired in by database/__init__.py
+_wiki_view_repo: 'WikiViewRepository | None' = None
+
+
+def _get_view_repo() -> 'WikiViewRepository':
+    if _wiki_view_repo is None:
+        raise RuntimeError('wiki view repo not initialized')
+    return _wiki_view_repo
 
 
 def build_wiki_embed(summary: PageSummary, site_info: SiteInfo) -> tuple[discord.Embed, str]:
@@ -57,19 +72,20 @@ class WikiLinkView(discord.ui.View):
 
 
 class WikiLookupView(discord.ui.View):
-    """paginated view for cycling through wiki search results"""
+    """paginated view for cycling through wiki search results - persistent across reboots"""
 
-    def __init__(self, ctx: ApplicationContext, pages: list[SearchResult], site_info: SiteInfo, initial_embed: discord.Embed, initial_url: str):
-        super().__init__(timeout=_VIEW_TIMEOUT)
-        self._ctx = ctx
+    def __init__(self, message_id: int, invoker_user_id: int, pages: list[SearchResult], site_info: SiteInfo, initial_embed: discord.Embed, initial_url: str, current_index: int = 0):
+        super().__init__(timeout=None)
+        self._message_id = message_id
+        self._invoker_user_id = invoker_user_id
         self._pages = pages
         self._site_info = site_info
-        self._index = 0
+        self._index = current_index
         self._current_url = initial_url
         self._current_embed = initial_embed
         self._build_buttons()
 
-    def _build_buttons(self):
+    def _build_buttons(self) -> None:
         """clear and rebuild buttons for the current state"""
         self.clear_items()
 
@@ -82,6 +98,7 @@ class WikiLookupView(discord.ui.View):
                 label='Previous',
                 style=discord.ButtonStyle.secondary,
                 disabled=self._index == 0,
+                custom_id=f'wiki_prev_{self._message_id}',
                 row=0,
             )
             prev_btn.callback = self._prev_callback
@@ -91,23 +108,25 @@ class WikiLookupView(discord.ui.View):
                 label=f'Next ({self._index + 1}/{total})',
                 style=discord.ButtonStyle.primary,
                 disabled=self._index >= total - 1,
+                custom_id=f'wiki_next_{self._message_id}',
                 row=0,
             )
             next_btn.callback = self._next_callback
             self.add_item(next_btn)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self._ctx.user.id:
+        if interaction.user.id != self._invoker_user_id:
             await interaction.response.send_message("those aren't yours to press <:rockball:1308981475114225694>", ephemeral=True)
             return False
         return True
 
-    async def on_timeout(self):
-        self.disable_all_items()
+    async def cleanup(self) -> None:
+        """remove from db and disable buttons"""
         with contextlib.suppress(Exception):
-            await self.message.edit(view=self)
+            await _get_view_repo().delete(self._message_id)
+        self.disable_all_items()
 
-    async def _fetch_and_update(self, interaction: discord.Interaction):
+    async def _fetch_and_update(self, interaction: discord.Interaction) -> None:
         """fetch the summary for the current index and update the message"""
         await interaction.response.defer()
         wiki = get_wiki()
@@ -120,13 +139,22 @@ class WikiLookupView(discord.ui.View):
 
         self._current_embed, self._current_url = build_wiki_embed(summary, self._site_info)
         self._build_buttons()
+
+        # persist updated index
+        with contextlib.suppress(Exception):
+            repo = _get_view_repo()
+            doc = await repo.get(self._message_id)
+            if doc:
+                doc.current_index = self._index
+                await repo.upsert(doc)
+
         await interaction.edit_original_response(embed=self._current_embed, view=self)
 
-    async def _prev_callback(self, interaction: discord.Interaction):
+    async def _prev_callback(self, interaction: discord.Interaction) -> None:
         self._index -= 1
         await self._fetch_and_update(interaction)
 
-    async def _next_callback(self, interaction: discord.Interaction):
+    async def _next_callback(self, interaction: discord.Interaction) -> None:
         self._index += 1
         await self._fetch_and_update(interaction)
 
@@ -190,8 +218,32 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
     if len(pages) == 1:
         await ctx.respond(embed=embed, view=WikiLinkView(url))
     else:
-        view = WikiLookupView(ctx, pages, site_info, embed, url)
-        await ctx.respond(embed=embed, view=view)
+        # respond first to get the message id, then attach the persistent view
+        await ctx.respond(embed=embed)
+        message = await ctx.interaction.original_response()
+        message_id = message.id
+
+        view = WikiLookupView(message_id, ctx.user.id, pages, site_info, embed, url)
+
+        if ctx.guild_id is None or ctx.channel_id is None:
+            await ctx.respond('Failed: this command must be used in a server', ephemeral=True)
+            return
+
+        repo = _get_view_repo()
+        await repo.upsert(WikiViewDocument(
+            message_id=message_id,
+            guild_id=ctx.guild_id,
+            channel_id=ctx.channel_id,
+            invoker_user_id=ctx.user.id,
+            query=query,
+            current_index=0,
+            page_titles=[p.title for p in pages],
+            page_keys=[p.key for p in pages],
+            expires_at=time.time() + _VIEW_TIMEOUT,
+        ))
+
+        await message.edit(view=view)
+        bot.add_view(view, message_id=message_id)
 
 
 # --- Wiki Admin Commands ---

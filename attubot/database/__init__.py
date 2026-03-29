@@ -21,6 +21,7 @@ from attubot.database.models import (
     StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
+    WikiViewDocument,
     YearDocument,
     YearMarkerDocument,
 )
@@ -35,6 +36,7 @@ from attubot.database.repositories import (
     MessageRepository,
     ReloadSignalRepository,
     StarboardRepository,
+    WikiViewRepository,
     YearMarkerRepository,
     YearRepository,
 )
@@ -111,6 +113,9 @@ async def init_database(url: str, name: str):
     egg_user_repo = EggUserRepository(database)
     await _try_init_indexes(egg_user_repo, 'egg_user')
 
+    wiki_view_repo = WikiViewRepository(database)
+    await _try_init_indexes(wiki_view_repo, 'wiki_view')
+
     import attubot.client.families as _families
     import attubot.client.markers as _markers
     import attubot.client.messages as _messages
@@ -126,9 +131,11 @@ async def init_database(url: str, name: str):
     _starboard._starboard_repo = starboard_repo
 
     import attubot.eggs.hatching as _hatching
+    import attubot.commands.wiki as _wiki
 
     _hatching._egg_repo = egg_repo
     _hatching._egg_user_repo = egg_user_repo
+    _wiki._wiki_view_repo = wiki_view_repo
 
     # wire chat repos into config so on_load() can use them
     config.chat_config_repo = chat_config_repo
@@ -160,6 +167,8 @@ __all__ = [
     'StarredMessageDocument',
     'SystemConfigDocument',
     'ThemeDocument',
+    'WikiViewDocument',
+    'WikiViewRepository',
     'YearDocument',
     'YearMarkerDocument',
     'YearMarkerRepository',

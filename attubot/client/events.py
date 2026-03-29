@@ -96,6 +96,34 @@ async def _do_ready_init():
         await _shutdown(exit_code=0)
         return
 
+    # restore persistent wiki lookup views from db
+    try:
+        from attubot.commands.wiki import WikiLookupView, _get_view_repo, build_wiki_embed
+        from attubot.wiki import get_wiki
+        from attubot.wiki.models import PageSummary, SearchResult
+
+        repo = _get_view_repo()
+        deleted = await repo.delete_expired()
+        if deleted:
+            logger.info(f'purged {deleted} expired wiki view documents')
+
+        active = await repo.all_active()
+        if active:
+            wiki = get_wiki()
+            site_info = await wiki.search.site_info()
+            for doc in active:
+                pages = [SearchResult(title=t, key=k) for t, k in zip(doc.page_titles, doc.page_keys)]
+                page = pages[doc.current_index]
+                summary = await wiki.pages.get_summary(page.title) or PageSummary(title=page.title, extract='')
+                embed, url = build_wiki_embed(summary, site_info)
+                view = WikiLookupView(doc.message_id, doc.invoker_user_id, pages, site_info, embed, url, doc.current_index)
+                bot.add_view(view, message_id=doc.message_id)
+            logger.info(f'restored {len(active)} persistent wiki views')
+    except RuntimeError:
+        pass  # repo not initialized (should not happen here)
+    except Exception as err:
+        logger.warn(f'wiki view restore failed: {err}')
+
     # start task scheduler
     try:
         from attubot.tasks import scheduler
