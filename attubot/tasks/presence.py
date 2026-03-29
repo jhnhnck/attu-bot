@@ -47,7 +47,7 @@ class PresenceUpdateTask(BaseTask):
         count = await _egg_repo.count_hatched()
         await bot.change_presence(activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name=f'{count} eggs hatch',
+            name=f'{count} eggs hatched',
         ))
 
 
