@@ -150,7 +150,7 @@ class EggSelectView(discord.ui.View):
 async def egg_command(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -171,7 +171,7 @@ async def egg_command(ctx: ApplicationContext):
 async def eggs_hatch(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -190,7 +190,7 @@ async def eggs_hatch(ctx: ApplicationContext):
 async def eggs_view(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -213,7 +213,7 @@ async def eggs_view(ctx: ApplicationContext):
 async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str | None = None):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -278,7 +278,7 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str |
 async def eggs_progress(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -309,7 +309,7 @@ async def eggs_progress(ctx: ApplicationContext):
 async def eggs_leaderboard(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -337,6 +337,12 @@ async def eggs_leaderboard(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    logger.info(f'registered: {__name__}')
+    active_guilds = [gid for gid, gcfg in config.guilds.items() if gcfg.eggs_active]
+    if not active_guilds:
+        logger.info('eggs commands: no active guilds, skipping registration')
+        return
+    egg_command.guild_ids = active_guilds
+    eggs_group.guild_ids = active_guilds
+    logger.info(f'registered: {__name__} for guilds {active_guilds}')
     bot.add_application_command(cast(ApplicationCommand, egg_command))
     bot.add_application_command(cast(ApplicationCommand, eggs_group))

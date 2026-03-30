@@ -288,6 +288,7 @@ async function loadGuildConfig(guildId) {
         populateField('channels.meta_chat', data.channels.meta_chat);
         populateField('channels.general', data.channels.general);
         populateField('channels.logs', data.channels.logs);
+        populateField('channels.eggs', data.channels.eggs);
 
         // Use resolved channel names for display
         initListField('lore_channels', data.channels.lore_channels, data.channels.lore_channels_names);

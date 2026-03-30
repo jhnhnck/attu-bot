@@ -1207,6 +1207,7 @@ class TestHatchTask:
     def setup(self):
         with (
             patch('attubot.tasks.hatching.config') as mock_config,
+            patch('attubot.tasks.hatching.bot') as mock_bot,
             patch('attubot.tasks.hatching.ensure_eggs_ready', new=AsyncMock()) as mock_ensure,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
@@ -1214,7 +1215,9 @@ class TestHatchTask:
 
             mock_config.timezone = zoneinfo.ZoneInfo('UTC')
             mock_config.config_repo = AsyncMock()
+            mock_bot.sync_commands = AsyncMock()
             self.mock_config = mock_config
+            self.mock_bot = mock_bot
             self.mock_ensure = mock_ensure
             self.mock_add_job = mock_add_job
             yield
@@ -1244,6 +1247,8 @@ class TestHatchTask:
             await hatch_task.run()
 
         self.mock_config.config_repo.update_guild_field.assert_called_once_with(test_guild, 'eggs_active', True)
+        self.mock_bot.reload_extension.assert_called_once_with('attubot.commands.eggs')
+        self.mock_bot.sync_commands.assert_called_once()
         self.mock_ensure.assert_called_once()
         self.mock_add_job.assert_called_once()
 
@@ -1256,8 +1261,10 @@ class TestHatchTask:
             self.mock_config.primary.return_value = MagicMock(eggs_active=True)
             await hatch_task.run()
 
-        # flag already set - no db write
+        # flag already set - no db write or command re-registration
         self.mock_config.config_repo.update_guild_field.assert_not_called()
+        self.mock_bot.reload_extension.assert_not_called()
+        self.mock_bot.sync_commands.assert_not_called()
         self.mock_ensure.assert_called_once()
         self.mock_add_job.assert_called_once()
 

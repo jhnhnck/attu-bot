@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import timedelta
 
-from attubot import config
+from attubot import bot, config
 from attubot.eggs.hatching import ensure_eggs_ready, hatch_date
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
@@ -43,6 +43,8 @@ class HatchTask(BaseTask):
             logger.info(f'hatch task: activating eggs for hatch day {hatch_date(today.year)}')
             guild_cfg.eggs_active = True
             await config.config_repo.update_guild_field(guild_cfg.id, 'eggs_active', True)
+            bot.reload_extension('attubot.commands.eggs')
+            await bot.sync_commands()
 
         if not guild_cfg.eggs_active:
             logger.debug(f'hatch task: eggs not active (today={today})')
