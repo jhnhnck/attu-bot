@@ -6,7 +6,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ## tasks
 
-### meta
+### self
 
 - `medium priority` `low effort` assign any to-dos without an effort or category; update priorities; move completed and sort all
 - `medium priority` `low effort` run docker tests with --coverage flag; update coverage in second section; update testing to-dos with gaps

@@ -40,7 +40,7 @@ wip/
 
 # editor
 .vscode/*
-.claude/
+.claude/settings.local.json
 
 # docker prod/dev split
 docker-compose.yml
