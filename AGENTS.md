@@ -20,6 +20,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 1. Do not edit the rules.
 1. Do not perform any interactions with Discord without asking.
 1. All noqa comments must include a valid reason
+1. Check the current time at the start of each conversation. If it is past 12:30 AM ET, suggest a natural stopping point before continuing any task.
 
 ## Architecture
 
@@ -330,4 +331,4 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 
 # Metadata
 
-- Last Updated: 29 March 2026
+- Last Updated: 30 March 2026
