@@ -132,7 +132,7 @@ if __name__ == '__main__':
     skip_tests: bool = args.no_tests
 
     # count total steps up front
-    total = 4  # branch check, stash dev, version bump, commit+tag
+    total = 5  # branch check, new commits check, stash dev, version bump, commit+tag
     if not skip_tests:
         total += 1  # dev tests
     if do_deploy:
@@ -150,7 +150,15 @@ if __name__ == '__main__':
         abort(f"must be on the dev branch (currently on '{branch}')")
     print(colored('  on dev', 'green'))
 
-    # --- 2. stash dev changes if dirty ---
+    # --- 2. check dev has commits not in trunk ---
+    n += 1
+    header(n, total, 'checking for new commits')
+    new_commits = git_cmd(['log', 'trunk..dev', '--oneline'])
+    if not new_commits:
+        abort('dev has no new commits ahead of trunk - nothing to deploy')
+    print(colored(f'  {len(new_commits.splitlines())} commit(s) ahead of trunk', 'green'))
+
+    # --- 3. stash dev changes if dirty ---
     n += 1
     header(n, total, 'stashing dev changes')
     dev_status = git_cmd(['status', '--porcelain'])
