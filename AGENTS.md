@@ -277,6 +277,7 @@ See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree
 Notes in `notes/` with relevant implementation details:
 
 **`notes/style/`** - conventions and usage patterns
+- [`commit_style.md`](notes/style/commit_style.md) - commit message format, types, and tone
 - [`comment_style.md`](notes/style/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
 - [`message_style.md`](notes/style/message_style.md) - log message and Discord response style (tone, capitalization, error format, custom emojis)
 - [`embed_usage.md`](notes/style/embed_usage.md) - discord embed construction and field usage
