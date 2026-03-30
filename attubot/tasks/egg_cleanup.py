@@ -67,6 +67,8 @@ class EggCleanupTask(BaseTask):
                     break
                 if message.id in egg_message_ids:
                     continue
+                if message.reactions:
+                    continue
                 try:
                     await message.delete()
                     total_deleted += 1
