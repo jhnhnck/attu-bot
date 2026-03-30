@@ -33,12 +33,9 @@ class PresenceUpdateTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
-        from datetime import datetime
+        from attubot.eggs.hatching import _egg_repo
 
-        from attubot.eggs.hatching import _egg_repo, hatch_date
-
-        today = datetime.now(tz=config.timezone).date()
-        if today < hatch_date(today.year) - timedelta(days=7):
+        if not config.primary().eggs_active:
             return
 
         if _egg_repo is None:
