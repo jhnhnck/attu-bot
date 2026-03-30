@@ -1122,6 +1122,15 @@ class EggUserRepository:
             upsert=True,
         )
 
+    async def list_all(self, guild_id: int) -> list[EggUserDocument]:
+        """Return all egg user documents for a guild"""
+        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id})
+        docs = []
+        async for doc in cursor:
+            doc.pop('_id', None)
+            docs.append(EggUserDocument(**doc))
+        return docs
+
 
 class WikiViewRepository:
     """Repository for persistent wiki lookup view state"""
