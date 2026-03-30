@@ -33,6 +33,17 @@ logger = get_logger(__name__)
 # --- Fun Commands ---
 
 
+@discord.slash_command(name='color', description='Shows the current bot theme color')
+async def command_color(ctx: ApplicationContext):
+    if not config.theme:
+        await ctx.respond('Failed: no theme color configured', ephemeral=True)
+        return
+
+    hex_color = config.theme.bot_color
+    embed = make_embed('Bot Color', description=f'`{hex_color}`')
+    await ctx.respond(embed=embed)
+
+
 @discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
 async def command_pong(ctx: ApplicationContext):
     async def wait_random():
@@ -340,6 +351,7 @@ async def debug_progress_bar(ctx: ApplicationContext):
 def setup(bot: Bot):
     logger.info(f'registered: {__name__}')
 
+    bot.add_application_command(cast(ApplicationCommand, command_color))
     bot.add_application_command(cast(ApplicationCommand, command_pong))
     # bot.add_application_command(cast(ApplicationCommand, command_test))
     bot.add_application_command(debug_group)
