@@ -337,7 +337,7 @@ async def eggs_leaderboard(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    active_guilds = list(config.guilds.keys())
+    active_guilds = list(config.authorized_guilds)
     egg_command.guild_ids = active_guilds
     eggs_group.guild_ids = active_guilds
     logger.info(f'registered: {__name__} for guilds {active_guilds}')
