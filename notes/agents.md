@@ -63,7 +63,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
 
 ### package: `attubot/eggs/`
-Egg collection mini-game. Commands are always active.
+Egg collection mini-game.
 
 | File | Role |
 |---|---|

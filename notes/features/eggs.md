@@ -6,7 +6,7 @@ Reference for the egg collection mini-game - behavior rules, storage schema, key
 
 ## Overview
 
-An egg collection mini-game. Players can run `/egg` to collect eggs that hatch into random creatures over time. Slash commands are in `attubot/commands/eggs.py` and always active.
+An egg collection mini-game. Players can run `/egg` to collect eggs that hatch into random creatures over time. Slash commands are in `attubot/commands/eggs.py`.
 
 ---
 
@@ -86,7 +86,7 @@ The task does nothing on non-hatch-day dates.
 
 ## Commands
 
-Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-loaded at startup and always active.
+Slash commands are defined in `attubot/commands/eggs.py`.
 
 | Command | Purpose |
 |---|---|
@@ -169,7 +169,7 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 1. Run `/fix eggs generate` once in the secondary (emoji) server to create the five custom emojis and store their IDs.
 2. Run `/fix emoji progress` once in the secondary (emoji) server to upload the six progress bar segment emojis and store their IDs.
 3. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. No manual setup required.
-4. All egg commands are always registered. Use `/debug eggs preview` to test the animation any time.
+4. Use `/debug eggs preview` to test the animation any time.
 
 ---
 
