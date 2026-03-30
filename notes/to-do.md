@@ -13,6 +13,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` add more stats to web interface
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
+- `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
 
 ### eggs
 
@@ -38,6 +39,23 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
 
+### chat / ask
+
+- ⭕ `high priority` `low effort` remove `is_bot_owner` guard on `/ask` before public release (`commands/chat.py:109`)
+- ⭕ `high priority` `medium effort` add Qdrant + ingestor services to docker-compose; deploy Phase 1 foundation
+- ⭕ `high priority` `medium effort` complete wiki ingestion pipeline and validate retrieval quality before moving to Phase 2
+- ⭕ `medium priority` `high effort` implement Discord ingestion pipeline - reply chain traversal, time-window grouping, and Claude Haiku summarization (Phase 2)
+- ⭕ `medium priority` `low effort` add `llm_api_key` to `ChatConfig`; wire as Bearer token in `LLMClient` for both llama-server instances (Phase 2)
+- ⭕ `medium priority` `high effort` implement PDF/DOCX document ingestion pipeline with shared volume watching (Phase 3)
+- ⭕ `medium priority` `high effort` implement image captioning pipeline via Claude Haiku vision (Phase 3)
+- ⭕ `medium priority` `medium effort` add `/fix chat forget` - chunk search, confirmation embed, Qdrant hard delete, `chat_sources` flagging (Phase 4)
+- ⭕ `medium priority` `low effort` add `/debug chat status` - Qdrant collection sizes, last ingest times, pending queue depth (Phase 4)
+- ⭕ `medium priority` `medium effort` wire LLM failover - 30s timeout then failover from desktop GPU to server CPU (Phase 4)
+- ⭕ `low priority` `medium effort` wire `/wiki lookup` to query Qdrant in addition to MediaWiki search
+- ⭕ `low priority` `low effort` wire `on_raw_message_delete` to mark the owning `chat_sources` record as stale
+- ⭕ `low priority` `medium effort` split up `command_ask` into smaller functions - currently flagged by PLR0912/PLR0915 (`commands/chat.py:112`)
+- ⭕ `future idea` `low effort` display image URLs in `/ask` responses; `file_path` already stored in Qdrant payload, ready to swap in
+
 ### moderation / logging
 
 - ⭕ `medium priority` `medium effort` add kick, ban, and timeout commands
@@ -59,8 +77,12 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `low priority` `low effort` add progress bars to run_tests.py
 - ⭕ `low priority` `low effort` change backfill task to debug logging; report start and end only
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
+- ⭕ `low priority` `low effort` investigate unifying stored date types under one class (`config.py:108`)
+- ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
+- ⭕ `low priority` `low effort` add a `once` run option to `BaseTask` (`tasks/base.py:19`)
 - ⭕ `low priority` `medium effort` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
 - ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
+- ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 
 ### testing
