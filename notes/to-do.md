@@ -1,4 +1,4 @@
-# to-do
+# general doom bot to-do list
 
 _see the [meta](#meta) section at the end of this file for format reference._
 

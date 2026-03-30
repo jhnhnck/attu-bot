@@ -68,6 +68,7 @@ class EggCleanupTask(BaseTask):
                 if message.id in egg_message_ids:
                     continue
                 if message.reactions:
+                    logger.debug(f'egg cleanup: skipping message {message.id} (has reactions)')
                     continue
                 try:
                     await message.delete()
