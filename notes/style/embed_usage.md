@@ -249,3 +249,11 @@ Useful for caching, logging, or constructing embeds from stored templates.
 
 - [Pycord v2.7 - `discord.Embed`](https://docs.pycord.dev/en/v2.7.0/api/data_classes.html#embed)
 - [Discord API - Embed Object](https://discord.com/developers/docs/resources/message#embed-object)
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

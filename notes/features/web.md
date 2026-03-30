@@ -225,3 +225,11 @@ return jsonify({'success': True, 'message': 'Saved'})
 ```
 
 After a successful write: emit a signal if the bot needs to reload, then log to `audit_logger`.
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

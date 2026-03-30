@@ -102,3 +102,11 @@ three custom server emojis are in use, each with a distinct role:
 standard Discord emoji names (`:ballot_box_with_check:`, `:no_entry:`) are fine for simple status indicators in embeds.
 
 never place any emoji inside error reason text - only at the end of the top-level message string.
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

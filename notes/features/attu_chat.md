@@ -866,3 +866,11 @@ def mock_summarizer():
 - Add `/debug chat status` admin command
 - Wire LLM failover logic (desktop -> server fallback)
 - Optionally replace `/wiki lookup` search backend with Qdrant
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

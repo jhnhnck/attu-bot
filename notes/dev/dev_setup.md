@@ -64,3 +64,11 @@ The seed file is gitignored. Pass a custom path as the first argument if needed:
 ```bash
 bash scripts/create_dev_seed.sh /some/other/path/seed.archive
 ```
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

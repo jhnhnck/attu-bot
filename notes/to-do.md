@@ -281,6 +281,8 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 - **coverage** - latest test coverage; update by running tests with `--coverage` in docker
 - **meta** - this section; describes the doc format and holds recurring maintenance tasks
 
-## meta
+## metadata
 
-- Last Updated: 30 March 2026
+```yaml
+last_updated: 30 March 2026
+```

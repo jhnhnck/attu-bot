@@ -95,3 +95,11 @@ do not use other tag variations (`# HACK`, `# XXX`, etc.).
 - no commented-out code left in production files - use `wip/` for scratch work
 - no redundant file-header comments (the module docstring handles that)
 - no excessive decoration or ascii-art dividers
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

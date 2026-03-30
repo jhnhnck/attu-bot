@@ -29,6 +29,8 @@ feat(hatch): no more screaming snakes                          ← negative fram
 
 ## making a commit
 
+do not create commits unless explicitly asked to. finish the work first; ask if the scope is unclear.
+
 the working tree will often have changes from multiple tasks in progress at once. that's fine - deployment only happens from a clean tree, so intermediate states don't matter. the job is to pick out the hunks that belong together and commit them as one complete unit.
 
 **what makes a unit complete** depends on what it is:
@@ -41,3 +43,11 @@ the working tree will often have changes from multiple tasks in progress at once
 - **tests** - can go in with the feature they cover, or as a standalone commit filling coverage later. both are fine. if no tests are included, a to-do entry should be added in the test section,
 
 after a large feature commit, small `fix` or `patch` commits for issues that surface in use are normal and expected - don't try to anticipate everything upfront.
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

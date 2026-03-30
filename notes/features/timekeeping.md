@@ -111,3 +111,11 @@ See `haracalnde_date()` in `attubot/calendar.py`.
 | `attubot/commands/time.py` | `/time advance`, `/time pause`, `/time resume`, `/time dilate` |
 | `attubot/commands/year.py` | `/year check`, `/year link`, `/year search` |
 | `attubot/config.py` | `GuildEpoch` - Pydantic model that holds and validates epoch config |
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

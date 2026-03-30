@@ -159,3 +159,11 @@ window boundaries are unix timestamps (int). `before` is exclusive.
 | `/marker save <year> <link>` | override the marker for a channel+year with an exact link |
 | `/marker set <year> <snowflake>` | move the guild-level start timestamp for a year |
 | `/marker clear <year> <channel>` | delete the override for a channel+year |
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

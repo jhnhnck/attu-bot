@@ -147,3 +147,11 @@ Command files (`attubot/commands/`) can import `scheduler` at the top of the mod
 2. Call `scheduler.add_job(my_coro(...), 'Job', 'operation_name')` after responding to the user
 3. If additional context is needed (channel, user, guild), add it as extra parts: `scheduler.add_job(coro, 'Job', 'fix_messages', f'#{channel.name}')`
 4. Use the `Job` kind for maintenance operations; use the task's `BaseTask.name` as kind for out-of-cycle task triggers
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

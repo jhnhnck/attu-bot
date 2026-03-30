@@ -67,3 +67,11 @@ The general rule: if you mock a framework mechanism, write down what behavior th
 
 - Expand integration coverage by spinning up each Quart route group behind mocked dependencies instead of patching internals. The startup integration test currently covers the overall bot/web ready path and can serve as a template.
 - Consolidate any remaining heavy mocks into fixtures so additional suites can share them without duplicating setup code.
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

@@ -232,3 +232,11 @@ class MyView(discord.ui.View):
 - buttons require no special bot or server permissions
 - select menus take up all 5 slots in a row; buttons take 1 slot each
 - use `add_item()` on a view to add dynamically subclassed button instances instead of decorators
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

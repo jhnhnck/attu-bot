@@ -124,3 +124,11 @@ document: `StarredMessageDocument`
 | `total_reactions` | `int` | sum of all reaction counts (denormalized for queries) |
 
 key methods: `add_reaction`, `remove_reaction`, `get_by_starboard_message`, `get_random`, `set_starboard_message`, `leaderboard_most_stars`, `leaderboard_most_starred`, `leaderboard_most_given`
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```

@@ -172,3 +172,11 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 2. Run `/fix emoji progress` once in the secondary (emoji) server to upload the six progress bar segment emojis and store their IDs.
 3. The `#eggs` channel is created automatically when `HatchTask` detects hatch day. No manual setup required.
 4. `/eggs hatch`, `/egg`, `/eggs view`, and `/eggs progress` are only registered while the extension is loaded (hatch day onward for the season). Use `/debug eggs preview` to test the animation any time.
+
+---
+
+## metadata
+
+```yaml
+last_updated: 30 March 2026
+```
