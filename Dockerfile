@@ -65,6 +65,7 @@ COPY --chown=doom:doom ./attubot $DOOM_HOME/attubot
 COPY --chown=doom:doom ./assets/templates $DOOM_HOME/assets/templates
 COPY --chown=doom:doom ./assets/static $DOOM_HOME/assets/static
 COPY --chown=doom:doom ./assets/prompts $DOOM_HOME/assets/prompts
+COPY --chown=doom:doom ./assets/hatch.toml $DOOM_HOME/assets/hatch.toml
 
 # stamp version and build time into __init__.py from git-info stage
 COPY --from=git-info --chown=doom:doom /src/attubot/__init__.py $DOOM_HOME/attubot/__init__.py

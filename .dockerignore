@@ -9,6 +9,7 @@ assets/attu-bot.toml
 !assets/static/
 !assets/templates/
 !assets/prompts/
+!assets/hatch.toml
 backups/
 config/
 notes/
