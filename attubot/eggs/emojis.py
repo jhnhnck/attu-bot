@@ -8,7 +8,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import discord
 
 from attubot.client.logo import svg_to_png
-from attubot.eggs.data import rarities
 from attubot.logging import get_logger
 
 
@@ -34,10 +33,12 @@ async def ensure_egg_emojis(guild: discord.Guild) -> dict[str, discord.Emoji]:
 
     Returns a mapping of rarity -> Emoji.
     """
+    from attubot.client.core import config
+
     existing = {e.name: e for e in guild.emojis}
     result: dict[str, discord.Emoji] = {}
 
-    for rarity in rarities:
+    for rarity in config.hatch.rarities:
         key = f'{rarity}_egg'
         if key not in existing:
             logger.info(f'creating emoji {key} on guild {guild.id}')

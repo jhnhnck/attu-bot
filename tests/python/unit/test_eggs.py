@@ -130,6 +130,11 @@ class TestCollectEgg:
 
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
+            mock_config.hatch.tuning.collect_cooldown_seconds = 600
+            mock_config.hatch.rarities = ['common']
+            mock_config.hatch.drop_weights = [1]
+            mock_config.hatch.pools = {'common': ['🐣']}
+            mock_config.hatch.hatch_durations = {'common': 1800}
 
             result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
@@ -141,10 +146,12 @@ class TestCollectEgg:
         assert self.egg_user_repo.upsert.call_count == 2
 
     async def test_cooldown_active_raises(self):
-        """user collected 60s ago - still within 900s cooldown"""
+        """user collected 60s ago - still within 600s cooldown"""
         self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=time.time() - 60)
 
-        result, remaining = await collect_egg(test_guild, test_user, 'testuser')
+        with patch('attubot.eggs.hatching.config') as mock_config:
+            mock_config.hatch.tuning.collect_cooldown_seconds = 600
+            result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
         assert result == 'cooldown'
         assert remaining is not None
@@ -161,6 +168,11 @@ class TestCollectEgg:
 
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
+            mock_config.hatch.tuning.collect_cooldown_seconds = 600
+            mock_config.hatch.rarities = ['common']
+            mock_config.hatch.drop_weights = [1]
+            mock_config.hatch.pools = {'common': ['🐣']}
+            mock_config.hatch.hatch_durations = {'common': 1800}
 
             result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
@@ -249,8 +261,13 @@ class TestRunHatchAnimation:
         async def fake_sleep(t):
             sleep_calls.append(t)
 
-        with patch('attubot.eggs.hatching.asyncio') as mock_asyncio:
+        with (
+            patch('attubot.eggs.hatching.asyncio') as mock_asyncio,
+            patch('attubot.eggs.hatching.config') as mock_config,
+        ):
             mock_asyncio.sleep = AsyncMock(side_effect=fake_sleep)
+            mock_config.hatch.tuning.animation_wait_min = 10
+            mock_config.hatch.tuning.animation_wait_max = 15
 
             await run_hatch_animation(mock_message, '🐣', 'common')
 
@@ -664,7 +681,11 @@ class TestEmojis:
         mock_guild.emojis = []
         mock_guild.create_custom_emoji = AsyncMock(return_value=mock_emoji)
 
-        with patch('attubot.eggs.emojis.render_egg', new=AsyncMock(return_value=b'png')):
+        with (
+            patch('attubot.eggs.emojis.render_egg', new=AsyncMock(return_value=b'png')),
+            patch('attubot.client.core.config') as mock_config,
+        ):
+            mock_config.hatch.rarities = ['common', 'uncommon', 'rare', 'legendary', 'mythical']
             from attubot.eggs.emojis import ensure_egg_emojis
 
             result = await ensure_egg_emojis(mock_guild)
@@ -674,7 +695,7 @@ class TestEmojis:
 
     async def test_ensure_egg_emojis_reuses_existing(self):
         """emojis already on guild should not trigger create_custom_emoji"""
-        from attubot.eggs.data import rarities
+        rarities = ['common', 'uncommon', 'rare', 'legendary', 'mythical']
 
         existing = []
         for r in rarities:
@@ -686,9 +707,11 @@ class TestEmojis:
         mock_guild.emojis = existing
         mock_guild.create_custom_emoji = AsyncMock()
 
-        from attubot.eggs.emojis import ensure_egg_emojis
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.hatch.rarities = rarities
+            from attubot.eggs.emojis import ensure_egg_emojis
 
-        result = await ensure_egg_emojis(mock_guild)
+            result = await ensure_egg_emojis(mock_guild)
 
         assert len(result) == 5
         mock_guild.create_custom_emoji.assert_not_called()
@@ -1370,9 +1393,12 @@ class TestRunHatchAnimationExtra:
 
         with (
             patch('attubot.eggs.hatching.asyncio') as mock_asyncio,
+            patch('attubot.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
             mock_asyncio.sleep = AsyncMock()
+            mock_config.hatch.tuning.animation_wait_min = 10
+            mock_config.hatch.tuning.animation_wait_max = 15
             await run_hatch_animation(mock_message, '🐣', 'common')
 
         mock_add_job.assert_called_once()
@@ -1525,6 +1551,7 @@ class TestEggCleanupTask:
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
         ):
             mock_config.primary.return_value = MagicMock(id=test_guild)
+            mock_config.hatch.tuning.cleanup_cutoff_hours = 12
             self.mock_bot = mock_bot
             self.mock_config = mock_config
             self.egg_repo = mock_egg_repo

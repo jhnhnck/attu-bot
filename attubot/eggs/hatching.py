@@ -16,7 +16,6 @@ import discord
 from attubot.client.core import bot, config
 from attubot.database.models import EggDocument, EggUserDocument
 from attubot.database.repositories import EggRepository, EggUserRepository
-from attubot.eggs.data import drop_weights, hatch_durations, hatch_pools, rarities
 from attubot.logging import get_logger
 
 
@@ -120,7 +119,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     Returns (jump_url, None) on success.
     Returns ('cooldown', ready_at) when the user is still on cooldown (ready_at is a unix timestamp).
     """
-    cooldown = 10 * 60  # 600 seconds
+    cooldown = config.hatch.tuning.collect_cooldown_seconds
     now = time.time()
 
     user_doc = await _egg_user_repo.get(guild_id, user_id)
@@ -131,10 +130,10 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
             return ('cooldown', ready_at)
 
     # roll rarity
-    rarity = random.choices(rarities, weights=drop_weights, k=1)[0]
+    rarity = random.choices(config.hatch.rarities, weights=config.hatch.drop_weights, k=1)[0]
 
     # determine result (mythical is always dragon)
-    result = random.choice(hatch_pools[rarity])
+    result = random.choice(config.hatch.pools[rarity])
 
     # ensure thread exists
     thread = await get_or_create_user_thread(guild_id, user_id, username)
@@ -150,7 +149,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
         user_id=user_id,
         rarity=rarity,
         collected_at=now,
-        hatches_at=now + hatch_durations[rarity],
+        hatches_at=now + config.hatch.hatch_durations[rarity],
         result=result,
         message_id=msg.id,
     )
@@ -174,7 +173,7 @@ async def run_hatch_animation(message: discord.Message, result: str, rarity: str
       2. edit to 💢 for 1 second
       3. edit to result emoji
     """
-    wait_time = random.randint(10, 15)
+    wait_time = random.randint(config.hatch.tuning.animation_wait_min, config.hatch.tuning.animation_wait_max)
     await asyncio.sleep(wait_time)
     await message.edit(content='💢')
     await asyncio.sleep(1)

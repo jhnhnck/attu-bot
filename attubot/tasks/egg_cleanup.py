@@ -25,11 +25,12 @@ class EggCleanupTask(BaseTask):
     """
 
     name: str = 'EggCleanupTask'
-    interval: timedelta | None = timedelta(hours=6)
+    interval: timedelta | None = timedelta(hours=6)  # overridden in on_start() from hatch.toml
     run_immediately: bool = False
 
     async def on_start(self) -> None:
         await config.wait_for_ready()
+        self.interval = timedelta(hours=config.hatch.tuning.cleanup_interval_hours)
 
     async def run(self) -> None:
         guild_cfg = config.primary()
@@ -41,7 +42,7 @@ class EggCleanupTask(BaseTask):
         # local imports to avoid circular deps with tasks/__init__.py
         from attubot.eggs.hatching import _egg_repo, _egg_user_repo
 
-        cutoff = datetime.now(tz=UTC) - timedelta(hours=12)
+        cutoff = datetime.now(tz=UTC) - timedelta(hours=config.hatch.tuning.cleanup_cutoff_hours)
         user_docs = await _egg_user_repo.list_all(guild_cfg.id)
         total_deleted = 0
 

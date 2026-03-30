@@ -17,19 +17,16 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### eggs / hatch game
 
-- ⭕ `medium priority` `low effort` `on_message_delete` doesn't check the audit log during egg channel cleanup - check audit log to distinguish bot-initiated cleanup deletes from user/mod deletes
-- ⭕ `medium priority` `low effort` split /eggs leaderboard into two separate commands: one for most hatched total, one for most complete set
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
-- ⭕ `medium priority` `medium effort` create `eggs.toml` for egg game tuning; load hatch durations, drop weights, collect cooldown, animation wait range, cleanup interval and cutoff from it instead of hardcoding in `eggs/data.py`, `eggs/hatching.py`, and `tasks/egg_cleanup.py`
-- ⭕ `medium priority` `medium effort` make hatch spawn pools data-driven from `eggs.toml`; move all rarity pools and the rarities list out of `eggs/data.py` so creatures can be added or removed without code changes
+- ⭕ `medium priority` `low effort` remove any remaining references to egg/hatch season or date
 
 ### starboard
 
+- ⭕ `medium priority` `low effort` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
 - ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
-- ⭕ `low priority` `high effort` audit starboard; learn from our mistakes to mould a better more fault tolerant, resillent system
 
 ### wiki
 
@@ -65,22 +62,32 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### maintenance
 
-- ⭕ `medium priority` `medium effort` analyze the coverage report below, then audit what code we're missing and if it needs to have test cases
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` we use hard-coded custom emojis in a lot of the responses; centralize this into one place; already storing some emoji ids with the theme
-- ⭕ `medium priority` `high effort` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
-- ⭕ `medium priority` `high effort` audit event-driven tasks and code; identify design improvements and best practices gaps
+- ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
+- ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
 - ⭕ `low priority` `medium effort` update run_tests.py to match the polish of deploy.py - better output, progress bars, clear pass/fail summary
 - ⭕ `low priority` `low effort` add progress bars to run_tests.py
 - ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
-- ⭕ `low priority` `low effort` investigate unifying stored date types under one class (`config.py:108`)
+- ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `low priority` `low effort` add a `once` run option to `BaseTask` (`tasks/base.py:19`)
 - ⭕ `low priority` `medium effort` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
-- ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
 - ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
+
+### code audits
+
+- `low effort` scan for security issues and vulnerabilities; check for OWASP top 10, injection risks, auth gaps, and insecure dependencies
+- ⭕ `medium priority` `high effort` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
+- ⭕ `medium priority` `high effort` audit event-driven tasks and code; identify design improvements and best practices gaps
+- ⭕ `medium priority` `medium effort` analyze the coverage report below, then audit what code we're missing and if it needs to have test cases
+- ⭕ `medium priority` `medium effort` assess whether `NovaConfig` should be split into a sub-package with separate classes for guild, global, theme, hatch game, etc
+- ⭕ `low priority` `high effort` audit starboard; learn from our mistakes to mould a better more fault tolerant, resilient system
+- ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
+- ⭕ `low priority` `low effort` audit codebase for non-standard or inconsistent terminology and decide whether to standardize
+- ⭕ `low priority` `low effort` investigate unifying stored date types under one class (`config.py:108`)
 
 ### testing
 
@@ -94,6 +101,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `high effort` add tests for ingestor pipeline modules (discord.py and wiki.py at 0% coverage)
 - ⭕ `medium priority` `high effort` add tests for client/events.py (39% coverage) - on_ready, on_message, on_application_command_error handlers
 - ⭕ `medium priority` `high effort` add tests for client/messages.py (60% coverage) - build_message_doc, edit/delete log embeds
+- ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
 - ⭕ `low priority` `medium effort` add tests for web/discord_integration.py (37% coverage)
@@ -109,6 +117,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 eggs leaderboard for most complete hatched set and most hatched total
 - 🔴 task to clean up non-egg messages in the egg threads
 - 🔴 refactor all custom emojis into a single place, and have all be configurable
+- 🔴 `30 March 2026` check audit log in `on_message_delete` to skip modlog for bot-initiated cleanup deletes
+- 🔴 `30 March 2026` split /eggs leaderboard into two separate commands: most hatched total and most complete set
+- 🔴 `30 March 2026` create `hatch.toml` for egg game tuning; load all tuning values through `NovaConfig` instead of hardcoding
+- 🔴 `30 March 2026` make hatch spawn pools data-driven from `hatch.toml`; move all rarity pools and creatures out of `eggs/data.py`
 
 ### maintenance
 
@@ -278,5 +290,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 30 March 2026
-total_completed: 28
+total_completed: 32
 ```

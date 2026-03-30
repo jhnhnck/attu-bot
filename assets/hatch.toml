@@ -1,0 +1,122 @@
+[tuning]
+collect_cooldown_seconds = 600
+animation_wait_min = 10
+animation_wait_max = 15
+cleanup_interval_hours = 6
+cleanup_cutoff_hours = 12
+
+[rarities]
+names = ['common', 'uncommon', 'rare', 'legendary', 'mythical']
+drop_weights = [55, 25, 13, 5, 2]
+
+[rarities.hatch_durations]
+common    = 1800    # 30 min
+uncommon  = 7200    # 2 hours
+rare      = 28800   # 8 hours
+legendary = 86400   # 24 hours
+mythical  = 172800  # 48 hours
+
+[pools.common]
+creatures = [
+  '🐣',
+  '🐤',
+  '🐥',
+  '🐔',
+  '🐧',
+  '🦆',
+  '🐦',
+  '🐦‍⬛',
+  '🐸',
+  '🐍',
+  '🐛',
+  '🐝',
+  '🐜',
+  '🐞',
+  '🪱',
+  '🐌',
+  '🪳',
+  '🐟',
+  '🐶',
+  '🐱',
+  '🐭',
+  '🐹',
+  '🐰',
+  '🐷',
+  '🐮',
+  '🐵',
+  '🍬',
+]
+
+[pools.uncommon]
+creatures = [
+  '🦉',
+  '🕊️',
+  '🦃',
+  '🐓',
+  '🪿',
+  '🐢',
+  '🦎',
+  '🦋',
+  '🦗',
+  '🪲',
+  '🦟',
+  '🐠',
+  '🦐',
+  '🦀',
+  '🐡',
+  '🦪',
+  '🦊',
+  '🐻',
+  '🐼',
+  '🐨',
+  '🦝',
+  '🐺',
+  '🍭',
+]
+
+[pools.rare]
+creatures = [
+  '🦩',
+  '🦢',
+  '🦜',
+  '🦚',
+  '🐊',
+  '🐲',
+  '🐙',
+  '🦑',
+  '🦞',
+  '🦈',
+  '🐬',
+  '🐋',
+  '🕷️',
+  '🦂',
+  '🦁',
+  '🐯',
+  '🐘',
+  '🦒',
+  '🦓',
+  '🍫',
+]
+
+[pools.legendary]
+creatures = [
+  '🦅',
+  '🦤',
+  '🦖',
+  '🦕',
+  '🪼',
+  '🦏',
+  '🦛',
+  '🦘',
+  '🦬',
+  '🐻‍❄️',
+  '🦙',
+  '🦭',
+]
+
+[pools.mythical]
+creatures = [
+  '🐉',
+  '🦄',
+  '🐦‍🔥',
+]

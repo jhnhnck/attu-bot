@@ -154,6 +154,22 @@ class ChatConfig(BaseModel):
     prompts_dir: str = 'assets/prompts'
 
 
+class HatchTuning(BaseModel):
+    collect_cooldown_seconds: int
+    animation_wait_min: int
+    animation_wait_max: int
+    cleanup_interval_hours: int
+    cleanup_cutoff_hours: int
+
+
+class HatchConfig(BaseModel):
+    tuning: HatchTuning
+    rarities: list[str]
+    drop_weights: list[int]
+    hatch_durations: dict[str, int]
+    pools: dict[str, list[str]]  # key: rarity name, value: creature list
+
+
 class GuildStarboard(BaseModel):
     channel_id: int = 0  # channel where starboard posts are sent
     emojis: dict[str, str] = {}  # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
@@ -286,6 +302,7 @@ class NovaConfig:
         self.web: WebConfig = None
         self.webauthn: WebAuthnConfig = None
         self.chat: ChatConfig = None
+        self.hatch: HatchConfig = None
 
         # Runtime config loaded from MongoDB
         self.chat_runtime: ChatConfigDocument = None
@@ -308,7 +325,7 @@ class NovaConfig:
 
     # --- Event Calls ---
 
-    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915 - sequential config section loading with try/except per section
+    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915, PLR0912 - sequential config section loading with try/except per section
         logger.info('starting initial config loading stage')
 
         if not self.path.exists():
@@ -377,6 +394,27 @@ class NovaConfig:
         except ValidationError as err:
             logger.error(f'failed to validate chat configuration: {err!s}')
             raise ConfigLoadError('invalid chat configuration')
+
+        try:
+            hatch_path = self.path.parent / 'hatch.toml'
+            if not hatch_path.exists():
+                logger.error('hatch.toml missing')
+                raise ConfigLoadError('missing hatch.toml')
+            with hatch_path.open() as f:
+                raw_hatch = cast(dict, tomlkit.load(f))
+            raw_r = raw_hatch['rarities']
+            self.hatch = HatchConfig(
+                tuning=HatchTuning(**raw_hatch['tuning']),
+                rarities=list(raw_r['names']),
+                drop_weights=list(raw_r['drop_weights']),
+                hatch_durations=dict(raw_r['hatch_durations']),
+                pools={r: list(v['creatures']) for r, v in raw_hatch['pools'].items()},
+            )
+        except ConfigLoadError:
+            raise
+        except (ValidationError, KeyError) as err:
+            logger.error(f'failed to validate hatch config: {err!s}')
+            raise ConfigLoadError('invalid hatch configuration')
 
         self._get_event('init').set()
 
