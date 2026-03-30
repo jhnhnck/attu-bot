@@ -1049,7 +1049,7 @@ class EggRepository:
             {'$sort': {'total': -1}},
             {'$limit': limit},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=None)
 
     async def leaderboard_most_unique(self, guild_id: int, limit: int = 10) -> list[dict]:
@@ -1061,7 +1061,7 @@ class EggRepository:
             {'$sort': {'unique': -1}},
             {'$limit': limit},
         ]
-        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        cursor = await self.db[self.COLLECTION].aggregate(pipeline)
         return await cursor.to_list(length=None)
 
     async def transfer(self, egg_id: str, new_user_id: int, new_message_id: int) -> None:
