@@ -167,6 +167,7 @@ class GuildConfig(BaseModel):
     roles: GuildRoles
     users: GuildUsers
     starboard: GuildStarboard = GuildStarboard()
+    eggs_active: bool = False
     _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):

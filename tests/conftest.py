@@ -99,7 +99,7 @@ def make_guild():
     """Factory fixture: creates a GuildConfig with a custom epoch and registers it in config."""
     created = []
 
-    def _make(guild_id=test_guild, **epoch_kwargs):
+    def _make(guild_id=test_guild, eggs_active=False, **epoch_kwargs):
         defaults = {
             'time': 1704067200,  # 2024-01-01 00:00:00 UTC
             'year': 1,
@@ -115,6 +115,7 @@ def make_guild():
             epoch=GuildEpoch(**defaults),
             roles=GuildRoles(),
             users=GuildUsers(),
+            eggs_active=eggs_active,
         )
 
         config.guilds[guild_id] = cfg

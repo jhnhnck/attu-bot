@@ -10,7 +10,6 @@ from datetime import UTC, datetime, timedelta
 import discord
 
 from attubot import bot, config
-from attubot.eggs.hatching import hatch_date
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
 
@@ -33,12 +32,11 @@ class EggCleanupTask(BaseTask):
         await config.wait_for_ready()
 
     async def run(self) -> None:
-        today = datetime.now(tz=config.timezone).date()
-        if today < hatch_date(today.year) - timedelta(days=7):
-            logger.debug(f'egg cleanup: before hatch window (today={today})')
+        guild_cfg = config.primary()
+        if not guild_cfg.eggs_active:
+            logger.debug('egg cleanup: eggs not active')
             return
 
-        guild_cfg = config.primary()
         guild = bot.get_guild(guild_cfg.id)
         if guild is None:
             logger.warn('egg cleanup: primary guild not in cache')

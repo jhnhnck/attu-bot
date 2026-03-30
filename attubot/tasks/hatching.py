@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import timedelta
 
-from attubot import bot, config
+from attubot import config
 from attubot.eggs.hatching import ensure_eggs_ready, hatch_date
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
@@ -15,15 +15,14 @@ from attubot.tasks.base import BaseTask
 
 logger = get_logger(__name__)
 
-_extension = 'attubot.commands.eggs'
-
 
 class HatchTask(BaseTask):
-    """Hourly task that enables the egg game on hatch day.
+    """Hourly task that activates the egg game on hatch day and runs per-season setup.
 
-    On hatch day (in the bot's configured timezone), reloads the egg commands extension
-    if the commands aren't yet registered, syncs them, and ensures the #eggs channel exists.
-    Skips command registration if already done (e.g. bot started on hatch day).
+    On hatch day, sets eggs_active = True on the primary guild config (persisted to MongoDB)
+    if not already set. Once active, ensures the #eggs channel exists and triggers a
+    presence update. The flag stays set until manually cleared, allowing the game to
+    remain active beyond the seasonal window.
     """
 
     name: str = 'HatchTask'
@@ -37,19 +36,17 @@ class HatchTask(BaseTask):
         from datetime import datetime
 
         today = datetime.now(tz=config.timezone).date()
+        guild_cfg = config.primary()
 
-        hatch_day = hatch_date(today.year)
+        # auto-activate on hatch day if not already enabled
+        if not guild_cfg.eggs_active and today >= hatch_date(today.year):
+            logger.info(f'hatch task: activating eggs for hatch day {hatch_date(today.year)}')
+            guild_cfg.eggs_active = True
+            await config.config_repo.update_guild_field(guild_cfg.id, 'eggs_active', True)
 
-        if today < hatch_day - timedelta(days=7):
-            logger.debug(f'hatch task: before hatch day (today={today}, hatch_day={hatch_day})')
+        if not guild_cfg.eggs_active:
+            logger.debug(f'hatch task: eggs not active (today={today})')
             return
-
-        logger.info(f'hatch task: hatch day detected ({hatch_day}), ensuring egg commands are registered')
-
-        if not any(cmd.name == 'egg' for cmd in bot.pending_application_commands):
-            logger.info(f'reloading {_extension} to register egg commands for hatch day')
-            bot.reload_extension(_extension)
-            await bot.sync_commands()
 
         # trigger presence update
         from attubot.tasks.presence import presence_update_task

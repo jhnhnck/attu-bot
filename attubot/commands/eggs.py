@@ -150,7 +150,7 @@ class EggSelectView(discord.ui.View):
 async def egg_command(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -171,7 +171,7 @@ async def egg_command(ctx: ApplicationContext):
 async def eggs_hatch(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -190,7 +190,7 @@ async def eggs_hatch(ctx: ApplicationContext):
 async def eggs_view(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -213,7 +213,7 @@ async def eggs_view(ctx: ApplicationContext):
 async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str | None = None):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
         await ctx.respond('not available here', ephemeral=True)
         return
 
@@ -278,7 +278,7 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str |
 async def eggs_progress(ctx: ApplicationContext):
     await ctx.defer()
 
-    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
         await ctx.respond('not available here', ephemeral=True)
         return
 
