@@ -1029,6 +1029,29 @@ class EggRepository:
                     seen.setdefault(rarity, set()).add(result)
         return total_collected, total_hatched, {r: len(s) for r, s in seen.items()}
 
+    async def leaderboard_most_hatched(self, guild_id: int, limit: int = 10) -> list[dict]:
+        """Return top users by total hatched egg count for a guild"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id, 'hatched': True}},
+            {'$group': {'_id': '$user_id', 'total': {'$sum': 1}}},
+            {'$sort': {'total': -1}},
+            {'$limit': limit},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        return await cursor.to_list(length=None)
+
+    async def leaderboard_most_unique(self, guild_id: int, limit: int = 10) -> list[dict]:
+        """Return top users by count of distinct hatched creature types for a guild"""
+        pipeline = [
+            {'$match': {'guild_id': guild_id, 'hatched': True, 'result': {'$ne': None}}},
+            {'$group': {'_id': {'user_id': '$user_id', 'result': '$result'}}},
+            {'$group': {'_id': '$_id.user_id', 'unique': {'$sum': 1}}},
+            {'$sort': {'unique': -1}},
+            {'$limit': limit},
+        ]
+        cursor = self.db[self.COLLECTION].aggregate(pipeline)
+        return await cursor.to_list(length=None)
+
     async def transfer(self, egg_id: str, new_user_id: int, new_message_id: int) -> None:
         """Transfer egg ownership and update its thread message id"""
         await self.db[self.COLLECTION].update_one(

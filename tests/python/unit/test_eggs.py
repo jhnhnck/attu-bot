@@ -565,6 +565,81 @@ class TestEggCommands:
 
 
 # ============================================================
+# /eggs leaderboard command
+# ============================================================
+
+
+class TestEggsLeaderboard:
+    @pytest.fixture(autouse=True)
+    def setup(self, make_guild, mock_ctx_factory):
+        make_guild(guild_id=test_guild, eggs_active=True)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        ctx.guild_id = test_guild
+        self.ctx = ctx
+
+    async def test_unauthorized_guild(self, mock_ctx_factory):
+        ctx = mock_ctx_factory()
+        ctx.guild_id = 9999999999
+        from attubot.commands.eggs import eggs_leaderboard
+
+        await eggs_leaderboard(ctx)
+        assert ctx._responses[0]['args'][0] == 'not available here'
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+    async def test_with_data(self):
+        """both leaderboards have data - embed fields show user mentions and counts"""
+        most_hatched = [{'_id': test_user, 'total': 7}]
+        most_unique = [{'_id': test_user2, 'unique': 3}]
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+            patch('attubot.client.util.theme_color', return_value=0),
+        ):
+            mock_repo.leaderboard_most_hatched = AsyncMock(return_value=most_hatched)
+            mock_repo.leaderboard_most_unique = AsyncMock(return_value=most_unique)
+            from attubot.commands.eggs import eggs_leaderboard
+
+            await eggs_leaderboard(self.ctx)
+        embed = self.ctx._responses[0]['kwargs']['embed']
+        hatched_value = embed.fields[0].value
+        unique_value = embed.fields[1].value
+        assert f'<@{test_user}>' in hatched_value
+        assert '**7**' in hatched_value
+        assert f'<@{test_user2}>' in unique_value
+        assert '**3**' in unique_value
+
+    async def test_empty_leaderboard(self):
+        """both repos return no data - both fields show 'no data yet'"""
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+            patch('attubot.client.util.theme_color', return_value=0),
+        ):
+            mock_repo.leaderboard_most_hatched = AsyncMock(return_value=[])
+            mock_repo.leaderboard_most_unique = AsyncMock(return_value=[])
+            from attubot.commands.eggs import eggs_leaderboard
+
+            await eggs_leaderboard(self.ctx)
+        embed = self.ctx._responses[0]['kwargs']['embed']
+        assert embed.fields[0].value == 'no data yet'
+        assert embed.fields[1].value == 'no data yet'
+
+    async def test_most_hatched_empty_most_unique_has_data(self):
+        """hatched board empty, unique board has data - correct per-field output"""
+        most_unique = [{'_id': test_user, 'unique': 5}]
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+            patch('attubot.client.util.theme_color', return_value=0),
+        ):
+            mock_repo.leaderboard_most_hatched = AsyncMock(return_value=[])
+            mock_repo.leaderboard_most_unique = AsyncMock(return_value=most_unique)
+            from attubot.commands.eggs import eggs_leaderboard
+
+            await eggs_leaderboard(self.ctx)
+        embed = self.ctx._responses[0]['kwargs']['embed']
+        assert embed.fields[0].value == 'no data yet'
+        assert f'<@{test_user}>' in embed.fields[1].value
+
+
+# ============================================================
 # emojis.py
 # ============================================================
 

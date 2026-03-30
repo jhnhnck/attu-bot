@@ -305,19 +305,38 @@ async def eggs_progress(ctx: ApplicationContext):
     await ctx.respond(embed=embed)
 
 
+@eggs_group.command(name='leaderboard', description='Top egg collectors - most hatched and most complete set')
+async def eggs_leaderboard(ctx: ApplicationContext):
+    await ctx.defer()
+
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds or not config.guild(ctx.guild_id).eggs_active:
+        await ctx.respond('not available here', ephemeral=True)
+        return
+
+    from attubot.client.util import theme_color
+    from attubot.eggs.hatching import _egg_repo
+
+    most_hatched = await _egg_repo.leaderboard_most_hatched(ctx.guild_id)
+    most_unique = await _egg_repo.leaderboard_most_unique(ctx.guild_id)
+
+    def _fmt(rows: list[dict], value_key: str, label: str) -> str:
+        if not rows:
+            return 'no data yet'
+        lines = []
+        for i, row in enumerate(rows[:10], start=1):
+            lines.append(f'**{i}.** <@{row["_id"]}> - **{row[value_key]}** {label}')
+        return '\n'.join(lines)
+
+    embed = discord.Embed(title='egg leaderboard', color=theme_color())
+    embed.add_field(name='most hatched', value=_fmt(most_hatched, 'total', 'hatched'), inline=True)
+    embed.add_field(name='most complete set', value=_fmt(most_unique, 'unique', 'unique'), inline=True)
+    await ctx.respond(embed=embed)
+
+
 # --- Extension Def ---
 
 
 def setup(bot: Bot):
-    from datetime import datetime, timedelta
-
-    from attubot.eggs.hatching import hatch_date
-
-    today = datetime.now(tz=config.timezone).date()
-    if today < hatch_date(today.year) - timedelta(days=7):
-        logger.debug(f'{__name__}: before hatch day, skipping registration')
-        return
-
     logger.info(f'registered: {__name__}')
     bot.add_application_command(cast(ApplicationCommand, egg_command))
     bot.add_application_command(cast(ApplicationCommand, eggs_group))
