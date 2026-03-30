@@ -114,7 +114,7 @@
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/__init__.py | 11 | 0 | 0 | 0 | 100% |
-| attubot/config.py | 448 | 154 | 88 | 22 | 61% |
+| attubot/config.py | 449 | 154 | 88 | 22 | 61% |
 | attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
@@ -126,7 +126,7 @@
 | attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
 | attubot/client/core.py | 12 | 0 | 0 | 0 | 100% |
 | attubot/client/embeds.py | 19 | 2 | 12 | 3 | 84% |
-| attubot/client/events.py | 245 | 144 | 70 | 2 | 39% |
+| attubot/client/events.py | 247 | 145 | 70 | 2 | 39% |
 | attubot/client/families.py | 36 | 20 | 8 | 0 | 36% |
 | attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
 | attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
@@ -144,7 +144,7 @@
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
 | attubot/commands/debug.py | 208 | 136 | 36 | 0 | 30% |
-| attubot/commands/eggs.py | 214 | 34 | 60 | 4 | 84% |
+| attubot/commands/eggs.py | 229 | 28 | 64 | 4 | 88% |
 | attubot/commands/fix.py | 483 | 272 | 126 | 11 | 42% |
 | attubot/commands/link.py | 110 | 79 | 12 | 0 | 25% |
 | attubot/commands/marker.py | 82 | 53 | 16 | 0 | 30% |
@@ -158,10 +158,10 @@
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/database/__init__.py | 66 | 4 | 0 | 0 | 94% |
+| attubot/database/__init__.py | 68 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
 | attubot/database/models.py | 176 | 0 | 0 | 0 | 100% |
-| attubot/database/repositories.py | 524 | 125 | 84 | 5 | 73% |
+| attubot/database/repositories.py | 532 | 131 | 84 | 5 | 72% |
 
 ## attubot/eggs
 
@@ -197,9 +197,9 @@
 | attubot/tasks/base.py | 12 | 3 | 0 | 0 | 75% |
 | attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
-| attubot/tasks/egg_cleanup.py | 51 | 5 | 16 | 2 | 90% |
+| attubot/tasks/egg_cleanup.py | 49 | 5 | 16 | 2 | 89% |
 | attubot/tasks/error_hook.py | 44 | 26 | 8 | 0 | 35% |
-| attubot/tasks/hatching.py | 30 | 1 | 4 | 0 | 97% |
+| attubot/tasks/hatching.py | 28 | 1 | 4 | 0 | 97% |
 | attubot/tasks/logo_update.py | 55 | 31 | 10 | 1 | 38% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
 | attubot/tasks/nova_year.py | 122 | 49 | 40 | 1 | 57% |
@@ -235,7 +235,7 @@
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8453 | 3146 | 2098 | 247 | 60% |
+| 8477 | 3147 | 2102 | 247 | 60% |
 
 ---
 
