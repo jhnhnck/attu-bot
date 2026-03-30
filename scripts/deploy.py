@@ -132,7 +132,7 @@ if __name__ == '__main__':
     skip_tests: bool = args.no_tests
 
     # count total steps up front
-    total = 4  # branch check, clean dev, version bump, commit+tag
+    total = 4  # branch check, stash dev, version bump, commit+tag
     if not skip_tests:
         total += 1  # dev tests
     if do_deploy:
@@ -150,134 +150,150 @@ if __name__ == '__main__':
         abort(f"must be on the dev branch (currently on '{branch}')")
     print(colored('  on dev', 'green'))
 
-    # --- 2. clean dev working directory ---
+    # --- 2. stash dev changes if dirty ---
     n += 1
-    header(n, total, 'checking dev working directory')
+    header(n, total, 'stashing dev changes')
     dev_status = git_cmd(['status', '--porcelain'])
     dev_dirty = [line for line in dev_status.splitlines() if not line.startswith('??')]
+    stashed = False
     if dev_dirty:
-        abort('dev working directory is not clean - commit or stash changes first:\n  ' + '\n  '.join(dev_dirty))
-    print(colored('  dev is clean', 'green'))
-
-    # --- 3. clean trunk working directory (deploy only) ---
-    if do_deploy:
-        n += 1
-        header(n, total, 'checking trunk working directory')
-        trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
-        trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
-        if trunk_dirty:
-            abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
-        print(colored('  trunk is clean', 'green'))
-
-    # --- 4. run tests in dev ---
-    if not skip_tests:
-        n += 1
-        header(n, total, 'running tests in dev')
-        try:
-            run_cmd(
-                ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
-                cwd=dev_dir,
-                capture=False,
-                dry_run=dry_run,
-            )
-        except RuntimeError as e:
-            abort(f'dev tests failed: {e}')
-        print(colored('  tests passed', 'green'))
-
-    # --- 5. version bump ---
-    n += 1
-    header(n, total, 'bumping version')
-    content = version_file.read_text()
-    current_ver, old_assignment = parse_version(content)
-    new_ver, new_tag = compute_new_version(current_ver, args.bump)
-    print(colored(f'  {current_ver} -> {new_ver}  (tag: {new_tag})', 'cyan'))
-
-    if not dry_run:
-        updated = content.replace(old_assignment, f"__version__ = '{new_ver}'", 1)
-        version_file.write_text(updated)
-
-    # --- 6. commit and tag ---
-    n += 1
-    header(n, total, 'committing and tagging')
-    if not dry_run:
-        try:
-            git_cmd(['add', str(version_file)])
-            git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
-            git_cmd(['tag', new_tag])
-        except RuntimeError as e:
-            # restore the file if commit failed before any git state changed
-            version_file.write_text(content)
-            abort(f'git commit/tag failed: {e}')
-        print(colored(f'  committed and tagged {new_tag}', 'green'))
+        if not dry_run:
+            git_cmd(['stash', 'push', '-m', 'deploy-script auto-stash'])
+            stashed = True
+            print(colored('  stashed uncommitted changes', 'cyan'))
+        else:
+            print(colored('  (dry run) would stash uncommitted changes', 'dark_grey'))
     else:
-        print(colored(f'  (dry run) would commit version bump and create tag {new_tag}', 'dark_grey'))
-
-    # --- deploy ---
-    if not do_deploy:
-        print()
-        print(colored('version bump complete. to deploy:', 'white'))
-        print(colored(f'  cd {prod_dir} && git merge --ff-only dev && git push origin trunk', 'cyan'))
-        print(colored(f'  cd {prod_dir} && docker compose up --build -d', 'cyan'))
-        sys.exit(0)
-
-    saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
-    merged = False
+        print(colored('  dev is clean', 'green'))
 
     try:
-        # --- 7. merge into trunk ---
-        n += 1
-        header(n, total, 'merging dev into trunk')
-        if not dry_run:
-            git_cmd(['merge', '--ff-only', 'dev'], cwd=prod_dir)
-            merged = True
-            print(colored('  merged', 'green'))
-        else:
-            print(colored('  (dry run) would merge dev into trunk', 'dark_grey'))
+        # --- 3. clean trunk working directory (deploy only) ---
+        if do_deploy:
+            n += 1
+            header(n, total, 'checking trunk working directory')
+            trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
+            trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
+            if trunk_dirty:
+                abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+            print(colored('  trunk is clean', 'green'))
 
-        # --- 8. run tests in trunk (optional) ---
+        # --- 4. run tests in dev ---
         if not skip_tests:
             n += 1
-            header(n, total, 'running tests in trunk')
-            run_cmd(
-                ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
-                cwd=prod_dir,
-                capture=False,
-                dry_run=dry_run,
-            )
+            header(n, total, 'running tests in dev')
+            try:
+                run_cmd(
+                    ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
+                    cwd=dev_dir,
+                    capture=False,
+                    dry_run=dry_run,
+                )
+            except RuntimeError as e:
+                abort(f'dev tests failed: {e}')
             print(colored('  tests passed', 'green'))
 
-        # --- 9. restart containers, health check, then push ---
+        # --- 5. version bump ---
         n += 1
-        header(n, total, 'restarting containers')
+        header(n, total, 'bumping version')
+        content = version_file.read_text()
+        current_ver, old_assignment = parse_version(content)
+        new_ver, new_tag = compute_new_version(current_ver, args.bump)
+        print(colored(f'  {current_ver} -> {new_ver}  (tag: {new_tag})', 'cyan'))
+
         if not dry_run:
-            subprocess.run(
-                ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607
-                check=True,
-                cwd=prod_dir,
-            )
-            print(colored('  waiting 60s for containers to stabilize...', 'cyan'))
-            time.sleep(60)
-            problems = check_container_health(prod_dir)
-            if problems:
-                raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
-            print(colored('  all containers healthy', 'green'))
-            # push only after everything is confirmed good
-            git_cmd(['push', 'origin', 'trunk'], cwd=prod_dir)
-            print(colored('  pushed trunk to remote', 'green'))
+            updated = content.replace(old_assignment, f"__version__ = '{new_ver}'", 1)
+            version_file.write_text(updated)
+
+        # --- 6. commit and tag ---
+        n += 1
+        header(n, total, 'committing and tagging')
+        if not dry_run:
+            try:
+                git_cmd(['add', str(version_file)])
+                git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
+                git_cmd(['tag', new_tag])
+            except RuntimeError as e:
+                # restore the file if commit failed before any git state changed
+                version_file.write_text(content)
+                abort(f'git commit/tag failed: {e}')
+            print(colored(f'  committed and tagged {new_tag}', 'green'))
         else:
-            print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
+            print(colored(f'  (dry run) would commit version bump and create tag {new_tag}', 'dark_grey'))
 
-    except (RuntimeError, subprocess.CalledProcessError) as exc:
-        print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
-        if merged and not dry_run:
-            print(colored('rolling back trunk to previous commit...', 'yellow'), file=sys.stderr)
-            reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
-            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
-            if reset.returncode != 0 or rebuild.returncode != 0:
-                print(colored('warning: rollback may have failed - check trunk manually', 'red'), file=sys.stderr)
+        # --- deploy ---
+        if not do_deploy:
+            print()
+            print(colored('version bump complete. to deploy:', 'white'))
+            print(colored(f'  cd {prod_dir} && git merge --ff-only dev && git push origin trunk', 'cyan'))
+            print(colored(f'  cd {prod_dir} && docker compose up --build -d', 'cyan'))
+            sys.exit(0)
+
+        saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
+        merged = False
+
+        try:
+            # --- 7. merge into trunk ---
+            n += 1
+            header(n, total, 'merging dev into trunk')
+            if not dry_run:
+                git_cmd(['merge', '--ff-only', 'dev'], cwd=prod_dir)
+                merged = True
+                print(colored('  merged', 'green'))
             else:
-                print(colored('rollback complete - containers rebuilt from previous state', 'yellow'), file=sys.stderr)
-            print(colored(f'note: dev still has the version bump commit and tag {new_tag} - remove with: git tag -d {new_tag}', 'yellow'), file=sys.stderr)
-        sys.exit(1)
+                print(colored('  (dry run) would merge dev into trunk', 'dark_grey'))
 
-    print(colored(f'\ndeployed version {new_ver} successfully', 'light_green'))
+            # --- 8. run tests in trunk (optional) ---
+            if not skip_tests:
+                n += 1
+                header(n, total, 'running tests in trunk')
+                run_cmd(
+                    ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
+                    cwd=prod_dir,
+                    capture=False,
+                    dry_run=dry_run,
+                )
+                print(colored('  tests passed', 'green'))
+
+            # --- 9. restart containers, health check, then push ---
+            n += 1
+            header(n, total, 'restarting containers')
+            if not dry_run:
+                subprocess.run(
+                    ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607
+                    check=True,
+                    cwd=prod_dir,
+                )
+                print(colored('  waiting 60s for containers to stabilize...', 'cyan'))
+                time.sleep(60)
+                problems = check_container_health(prod_dir)
+                if problems:
+                    raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
+                print(colored('  all containers healthy', 'green'))
+                # push only after everything is confirmed good
+                git_cmd(['push', 'origin', 'trunk'], cwd=prod_dir)
+                print(colored('  pushed trunk to remote', 'green'))
+            else:
+                print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
+
+        except (RuntimeError, subprocess.CalledProcessError) as exc:
+            print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
+            if merged and not dry_run:
+                print(colored('rolling back trunk to previous commit...', 'yellow'), file=sys.stderr)
+                reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
+                rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
+                if reset.returncode != 0 or rebuild.returncode != 0:
+                    print(colored('warning: rollback may have failed - check trunk manually', 'red'), file=sys.stderr)
+                else:
+                    print(colored('rollback complete - containers rebuilt from previous state', 'yellow'), file=sys.stderr)
+                print(colored(f'note: dev still has the version bump commit and tag {new_tag} - remove with: git tag -d {new_tag}', 'yellow'), file=sys.stderr)
+            sys.exit(1)
+
+        print(colored(f'\ndeployed version {new_ver} successfully', 'light_green'))
+
+    finally:
+        if stashed and not dry_run:
+            try:
+                git_cmd(['stash', 'pop'])
+                print(colored('  restored stashed changes', 'green'))
+            except RuntimeError as e:
+                print(colored(f'  warning: could not restore stash: {e}', 'yellow'), file=sys.stderr)
