@@ -127,6 +127,8 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 deploy script (scripts/deploy.py)
 - 🔴 `30 March 2026` fix deploy script not pushing version tag alongside trunk
 - 🔴 `30 March 2026` catch import errors in deploy.py and suggest fix command
+- 🔴 `30 March 2026` fix deploy script not fast-forwarding trunk to version tag without --deploy
+- 🔴 `30 March 2026` fix deploy rollback not undoing version bump commit and tag on dev
 - 🔴 `30 March 2026` change backfill task to debug logging; report start and end only
 
 ---
@@ -290,5 +292,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 30 March 2026
-total_completed: 32
+total_completed: 34
 ```

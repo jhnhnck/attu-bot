@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""AttuBot test runner."""
+"""
+AttuBot - Test Runner
+Author(s): @jhnhnck <john@jhnhnck.com>
+
+This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+"""
 
 import subprocess
 import sys
