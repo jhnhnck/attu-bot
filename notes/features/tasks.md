@@ -41,8 +41,7 @@ class ErrorHookTask(BaseTask):
     name: str = 'ErrorHook'
     interval: timedelta | None = timedelta(hours=1)
 
-    async def run(self) -> None:
-        ...  # called every hour
+    async def run(self) -> None: ...  # called every hour
 ```
 
 ### Dynamic scheduling example
@@ -56,8 +55,7 @@ class DatabaseBackupTask(BaseTask):
         # return datetime of next backup window
         return next_backup_time()
 
-    async def run(self) -> None:
-        ...
+    async def run(self) -> None: ...
 ```
 
 ### Registering a task

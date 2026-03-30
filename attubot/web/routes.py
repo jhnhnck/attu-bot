@@ -1357,10 +1357,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             total_eggs_hatched = 0
             try:
                 from attubot.eggs.hatching import _egg_repo as egg_repo
+
                 if egg_repo is not None:
                     total_eggs_hatched = await egg_repo.count_hatched()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f'egg stats unavailable: {e}')
 
             # Database connection status
             try:

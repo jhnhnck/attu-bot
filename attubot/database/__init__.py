@@ -61,6 +61,29 @@ async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0)
         logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
 
 
+def _wire_repos(*, config, family_repo, marker_repo, year_repo, signal_repo, message_repo, starboard_repo, egg_repo, egg_user_repo, wiki_view_repo, chat_config_repo) -> None:
+    """wire repository singletons into their respective modules after db init"""
+    import attubot.client.families as _families
+    import attubot.client.markers as _markers
+    import attubot.client.messages as _messages
+    import attubot.client.starboard as _starboard
+    import attubot.client.years as _years
+    import attubot.commands.wiki as _wiki
+    import attubot.eggs.hatching as _hatching
+    import attubot.signals as _signals
+
+    _families._family_repo = family_repo
+    _markers._marker_repo = marker_repo
+    _years._year_repo = year_repo
+    _signals._repo = signal_repo
+    _messages._message_repo = message_repo
+    _starboard._starboard_repo = starboard_repo
+    _hatching._egg_repo = egg_repo
+    _hatching._egg_user_repo = egg_user_repo
+    _wiki._wiki_view_repo = wiki_view_repo
+    config.chat_config_repo = chat_config_repo
+
+
 async def init_database(url: str, name: str):
     """Connect to MongoDB and initialize all repository indexes.
 
@@ -116,29 +139,19 @@ async def init_database(url: str, name: str):
     wiki_view_repo = WikiViewRepository(database)
     await _try_init_indexes(wiki_view_repo, 'wiki_view')
 
-    import attubot.client.families as _families
-    import attubot.client.markers as _markers
-    import attubot.client.messages as _messages
-    import attubot.client.starboard as _starboard
-    import attubot.client.years as _years
-    import attubot.signals as _signals
-
-    _families._family_repo = family_repo
-    _markers._marker_repo = marker_repo
-    _years._year_repo = year_repo
-    _signals._repo = signal_repo
-    _messages._message_repo = message_repo
-    _starboard._starboard_repo = starboard_repo
-
-    import attubot.eggs.hatching as _hatching
-    import attubot.commands.wiki as _wiki
-
-    _hatching._egg_repo = egg_repo
-    _hatching._egg_user_repo = egg_user_repo
-    _wiki._wiki_view_repo = wiki_view_repo
-
-    # wire chat repos into config so on_load() can use them
-    config.chat_config_repo = chat_config_repo
+    _wire_repos(
+        config=config,
+        family_repo=family_repo,
+        marker_repo=marker_repo,
+        year_repo=year_repo,
+        signal_repo=signal_repo,
+        message_repo=message_repo,
+        starboard_repo=starboard_repo,
+        egg_repo=egg_repo,
+        egg_user_repo=egg_user_repo,
+        wiki_view_repo=wiki_view_repo,
+        chat_config_repo=chat_config_repo,
+    )
 
     logger.info('database initialized')
 

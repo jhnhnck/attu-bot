@@ -1190,11 +1190,13 @@ class WikiViewRepository:
     async def delete_expired(self) -> int:
         """Delete all expired view documents; returns count deleted"""
         import time
+
         result = await self.db[self.COLLECTION].delete_many({'expires_at': {'$lte': time.time()}})
         return result.deleted_count
 
     async def all_active(self) -> list[WikiViewDocument]:
         """Return all non-expired view documents"""
         import time
+
         docs = await self.db[self.COLLECTION].find({'expires_at': {'$gt': time.time()}}).to_list(None)
         return [WikiViewDocument(**{k: v for k, v in d.items() if k != '_id'}) for d in docs]

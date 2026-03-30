@@ -25,10 +25,10 @@ if __name__ == '__main__':
     coverage = '--coverage' in sys.argv
 
     steps = [
-        ('unit tests',        ['coverage', 'run', '-m', 'pytest', *exit_early, 'tests/python/unit/']),
-        ('component tests',   ['coverage', 'run', '--append', '-m', 'pytest', *exit_early, 'tests/python/component/']),
+        ('unit tests', ['coverage', 'run', '-m', 'pytest', *exit_early, 'tests/python/unit/']),
+        ('component tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_early, 'tests/python/component/']),
         ('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_early, 'tests/python/integration/']),
-        ('javascript tests',  ['npm', 'test']),
+        ('javascript tests', ['npm', 'test']),
     ]
     total = len(steps)
 

@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 async def render_egg(rarity: str) -> bytes:
     """Render the egg SVG for the given rarity to PNG bytes."""
     from attubot.client.core import config
+
     svg_path = config.path.parent / 'static' / 'emoji' / 'egg.svg'
     svg_text = svg_path.read_text()
     # swap the class on the root <g> element to select the correct color theme
@@ -58,6 +59,7 @@ async def ensure_progress_emojis(guild: discord.Guild) -> dict[str, discord.Emoj
     Keys: left_full, left_empty, none_full, none_empty, right_full, right_empty.
     """
     from attubot.client.core import config
+
     assets_dir = config.path.parent / 'static' / 'emoji'
     existing = {e.name: e for e in guild.emojis}
     result: dict[str, discord.Emoji] = {}

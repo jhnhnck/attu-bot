@@ -669,11 +669,7 @@ async def fix_emoji(ctx: ApplicationContext):
 
     egg_names = ', '.join(egg_emojis.keys())
     progress_names = ', '.join(progress_emojis.keys())
-    await ctx.respond(
-        f'egg emojis: {egg_names} ({len(egg_emojis)} ok)\n'
-        f'progress emojis: {progress_names} ({len(progress_emojis)} ok)\n'
-        f'all emojis saved.'
-    )
+    await ctx.respond(f'egg emojis: {egg_names} ({len(egg_emojis)} ok)\nprogress emojis: {progress_names} ({len(progress_emojis)} ok)\nall emojis saved.')
 
 
 # --- Extension Def ---

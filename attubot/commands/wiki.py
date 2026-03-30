@@ -23,6 +23,7 @@ from attubot.logging import get_logger
 from attubot.wiki import get_wiki
 from attubot.wiki.models import PageSummary, SearchResult, SiteInfo
 
+
 if TYPE_CHECKING:
     from attubot.database.repositories import WikiViewRepository
 
@@ -230,17 +231,19 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
             return
 
         repo = _get_view_repo()
-        await repo.upsert(WikiViewDocument(
-            message_id=message_id,
-            guild_id=ctx.guild_id,
-            channel_id=ctx.channel_id,
-            invoker_user_id=ctx.user.id,
-            query=query,
-            current_index=0,
-            page_titles=[p.title for p in pages],
-            page_keys=[p.key for p in pages],
-            expires_at=time.time() + _VIEW_TIMEOUT,
-        ))
+        await repo.upsert(
+            WikiViewDocument(
+                message_id=message_id,
+                guild_id=ctx.guild_id,
+                channel_id=ctx.channel_id,
+                invoker_user_id=ctx.user.id,
+                query=query,
+                current_index=0,
+                page_titles=[p.title for p in pages],
+                page_keys=[p.key for p in pages],
+                expires_at=time.time() + _VIEW_TIMEOUT,
+            )
+        )
 
         await message.edit(view=view)
         bot.add_view(view, message_id=message_id)
