@@ -63,7 +63,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
 
 ### package: `attubot/eggs/`
-Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day by `HatchTask`.
+Egg collection mini-game. Commands are always active.
 
 | File | Role |
 |---|---|
@@ -71,7 +71,7 @@ Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day 
 | `emojis.py` | SVG→PNG rendering and Discord custom emoji upload (`ensure_egg_emojis`) |
 | `hatching.py` | core game logic - `hatch_date()`, `collect_egg()`, `hatch_egg()`, `run_hatch_animation()`, `ensure_eggs_ready()` |
 
-Slash commands live in `attubot/commands/eggs.py` and are loaded dynamically by `HatchTask` on hatch day. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
+Slash commands live in `attubot/commands/eggs.py`. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
 
 ### package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
@@ -88,7 +88,7 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `wiki.py` | `/wiki` | Wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | Year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
-| `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress; loaded dynamically by `HatchTask` on hatch day |
+| `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress |
 
 ### package: `attubot/ingestor/`
 RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu_chat.md`](notes/features/attu_chat.md) for full design and decisions.
@@ -123,7 +123,8 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
-| `hatching.py` | `HatchTask` - hourly check; loads egg commands extension and creates `#eggs` channel on hatch day |
+| `presence.py` | `PresenceUpdateTask` - updates bot presence to reflect hatched egg count; 30-minute schedule, also triggered after each hatch |
+| `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads; runs every 6 hours during egg season |
 
 ### package: `attubot/wiki/`
 | File | Role |

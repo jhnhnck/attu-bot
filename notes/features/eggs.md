@@ -6,7 +6,7 @@ Reference for the egg collection mini-game - behavior rules, storage schema, key
 
 ## Overview
 
-A seasonal event that activates automatically on hatch day each year. While active, players can run `/egg` to collect eggs that hatch into random creatures over time. The event's slash commands are in `attubot/commands/eggs.py` and loaded at startup via the normal extension discovery; `setup()` guards registration to only occur on or after hatch day. `HatchTask` handles the mid-run case where the bot started before hatch day and needs to reload the extension when the day arrives.
+An egg collection mini-game. Players can run `/egg` to collect eggs that hatch into random creatures over time. Slash commands are in `attubot/commands/eggs.py` and always active.
 
 ---
 
@@ -19,14 +19,14 @@ A seasonal event that activates automatically on hatch day each year. While acti
 5. `/eggs hatch` finds the oldest ready egg (hatches_at <= now). If none is ready, it shows a relative timestamp for the next one. If no eggs exist at all, it says so.
 6. The egg is marked hatched in MongoDB **before** the animation starts. A restart during the animation will not double-hatch the egg.
 7. Animation sequence: egg emoji sits unchanged for 10-15s → edit to 💢 → 1s pause → edit to result creature emoji.
-8. The `#eggs` channel is created automatically on the first hatch day task run each year. Channel ID is persisted in `channels.eggs`.
+8. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. Channel ID is persisted in `channels.eggs`.
 9. Custom egg emojis (one per rarity) must be generated once via `/fix eggs generate`. They are stored in `BotTheme.egg_emojis` (MongoDB) and survive restarts.
 
 ---
 
-## Hatch Day Detection
+## Hatch Day
 
-`hatch_date(year: int) -> date` in `attubot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library). `HatchTask` runs hourly and checks `today >= hatch_date(today.year)` - eggs are active from hatch day onward through the rest of the year.
+`hatch_date(year: int) -> date` in `attubot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library).
 
 Known hatch days: 2024 = March 31, 2025 = April 20, 2026 = April 5.
 
@@ -65,9 +65,7 @@ Index: `(guild_id, user_id)` unique.
 
 ## Bot Presence
 
-`PresenceUpdateTask` (`attubot/tasks/presence.py`) sets the bot's presence to "Watching X eggs hatch" where X is the total hatched egg count. It runs on a 30-minute fallback schedule and is triggered immediately via `scheduler.add_job()` on two events:
-- `HatchTask` fires it on hatch day start (or when the bot first detects it's on/after hatch day)
-- `run_hatch_animation()` fires it after each egg finishes hatching
+`PresenceUpdateTask` (`attubot/tasks/presence.py`) sets the bot's presence to "Watching X eggs hatch" where X is the total hatched egg count. It runs on a 30-minute fallback schedule and is triggered immediately via `scheduler.add_job()` after each egg finishes hatching (`run_hatch_animation()`).
 
 The task does nothing on non-hatch-day dates.
 
@@ -88,7 +86,7 @@ The task does nothing on non-hatch-day dates.
 
 ## Commands
 
-Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-loaded at startup; `setup()` only registers the commands if `today >= hatch_date(today.year)`. If the bot starts before hatch day, `HatchTask` calls `bot.reload_extension()` when hatch day arrives.
+Slash commands are defined in `attubot/commands/eggs.py`. The extension is auto-loaded at startup and always active.
 
 | Command | Purpose |
 |---|---|
@@ -170,8 +168,8 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 
 1. Run `/fix eggs generate` once in the secondary (emoji) server to create the five custom emojis and store their IDs.
 2. Run `/fix emoji progress` once in the secondary (emoji) server to upload the six progress bar segment emojis and store their IDs.
-3. The `#eggs` channel is created automatically when `HatchTask` detects hatch day. No manual setup required.
-4. `/eggs hatch`, `/egg`, `/eggs view`, and `/eggs progress` are only registered while the extension is loaded (hatch day onward for the season). Use `/debug eggs preview` to test the animation any time.
+3. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. No manual setup required.
+4. All egg commands are always registered. Use `/debug eggs preview` to test the animation any time.
 
 ---
 

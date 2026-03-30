@@ -229,7 +229,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
 | attubot/tasks/egg_cleanup.py | 49 | 5 | 16 | 2 | 89% |
 | attubot/tasks/error_hook.py | 44 | 26 | 8 | 0 | 35% |
-| attubot/tasks/hatching.py | 28 | 1 | 4 | 0 | 97% |
 | attubot/tasks/logo_update.py | 55 | 31 | 10 | 1 | 38% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
 | attubot/tasks/nova_year.py | 122 | 49 | 40 | 1 | 57% |
