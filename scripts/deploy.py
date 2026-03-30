@@ -16,7 +16,11 @@ import time
 from pathlib import Path
 from typing import NoReturn
 
-from termcolor import colored
+try:
+    from termcolor import colored
+except ImportError:
+    print('error: missing dependencies - run: pyenv shell doom-bot && pip install -r requirements-dev.txt --upgrade', file=sys.stderr)
+    sys.exit(1)
 
 
 # worktree roots
@@ -278,7 +282,7 @@ if __name__ == '__main__':
                     raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
                 print(colored('  all containers healthy', 'green'))
                 # push only after everything is confirmed good
-                git_cmd(['push', 'origin', 'trunk'], cwd=prod_dir)
+                git_cmd(['push', 'origin', 'trunk', new_tag], cwd=prod_dir)
                 print(colored('  pushed trunk to remote', 'green'))
             else:
                 print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
