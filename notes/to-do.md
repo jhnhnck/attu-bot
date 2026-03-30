@@ -4,9 +4,9 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ---
 
-# tasks
+## tasks
 
-## meta
+### meta
 
 - `medium priority` `low effort` assign any to-dos without an effort or category; update priorities; move completed and sort all
 - `medium priority` `low effort` run docker tests with --coverage flag; update coverage in second section; update testing to-dos with gaps
@@ -14,18 +14,18 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 
-## eggs
+### eggs
 
 - ⭕ `medium priority` `low effort` split /eggs leaderboard into two separate commands: one for most hatched total, one for most complete set
 - ⭕ `high priority` `low effort` deploy script doesn't ff trunk to the current tag, so nothing actually gets pushed; fix the ff step in deploy.py
 
-## hatch
+### hatch
 
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
 - ⭕ `medium priority` `medium effort` create `eggs.toml` for egg game tuning; load hatch durations, drop weights, collect cooldown, animation wait range, cleanup interval and cutoff from it instead of hardcoding in `eggs/data.py`, `eggs/hatching.py`, and `tasks/egg_cleanup.py`
 - ⭕ `medium priority` `medium effort` make hatch spawn pools data-driven from `eggs.toml`; move all rarity pools and the rarities list out of `eggs/data.py` so creatures can be added or removed without code changes
 
-## starboard
+### starboard
 
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
@@ -33,22 +33,22 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
 - ⭕ `low priority` `high effort` audit starboard; learn from our mistakes to mould a better more fault tolerant, resillent system
 
-## wiki
+### wiki
 
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
 
-## moderation / logging
+### moderation / logging
 
 - ⭕ `medium priority` `medium effort` add kick, ban, and timeout commands
 
-## web interface
+### web interface
 
 - ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes for
 - ⭕ `medium priority` `medium effort` web audit log should be enforced, not optional - currently guarded by `if web_app.audit_logger:` which silently skips auditing if not configured
 - ⭕ `low priority` `medium effort` primary / secondary guild toggle instead of having all guilds
 
-## maintenance
+### maintenance
 
 - ⭕ `medium priority` `medium effort` analyze the coverage report below, then audit what code we're missing and if it needs to have test cases
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
@@ -63,7 +63,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 
-## testing
+### testing
 
 - ⭕ `medium priority` `medium effort` add tests for tasks/scheduler.py (29% coverage) - task scheduling, cancellation, restart logic
 - ⭕ `medium priority` `medium effort` add tests for commands/link.py (25%) and commands/marker.py (30%)
@@ -83,50 +83,27 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ---
 
-# completed
+## completed tasks
 
-## egg related
+### egg related
 
-- 🔴 remove all hatch season checks; enabled via `eggs_active` bool on `GuildConfig`; auto-activates on hatch day via `HatchTask`
 - 🔴 eggs leaderboard for most complete hatched set and most hatched total
-- 🔴 verify /egg progress doesn't count unhatched eggs (confirmed correct)
-- 🔴 make sure tests cases cover all aspects of the hatch system
-- 🔴 task to clean up all the non-egg messages (like older than 12h) in the egg threads
-- 🔴 combine all the /fix emoji commands into one that just double-checks everything
+- 🔴 task to clean up non-egg messages in the egg threads
 - 🔴 refactor all custom emojis into a single place, and have all be configurable
-- 🔴 move the emoji images all into the /assets/static/emoji/ folder along with egg.svg. credit https://emoji.gg/pack/7783-progress-bar# in the readme somewhere. update the code where needed.
-- 🔴 unignore eggs.md
-- 🔴 egg.svg is from google emojis. can we upload that to git according to its licensing? move to better path name too.
-- 🔴 eggs command is in the eggs package and not in commands/eggs.py
-- 🔴 add bot status message, egg related like "x eggs hatched" with the total number.
-- 🔴 update sample config file to latest changes
-- 🔴 audit eggs system for any bugs
-- 🔴 egg trading? best way to implement?
-- 🔴 /eggs progress: shows progress for each rarity. total and per rarity with progress bar and count.
-- 🔴 progress bar emojis: upload to secondary server, store in config, expose via /fix emoji progress.
 
-## wiki
+### maintenance
 
-- 🔴 wiki result messages with the buttons: not removed on disable, not preserved through reboots - store actions on message object
-
-## maintenance
-
-- 🔴 signals index init failing on startup with IndexKeySpecsConflict (code 86) - migrate old unique index to non-unique on conflict in init_indexes
-- 🔴 separate out the bot logo update task, run every 2.5 minutes; store hsl natively instead of hex
-- 🔴 invert notes/ gitignore; we can explicitly ignore the ones we don't want
-- 🔴 deploy script with clean dir check, test run, version bump, and git tag (scripts/deploy.py)
-
-## testing
-
-- 🔴 add tests for eggs/emojis.py - emoji fetch and validation helpers
-- 🔴 add tests for tasks/hatching.py
-- 🔴 describe how this doc is structured in the meta section
+- 🔴 deploy script (scripts/deploy.py)
 
 ---
 
-# coverage
+## coverage
 
-## attubot
+| Stmts | Miss | Branch | BrPart | Cover |
+|------:|-----:|-------:|-------:|------:|
+| 8477 | 3147 | 2102 | 247 | 60% |
+
+### attubot
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -135,7 +112,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
-## attubot/client
+### attubot/client
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -154,7 +131,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/client/util.py | 56 | 12 | 10 | 1 | 71% |
 | attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
-## attubot/commands
+### attubot/commands
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -171,7 +148,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
 | attubot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
 
-## attubot/database
+### attubot/database
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -180,7 +157,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/database/models.py | 176 | 0 | 0 | 0 | 100% |
 | attubot/database/repositories.py | 532 | 131 | 84 | 5 | 72% |
 
-## attubot/eggs
+### attubot/eggs
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -189,7 +166,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/eggs/emojis.py | 52 | 0 | 8 | 0 | 100% |
 | attubot/eggs/hatching.py | 155 | 6 | 48 | 5 | 94% |
 
-## attubot/ingestor
+### attubot/ingestor
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -206,7 +183,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/ingestor/tasks.py | 34 | 34 | 4 | 0 | 0% |
 | attubot/ingestor/vector_store.py | 34 | 23 | 6 | 0 | 28% |
 
-## attubot/tasks
+### attubot/tasks
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -224,7 +201,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
 | attubot/tasks/scheduler.py | 96 | 61 | 30 | 1 | 29% |
 
-## attubot/web
+### attubot/web
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -236,7 +213,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/web/forms.py | 185 | 15 | 62 | 6 | 87% |
 | attubot/web/routes.py | 577 | 104 | 166 | 28 | 80% |
 
-## attubot/wiki
+### attubot/wiki
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
@@ -248,17 +225,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/wiki/pages.py | 70 | 56 | 12 | 0 | 17% |
 | attubot/wiki/search.py | 29 | 0 | 0 | 0 | 100% |
 
-### total
-
-| Stmts | Miss | Branch | BrPart | Cover |
-|------:|-----:|-------:|-------:|------:|
-| 8477 | 3147 | 2102 | 247 | 60% |
-
 ---
 
-# meta
+## meta
 
-## format
+### format
 
 open item: `- ⭕ \`priority\` \`effort\` description`
 
@@ -270,19 +241,20 @@ effort levels: `no effort`, `low effort`, `medium effort`, `high effort`, `very 
 
 items without a checkbox are recurring; they repeat each maintenance cycle rather than being tracked as one-time work. these live in the `## meta` section.
 
-when an item is completed, move it to the `# completed` section under the appropriate category, strip the priority/effort tags, and add a date stamp. sort completed entries chronologically within each category (oldest first). remove completed entries that are no longer relevant and not referenced by any open to-do.
+when an item is completed, move it to the `# completed` section under the appropriate category, strip the priority/effort tags, and add a date stamp. sort completed entries chronologically within each category (oldest first). remove completed entries that are no longer relevant and not referenced by any open to-do. increment `total_completed` in the metadata each time an item is marked done.
 
 when adding a new item, sort it into the appropriate section by topic, or add a new section if none fits. assign priority and effort tags. if the scope, priority, or effort is unclear, ask clarifying questions before adding. split larger projects into multiple entries.
 
-## sections
+### sections
 
 - **to-do** - active items grouped by area; sorted within each section by priority (high first)
 - **completed** - done items kept for reference; sorted chronologically; pruned when no longer relevant
 - **coverage** - latest test coverage; update by running tests with `--coverage` in docker
 - **meta** - this section; describes the doc format and holds recurring maintenance tasks
 
-## metadata
+### metadata
 
 ```yaml
 last_updated: 30 March 2026
+total_completed: 25
 ```
