@@ -15,13 +15,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
 
-### eggs
+### eggs / hatch game
 
+- ⭕ `medium priority` `low effort` `on_message_delete` doesn't check the audit log during egg channel cleanup - check audit log to distinguish bot-initiated cleanup deletes from user/mod deletes
 - ⭕ `medium priority` `low effort` split /eggs leaderboard into two separate commands: one for most hatched total, one for most complete set
-- ⭕ `high priority` `low effort` deploy script doesn't ff trunk to the current tag, so nothing actually gets pushed; fix the ff step in deploy.py
-
-### hatch
-
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
 - ⭕ `medium priority` `medium effort` create `eggs.toml` for egg game tuning; load hatch durations, drop weights, collect cooldown, animation wait range, cleanup interval and cutoff from it instead of hardcoding in `eggs/data.py`, `eggs/hatching.py`, and `tasks/egg_cleanup.py`
 - ⭕ `medium priority` `medium effort` make hatch spawn pools data-driven from `eggs.toml`; move all rarity pools and the rarities list out of `eggs/data.py` so creatures can be added or removed without code changes
@@ -75,7 +72,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `high effort` audit event-driven tasks and code; identify design improvements and best practices gaps
 - ⭕ `low priority` `medium effort` update run_tests.py to match the polish of deploy.py - better output, progress bars, clear pass/fail summary
 - ⭕ `low priority` `low effort` add progress bars to run_tests.py
-- ⭕ `low priority` `low effort` change backfill task to debug logging; report start and end only
+- ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` investigate unifying stored date types under one class (`config.py:108`)
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
@@ -116,6 +113,9 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### maintenance
 
 - 🔴 deploy script (scripts/deploy.py)
+- 🔴 `30 March 2026` fix deploy script not pushing version tag alongside trunk
+- 🔴 `30 March 2026` catch import errors in deploy.py and suggest fix command
+- 🔴 `30 March 2026` change backfill task to debug logging; report start and end only
 
 ---
 
@@ -278,5 +278,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 30 March 2026
-total_completed: 25
+total_completed: 28
 ```

@@ -35,8 +35,8 @@ the working tree will often have changes from multiple tasks in progress at once
 
 **what makes a unit complete** depends on what it is:
 
-- **feat** - implementation + tests + notes/docs + config/assets, all in one. it's done when the thing it describes is actually done, not when the code compiles.
-- **fix / patch** - the change itself plus any test that covers it. if making it work right required touching the db layer or a script, that goes in too.
+- **feat** - implementation + tests + notes/docs + config/assets + to-do updates, all in one. it's done when the thing it describes is actually done, not when the code compiles.
+- **fix / patch** - the change itself plus any test that covers it. if making it work right required touching the db layer or a script, that goes in too. to-do updates (marking items complete) go in the same commit, not separately.
 - **refactor** - every file that references the thing being changed, swept in one commit. no partial refactors left dangling.
 - **data or config change** - minimal: just the value and its docs. nothing else.
 - **chore** - linting and formatting never ride along with other work. collect them separately.
