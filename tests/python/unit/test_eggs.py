@@ -1559,6 +1559,7 @@ class TestEggCleanupTask:
             mock_msg = AsyncMock()
             mock_msg.id = 999999999
             mock_msg.created_at = old_created_at
+            mock_msg.reactions = []
 
             mock_thread = MagicMock()
 
