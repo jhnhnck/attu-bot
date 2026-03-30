@@ -139,7 +139,7 @@ Command files (`attubot/commands/`) can import `scheduler` at the top of the mod
 4. Implement `next_run()` if `interval is None`
 5. Add a module-level singleton: `my_feature_task = MyFeatureTask()`
 6. In `attubot/tasks/__init__.py`, import the singleton and call `scheduler.register(my_feature_task)`
-7. Add a row to the tasks table in `AGENTS.md`
+7. Add a row to the tasks table in `notes/agents.md`
 
 ## How to Fire a One-Shot Job from a Command
 

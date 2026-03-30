@@ -1,10 +1,10 @@
-# AGENTS.md - AttuBot / Doom Bot
+# agents.md - AttuBot / Doom Bot
 
 Guidance for AI coding agents working in this repository.
 
 ---
 
-## Project Overview
+## project overview
 
 **AttuBot** (repo name: `doom-bot`) is a Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related utilities. It is written in **Python 3.13** and ships as a Docker container.
 
@@ -15,19 +15,19 @@ There are two runnable modes, both launched from `attu-bot.py`:
 
 ---
 
-## Rules
+## rules
 
-1. Do not edit the rules.
-1. Do not perform any interactions with Discord without asking.
-1. All noqa comments must include a valid reason
-1. Check the current time at the start of each conversation. If it is past 12:30 AM ET, suggest a natural stopping point before continuing any task.
+1. do not edit the rules.
+1. do not perform any interactions with Discord without asking.
+1. all noqa comments must include a valid reason
+1. check the current time at the start of each conversation. if it is past 12:30 AM ET, suggest a natural stopping point before continuing any task.
 
-## Architecture
+## architecture
 
-### Entry Point
+### entry point
 - `attu-bot.py` - CLI dispatcher; selects `bot` or `web` mode via `sys.argv[1]`
 
-### Package: `attubot/`
+### package: `attubot/`
 | File | Role |
 |---|---|
 | `__init__.py` | Module metadata constants (`__version__`, `__build_time__`, etc.); re-exports `bot`, `config`, `db`, and startup functions from `attubot.client` |
@@ -35,7 +35,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `signals.py` | Cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
 | `logging.py` | Custom `Logger` class (termcolor-based); use `get_logger(__name__)` everywhere |
 
-### Package: `attubot/client/`
+### package: `attubot/client/`
 | File | Role |
 |---|---|
 | `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil` |
@@ -53,7 +53,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `migrations.py` | Schema migration table |
 | `util.py` | Shared helpers - `theme_color()`, `format_message_link()`, `break_at_newline()`, permission checks |
 
-### Package: `attubot/database/`
+### package: `attubot/database/`
 | File | Role |
 |---|---|
 | `__init__.py` | `init_database()` - connects storage and seeds all module-level repo singletons |
@@ -61,7 +61,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 | `models.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, etc. |
 | `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
 
-### Package: `attubot/eggs/`
+### package: `attubot/eggs/`
 Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day by `HatchTask`.
 
 | File | Role |
@@ -72,7 +72,7 @@ Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day 
 
 Slash commands live in `attubot/commands/eggs.py` and are loaded dynamically by `HatchTask` on hatch day. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
 
-### Package: `attubot/commands/`
+### package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
 
 | File | Slash Group | Purpose |
@@ -89,8 +89,8 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
 | `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress; loaded dynamically by `HatchTask` on hatch day |
 
-### Package: `attubot/ingestor/`
-RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu-chat-architecture.md`](notes/features/attu-chat-architecture.md) for full design and decisions.
+### package: `attubot/ingestor/`
+RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu_chat.md`](notes/features/attu_chat.md) for full design and decisions.
 
 | File | Role |
 |---|---|
@@ -108,7 +108,7 @@ RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded
 
 Context blocks use `<article source="wiki" name="Page Title > Section">` tags. The system prompt is at `assets/prompts/chat-system-prompt.md`.
 
-### Package: `attubot/tasks/`
+### package: `attubot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
 
 | File | Role |
@@ -124,7 +124,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
 | `hatching.py` | `HatchTask` - hourly check; loads egg commands extension and creates `#eggs` channel on hatch day |
 
-### Package: `attubot/wiki/`
+### package: `attubot/wiki/`
 | File | Role |
 |---|---|
 | `__init__.py` | `get_wiki()` singleton accessor; `setup(bot)` extension entry point |
@@ -135,12 +135,12 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `admin.py` | `AdminApi` - user block with retry logic |
 | `models.py` | Pydantic models - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail` |
 
-### Package: `attubot/web/`
+### package: `attubot/web/`
 Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger.
 
 ---
 
-## Configuration System (Three Tiers)
+## configuration system (three tiers)
 
 1. **`.env`** - only `ATTU_CONFIG_FILE`
 2. **`assets/attu-bot.toml`** - secrets and static config (tokens, DB URL, wiki credentials, WebAuthn, authorized guilds). Copy from `config/attu-bot.sample.toml`.
@@ -148,17 +148,17 @@ Quart application with route registration, WebAuthn passkey auth, Discord OAuth 
 
 `NovaConfig` loads in three stages - code that touches the DB or bot must wait for the appropriate stage (`on_init` / `on_load` / `on_ready`). Use the provided `wait_for_*` async methods if you need to gate on a stage.
 
-### Adding a new config field
+### adding a new config field
 
 Pick the right tier first. Static secrets and startup values belong in the TOML; operator-adjustable per-guild values belong in MongoDB; nothing new belongs in `.env`.
 
-**Tier 2 — TOML (`assets/attu-bot.toml`)**
+**Tier 2 - TOML (`assets/attu-bot.toml`)**
 - Add the field to the relevant Pydantic model in `config.py`
 - Add it with a sensible placeholder value to `config/attu-bot.sample.toml`
 
-**Tier 3 — MongoDB (guild-level)**
+**Tier 3 - MongoDB (guild-level)**
 
-Missing any of these steps causes the field to silently use its default in production regardless of what is in the database.
+missing any of these steps causes the field to silently use its default in production regardless of what is in the database.
 
 - `database/models.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB
 - `config.py` (`GuildConfig`) - add to the runtime model with the same default
@@ -168,15 +168,15 @@ Missing any of these steps causes the field to silently use its default in produ
 - `assets/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
 - **roundtrip test** - save a document with the field set to a non-default value, reload via `load_guild()`, assert the value survives; this directly catches the hydration failure mode
 
-**If the field gates an extension**
+**if the field gates an extension**
 - in the task that auto-activates it: call `bot.reload_extension()` + `bot.sync_commands()` on the `False → True` transition
 - in `tasks/reload_watcher.py`: diff old vs. new value after `config.load_guild()` and reload or unload the extension so web-triggered changes take effect without a restart
 
 ---
 
-## Coding Conventions
+## coding conventions
 
-### Python Style (enforced by `ruff`)
+### python style (enforced by `ruff`)
 - **Target**: Python 3.13; use modern syntax freely
 - **Formatter**: `ruff format` - single quotes, 4-space indentation
 - **Linter**: `ruff check` with a broad rule set (E, F, Q, W, I, UP, ASYNC, S, A, COM, SIM, PTH, PL, RUF)
@@ -190,7 +190,7 @@ Missing any of these steps causes the field to silently use its default in produ
 - **Forward type references**: keep as strings (`'ClassName'`) - `UP037` is ignored
 - `wip/` and `*.wip.py` files are excluded from linting/type checking
 
-### File Header (required on every Python file)
+### file header (required on every python file)
 ```python
 """
 AttuBot - <Short Description>
@@ -200,57 +200,57 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 ```
 
-### Logging
-Always use the custom logger - never the stdlib `logging` module directly:
+### logging
+always use the custom logger - never the stdlib `logging` module directly:
 ```python
 from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 ```
-Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.
+levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.
 
-### Pydantic
+### pydantic
 - All MongoDB documents extend `pydantic.BaseModel` and live in `models.py`
 - Runtime domain models (e.g. `Year`, `YearMarker`, `GuildConfig`) also extend `pydantic.BaseModel` and wrap the document models
 - Use `model_config = ConfigDict(extra='ignore')` on document models to tolerate schema evolution
 - Validate config sections with `ValidationError` and re-raise as a domain error where appropriate
 
-### Async
+### async
 - All I/O (Discord API, MongoDB) is async; use `asyncio.gather()` for parallel operations
 - Bot extensions initialize synchronously inside `setup(bot)` by calling `loop.run_until_complete()`
 - The web layer uses Quart (async Flask); route handlers are `async def`
 
-### Discord (pycord)
+### discord (pycord)
 - Slash commands use `@discord.slash_command()` or `SlashCommandGroup`
 - Each command module is a pycord **extension** with a `setup(bot: Bot)` function
 - Options use `@discord.commands.option()` decorators
-- Permission checks: `from discord.ext import commands` then `@commands.check(predicate)`; `discord.commands` does NOT have `check` - it only exposes `option` and `SlashCommandGroup`; predicates live in `util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`)
+- permission checks: `from discord.ext import commands` then `@commands.check(predicate)`; `discord.commands` does NOT have `check` - it only exposes `option` and `SlashCommandGroup`; predicates live in `util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`)
 - Error handling: `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
-- **Ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument)
+- **ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument)
 
-### MongoDB / Repository Pattern
+### mongodb / repository pattern
 - All database access goes through the repository classes in `repositories.py`
 - Repositories are instantiated lazily via module-level `_get_repo()` helpers
 - Use `upsert=True` (`$set`) for saves; never assume a document exists
 - Index creation happens in `init_indexes()` on each repository; call this at extension load time
 - Discord snowflake IDs are stored as `int` in MongoDB
 
-### Web (Quart)
-- All routes are registered in `routes.py` via `register_routes(app: Quart)`
+### web (quart)
+- all routes are registered in `routes.py` via `register_routes(app: Quart)`
 - API routes return `jsonify(...)` with standard shapes: `{'error': '...'}` on failure, `{'success': True, 'message': '...'}` on success
 - Discord IDs in JSON responses are serialized as **strings** to avoid JavaScript precision loss
 - Validation uses Pydantic form models from `web/forms.py`; return `400` with `e.errors()` on `ValidationError`
-- Mutations go through the audit logger (`web_app.audit_logger.log_change(...)`)
+- mutations go through the audit logger (`web_app.audit_logger.log_change(...)`)
 
-### JavaScript
+### javascript
 - ES modules (`"type": "module"` in `package.json`)
 - Linted with ESLint 10; run `npm run lint`
 - Tested with Vitest; test files follow `*.test.js` naming
-- No transpilation - targets the runtime directly
+- no transpilation - targets the runtime directly
 
 ---
 
-## Testing
+## testing
 ```
 docker compose run --build --rm --quiet-build tests
 ```
@@ -259,11 +259,11 @@ docker compose run --build --rm --quiet-build tests
 - All tests run with `TZ=UTC`; uses **freezegun** for deterministic calendar calculations
 - Fixture table and test constants: see [`notes/dev/testing.md`](notes/dev/testing.md)
 
-**Mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. Two standing cases:
+**mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. two standing cases:
 - `bot.load_extension()` is mocked in `test_start_bot_loop.py`; compensated by `TestExtensionImports.test_extension_imports_cleanly` doing real `importlib.import_module()` for each extension. Whenever you add a file under `attubot/commands/`, verify this test still passes.
-- Command tests call functions directly, bypassing `@commands.check`. Compensated by predicate tests in `test_util.py`. Add/update tests there when adding predicates.
+- command tests call functions directly, bypassing `@commands.check`. compensated by predicate tests in `test_util.py`. add/update tests there when adding predicates.
 
-### Linting
+### linting
 ```bash
 ruff check .           # Python lint
 ruff format --check .  # Python format check
@@ -271,7 +271,7 @@ npm run lint           # JS lint
 ```
 ---
 
-## Running Locally
+## running locally
 
 ```bash
 docker compose up --build -d
@@ -282,22 +282,22 @@ See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree
 
 ---
 
-## Important Patterns & Pitfalls
+## important patterns & pitfalls
 
-- **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. Migrations are also skipped.
+- **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. migrations are also skipped.
 - **`DEBUG` env var**: enables `trace`/`debug`/`alert` log levels.
-- **Config singleton**: `bot`, `config`, and `db` singletons are defined in `attubot/client/core.py` and re-exported from `attubot`. Extensions can import them from either path.
-- **Guild authorization**: always check `guild_id in config.authorized_guilds` before acting. `config.guild(id)` raises `UnauthorizedGuild` for unknown guilds.
-- **Snowflake precision**: Discord IDs exceed JavaScript's safe integer range - serialize them as strings in any JSON API response.
-- **Rollover time storage**: stored as `rollover_minutes` (int, minutes since midnight) in MongoDB; the legacy string format (`"17:00"`) is handled by a `model_validator` in `GuildEpoch`.
+- **config singleton**: `bot`, `config`, and `db` singletons are defined in `attubot/client/core.py` and re-exported from `attubot`. extensions can import them from either path.
+- **guild authorization**: always check `guild_id in config.authorized_guilds` before acting. `config.guild(id)` raises `UnauthorizedGuild` for unknown guilds.
+- **snowflake precision**: Discord IDs exceed JavaScript's safe integer range - serialize them as strings in any JSON API response.
+- **rollover time storage**: stored as `rollover_minutes` (int, minutes since midnight) in MongoDB; the legacy string format (`"17:00"`) is handled by a `model_validator` in `GuildEpoch`.
 - **`wip/` directory**: excluded from all linting and type checks; use it for exploratory/in-progress work.
 - **`resvg` dependency**: the bot checks for `/usr/local/bin/resvg` at startup and exits if missing - it is bundled in the Docker image.
-- **Error webhook**: unhandled exceptions in commands are forwarded to a Discord webhook via `logger.send_to_webhook(err)`.
-- **Permission checks on slash commands**: use `@commands.check(predicate)` from `discord.ext.commands` - NOT `@discord.commands.check()`, which does not exist in pycord. All command modules use `from discord.ext import commands`.
+- **error webhook**: unhandled exceptions in commands are forwarded to a Discord webhook via `logger.send_to_webhook(err)`.
+- **permission checks on slash commands**: use `@commands.check(predicate)` from `discord.ext.commands` - NOT `@discord.commands.check()`, which does not exist in pycord. all command modules use `from discord.ext import commands`.
 
 ---
 
-## Reference Notes
+## reference notes
 
 Notes in `notes/` with relevant implementation details:
 
@@ -315,17 +315,17 @@ Notes in `notes/` with relevant implementation details:
 - [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
 - [`web.md`](notes/features/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
-- [`attu-chat-architecture.md`](notes/features/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
+- [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions
 
 **`notes/dev/`** - development guides
 - [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions, mock compensation
 - [`dev_setup.md`](notes/dev/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 
 **`notes/`**
-- [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
+- [`.meta.md`](.meta.md) - guide for recreating this agents.md and notes/ system in another repository
 ---
 
-## File & Directory Layout
+## file & directory layout
 
 ```
 attu-bot.py              # entrypoint
@@ -344,15 +344,17 @@ notes/                   # project notes (not code); subdirs: style/, features/,
 wip/                     # work-in-progress scratch space (excluded from lint)
 ```
 
-# Personality
+# personality
 
 - use semicolons or regular dashes (-); never em-dashes
+  - semicolon: joins two independent clauses or a cause and consequence (`"migration failed; refusing to continue"`)
+  - dash: trailing aside, parenthetical, or annotation (`"lazy singleton initialization requires global"` in a noqa comment)
 - do not include any extraneous punctuation
 - write code comments in all lowercase including at the beginning of sentences, except where it would be unclear; prefer to be brief
 - use american english spelling and grammar
-- Use spaces for indentation always; avoid formats that require tabs
+- use spaces for indentation always; avoid formats that require tabs
 - prefer brief statements over long explanations
 
-# Metadata
+# metadata
 
 - Last Updated: 30 March 2026

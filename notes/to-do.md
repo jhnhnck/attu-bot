@@ -1,5 +1,11 @@
 # to-do
 
+_see the [meta](#meta) section at the end of this file for format reference._
+
+---
+
+# tasks
+
 ## meta
 
 - `medium priority` `low effort` assign any to-dos without an effort or category; update priorities; move completed and sort all
@@ -7,6 +13,11 @@
 - `low priority` `medium effort` add more stats to web interface
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
+
+## eggs
+
+- ⭕ `medium priority` `low effort` split /eggs leaderboard into two separate commands: one for most hatched total, one for most complete set
+- ⭕ `high priority` `low effort` deploy script doesn't ff trunk to the current tag, so nothing actually gets pushed; fix the ff step in deploy.py
 
 ## hatch
 
@@ -251,21 +262,25 @@
 
 open item: `- ⭕ \`priority\` \`effort\` description`
 
-completed item: `- 🔴 description`
+completed item: `- 🔴 \`26 March 2026\` description`
 
 priority levels (highest to lowest): `high priority`, `medium priority`, `low priority`, `future idea`
 
-effort levels: `low effort`, `medium effort`, `high effort`, `very high effort`
+effort levels: `no effort`, `low effort`, `medium effort`, `high effort`, `very high effort`
 
-items without a checkbox are recurring - they repeat each maintenance cycle rather than being tracked as one-time work. these live in the `## meta` section.
+items without a checkbox are recurring; they repeat each maintenance cycle rather than being tracked as one-time work. these live in the `## meta` section.
 
-when an item is completed, move it to the `# completed` section under the appropriate category and strip the priority/effort tags - just keep the description.
+when an item is completed, move it to the `# completed` section under the appropriate category, strip the priority/effort tags, and add a date stamp. sort completed entries chronologically within each category (oldest first). remove completed entries that are no longer relevant and not referenced by any open to-do.
 
 when adding a new item, sort it into the appropriate section by topic, or add a new section if none fits. assign priority and effort tags. if the scope, priority, or effort is unclear, ask clarifying questions before adding. split larger projects into multiple entries.
 
 ## sections
 
 - **to-do** - active items grouped by area; sorted within each section by priority (high first)
-- **completed** - done items kept for reference
+- **completed** - done items kept for reference; sorted chronologically; pruned when no longer relevant
 - **coverage** - latest test coverage; update by running tests with `--coverage` in docker
 - **meta** - this section; describes the doc format and holds recurring maintenance tasks
+
+## meta
+
+- Last Updated: 30 March 2026

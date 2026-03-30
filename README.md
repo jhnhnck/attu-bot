@@ -117,7 +117,7 @@ Both modes are launched from `attu-bot.py`:
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for full architecture, coding conventions, and contributor guidelines.
+See [notes/agents.md](notes/agents.md) for full architecture, coding conventions, and contributor guidelines.
 
 ### Tests
 
