@@ -42,8 +42,12 @@
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` we use hard-coded custom emojis in a lot of the responses; centralize this into one place; already storing some emoji ids with the theme
 - ⭕ `medium priority` `high effort` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
+- ⭕ `medium priority` `high effort` audit event-driven tasks and code; identify design improvements and best practices gaps
+- ⭕ `low priority` `medium effort` update run_tests.py to match the polish of deploy.py - better output, progress bars, clear pass/fail summary
 - ⭕ `low priority` `low effort` add progress bars to run_tests.py
+- ⭕ `low priority` `low effort` change backfill task to debug logging; report start and end only
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
+- ⭕ `low priority` `medium effort` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
 - ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 

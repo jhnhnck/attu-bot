@@ -127,6 +127,7 @@ class GuildConfigForm(BaseModel):
     roles: GuildRolesForm = Field(default_factory=GuildRolesForm)
     users: GuildUsersForm = Field(default_factory=GuildUsersForm)
     starboard: GuildStarboardForm = Field(default_factory=GuildStarboardForm)
+    eggs_active: bool = Field(default=False)
 
     @model_validator(mode='before')
     @classmethod
@@ -142,6 +143,7 @@ class GuildConfigForm(BaseModel):
             'roles': data.get('roles', {}).copy() if isinstance(data.get('roles'), dict) else {},
             'users': data.get('users', {}).copy() if isinstance(data.get('users'), dict) else {},
             'starboard': data.get('starboard', {}).copy() if isinstance(data.get('starboard'), dict) else {},
+            'eggs_active': bool(data.get('eggs_active', False)),
         }
 
         for key, value in data.items():

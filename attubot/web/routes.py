@@ -260,6 +260,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'emojis': guild.starboard.emojis,
                 'valid_bots': [str(b) for b in guild.starboard.valid_bots],
             },
+            'eggs_active': guild.eggs_active,
         })
 
     @app.route('/api/guilds/<int:guild_id>', methods=['POST'])
@@ -296,6 +297,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             guild.roles = GuildRoles(**validated.roles.model_dump())
             guild.users = GuildUsers(**validated.users.model_dump())
             guild.starboard = GuildStarboard(**validated.starboard.model_dump())
+            guild.eggs_active = validated.eggs_active
 
             # Save to database
             await guild.save()
