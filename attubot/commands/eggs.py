@@ -20,6 +20,7 @@ from attubot.logging import get_logger
 logger = get_logger(__name__)
 
 eggs_group = SlashCommandGroup('eggs', description='egg collection game')
+leaderboard_group = eggs_group.create_subgroup('leaderboard', 'Egg leaderboards')
 
 _GIVE_RARITY_CHOICES = ['common', 'uncommon', 'rare', 'legendary', 'mythical', 'hatched']
 
@@ -282,17 +283,16 @@ async def eggs_progress(ctx: ApplicationContext):
         await ctx.respond('not available here', ephemeral=True)
         return
 
-    from attubot.eggs.data import hatch_pools, rarities
     from attubot.eggs.emojis import render_progress_bar
     from attubot.eggs.hatching import _egg_repo
 
     total_collected, total_hatched, unique_by_rarity = await _egg_repo.get_user_egg_stats(ctx.guild_id, ctx.author.id)
-    total_possible = sum(len(hatch_pools[r]) for r in rarities)
-    total_unique = sum(unique_by_rarity.get(r, 0) for r in rarities)
+    total_possible = sum(len(config.hatch.pools[r]) for r in config.hatch.rarities)
+    total_unique = sum(unique_by_rarity.get(r, 0) for r in config.hatch.rarities)
 
     lines = []
-    for rarity in rarities:
-        pool_size = len(hatch_pools[rarity])
+    for rarity in config.hatch.rarities:
+        pool_size = len(config.hatch.pools[rarity])
         collected = unique_by_rarity.get(rarity, 0)
         bar = render_progress_bar(collected, pool_size)
         lines.append(f'{rarity}: {bar} {collected}/{pool_size}')
@@ -305,31 +305,42 @@ async def eggs_progress(ctx: ApplicationContext):
     await ctx.respond(embed=embed)
 
 
-@eggs_group.command(name='leaderboard', description='Top egg collectors - most hatched and most complete set')
-async def eggs_leaderboard(ctx: ApplicationContext):
+def _fmt_leaderboard(rows: list[dict], value_key: str, label: str) -> str:
+    if not rows:
+        return 'no data yet'
+    lines = []
+    for i, row in enumerate(rows[:10], start=1):
+        lines.append(f'**{i}.** <@{row["_id"]}> - **{row[value_key]}** {label}')
+    return '\n'.join(lines)
+
+
+@leaderboard_group.command(name='hatched', description='Top egg collectors by total hatched')
+async def eggs_leaderboard_hatched(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
         await ctx.respond('not available here', ephemeral=True)
         return
 
-    from attubot.client.util import theme_color
     from attubot.eggs.hatching import _egg_repo
 
-    most_hatched = await _egg_repo.leaderboard_most_hatched(ctx.guild_id)
-    most_unique = await _egg_repo.leaderboard_most_unique(ctx.guild_id)
+    rows = await _egg_repo.leaderboard_most_hatched(ctx.guild_id)
+    embed = make_embed('most hatched', description=_fmt_leaderboard(rows, 'total', 'hatched'), timestamp=False)
+    await ctx.respond(embed=embed)
 
-    def _fmt(rows: list[dict], value_key: str, label: str) -> str:
-        if not rows:
-            return 'no data yet'
-        lines = []
-        for i, row in enumerate(rows[:10], start=1):
-            lines.append(f'**{i}.** <@{row["_id"]}> - **{row[value_key]}** {label}')
-        return '\n'.join(lines)
 
-    embed = discord.Embed(title='egg leaderboard', color=theme_color())
-    embed.add_field(name='most hatched', value=_fmt(most_hatched, 'total', 'hatched'), inline=True)
-    embed.add_field(name='most complete set', value=_fmt(most_unique, 'unique', 'unique'), inline=True)
+@leaderboard_group.command(name='collected', description='Top egg collectors by most complete set')
+async def eggs_leaderboard_collected(ctx: ApplicationContext):
+    await ctx.defer()
+
+    if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
+        await ctx.respond('not available here', ephemeral=True)
+        return
+
+    from attubot.eggs.hatching import _egg_repo
+
+    rows = await _egg_repo.leaderboard_most_unique(ctx.guild_id)
+    embed = make_embed('most complete set', description=_fmt_leaderboard(rows, 'unique', 'unique'), timestamp=False)
     await ctx.respond(embed=embed)
 
 
