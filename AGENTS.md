@@ -68,9 +68,8 @@ Seasonal egg collection mini-game. Commands are dynamically loaded on hatch day 
 | `data.py` | rarity constants, hatch durations, drop weights, hatch pools |
 | `emojis.py` | SVG→PNG rendering and Discord custom emoji upload (`ensure_egg_emojis`) |
 | `hatching.py` | core game logic - `hatch_date()`, `collect_egg()`, `hatch_egg()`, `run_hatch_animation()`, `ensure_eggs_ready()` |
-| `commands.py` | `/egg`, `/eggs hatch`, `/eggs view` slash commands; loaded dynamically via `bot.load_extension()` |
 
-See [`notes/eggs.md`](notes/eggs.md) for behavior rules, storage schema, and setup instructions.
+Slash commands live in `attubot/commands/eggs.py` and are loaded dynamically by `HatchTask` on hatch day. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
 
 ### Package: `attubot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
@@ -87,26 +86,26 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `wiki.py` | `/wiki` | Wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | Year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
-| `chat.py` | `/ask` | RAG lore query; streams LLM response with source citations |
+| `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress; loaded dynamically by `HatchTask` on hatch day |
 
 ### Package: `attubot/ingestor/`
-ML pipeline for the `/ask` RAG feature. All models are lazy singletons loaded by `ChatInitTask` at startup.
+RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu-chat-architecture.md`](notes/features/attu-chat-architecture.md) for full design and decisions.
 
 | File | Role |
 |---|---|
-| `embedder.py` | `Embedder` - wraps `sentence-transformers` SentenceTransformer; `embed()` / `embed_batch()`; model set via `config.chat.embedding_model` (default `all-MiniLM-L6-v2`) |
-| `reranker.py` | `Reranker` - wraps CrossEncoder (`cross-encoder/ms-marco-MiniLM-L6-v2`); `rerank(query, candidates)` scores and sorts by relevance, adds `rerank_score` to each result dict |
-| `llm.py` | `LlmClient` - streaming HTTP client for a llama.cpp OpenAI-compatible API; `complete(system, context, query)` yields tokens; dual-URL failover (`llm_primary_url` / `llm_fallback_url`) |
-| `vector_store.py` | `VectorStore` - wraps `AsyncQdrantClient`; `search(collection, vector, top_k)`, `upsert()`, `delete()`; COSINE distance |
-| `pipelines/wiki.py` | `WikiPipeline` - fetches wiki pages, chunks by section, embeds, upserts to Qdrant `wiki` collection |
+| `__init__.py` | `start_ingestor()` - creates TaskScheduler, registers tasks, starts internal Quart API |
+| `embedder.py` | `Embedder` - wraps `all-MiniLM-L6-v2` sentence-transformers; `embed()` / `embed_batch()` |
+| `reranker.py` | `Reranker` - CrossEncoder reranking; `rerank(query, candidates)` adds `rerank_score` to each result |
+| `llm.py` | `LlmClient` - streaming llama.cpp HTTP client (OpenAI-compat); dual-URL primary/fallback |
+| `vector_store.py` | `VectorStore` - Qdrant client wrapper; `search()`, `upsert()`, `delete()`; COSINE distance |
+| `registry.py` | `ChatSourceRepository` access; tracks ingested content for deduplication |
+| `query_expander.py` | expands user queries before embedding to improve recall |
+| `summarizer.py` | summarizes long Discord threads before ingestion |
+| `tasks.py` | `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask` (`BaseTask` subclasses) |
+| `pipelines/wiki.py` | wiki page fetch → section split → embed → upsert |
+| `pipelines/discord.py` | reply-chain graph traversal, time-window grouping, noise filtering |
 
-Context blocks sent to the LLM are formatted as:
-```xml
-<article source="wiki" name="Page Title > Section">
-...section text...
-</article>
-```
-`source` will expand to `discord`, `doc`, etc. in future phases. The system prompt lives at `assets/prompts/chat-system-prompt.md` and is loaded lazily on first `/ask` call.
+Context blocks use `<article source="wiki" name="Page Title > Section">` tags. The system prompt is at `assets/prompts/chat-system-prompt.md`.
 
 ### Package: `attubot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
@@ -122,23 +121,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
-| `chat_init.py` | `ChatInitTask` - initializes chat subsystems (embedder, reranker, vector store, LLM client) at startup |
 | `hatching.py` | `HatchTask` - hourly check; loads egg commands extension and creates `#eggs` channel on hatch day |
-
-### Package: `attubot/ingestor/`
-RAG ingestion pipeline. See [`notes/attu-chat-architecture.md`](notes/attu-chat-architecture.md) for the full design.
-
-| File | Role |
-|---|---|
-| `__init__.py` | `start_ingestor()` - creates TaskScheduler, registers tasks, starts internal Quart API |
-| `embedder.py` | `Embedder` - wraps `all-MiniLM-L6-v2` sentence-transformers model |
-| `vector_store.py` | `VectorStore` - Qdrant client wrapper (`upsert`, `search`, `delete`) |
-| `reranker.py` | `Reranker` - cross-encoder reranking of retrieval candidates |
-| `llm.py` | `LLMClient` - llama.cpp HTTP client (OpenAI-compat); primary GPU + CPU fallback |
-| `registry.py` | `ChatSourceRepository` access; tracks all ingested content for deduplication and deletion |
-| `tasks.py` | `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask` (`BaseTask` subclasses) |
-| `pipelines/wiki.py` | Wiki page fetch → section split → embed |
-| `pipelines/discord.py` | Reply-chain graph traversal, time-window grouping, noise filtering |
 
 ### Package: `attubot/wiki/`
 | File | Role |
@@ -243,45 +226,17 @@ Levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `
 ---
 
 ## Testing
-Run all tests:
 ```
 docker compose run --build --rm --quiet-build tests
 ```
 
-### Python Tests
-- Tests live in `tests/`; configured via `[tool.pytest.ini_options]` in `pyproject.toml`
 - `asyncio_mode = "auto"` - async tests work without explicit `@pytest.mark.asyncio`
-- All tests run with `TZ=UTC` (set in `conftest.py` before any imports)
-- Uses **freezegun** to pin wall-clock time for deterministic calendar calculations
-- Uses `unittest.mock` (`AsyncMock`, `MagicMock`, `patch`) - no additional mock library
+- All tests run with `TZ=UTC`; uses **freezegun** for deterministic calendar calculations
+- Fixture table and test constants: see [`notes/dev/testing.md`](notes/dev/testing.md)
 
-#### Key fixtures (from `conftest.py`)
-| Fixture | Purpose |
-|---|---|
-| `guild` / `make_guild` | Creates a `GuildConfig` and registers it in `config.guilds` |
-| `mock_ctx` / `mock_ctx_factory` | Mock `ApplicationContext` with `.respond` tracked via `AsyncMock` |
-| `mock_year_repo` | Patches `attubot.client.years._get_repo` - preferred for Year model tests |
-| `mock_marker_repo` | Patches `attubot.client.markers._get_repo` - preferred for YearMarker tests |
-| `mock_all_repos` | Patches both repos; returns `{'year': ..., 'marker': ...}` |
-| `mock_db_and_repos` | Patches `db.get_db` and resets module-level repo singletons |
-| `make_year` / `make_year_doc` | Factory fixtures for `Year` and `YearDocument` instances |
-
-#### Conventions
-- Use `mock_year_repo` / `mock_marker_repo` rather than directly patching internal state
-- `xfail` marks document **known bugs** - when a fix lands the test becomes `XPASS`, which signals the marker should be removed
-- Test constants: `TEST_GUILD = 1234567890`, `TEST_USER = 9876543210`, `TEST_CHANNEL = 5555555555`
-
-#### Mock compensation rule
-When a test mocks a framework mechanism, it inherits responsibility for testing what that mock hides. Two standing cases in this codebase:
-
-- `bot.load_extension()` is mocked in `test_start_bot_loop.py` to test orchestration. Compensation: `TestExtensionImports.test_extension_imports_cleanly` in the same file does a real `importlib.import_module()` for each entry in `extensions_list` - decorators are evaluated at import time, so any bad attribute reference surfaces immediately. Whenever you add an extension file under `attubot/commands/`, verify this test still passes.
-- Command tests call functions directly, bypassing `@commands.check` decorators. Compensation: permission predicates (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`) are tested in `test_util.py`. Whenever you add a new predicate or change an existing one, add or update its test there.
-
-The general principle: if you write a test that mocks out a mechanism, ask "what behavior is this mock hiding?" and ensure that hidden behavior is covered at another level.
-
-### JavaScript Tests
-- Test files: `tests/*.test.js`
-- Uses `jsdom` environment for DOM tests
+**Mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. Two standing cases:
+- `bot.load_extension()` is mocked in `test_start_bot_loop.py`; compensated by `TestExtensionImports.test_extension_imports_cleanly` doing real `importlib.import_module()` for each extension. Whenever you add a file under `attubot/commands/`, verify this test still passes.
+- Command tests call functions directly, bypassing `@commands.check`. Compensated by predicate tests in `test_util.py`. Add/update tests there when adding predicates.
 
 ### Linting
 ```bash
@@ -293,24 +248,12 @@ npm run lint           # JS lint
 
 ## Running Locally
 
-### Recommended: Dev Container
-Open in VS Code, accept "Reopen in Container" - Python 3.13 + MongoDB 8 are pre-configured.
-
-### Manual
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-npm install
-cp config/attu-bot.sample.toml assets/attu-bot.toml
-# edit assets/attu-bot.toml with real values
-python attu-bot.py bot   # or: python attu-bot.py web
-```
-
-### Docker
 ```bash
 docker compose up --build -d
 docker compose logs -f
 ```
+
+See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree workflow, seed refresh, and deployment steps.
 
 ---
 
@@ -333,19 +276,26 @@ docker compose logs -f
 
 Notes in `notes/` with relevant implementation details:
 
-- [`button_usage.md`](notes/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
-- [`comment_style.md`](notes/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
-- [`message_style.md`](notes/message_style.md) - log message and Discord response message style (tone, capitalization, error format, custom emojis)
-- [`embed_usage.md`](notes/embed_usage.md) - discord embed construction and field usage
-- [`markers.md`](notes/markers.md) - marker system spec (resolution order, storage, commands, web API)
-- [`starboard.md`](notes/starboard.md) - starboard feature spec and embed structure reference
-- [`testing.md`](notes/testing.md) - test cases
-- [`web.md`](notes/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
-- [`timekeeping.md`](notes/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
-- [`dev_setup.md`](notes/dev_setup.md) - dev worktree setup, running tests, deploying to prod
-- [`attu-chat-architecture.md`](notes/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
-- [`eggs.md`](notes/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
-- [`tasks.md`](notes/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
+**`notes/style/`** - conventions and usage patterns
+- [`comment_style.md`](notes/style/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
+- [`message_style.md`](notes/style/message_style.md) - log message and Discord response style (tone, capitalization, error format, custom emojis)
+- [`embed_usage.md`](notes/style/embed_usage.md) - discord embed construction and field usage
+- [`button_usage.md`](notes/style/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
+
+**`notes/features/`** - feature specs and system docs
+- [`eggs.md`](notes/features/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
+- [`starboard.md`](notes/features/starboard.md) - starboard feature spec and embed structure reference
+- [`markers.md`](notes/features/markers.md) - marker system spec (resolution order, storage, commands, web API)
+- [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
+- [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
+- [`web.md`](notes/features/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
+- [`attu-chat-architecture.md`](notes/features/attu-chat-architecture.md) - chat/RAG system full architecture and design decisions
+
+**`notes/dev/`** - development guides
+- [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions, mock compensation
+- [`dev_setup.md`](notes/dev/dev_setup.md) - dev worktree setup, running tests, deploying to prod
+
+**`notes/`**
 - [`.meta.md`](notes/.meta.md) - guide for recreating this AGENTS.md and notes/ system in another repository
 ---
 
@@ -364,7 +314,7 @@ assets/                  # runtime assets (TOML config, templates, static)
 config/                  # sample/reference config files (not used at runtime)
 tests/                   # pytest + vitest test suites
 scripts/                 # utility scripts (backup, migration, test runner)
-notes/                   # project notes (not code)
+notes/                   # project notes (not code); subdirs: style/, features/, dev/
 wip/                     # work-in-progress scratch space (excluded from lint)
 ```
 
@@ -379,4 +329,4 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 
 # Metadata
 
-- Last Updated: 28 March 2026
+- Last Updated: 29 March 2026

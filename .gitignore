@@ -50,17 +50,4 @@ assets/doombot-seed/
 assets/models/
 
 # notes
-notes/*
-!notes/attu-chat-*.md
-!notes/button_usage.md
-!notes/comment_style.md
-!notes/dev_setup.md
-!notes/embed_usage.md
-!notes/markers.md
-!notes/starboard.md
-!notes/testing.md
-!notes/timekeeping.md
-!notes/web.md
-!notes/message_style.md
-!notes/eggs.md
-!notes/tasks.md
+notes/plans/

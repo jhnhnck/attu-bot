@@ -7,6 +7,7 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 - tracks in-universe time and automates year transitions - announcements, channel name updates, wiki edits
 - retrieves year info and links to specific years in lore channels
 - manages a starboard, message backfill, and moderation logging
+- egg collection game with rarity-based hatching and trading
 - provides an admin web interface for runtime configuration
 
 ## Commands
@@ -23,6 +24,12 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 - **/wiki**: wiki lookup and management
   - **/wiki random**: gets a random page from the wiki
   - **/wiki lookup \<query\>**: searches the wiki for relevant pages
+
+- **/eggs**: egg collection game
+  - **/eggs hatch**: hatch your next ready egg
+  - **/eggs view**: view your egg collection thread
+  - **/eggs give \<user\> [rarity]**: give one of your eggs to another user
+  - **/eggs progress**: view your collection progress by rarity with progress bars
 
 - **/stars**: starboard browsing and leaderboards
   - **/stars random**: shows a random message with 2 or more stars
@@ -65,7 +72,12 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
   - **/fix year_links**: forces the year links channel to be rebuilt
   - **/fix messages \<channel\>**: verifies and backfills any missing stored messages in a channel
   - **/fix author_names [user]**: re-resolves usernames and updates all stored messages
-  - **/fix starboard_recount**: re-fetches live Discord reactions and updates starboard counts
+  - **/fix reconcile [days]**: scans recent guild history and reconciles starboard state
+  - **/fix emoji**: uploads and verifies all custom emojis on the secondary server
+  - **/fix starboard recount**: re-fetches live Discord reactions and updates starboard counts
+  - **/fix starboard recover [days]**: scans the starboard channel and restores any missing db records
+  - **/fix starboard regen**: rebuilds every starboard post for this guild
+  - **/fix starboard purge \<message_link\>**: removes a message from the starboard database
 
 ## Setup
 
