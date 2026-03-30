@@ -65,6 +65,7 @@ class ConfigRepository:
             'roles': config.roles.model_dump(),
             'users': config.users.model_dump(),
             'starboard': config.starboard.model_dump(),
+            'eggs_active': config.eggs_active,
         }
         await self.db[self.GUILD_COLLECTION].update_one(
             {'guild_id': config.id},
@@ -771,10 +772,21 @@ class ReloadSignalRepository:
         self.db = db
 
     async def init_indexes(self):
-        # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead
-        await self.db[self.COLLECTION].create_index(
-            [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
-        )
+        # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead.
+        # if an older unique index exists under the same auto-generated name, drop it first to avoid IndexKeySpecsConflict (code 86).
+        from pymongo.errors import OperationFailure
+        try:
+            await self.db[self.COLLECTION].create_index(
+                [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
+            )
+        except OperationFailure as e:
+            if e.code == 86:
+                await self.db[self.COLLECTION].drop_index('signal_type_1_guild_id_1')
+                await self.db[self.COLLECTION].create_index(
+                    [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
+                )
+            else:
+                raise
 
     async def send(self, signal_type: str, guild_id: int | None = None):
         """Upsert a reload signal - idempotent for the same (type, guild) pair"""

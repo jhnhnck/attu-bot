@@ -148,6 +148,30 @@ Quart application with route registration, WebAuthn passkey auth, Discord OAuth 
 
 `NovaConfig` loads in three stages - code that touches the DB or bot must wait for the appropriate stage (`on_init` / `on_load` / `on_ready`). Use the provided `wait_for_*` async methods if you need to gate on a stage.
 
+### Adding a new config field
+
+Pick the right tier first. Static secrets and startup values belong in the TOML; operator-adjustable per-guild values belong in MongoDB; nothing new belongs in `.env`.
+
+**Tier 2 — TOML (`assets/attu-bot.toml`)**
+- Add the field to the relevant Pydantic model in `config.py`
+- Add it with a sensible placeholder value to `config/attu-bot.sample.toml`
+
+**Tier 3 — MongoDB (guild-level)**
+
+Missing any of these steps causes the field to silently use its default in production regardless of what is in the database.
+
+- `database/models.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB
+- `config.py` (`GuildConfig`) - add to the runtime model with the same default
+- `config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; this is the step that was missing in the `eggs_active` bug
+- `web/forms.py` (`GuildConfigForm`) - add the field so saves from the web UI don't silently drop it
+- `assets/templates/guild_config.html` - add the form control
+- `assets/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
+- **roundtrip test** - save a document with the field set to a non-default value, reload via `load_guild()`, assert the value survives; this directly catches the hydration failure mode
+
+**If the field gates an extension (e.g. `eggs_active`)**
+- in the task that auto-activates it: call `bot.reload_extension()` + `bot.sync_commands()` on the `False → True` transition
+- in `tasks/reload_watcher.py`: diff old vs. new value after `config.load_guild()` and reload or unload the extension so web-triggered changes take effect without a restart
+
 ---
 
 ## Coding Conventions

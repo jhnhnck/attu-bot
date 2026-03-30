@@ -34,6 +34,7 @@
 ## web interface
 
 - ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes for
+- ⭕ `medium priority` `medium effort` web audit log should be enforced, not optional - currently guarded by `if web_app.audit_logger:` which silently skips auditing if not configured; audit coverage gaps (e.g. eggs_active changes not tracked)
 - ⭕ `low priority` `medium effort` primary / secondary guild toggle instead of having all guilds
 
 ## maintenance
@@ -99,6 +100,7 @@
 
 ## maintenance
 
+- 🔴 signals index init failing on startup with IndexKeySpecsConflict (code 86) - migrate old unique index to non-unique on conflict in init_indexes
 - 🔴 separate out the bot logo update task, run every 2.5 minutes; store hsl natively instead of hex
 - 🔴 invert notes/ gitignore; we can explicitly ignore the ones we don't want
 - 🔴 deploy script with clean dir check, test run, version bump, and git tag (scripts/deploy.py)
