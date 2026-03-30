@@ -11,7 +11,6 @@ from attubot.tasks.chat_init import ChatInitTask, chat_init_task
 from attubot.tasks.db_backup import DatabaseBackupTask, db_backup_task
 from attubot.tasks.egg_cleanup import EggCleanupTask, egg_cleanup_task
 from attubot.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_hook_task
-from attubot.tasks.hatching import HatchTask, hatch_task
 from attubot.tasks.logo_update import LogoUpdateTask, logo_update_task
 from attubot.tasks.message_backfill import MessageBackfillTask, message_backfill_task
 from attubot.tasks.nova_year import NovaYearTask, nova_year_task
@@ -31,7 +30,6 @@ scheduler.register(reload_watcher_task)
 scheduler.register(db_backup_task)
 scheduler.register(message_backfill_task)
 scheduler.register(egg_cleanup_task)
-scheduler.register(hatch_task)
 scheduler.register(presence_update_task)
 
 
@@ -41,7 +39,6 @@ __all__ = [
     'DatabaseBackupTask',
     'EggCleanupTask',
     'ErrorHookTask',
-    'HatchTask',
     'LogoUpdateTask',
     'MessageBackfillTask',
     'NovaYearTask',
@@ -53,7 +50,6 @@ __all__ = [
     'egg_cleanup_task',
     'error_hook_refresh',
     'error_hook_task',
-    'hatch_task',
     'logo_update_task',
     'message_backfill_task',
     'nova_year_task',

@@ -59,17 +59,7 @@ class ReloadWatcherTask(BaseTask):
                         logger.warn('received guild reload signal with no guild_id; skipping')
                         continue
                     logger.info(f'reloading guild config for {signal.guild_id} (web-triggered)')
-                    old_eggs_active = config.guilds[signal.guild_id].eggs_active if signal.guild_id in config.guilds else False
                     await config.load_guild(signal.guild_id)
-                    new_eggs_active = config.guilds[signal.guild_id].eggs_active
-                    if new_eggs_active != old_eggs_active:
-                        from attubot import bot
-
-                        if new_eggs_active:
-                            bot.reload_extension('attubot.commands.eggs')
-                        else:
-                            bot.unload_extension('attubot.commands.eggs')
-                        await bot.sync_commands()
 
                 elif signal.signal_type == 'theme':
                     logger.info('reloading theme config (web-triggered)')

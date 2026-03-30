@@ -26,7 +26,6 @@ from attubot.eggs.hatching import (
     run_hatch_animation,
 )
 from attubot.tasks.egg_cleanup import egg_cleanup_task
-from attubot.tasks.hatching import hatch_task
 from attubot.tasks.scheduler import scheduler as real_scheduler
 
 
@@ -493,7 +492,7 @@ class TestHatchEggCacheMiss:
 class TestEggCommands:
     @pytest.fixture(autouse=True)
     def setup(self, make_guild, mock_ctx_factory):
-        make_guild(guild_id=test_guild, eggs_active=True)
+        make_guild(guild_id=test_guild)
         ctx = mock_ctx_factory(guild_id=test_guild)
         ctx.guild_id = test_guild
         self.ctx = ctx
@@ -572,7 +571,7 @@ class TestEggCommands:
 class TestEggsLeaderboard:
     @pytest.fixture(autouse=True)
     def setup(self, make_guild, mock_ctx_factory):
-        make_guild(guild_id=test_guild, eggs_active=True)
+        make_guild(guild_id=test_guild)
         ctx = mock_ctx_factory(guild_id=test_guild)
         ctx.guild_id = test_guild
         self.ctx = ctx
@@ -1061,7 +1060,7 @@ class TestEggSelectMenu:
 class TestEggsGiveCommand:
     @pytest.fixture(autouse=True)
     def setup(self, make_guild, mock_ctx_factory):
-        make_guild(guild_id=test_guild, eggs_active=True)
+        make_guild(guild_id=test_guild)
         ctx = mock_ctx_factory(guild_id=test_guild)
         ctx.guild_id = test_guild
         ctx.channel.send = AsyncMock(return_value=MagicMock())
@@ -1198,79 +1197,7 @@ class TestEggsGiveCommand:
 
 
 # ============================================================
-# HatchTask.run()
-# ============================================================
-
-
-class TestHatchTask:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        with (
-            patch('attubot.tasks.hatching.config') as mock_config,
-            patch('attubot.tasks.hatching.bot') as mock_bot,
-            patch('attubot.tasks.hatching.ensure_eggs_ready', new=AsyncMock()) as mock_ensure,
-            patch.object(real_scheduler, 'add_job') as mock_add_job,
-        ):
-            import zoneinfo
-
-            mock_config.timezone = zoneinfo.ZoneInfo('UTC')
-            mock_config.config_repo = AsyncMock()
-            mock_bot.sync_commands = AsyncMock()
-            self.mock_config = mock_config
-            self.mock_bot = mock_bot
-            self.mock_ensure = mock_ensure
-            self.mock_add_job = mock_add_job
-            yield
-
-    async def test_before_hatch_day_eggs_not_active_skips(self):
-        """before hatch day, eggs_active=False - returns without activating or running setup"""
-        # hatch_date(2026) == 2026-04-05; before it with eggs_active=False
-        with patch('datetime.datetime') as mock_dt:
-            import datetime as dt
-
-            mock_dt.now.return_value.date.return_value = dt.date(2026, 3, 28)
-            self.mock_config.primary.return_value = MagicMock(eggs_active=False)
-            await hatch_task.run()
-
-        self.mock_config.config_repo.update_guild_field.assert_not_called()
-        self.mock_ensure.assert_not_called()
-        self.mock_add_job.assert_not_called()
-
-    async def test_hatch_day_activates_and_runs_setup(self):
-        """on hatch day with eggs_active=False - activates flag, runs setup and presence"""
-        with patch('datetime.datetime') as mock_dt:
-            import datetime as dt
-
-            mock_dt.now.return_value.date.return_value = dt.date(2026, 4, 5)
-            mock_guild_cfg = MagicMock(eggs_active=False, id=test_guild)
-            self.mock_config.primary.return_value = mock_guild_cfg
-            await hatch_task.run()
-
-        self.mock_config.config_repo.update_guild_field.assert_called_once_with(test_guild, 'eggs_active', True)
-        self.mock_bot.reload_extension.assert_called_once_with('attubot.commands.eggs')
-        self.mock_bot.sync_commands.assert_called_once()
-        self.mock_ensure.assert_called_once()
-        self.mock_add_job.assert_called_once()
-
-    async def test_already_active_runs_setup_without_re_activating(self):
-        """eggs_active=True already (any date) - runs setup but does not write to db"""
-        with patch('datetime.datetime') as mock_dt:
-            import datetime as dt
-
-            mock_dt.now.return_value.date.return_value = dt.date(2026, 3, 28)  # before hatch day
-            self.mock_config.primary.return_value = MagicMock(eggs_active=True)
-            await hatch_task.run()
-
-        # flag already set - no db write or command re-registration
-        self.mock_config.config_repo.update_guild_field.assert_not_called()
-        self.mock_bot.reload_extension.assert_not_called()
-        self.mock_bot.sync_commands.assert_not_called()
-        self.mock_ensure.assert_called_once()
-        self.mock_add_job.assert_called_once()
-
-
-# ============================================================
-# additional ensure_eggs_ready() coverage
+# ensure_eggs_ready() coverage
 # ============================================================
 
 
@@ -1597,19 +1524,12 @@ class TestEggCleanupTask:
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
         ):
-            mock_config.primary.return_value = MagicMock(eggs_active=True, id=test_guild)
+            mock_config.primary.return_value = MagicMock(id=test_guild)
             self.mock_bot = mock_bot
             self.mock_config = mock_config
             self.egg_repo = mock_egg_repo
             self.egg_user_repo = mock_egg_user_repo
             yield
-
-    async def test_eggs_not_active_skips(self):
-        """eggs_active is False - returns without touching guild or repos"""
-        self.mock_config.primary.return_value = MagicMock(eggs_active=False)
-        await egg_cleanup_task.run()
-        self.mock_bot.get_guild.assert_not_called()
-        self.egg_user_repo.list_all.assert_not_called()
 
     async def test_guild_not_in_cache_skips(self):
         """guild not in bot cache - returns without listing users"""

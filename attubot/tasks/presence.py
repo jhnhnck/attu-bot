@@ -27,6 +27,7 @@ class PresenceUpdateTask(BaseTask):
 
     name: str = 'PresenceUpdate'
     interval: timedelta | None = timedelta(minutes=30)
+    run_immediately: bool = True
 
     async def on_start(self) -> None:
         await config.wait_for_ready()
@@ -34,9 +35,6 @@ class PresenceUpdateTask(BaseTask):
     @webhook_logging(scope=logger)
     async def run(self) -> None:
         from attubot.eggs.hatching import _egg_repo
-
-        if not config.primary().eggs_active:
-            return
 
         if _egg_repo is None:
             return

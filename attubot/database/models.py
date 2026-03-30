@@ -26,7 +26,6 @@ class GuildConfigDocument(BaseModel):
     roles: dict
     users: dict
     starboard: dict = {}
-    eggs_active: bool = False
 
 
 class ThemeDocument(BaseModel):

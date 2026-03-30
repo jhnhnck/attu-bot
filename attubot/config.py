@@ -167,7 +167,6 @@ class GuildConfig(BaseModel):
     roles: GuildRoles
     users: GuildUsers
     starboard: GuildStarboard = GuildStarboard()
-    eggs_active: bool = False
     _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):
@@ -600,7 +599,6 @@ class NovaConfig:
                     roles=GuildRoles(**doc.roles),
                     users=GuildUsers(**doc.users),
                     starboard=GuildStarboard(**doc.starboard),
-                    eggs_active=doc.eggs_active,
                 )
 
             if guild not in self.valid_guilds:

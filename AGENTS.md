@@ -162,13 +162,13 @@ Missing any of these steps causes the field to silently use its default in produ
 
 - `database/models.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB
 - `config.py` (`GuildConfig`) - add to the runtime model with the same default
-- `config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; this is the step that was missing in the `eggs_active` bug
+- `config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; missing this causes the field to silently use its default in production
 - `web/forms.py` (`GuildConfigForm`) - add the field so saves from the web UI don't silently drop it
 - `assets/templates/guild_config.html` - add the form control
 - `assets/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
 - **roundtrip test** - save a document with the field set to a non-default value, reload via `load_guild()`, assert the value survives; this directly catches the hydration failure mode
 
-**If the field gates an extension (e.g. `eggs_active`)**
+**If the field gates an extension**
 - in the task that auto-activates it: call `bot.reload_extension()` + `bot.sync_commands()` on the `False → True` transition
 - in `tasks/reload_watcher.py`: diff old vs. new value after `config.load_guild()` and reload or unload the extension so web-triggered changes take effect without a restart
 

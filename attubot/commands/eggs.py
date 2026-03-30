@@ -337,10 +337,7 @@ async def eggs_leaderboard(ctx: ApplicationContext):
 
 
 def setup(bot: Bot):
-    active_guilds = [gid for gid, gcfg in config.guilds.items() if gcfg.eggs_active]
-    if not active_guilds:
-        logger.info('eggs commands: no active guilds, skipping registration')
-        return
+    active_guilds = list(config.guilds.keys())
     egg_command.guild_ids = active_guilds
     eggs_group.guild_ids = active_guilds
     logger.info(f'registered: {__name__} for guilds {active_guilds}')

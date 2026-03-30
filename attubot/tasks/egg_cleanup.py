@@ -33,10 +33,6 @@ class EggCleanupTask(BaseTask):
 
     async def run(self) -> None:
         guild_cfg = config.primary()
-        if not guild_cfg.eggs_active:
-            logger.debug('egg cleanup: eggs not active')
-            return
-
         guild = bot.get_guild(guild_cfg.id)
         if guild is None:
             logger.warn('egg cleanup: primary guild not in cache')

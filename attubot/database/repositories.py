@@ -65,7 +65,6 @@ class ConfigRepository:
             'roles': config.roles.model_dump(),
             'users': config.users.model_dump(),
             'starboard': config.starboard.model_dump(),
-            'eggs_active': config.eggs_active,
         }
         await self.db[self.GUILD_COLLECTION].update_one(
             {'guild_id': config.id},
