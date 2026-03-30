@@ -84,7 +84,7 @@ def build_reply_chains(
     # find all messages that are the root of a reply chain (replied to but not themselves replies)
     for m in messages:
         if m.refs.reply_to is not None and m.refs.reply_to not in by_id:
-            # reply to a message outside the window - treat as standalone
+            # reply to a message outside the window; treat as standalone
             continue
 
     # build chains by finding connected components via reply_to
@@ -94,7 +94,7 @@ def build_reply_chains(
             continue
         if m.refs.reply_to is None:
             continue
-        # this message is a reply - walk the chain
+        # this message is a reply; walk the chain
         chain: list[int] = []
         current = m
         while current is not None:
@@ -133,14 +133,14 @@ def group_by_time_window(
 
     for m in sorted(messages, key=lambda x: (x.channel_id, x.created_at)):
         if current_channel != m.channel_id:
-            # new channel - flush and start fresh
+            # new channel; flush and start fresh
             if current_window:
                 windows.append(current_window)
             current_window = [m]
             window_start = m.created_at
             current_channel = m.channel_id
         elif window_start is not None and (m.created_at - window_start) >= window_seconds:
-            # time gap exceeded - start a new window
+            # time gap exceeded; start a new window
             windows.append(current_window)
             current_window = [m]
             window_start = m.created_at
@@ -201,7 +201,7 @@ class DiscordPipeline:
         for channel_id, channel_msgs in by_channel.items():
             ch_cfg = active_channels.get(channel_id)
             if ch_cfg is None:
-                # thread in an active channel - use parent's config
+                # thread in an active channel; use parent's config
                 parent_id = channel_msgs[0].parent_channel_id
                 ch_cfg = active_channels.get(parent_id) if parent_id is not None else None
             if ch_cfg is None:

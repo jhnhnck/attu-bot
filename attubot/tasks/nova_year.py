@@ -114,7 +114,7 @@ class NovaYearTask(BaseTask):
                 earliest = candidate
 
         if earliest is None:
-            # all guilds are paused - check again in 30 minutes
+            # all guilds are paused; check again in 30 minutes
             from datetime import timedelta
 
             return datetime.now().astimezone() + timedelta(minutes=30)
@@ -136,7 +136,7 @@ class NovaYearTask(BaseTask):
         epoch = cfg.epoch
 
         if epoch.paused:
-            logger.info(f'[{cfg!s}] skipping task - time paused')
+            logger.info(f'[{cfg!s}] skipping task; time paused')
             return
 
         elapsed_days, year = get_year_status(cfg.id)

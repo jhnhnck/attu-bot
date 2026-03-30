@@ -133,7 +133,7 @@ class MessageBackfillTask(BaseTask):
                 after = discord.Object(id=latest_id)
                 history = channel.history(after=after, oldest_first=True, limit=None)
             else:
-                # no history at all - fetch everything
+                # no history at all; fetch everything
                 history = channel.history(oldest_first=True, limit=None)
 
             async for message in history:

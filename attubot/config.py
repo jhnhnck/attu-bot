@@ -388,7 +388,7 @@ class NovaConfig:
         if system_config:
             logger.info(f'current schema version: {system_config.version}')
         else:
-            logger.warn('no system config found - creating defaults')
+            logger.warn('no system config found; creating defaults')
             from attubot.database.models import SystemConfigDocument
 
             system_config = SystemConfigDocument(
@@ -444,7 +444,7 @@ class NovaConfig:
                         await migration(system_config.version)
                         system_config = await self.config_repo.get_system()
                 except MigrationError as e:
-                    logger.fatal(f'migration failed - refusing to continue initialization: {e}')
+                    logger.fatal(f'migration failed; refusing to continue initialization: {e}')
                     raise
 
                 # Reload system config after load-stage migrations
@@ -709,7 +709,7 @@ class NovaConfig:
         reload = self._get_event('reload')
 
         if reload.is_set():
-            logger.debug('caught new wait - reseting reload event')
+            logger.debug('caught new wait; reseting reload event')
             reload.clear()
 
         return await reload.wait()

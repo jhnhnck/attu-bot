@@ -234,21 +234,21 @@ async def on_message(message: Message):
 @bot.listen()
 async def on_raw_message_edit(payload: RawMessageUpdateEvent):
     if payload.guild_id is None:
-        logger.debug('raw_message_edit: dropping - guild_id is None')
+        logger.debug('raw_message_edit: dropping; guild_id is None')
         return
 
     if payload.guild_id not in config.valid_guilds:
-        logger.debug(f'raw_message_edit: dropping - guild_id={payload.guild_id} not in valid_guilds')
+        logger.debug(f'raw_message_edit: dropping; guild_id={payload.guild_id} not in valid_guilds')
         return
 
     # skip edits in the logs channel
     try:
         logs_channel_id = config.guild(payload.guild_id).channels.logs
         if payload.channel_id == logs_channel_id:
-            logger.debug('raw_message_edit: dropping - channel is logs channel')
+            logger.debug('raw_message_edit: dropping; channel is logs channel')
             return
     except Exception as err:
-        logger.debug(f'raw_message_edit: dropping - exception resolving logs channel: {err}')
+        logger.debug(f'raw_message_edit: dropping; exception resolving logs channel: {err}')
         return
 
     logger.debug('raw_message_edit: passing to log_edit')
@@ -334,7 +334,7 @@ logger.info('registered event handlers')
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
     logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_add: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        logger.debug(f'reaction_add: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.client.starboard import handle_star_add
@@ -353,7 +353,7 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
 async def on_raw_reaction_remove(payload: RawReactionActionEvent):
     logger.debug(f'reaction_remove: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_remove: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        logger.debug(f'reaction_remove: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.client.starboard import handle_star_remove
@@ -372,7 +372,7 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
 async def on_raw_reaction_clear(payload: RawReactionClearEvent):
     logger.debug(f'reaction_clear: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_clear: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        logger.debug(f'reaction_clear: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.client.starboard import handle_star_clear
@@ -388,7 +388,7 @@ async def on_raw_reaction_clear(payload: RawReactionClearEvent):
 async def on_raw_reaction_clear_emoji(payload: RawReactionClearEmojiEvent):
     logger.debug(f'reaction_clear_emoji: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} emoji={str(payload.emoji)!r}')
     if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_clear_emoji: dropping - guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+        logger.debug(f'reaction_clear_emoji: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
         return
 
     from attubot.client.starboard import handle_star_clear_emoji

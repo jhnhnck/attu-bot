@@ -73,7 +73,7 @@ class MongoStorage:
                 return self.db
 
             except ConfigurationError:
-                # bad url or client config - not retryable
+                # bad url or client config; not retryable
                 raise
 
             except ConnectionFailure as e:
@@ -95,7 +95,7 @@ class MongoStorage:
     def get_db(self) -> AsyncDatabase:
         """Get database instance"""
         if self.db is None:
-            raise RuntimeError('MongoDB not initialized - call connect() first')
+            raise RuntimeError('MongoDB not initialized; call connect() first')
         return self.db
 
     async def close(self):

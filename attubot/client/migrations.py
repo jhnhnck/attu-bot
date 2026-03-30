@@ -266,7 +266,7 @@ async def migration_add_guild_to_markers():
         await marker_repo.init_indexes()
 
     except Exception:
-        logger.error('migration 2.2.5 failed - restoring collection from snapshot')
+        logger.error('migration 2.2.5 failed; restoring collection from snapshot')
         await _restore_collection(database, YearMarkerRepository.COLLECTION, backup)
         raise
 
@@ -541,7 +541,7 @@ async def migration_restructure_messages():
         logger.info(f'migration 2.5.2: restructured {result.modified_count} message documents')
 
     except Exception:
-        logger.error('migration 2.5.2 failed - restoring messages collection from snapshot')
+        logger.error('migration 2.5.2 failed; restoring messages collection from snapshot')
         await _restore_collection(database, MessageRepository.COLLECTION, backup)
         raise
 

@@ -62,7 +62,7 @@ class VectorStore:
             return result.points
         except UnexpectedResponse as e:
             if e.status_code == 404:
-                logger.warn(f'collection `{collection}` not found - returning empty results')
+                logger.warn(f'collection `{collection}` not found; returning empty results')
                 return []
             raise
 

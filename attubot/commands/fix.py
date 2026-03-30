@@ -66,7 +66,7 @@ async def job_backfill_channel(
         backfilled = await backfill_task._backfill_channel(guild_id, channel)  # pyright: ignore[reportArgumentType]
     except Exception as err:
         logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
-        await _safe_edit(status_msg, f'Error scanning <#{channel_id}> - check logs')
+        await _safe_edit(status_msg, f'Error scanning <#{channel_id}>; check logs')
         return 0, 0
 
     if reconcile_recent:
@@ -264,7 +264,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
             reactions_dict = {emoji: sorted(users) for emoji, users in new_reactions.items() if users}
             total = sum(len(v) for v in reactions_dict.values())
 
-            # skip if reactions haven't changed - avoids unnecessary edits (and 401s from old posts)
+            # skip if reactions haven't changed; avoids unnecessary edits (and 401s from old posts)
             old_reactions_dict = {k: sorted(v) for k, v in doc.reactions.items() if v}
             if reactions_dict == old_reactions_dict and total == doc.total_reactions:
                 skipped += 1
@@ -319,7 +319,7 @@ async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None 
     all_docs = await sb_repo.all_for_guild(guild_id)
 
     if not all_docs:
-        await _safe_edit(status_msg, 'No starred messages found - run /fix starboard first')
+        await _safe_edit(status_msg, 'No starred messages found; run /fix starboard first')
         return
 
     processed = 0
@@ -476,7 +476,7 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
                     continue
 
                 if doc is not None:
-                    # doc exists but link is wrong or missing - fix the pointer and re-sync
+                    # doc exists but link is wrong or missing; fix the pointer and re-sync
                     await sb_repo.set_starboard_message(doc.message_id, sb_msg.id)
                     updated = await sb_repo.get(doc.message_id)
                     if updated:
@@ -485,7 +485,7 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
                     logger.info(f'recover_starboard: fixed link for message {orig_message_id} -> post {sb_msg.id}')
                     continue
 
-                # doc does not exist - fetch the original message and build a new doc
+                # doc does not exist; fetch the original message and build a new doc
                 orig_channel = bot.get_channel(orig_channel_id)
                 if orig_channel is None:
                     orig_channel = await bot.fetch_channel(orig_channel_id)
@@ -599,7 +599,7 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
 
     parsed = parse_jump_url(message_link)
     if parsed is None:
-        await ctx.respond('Failed: invalid message link - expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        await ctx.respond('Failed: invalid message link; expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
         return
 
     _guild_id, _channel_id, message_id = parsed
@@ -640,10 +640,10 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         if deleted_post:
             parts.append('and deleted the starboard post')
         elif doc.starboard_message_id:
-            parts.append('(starboard post could not be deleted - may already be gone)')
+            parts.append('(starboard post could not be deleted; may already be gone)')
         await ctx.respond(', '.join(parts))
     else:
-        await ctx.respond(f'Failed: no entry deleted - message {message_id} not found', ephemeral=True)
+        await ctx.respond(f'Failed: no entry deleted; message {message_id} not found', ephemeral=True)
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')

@@ -324,7 +324,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
             if n > 0 and not is_authenticated():
                 return redirect(url_for('auth_login'))
         except Exception:
-            logger.debug('db not available during setup page load - rendering setup anyway')
+            logger.debug('db not available during setup page load; rendering setup anyway')
         return await render_template('setup.html', title='Initial Setup — Register Passkey')
 
     # ---- Setup begin (generate registration challenge) --------------------

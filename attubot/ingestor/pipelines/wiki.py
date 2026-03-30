@@ -60,7 +60,7 @@ class WikiPipeline:
         # ensure the collection exists
         await store.ensure_collection(_WIKI_COLLECTION, embedder.dim)
 
-        # check if collection is empty - if so, do a full ingest first
+        # check if collection is empty; if so, do a full ingest first
         try:
             results = await store.search(_WIKI_COLLECTION, [0.0] * embedder.dim, top_k=1)
             collection_empty = len(results) == 0
@@ -68,7 +68,7 @@ class WikiPipeline:
             collection_empty = True
 
         if collection_empty:
-            logger.info('wiki collection is empty - running initial ingest')
+            logger.info('wiki collection is empty; running initial ingest')
             await self.run_initial_ingest()
             return
 

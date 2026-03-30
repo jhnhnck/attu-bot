@@ -516,7 +516,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
             merged[emoji] = list(current)
 
         if added_count == 0:
-            logger.debug(f'starboard: reconciled message {message.id} - no new reactions (saw {discord_reaction_count} from discord, all already stored)')
+            logger.debug(f'starboard: reconciled message {message.id}; no new reactions (saw {discord_reaction_count} from discord, all already stored)')
             return
 
         total_normal = sum(len(v) for v in merged.values())
@@ -599,10 +599,10 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
     if channel_id == sb.channel_id:
         existing = await repo.get_by_starboard_message(message_id)
         if existing is not None:
-            # reaction is on a known starboard post - redirect to the original
+            # reaction is on a known starboard post; redirect to the original
             real_message_id = existing.message_id
             real_channel_id = existing.channel_id
-        # else: regular message posted in the starboard channel - fall through and treat normally
+        # else: regular message posted in the starboard channel; fall through and treat normally
 
     # fetch the original message to validate self-star and get author info
     msg_doc = await _get_msg_repo().get(real_message_id)
@@ -612,7 +612,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         if msg_doc is None:
             return
 
-    # self-stars don't count - auto-remove from discord
+    # self-stars don't count; auto-remove from discord
     if user_id == msg_doc.author.id:
         logger.debug(f'starboard: removing self-star from {user_id} on message {real_message_id}')
         await _remove_reaction_from_discord(channel_id, orig_message_id, user_id, emoji_str)
@@ -630,12 +630,12 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
             )
             await repo.upsert(doc)
 
-        # one vote per user per message - ignore subsequent emoji reactions
+        # one vote per user per message; ignore subsequent emoji reactions
         current_doc = await repo.get(real_message_id)
         if current_doc is not None:
             already_voted = any(user_id in users for bucket in (current_doc.reactions, current_doc.super_reactions) for users in bucket.values())
             if already_voted:
-                logger.debug(f'starboard: removing extra reaction from user {user_id} on message {real_message_id} - already has a vote')
+                logger.debug(f'starboard: removing extra reaction from user {user_id} on message {real_message_id}; already has a vote')
                 await _remove_reaction_from_discord(channel_id, orig_message_id, user_id, emoji_str)
                 return
 
@@ -649,7 +649,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         if updated is None:
             return
 
-        logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id}; weighted total now {updated.weighted_total}')
 
         await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -698,7 +698,7 @@ async def handle_star_remove(
         if updated is None:
             return
 
-        logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id}; weighted total now {updated.weighted_total}')
 
         await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -731,7 +731,7 @@ async def handle_star_clear(guild_id: int, channel_id: int, message_id: int) -> 
         if updated is None:
             return
 
-        logger.info(f'starboard: all reactions cleared on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: all reactions cleared on message {real_message_id}; weighted total now {updated.weighted_total}')
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
@@ -763,7 +763,7 @@ async def handle_star_clear_emoji(guild_id: int, channel_id: int, message_id: in
         if updated is None:
             return
 
-        logger.info(f'starboard: {emoji_str} cleared on message {real_message_id} - weighted total now {updated.weighted_total}')
+        logger.info(f'starboard: {emoji_str} cleared on message {real_message_id}; weighted total now {updated.weighted_total}')
         await _sync_starboard_post(guild_id, updated, guild_config)
 
 
@@ -814,7 +814,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         except Exception as err:
             # post was created in discord but db write failed - delete the orphan so the
             # next reaction can retry cleanly rather than creating a duplicate
-            logger.error(f'starboard: failed to record post {sb_msg.id} for message {doc.message_id}: {err} - deleting orphan')
+            logger.error(f'starboard: failed to record post {sb_msg.id} for message {doc.message_id}: {err}; deleting orphan')
             with contextlib.suppress(Exception):
                 await sb_msg.delete()
             return
@@ -851,7 +851,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         try:
             sb_msg = await channel.fetch_message(doc.starboard_message_id)
             await sb_msg.delete()
-            logger.info(f'starboard: deleted post {doc.starboard_message_id} for message {doc.message_id} - fell below threshold')
+            logger.info(f'starboard: deleted post {doc.starboard_message_id} for message {doc.message_id}; fell below threshold')
         except discord.NotFound:
             logger.debug(f'starboard: post {doc.starboard_message_id} already gone')
         except Exception as err:
@@ -864,11 +864,11 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         await sb_msg.edit(content=content, embeds=embeds)
         logger.debug(f'starboard: updated post {doc.starboard_message_id} ({doc.total_reactions} reactions)')
     except discord.NotFound:
-        # old post was deleted - clear the reference so we can create a new one
+        # old post was deleted; clear the reference so we can create a new one
         logger.warn(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
         await repo.set_starboard_message(doc.message_id, None)
     except discord.Forbidden:
-        # not our message (old bot) - send a reply to the old post so it's easy to jump to
+        # not our message (old bot); send a reply to the old post so it's easy to jump to
         logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
         try:
             try:

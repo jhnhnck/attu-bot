@@ -39,7 +39,7 @@ def is_family_file(content: str) -> bool:
     if _FAMILYSCRIPT_HEADER_RE.match(content) or _GEDCOM_HEADER_RE.match(content):
         return True
     header = content[:200].splitlines()[:5]
-    logger.debug(f'family file header mismatch - first lines: {header!r}')
+    logger.debug(f'family file header mismatch; first lines: {header!r}')
     return False
 
 

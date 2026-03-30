@@ -310,9 +310,9 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
     """Look up stored record and return edit context; falls back to payload data on miss."""
     try:
         stored = await _get_repo().get(payload.message_id)
-        logger.debug(f'log_edit: db lookup result - found={stored is not None}')
+        logger.debug(f'log_edit: db lookup result; found={stored is not None}')
         if stored:
-            logger.debug(f'log_edit: stored record - author={stored.author.name!r} author_id={stored.author.id} bot={stored.author.bot} content={stored.content.text!r}')
+            logger.debug(f'log_edit: stored record; author={stored.author.name!r} author_id={stored.author.id} bot={stored.author.bot} content={stored.content.text!r}')
             avatar_url = _resolve_avatar(payload.guild_id, stored.author.id) if payload.guild_id else None
             return _EditContext(
                 old_content=stored.content.text,
@@ -324,9 +324,9 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
     except Exception as err:
         logger.warn(f'could not retrieve old message {payload.message_id} for edit log: {err}')
 
-    # not in db - fall back to payload author info
+    # not in db; fall back to payload author info
     author_bot = payload.data.get('author', {}).get('bot', False)
-    logger.debug(f'log_edit: no stored record - payload author.bot={author_bot}')
+    logger.debug(f'log_edit: no stored record; payload author.bot={author_bot}')
     return _EditContext(old_content=None, author_name=None, author_id=None, author_bot=author_bot, author_avatar_url=None)
 
 
@@ -367,12 +367,12 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
 
     # ignore events that aren't content changes (embed unfurls, pin toggles, etc.)
     if 'content' not in payload.data:
-        logger.debug('log_edit: dropping - no content key in payload.data')
+        logger.debug('log_edit: dropping; no content key in payload.data')
         return
 
     # drop non-edit updates where discord echoes the full message body (e.g. member timeout changes)
     if not payload.data.get('edited_timestamp'):
-        logger.debug('log_edit: dropping - edited_timestamp is absent/null (not a content edit)')
+        logger.debug('log_edit: dropping; edited_timestamp is absent/null (not a content edit)')
         return
 
     new_content = payload.data['content']
@@ -382,7 +382,7 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
 
     # skip if content didn't actually change
     if ctx.old_content is not None and new_content == ctx.old_content:
-        logger.debug('log_edit: dropping - content unchanged')
+        logger.debug('log_edit: dropping; content unchanged')
         return
 
     # always update the stored record
@@ -394,11 +394,11 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
 
     # skip log embed for bot-authored messages
     if ctx.author_bot:
-        logger.debug('log_edit: skipping log embed - message is bot-authored')
+        logger.debug('log_edit: skipping log embed; message is bot-authored')
         return
 
     channel = await _get_logs_channel(payload.guild_id)
-    logger.debug(f'log_edit: logs channel resolved - channel={channel}')
+    logger.debug(f'log_edit: logs channel resolved; channel={channel}')
     if channel is None:
         logger.debug(f'log_edit: no logs channel for guild {payload.guild_id}, skipping embed')
         return

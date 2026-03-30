@@ -117,7 +117,7 @@ async def _resolve_recheck_target(
         return (channel_id, message_id, discord_msg, False)
 
     if discord_msg.author.bot:
-        # this is a starboard post - redirect recheck to the original message
+        # this is a starboard post; redirect recheck to the original message
         sb_doc = await _get_sb_repo().get_by_starboard_message(message_id)
         if sb_doc is None:
             await ctx.respond('Failed: that looks like a starboard post but no matching original message was found', ephemeral=True)
@@ -125,7 +125,7 @@ async def _resolve_recheck_target(
         original_id = message_id
         channel_id = sb_doc.channel_id
         message_id = sb_doc.message_id
-        logger.info(f'recheck: bot message in starboard channel - redirecting to original {message_id} (was {original_id})')
+        logger.info(f'recheck: bot message in starboard channel; redirecting to original {message_id} (was {original_id})')
         try:
             orig_channel = _bot.get_channel(channel_id) or await _bot.fetch_channel(channel_id)
             discord_msg = await orig_channel.fetch_message(message_id)
@@ -136,8 +136,8 @@ async def _resolve_recheck_target(
             return None
         return (channel_id, message_id, discord_msg, False)
 
-    # non-bot message in the starboard channel - force-bypass the channel guard
-    logger.info(f'recheck: non-bot message in starboard channel - force backfilling {message_id}')
+    # non-bot message in the starboard channel; force-bypass the channel guard
+    logger.info(f'recheck: non-bot message in starboard channel; force backfilling {message_id}')
     return (channel_id, message_id, discord_msg, True)
 
 
@@ -148,7 +148,7 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
     """
     if doc_after is None or (not doc_after.reactions and not doc_after.super_reactions):
         logger.info(f'recheck: complete for {message_id} - status=no stars counted weighted_total=0')
-        return 'recheck complete - no stars counted'
+        return 'recheck complete; no stars counted'
 
     # determine update status
     if (doc_before is None and doc_after.starboard_message_id is not None) or (doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None):
@@ -189,7 +189,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
 
     parsed = parse_jump_url(message_link.strip())
     if parsed is None:
-        await ctx.respond('Failed: invalid message link - paste the full discord message link', ephemeral=True)
+        await ctx.respond('Failed: invalid message link; paste the full discord message link', ephemeral=True)
         return
 
     _link_guild_id, channel_id, message_id = parsed

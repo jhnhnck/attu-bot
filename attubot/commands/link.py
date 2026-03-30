@@ -37,7 +37,7 @@ async def family_list(ctx: ApplicationContext):
 
     families = await list_families(ctx.guild.id)
     if not families:
-        await ctx.respond('no families registered yet - use `/link family set` or `/link family upload` to add one')
+        await ctx.respond('no families registered yet; use `/link family set` or `/link family upload` to add one')
         return
 
     lines = [f.display_name for f in sorted(families, key=lambda f: f.name)]
@@ -51,7 +51,7 @@ async def family_view(ctx: ApplicationContext, name: str):
 
     family = await get_family(ctx.guild.id, name)
     if family is None:
-        await ctx.respond(f'Failed: no family named "{name}" is registered - use /link family set to add one', ephemeral=True)
+        await ctx.respond(f'Failed: no family named "{name}" is registered; use /link family set to add one', ephemeral=True)
         return
 
     await ctx.defer()
@@ -88,7 +88,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         msg = await channel.fetch_message(message_id)  # type: ignore[union-attr]
     except Exception as err:
         logger.warn(f'family_set: could not fetch message {message_id} from channel {channel_id}: {err}')
-        await ctx.respond('Failed: could not fetch that message - check the link and that I have access to that channel', ephemeral=True)
+        await ctx.respond('Failed: could not fetch that message; check the link and that I have access to that channel', ephemeral=True)
         return
 
     family_attachments = [a for a in msg.attachments if a.filename.lower().endswith(('.txt', '.ged'))]
@@ -128,7 +128,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         await ctx.respond('Failed: could not save the family record', ephemeral=True)
         return
 
-    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link')
+    await ctx.respond(f'registered family **{name.strip()}**; use `/link family view name:{name.strip()}` to get a viewer link')
 
 
 @family_group.command(name='upload', description='Register a FamilyEcho family tree by uploading the file directly')
@@ -169,7 +169,7 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         await ctx.respond('Failed: could not save the family record', ephemeral=True)
         return
 
-    await ctx.respond(f'registered family **{name.strip()}** - use `/link family view name:{name.strip()}` to get a viewer link')
+    await ctx.respond(f'registered family **{name.strip()}**; use `/link family view name:{name.strip()}` to get a viewer link')
 
 
 # --- Extension Def ---
