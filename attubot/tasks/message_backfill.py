@@ -75,7 +75,7 @@ class MessageBackfillTask(BaseTask):
         """Backfill all text channels and active threads across all valid guilds."""
         total_new = 0
         total_channels = 0
-        logger.info('backfill: starting')
+        logger.debug('backfill: starting')
 
         for guild_id in config.valid_guilds:
             guild = bot.get_guild(guild_id)
@@ -103,7 +103,7 @@ class MessageBackfillTask(BaseTask):
 
             await self._reconcile_pending_starred_docs(guild_id)
 
-        logger.info(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
+        logger.debug(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
 
     async def _backfill_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread) -> int:
         """Fetch and store any messages newer than the last stored message_id in this channel.
