@@ -25,6 +25,8 @@ from attubot.eggs.hatching import (
     hatch_egg,
     run_hatch_animation,
 )
+from attubot.tasks.egg_cleanup import egg_cleanup_task
+from attubot.tasks.hatching import hatch_task
 from attubot.tasks.scheduler import scheduler as real_scheduler
 
 
@@ -1118,3 +1120,556 @@ class TestEggsGiveCommand:
         response = self.ctx._responses[0]
         assert 'hatched eggs' in response['args'][0]
         assert response['kwargs'].get('ephemeral') is True
+
+
+# ============================================================
+# HatchTask.run()
+# ============================================================
+
+
+class TestHatchTask:
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        with (
+            patch('attubot.tasks.hatching.bot') as mock_bot,
+            patch('attubot.tasks.hatching.config') as mock_config,
+            patch('attubot.tasks.hatching.ensure_eggs_ready', new=AsyncMock()) as mock_ensure,
+            patch.object(real_scheduler, 'add_job') as mock_add_job,
+        ):
+            import zoneinfo
+
+            mock_config.timezone = zoneinfo.ZoneInfo('UTC')
+            mock_bot.sync_commands = AsyncMock()
+            self.mock_bot = mock_bot
+            self.mock_config = mock_config
+            self.mock_ensure = mock_ensure
+            self.mock_add_job = mock_add_job
+            yield
+
+    async def test_before_hatch_day_skips(self):
+        """8+ days before hatch day - run() should return without doing anything"""
+        # hatch_date(2026) == 2026-04-05; 8 days before is 2026-03-28
+        with patch('datetime.datetime') as mock_dt:
+            import datetime as dt
+
+            mock_dt.now.return_value.date.return_value = dt.date(2026, 3, 28)
+            await hatch_task.run()
+
+        self.mock_bot.reload_extension.assert_not_called()
+        self.mock_ensure.assert_not_called()
+        self.mock_add_job.assert_not_called()
+
+    async def test_hatch_day_registers_commands(self):
+        """on hatch day with no egg command registered - reloads extension and syncs"""
+        with patch('datetime.datetime') as mock_dt:
+            import datetime as dt
+
+            mock_dt.now.return_value.date.return_value = dt.date(2026, 4, 5)
+            self.mock_bot.pending_application_commands = []
+            await hatch_task.run()
+
+        self.mock_bot.reload_extension.assert_called_once()
+        self.mock_bot.sync_commands.assert_called_once()
+        self.mock_ensure.assert_called_once()
+        self.mock_add_job.assert_called_once()
+
+    async def test_hatch_day_commands_already_registered(self):
+        """on hatch day with egg command already registered - skips reload but still runs setup"""
+        with patch('datetime.datetime') as mock_dt:
+            import datetime as dt
+
+            mock_dt.now.return_value.date.return_value = dt.date(2026, 4, 5)
+            mock_cmd = MagicMock()
+            mock_cmd.name = 'egg'
+            self.mock_bot.pending_application_commands = [mock_cmd]
+            await hatch_task.run()
+
+        self.mock_bot.reload_extension.assert_not_called()
+        self.mock_ensure.assert_called_once()
+        self.mock_add_job.assert_called_once()
+
+
+# ============================================================
+# additional ensure_eggs_ready() coverage
+# ============================================================
+
+
+class TestEnsureEggsReadyExtra:
+    async def test_guild_not_in_cache_returns_early(self):
+        """bot.get_guild returns None - should log warn and return without creating channel"""
+        mock_guild_cfg = MagicMock()
+        mock_guild_cfg.id = test_guild
+
+        with (
+            patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
+        ):
+            mock_bot.get_guild.return_value = None
+            mock_config.primary.return_value = mock_guild_cfg
+
+            await ensure_eggs_ready()
+
+        mock_bot.get_guild.assert_called_once_with(test_guild)
+
+
+# ============================================================
+# additional get_or_create_user_thread() coverage
+# ============================================================
+
+
+class TestGetOrCreateUserThreadExtra:
+    @pytest.fixture(autouse=True)
+    def setup_repos(self):
+        mock_egg_user_repo = AsyncMock()
+        with (
+            patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
+            patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
+        ):
+            self.egg_user_repo = mock_egg_user_repo
+            self.mock_bot = mock_bot
+            self.mock_config = mock_config
+            yield
+
+    async def test_no_user_doc_creates_thread(self):
+        """user has no doc at all - creates thread and stores new EggUserDocument"""
+        from attubot.eggs.hatching import get_or_create_user_thread
+
+        self.egg_user_repo.get.return_value = None
+
+        mock_thread = MagicMock()
+        mock_thread.id = 8888888888
+        mock_eggs_channel = MagicMock()
+        mock_eggs_channel.create_thread = AsyncMock(return_value=mock_thread)
+
+        mock_guild_cfg = MagicMock()
+        mock_guild_cfg.channels.eggs = 4444444444
+        self.mock_config.guild.return_value = mock_guild_cfg
+        self.mock_bot.get_channel.return_value = mock_eggs_channel
+
+        result = await get_or_create_user_thread(test_guild, test_user, 'testuser')
+
+        assert result is mock_thread
+        self.egg_user_repo.upsert.assert_called_once()
+        upserted = self.egg_user_repo.upsert.call_args.args[0]
+        assert isinstance(upserted, EggUserDocument)
+        assert upserted.thread_id == mock_thread.id
+
+    async def test_zero_thread_id_falls_through_to_create(self):
+        """user_doc exists but thread_id == 0 (falsy) - falls through to create a new thread"""
+        from attubot.eggs.hatching import get_or_create_user_thread
+
+        user_doc = _make_user_doc(thread_id=0)
+        self.egg_user_repo.get.return_value = user_doc
+
+        mock_thread = MagicMock()
+        mock_thread.id = 7777777777
+        mock_eggs_channel = MagicMock()
+        mock_eggs_channel.create_thread = AsyncMock(return_value=mock_thread)
+
+        mock_guild_cfg = MagicMock()
+        mock_guild_cfg.channels.eggs = 4444444444
+        self.mock_config.guild.return_value = mock_guild_cfg
+        self.mock_bot.get_channel.return_value = mock_eggs_channel
+
+        result = await get_or_create_user_thread(test_guild, test_user, 'testuser')
+
+        assert result is mock_thread
+        self.egg_user_repo.upsert.assert_called_once()
+
+    async def test_no_eggs_channel_raises(self):
+        """eggs channel not in bot cache - raises RuntimeError"""
+        from attubot.eggs.hatching import get_or_create_user_thread
+
+        self.egg_user_repo.get.return_value = None
+
+        mock_guild_cfg = MagicMock()
+        mock_guild_cfg.channels.eggs = 4444444444
+        self.mock_config.guild.return_value = mock_guild_cfg
+        self.mock_bot.get_channel.return_value = None  # channel not in cache
+
+        with pytest.raises(RuntimeError):
+            await get_or_create_user_thread(test_guild, test_user, 'testuser')
+
+
+# ============================================================
+# additional hatch_egg() guard coverage
+# ============================================================
+
+
+class TestHatchEggGuards:
+    @pytest.fixture(autouse=True)
+    def setup_repos(self):
+        mock_egg_repo = AsyncMock()
+        mock_egg_user_repo = AsyncMock()
+
+        with (
+            patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
+            patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
+            patch('attubot.eggs.hatching.bot') as mock_bot,
+        ):
+            self.egg_repo = mock_egg_repo
+            self.egg_user_repo = mock_egg_user_repo
+            self.mock_bot = mock_bot
+            yield
+
+    async def test_no_user_doc_raises(self):
+        """user_doc is None after finding a ready egg - raises RuntimeError"""
+        egg = _make_egg(hatches_at=100.0, result='🐣')
+        self.egg_repo.get_oldest_ready.return_value = egg
+        self.egg_user_repo.get.return_value = None
+
+        with pytest.raises(RuntimeError, match='no egg thread found for user'):
+            await hatch_egg(test_guild, test_user)
+
+    async def test_zero_thread_id_raises(self):
+        """user_doc exists but thread_id == 0 - raises RuntimeError"""
+        egg = _make_egg(hatches_at=100.0, result='🐣')
+        self.egg_repo.get_oldest_ready.return_value = egg
+        user_doc = _make_user_doc(thread_id=0)
+        self.egg_user_repo.get.return_value = user_doc
+
+        with pytest.raises(RuntimeError, match='no egg thread found for user'):
+            await hatch_egg(test_guild, test_user)
+
+    async def test_no_result_raises(self):
+        """egg.result is None - raises RuntimeError before animation starts"""
+        egg = _make_egg(hatches_at=100.0, result=None)  # pyright: ignore[reportArgumentType]
+        self.egg_repo.get_oldest_ready.return_value = egg
+
+        user_doc = _make_user_doc()
+        self.egg_user_repo.get.return_value = user_doc
+
+        mock_thread = MagicMock()
+        mock_msg = AsyncMock()
+        mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
+        mock_thread.fetch_message = AsyncMock(return_value=mock_msg)
+        self.mock_bot.get_channel.return_value = mock_thread
+
+        with pytest.raises(RuntimeError, match='no result set'):
+            await hatch_egg(test_guild, test_user)
+
+
+# ============================================================
+# additional run_hatch_animation() coverage
+# ============================================================
+
+
+class TestRunHatchAnimationExtra:
+    async def test_presence_update_triggered(self):
+        """scheduler.add_job is called once after the animation completes"""
+        mock_message = MagicMock()
+        mock_message.edit = AsyncMock()
+
+        with (
+            patch('attubot.eggs.hatching.asyncio') as mock_asyncio,
+            patch.object(real_scheduler, 'add_job') as mock_add_job,
+        ):
+            mock_asyncio.sleep = AsyncMock()
+            await run_hatch_animation(mock_message, '🐣', 'common')
+
+        mock_add_job.assert_called_once()
+
+
+# ============================================================
+# ensure_progress_emojis()
+# ============================================================
+
+
+class TestEnsureProgressEmojis:
+    async def test_creates_all_missing(self):
+        """guild has no emojis - all 6 progress bar emojis are created"""
+        mock_emoji = MagicMock()
+        mock_guild = MagicMock()
+        mock_guild.emojis = []
+        mock_guild.id = test_guild
+        mock_guild.create_custom_emoji = AsyncMock(return_value=mock_emoji)
+
+        with patch('pathlib.Path.read_bytes', return_value=b'fakepng'):
+            from attubot.eggs.emojis import ensure_progress_emojis
+
+            result = await ensure_progress_emojis(mock_guild)
+
+        assert len(result) == 6
+        assert mock_guild.create_custom_emoji.call_count == 6
+
+    async def test_reuses_existing(self):
+        """all 6 progress emojis already on guild - create_custom_emoji never called"""
+        from attubot.eggs.emojis import _progress_segments
+
+        existing = [MagicMock(name=f'progress_{seg}') for seg in _progress_segments]
+        for e, seg in zip(existing, _progress_segments):
+            e.name = f'progress_{seg}'
+
+        mock_guild = MagicMock()
+        mock_guild.emojis = existing
+        mock_guild.id = test_guild
+        mock_guild.create_custom_emoji = AsyncMock()
+
+        from attubot.eggs.emojis import ensure_progress_emojis
+
+        result = await ensure_progress_emojis(mock_guild)
+
+        assert len(result) == 6
+        mock_guild.create_custom_emoji.assert_not_called()
+
+
+# ============================================================
+# render_progress_bar()
+# ============================================================
+
+
+def _progress_emojis_dict() -> dict[str, int]:
+    return {
+        'left_full': 1001,
+        'left_empty': 1002,
+        'none_full': 1003,
+        'none_empty': 1004,
+        'right_full': 1005,
+        'right_empty': 1006,
+    }
+
+
+class TestRenderProgressBar:
+    def test_with_emoji_ids(self):
+        """all progress_emojis configured - output uses <:pb:id> format"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = _progress_emojis_dict()
+            from attubot.eggs.emojis import render_progress_bar
+
+            result = render_progress_bar(5, 10)
+
+        assert '<:pb:' in result
+
+    def test_without_emoji_ids_falls_back(self):
+        """progress_emojis empty - falls back to unicode block characters"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = {}
+            from attubot.eggs.emojis import render_progress_bar
+
+            result = render_progress_bar(5, 10)
+
+        assert '<:pb:' not in result
+        assert '■' in result or '□' in result
+
+    def test_zero_filled(self):
+        """filled=0 - all 10 segments are empty"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = {}
+            from attubot.eggs.emojis import render_progress_bar
+
+            result = render_progress_bar(0, 10)
+
+        assert '■' not in result
+        assert result.count('□') == 10
+
+    def test_fully_filled(self):
+        """filled=total - all 10 segments are full"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = {}
+            from attubot.eggs.emojis import render_progress_bar
+
+            result = render_progress_bar(10, 10)
+
+        assert '□' not in result
+        assert result.count('■') == 10
+
+    def test_zero_total_no_division_error(self):
+        """total=0 - guard prevents division by zero; all segments empty"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = {}
+            from attubot.eggs.emojis import render_progress_bar
+
+            result = render_progress_bar(5, 0)
+
+        assert '■' not in result
+
+    def test_partial_fill(self):
+        """filled=5, total=10 - exactly half filled segments"""
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.progress_emojis = {}
+            from attubot.eggs.emojis import render_progress_bar
+
+            # segments=10: units=round(5/10*10)=5
+            # left=full (5>=1), middles i=0..7: full if 5>=i+2 -> i<=3 (4 full, 4 empty)
+            # right=empty (5!=10)
+            # total: 1+4=5 full, 4+1=5 empty
+            result = render_progress_bar(5, 10)
+
+        assert result.count('■') == 5
+        assert result.count('□') == 5
+
+
+# ============================================================
+# EggCleanupTask
+# ============================================================
+
+
+class TestEggCleanupTask:
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        import zoneinfo
+
+        mock_egg_repo = AsyncMock()
+        mock_egg_user_repo = AsyncMock()
+
+        with (
+            patch('attubot.tasks.egg_cleanup.bot') as mock_bot,
+            patch('attubot.tasks.egg_cleanup.config') as mock_config,
+            patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
+            patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
+        ):
+            mock_config.timezone = zoneinfo.ZoneInfo('UTC')
+            self.mock_bot = mock_bot
+            self.mock_config = mock_config
+            self.egg_repo = mock_egg_repo
+            self.egg_user_repo = mock_egg_user_repo
+            yield
+
+    async def test_before_hatch_window_skips(self):
+        """date is 8+ days before hatch day - returns without touching guild or repos"""
+        import datetime as dt
+
+        with patch('attubot.tasks.egg_cleanup.datetime') as mock_dt:
+            mock_dt.now.return_value.date.return_value = dt.date(2026, 3, 28)
+            mock_dt.now.return_value.__sub__ = MagicMock()
+            # also need timedelta available; patch only replaces datetime class
+            await egg_cleanup_task.run()
+
+        self.mock_bot.get_guild.assert_not_called()
+        self.egg_user_repo.list_all.assert_not_called()
+
+    async def test_guild_not_in_cache_skips(self):
+        """guild not in bot cache - returns without listing users"""
+        import datetime as dt
+
+        with patch('attubot.tasks.egg_cleanup.datetime') as mock_dt:
+            mock_dt.now.return_value.date.return_value = dt.date(2026, 4, 5)
+            mock_dt.now.return_value.__sub__ = MagicMock()
+
+            mock_guild_cfg = MagicMock()
+            mock_guild_cfg.id = test_guild
+            self.mock_config.primary.return_value = mock_guild_cfg
+            self.mock_bot.get_guild.return_value = None
+
+            await egg_cleanup_task.run()
+
+        self.egg_user_repo.list_all.assert_not_called()
+
+    async def test_deletes_non_egg_messages(self):
+        """message not in egg_message_ids older than 12h is deleted"""
+        import datetime as dt
+
+        cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
+        old_created_at = dt.datetime(2026, 4, 5, 0, 0, 0)  # naive utc, 15h before cutoff
+
+        with patch('attubot.tasks.egg_cleanup.datetime') as mock_dt:
+            mock_dt.now.side_effect = [
+                MagicMock(date=MagicMock(return_value=dt.date(2026, 4, 5))),
+                cutoff_dt,
+            ]
+            mock_dt.timezone = dt.timezone
+
+            mock_guild_cfg = MagicMock()
+            mock_guild_cfg.id = test_guild
+            self.mock_config.primary.return_value = mock_guild_cfg
+
+            mock_guild = MagicMock()
+            self.mock_bot.get_guild.return_value = mock_guild
+
+            user_doc = _make_user_doc(thread_id=test_thread)
+            self.egg_user_repo.list_all = AsyncMock(return_value=[user_doc])
+            self.egg_repo.list_unhatched = AsyncMock(return_value=[])
+            self.egg_repo.list_hatched = AsyncMock(return_value=[])
+
+            # message older than cutoff, not an egg message
+            mock_msg = AsyncMock()
+            mock_msg.id = 999999999
+            mock_msg.created_at = old_created_at
+
+            mock_thread = MagicMock()
+
+            async def fake_history(**kwargs):
+                yield mock_msg
+
+            mock_thread.history = fake_history
+            self.mock_bot.get_channel.return_value = mock_thread
+
+            await egg_cleanup_task.run()
+
+        mock_msg.delete.assert_called_once()
+
+    async def test_skips_egg_messages(self):
+        """message whose id matches a known egg - not deleted"""
+        import datetime as dt
+
+        cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
+        old_created_at = dt.datetime(2026, 4, 5, 0, 0, 0)
+
+        with patch('attubot.tasks.egg_cleanup.datetime') as mock_dt:
+            mock_dt.now.side_effect = [
+                MagicMock(date=MagicMock(return_value=dt.date(2026, 4, 5))),
+                cutoff_dt,
+            ]
+            mock_dt.timezone = dt.timezone
+
+            mock_guild_cfg = MagicMock()
+            mock_guild_cfg.id = test_guild
+            self.mock_config.primary.return_value = mock_guild_cfg
+
+            mock_guild = MagicMock()
+            self.mock_bot.get_guild.return_value = mock_guild
+
+            user_doc = _make_user_doc(thread_id=test_thread)
+            self.egg_user_repo.list_all = AsyncMock(return_value=[user_doc])
+
+            # the message id matches a tracked egg
+            egg = _make_egg(message_id=test_message)
+            self.egg_repo.list_unhatched = AsyncMock(return_value=[egg])
+            self.egg_repo.list_hatched = AsyncMock(return_value=[])
+
+            mock_msg = AsyncMock()
+            mock_msg.id = test_message  # known egg message
+            mock_msg.created_at = old_created_at
+
+            mock_thread = MagicMock()
+
+            async def fake_history(**kwargs):
+                yield mock_msg
+
+            mock_thread.history = fake_history
+            self.mock_bot.get_channel.return_value = mock_thread
+
+            await egg_cleanup_task.run()
+
+        mock_msg.delete.assert_not_called()
+
+    async def test_thread_not_found_skips_user(self):
+        """fetch_channel raises NotFound - user is skipped without error"""
+        import datetime as dt
+
+        cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
+
+        with patch('attubot.tasks.egg_cleanup.datetime') as mock_dt:
+            mock_dt.now.side_effect = [
+                MagicMock(date=MagicMock(return_value=dt.date(2026, 4, 5))),
+                cutoff_dt,
+            ]
+            mock_dt.timezone = dt.timezone
+
+            mock_guild_cfg = MagicMock()
+            mock_guild_cfg.id = test_guild
+            self.mock_config.primary.return_value = mock_guild_cfg
+
+            mock_guild = MagicMock()
+            mock_guild.fetch_channel = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
+            self.mock_bot.get_guild.return_value = mock_guild
+            self.mock_bot.get_channel.return_value = None  # not in cache
+
+            user_doc = _make_user_doc(thread_id=test_thread)
+            self.egg_user_repo.list_all = AsyncMock(return_value=[user_doc])
+
+            await egg_cleanup_task.run()
+
+        # no eggs queried since we skipped the user
+        self.egg_repo.list_unhatched.assert_not_called()

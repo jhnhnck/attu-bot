@@ -4,7 +4,8 @@
 
 - [2] effort: medium - make sure tests cases cover all aspects of the hatch system
 - [2] effort: medium - task to clean up all the non-egg messages (like older than 12h) in the egg threads
-
+- [ ] effort: low - remove all hatch season checks; enable permanently or with a global on/off setting
+- [ ] effort: low - eggs leaderboard
 ## starboard
 
 - [2] effort: medium - add a /stars command to show which starboard messages have the most stars (not users)
@@ -50,17 +51,16 @@
 
 ## testing
 
-- [2] effort: low - add tests for eggs/emojis.py (52%) - emoji fetch and validation helpers
 - [3] effort: low - add tests for client/families.py (36%) and database/connection.py (59%)
 - [2] effort: medium - add tests for tasks/scheduler.py (29% coverage) - task scheduling, cancellation, restart logic
 - [2] effort: medium - add tests for commands/link.py (25%) and commands/marker.py (30%)
 - [2] effort: medium - add tests for commands/debug.py (30%) and commands/time.py (40%)
 - [2] effort: medium - add tests for tasks/logo_update.py (38%) and tasks/error_hook.py (35%)
-- [2] effort: medium - add tests for tasks/hatching.py (41%) and tasks/nova_year.py (57%)
+- [2] effort: medium - add tests for tasks/nova_year.py (57%)
 - [3] effort: medium - add tests for wiki/pages.py (17% coverage) - page fetch and parsing
 - [3] effort: medium - add tests for web/discord_integration.py (37% coverage)
 - [3] effort: medium - add tests for commands/query.py (37%) and commands/stars.py (58%)
-- [2] effort: high - add tests for commands/fix.py (42% coverage, 495 stmts) - focus on reconcile, starboard, and emoji fix subcommands
+- [2] effort: high - add tests for commands/fix.py (42% coverage, 483 stmts) - focus on reconcile, starboard, and emoji fix subcommands
 - [2] effort: high - add tests for commands/chat.py (16% coverage) - slash command dispatch and response logic
 - [2] effort: high - add tests for ingestor pipeline modules (discord.py and wiki.py at 0% coverage)
 - [2] effort: high - add tests for client/events.py (39% coverage) - on_ready, on_message, on_application_command_error handlers
@@ -94,6 +94,11 @@
 
 - [x] separate out the bot logo update task, run every 2.5 minutes; store hsl natively instead of hex
 - [x] invert notes/ gitignore; we can explicitly ignore the ones we don't want
+
+## testing
+
+- [x] add tests for eggs/emojis.py - emoji fetch and validation helpers (now 100%)
+- [x] add tests for tasks/hatching.py (now 97%)
 
 ---
 
@@ -151,7 +156,7 @@
 | attubot/database/__init__.py | 66 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
 | attubot/database/models.py | 176 | 0 | 0 | 0 | 100% |
-| attubot/database/repositories.py | 517 | 119 | 82 | 5 | 74% |
+| attubot/database/repositories.py | 524 | 125 | 84 | 5 | 73% |
 
 ## attubot/eggs
 
@@ -159,8 +164,8 @@
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/eggs/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/eggs/data.py | 4 | 0 | 0 | 0 | 100% |
-| attubot/eggs/emojis.py | 52 | 25 | 8 | 0 | 52% |
-| attubot/eggs/hatching.py | 155 | 11 | 48 | 9 | 89% |
+| attubot/eggs/emojis.py | 52 | 0 | 8 | 0 | 100% |
+| attubot/eggs/hatching.py | 155 | 6 | 48 | 5 | 94% |
 
 ## attubot/ingestor
 
@@ -183,12 +188,13 @@
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/tasks/__init__.py | 23 | 0 | 0 | 0 | 100% |
+| attubot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
 | attubot/tasks/base.py | 12 | 3 | 0 | 0 | 75% |
 | attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
+| attubot/tasks/egg_cleanup.py | 51 | 5 | 16 | 2 | 90% |
 | attubot/tasks/error_hook.py | 44 | 26 | 8 | 0 | 35% |
-| attubot/tasks/hatching.py | 30 | 16 | 4 | 0 | 41% |
+| attubot/tasks/hatching.py | 30 | 1 | 4 | 0 | 97% |
 | attubot/tasks/logo_update.py | 55 | 31 | 10 | 1 | 38% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
 | attubot/tasks/nova_year.py | 122 | 49 | 40 | 1 | 57% |
@@ -206,7 +212,7 @@
 | attubot/web/auth.py | 256 | 80 | 60 | 6 | 68% |
 | attubot/web/discord_integration.py | 105 | 62 | 26 | 4 | 37% |
 | attubot/web/forms.py | 185 | 15 | 62 | 6 | 87% |
-| attubot/web/routes.py | 570 | 101 | 164 | 27 | 80% |
+| attubot/web/routes.py | 577 | 104 | 166 | 28 | 80% |
 
 ## attubot/wiki
 
@@ -224,4 +230,4 @@
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8386 | 3177 | 2078 | 248 | 59% |
+| 8453 | 3146 | 2098 | 247 | 60% |
