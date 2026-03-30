@@ -736,7 +736,7 @@ class TestLogDelete:
         mock_guild.audit_logs = MagicMock(return_value=_audit_log_iter())
 
         logs_ch = _make_logs_channel()
-        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.core.bot') as mock_bot:
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.messages.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await log_delete(_make_raw_delete_payload())
 
@@ -761,13 +761,48 @@ class TestLogDelete:
         mock_guild.audit_logs = MagicMock(return_value=_empty_audit_log())
 
         logs_ch = _make_logs_channel()
-        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.core.bot') as mock_bot:
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.messages.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await log_delete(_make_raw_delete_payload())
 
         embed = logs_ch.send.call_args[1]['embed']
         field_names = [f.name for f in embed.fields]
         assert 'Deleted by' not in field_names
+
+    async def test_skips_modlog_when_bot_is_actor(self, mock_message_repo, guild):
+        """when the bot deleted the message, mark_deleted still runs but no modlog embed is posted"""
+        from attubot.client.messages import log_delete
+
+        bot_id = 111111111
+        stored_doc = _make_msg_doc(author_id=test_user, created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        bot_actor = MagicMock()
+        bot_actor.id = bot_id
+
+        entry = MagicMock()
+        entry.target = MagicMock()
+        entry.target.id = test_user
+        entry.extra = MagicMock()
+        entry.extra.channel = MagicMock()
+        entry.extra.channel.id = test_channel
+        entry.user = bot_actor
+
+        async def _audit_log_iter(*args, **kwargs):
+            yield entry
+
+        mock_guild = MagicMock()
+        mock_guild.audit_logs = MagicMock(return_value=_audit_log_iter())
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch), patch('attubot.client.messages.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            mock_bot.user.id = bot_id
+            await log_delete(_make_raw_delete_payload())
+
+        mock_message_repo.mark_deleted.assert_called_once()
+        logs_ch.send.assert_not_called()
 
 
 # --- log_bulk_delete ---
