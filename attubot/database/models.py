@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class GuildConfigDocument(BaseModel):
@@ -271,6 +271,11 @@ class EggUserDocument(BaseModel):
     user_id: int
     thread_id: int = 0  # user's egg collection thread
     last_collected_at: int = 0  # unix timestamp; reboot-safe cooldown
+
+    @field_validator('last_collected_at', mode='before')
+    @classmethod
+    def coerce_to_int(cls, v: object) -> int:
+        return int(v)
 
 
 class WikiViewDocument(BaseModel):
