@@ -109,25 +109,22 @@
     <script type="module" nonce="{{ csp_nonce }}">
       import { beginAuthentication } from "/static/js/modules/webauthn.js";
 
-      // Get redirect target
+      // Get redirect target; reject anything that isn't a relative path (open redirect guard)
       const params = new URLSearchParams(window.location.search);
-      const nextUrl = params.get("next") || "/";
+      const rawNext = params.get("next") || "/";
+      const nextUrl = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
       function showError(msg) {
-        document.getElementById("status-area").innerHTML = `
-          <div class="alert alert-danger py-2 mb-3" role="alert">
-            <i data-feather="alert-circle" style="width:16px;height:16px;" class="me-1"></i>
-            ${msg}
-          </div>`;
+        const area = document.getElementById("status-area");
+        area.innerHTML = '<div class="alert alert-danger py-2 mb-3" role="alert"><i data-feather="alert-circle" style="width:16px;height:16px;" class="me-1"></i><span class="msg-text"></span></div>';
+        area.querySelector(".msg-text").textContent = msg;
         feather.replace();
       }
 
       function showSuccess(msg) {
-        document.getElementById("status-area").innerHTML = `
-          <div class="alert alert-success py-2 mb-3" role="alert">
-            <i data-feather="check-circle" style="width:16px;height:16px;" class="me-1"></i>
-            ${msg}
-          </div>`;
+        const area = document.getElementById("status-area");
+        area.innerHTML = '<div class="alert alert-success py-2 mb-3" role="alert"><i data-feather="check-circle" style="width:16px;height:16px;" class="me-1"></i><span class="msg-text"></span></div>';
+        area.querySelector(".msg-text").textContent = msg;
         feather.replace();
       }
 

@@ -63,8 +63,8 @@
             <div class="credential-id mt-1">{{ pk.credential_id[:32] }}…</div>
           </div>
           <button
-            class="btn btn-sm btn-outline-danger flex-shrink-0"
-            onclick="deletePasskey('{{ pk.credential_id }}')"
+            class="btn btn-sm btn-outline-danger flex-shrink-0 btn-delete-passkey"
+            data-credential-id="{{ pk.credential_id }}"
             {% if passkeys | length <= 1 %}
             disabled
             title="Cannot delete the last passkey"
@@ -128,8 +128,12 @@
   import { beginRegistration } from "/static/js/modules/webauthn.js";
 
   function showStatus(msg, type = "success") {
-    document.getElementById("status-area").innerHTML = `
-      <div class="alert alert-${type} py-2" role="alert">${msg}</div>`;
+    const area = document.getElementById("status-area");
+    const div = document.createElement("div");
+    div.className = `alert alert-${type} py-2`;
+    div.setAttribute("role", "alert");
+    div.textContent = msg;
+    area.replaceChildren(div);
   }
 
   // Register new passkey
@@ -153,7 +157,7 @@
   });
 
   // Delete passkey
-  window.deletePasskey = async (credentialId) => {
+  async function deletePasskey(credentialId) {
     if (!confirm("Delete this passkey? You will no longer be able to sign in with it.")) return;
 
     try {
@@ -167,6 +171,10 @@
     } catch (err) {
       showStatus(err.message || "Failed to delete passkey", "danger");
     }
-  };
+  }
+
+  document.querySelectorAll(".btn-delete-passkey").forEach((btn) => {
+    btn.addEventListener("click", () => deletePasskey(btn.dataset.credentialId));
+  });
 </script>
 {% endblock %}

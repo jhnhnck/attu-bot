@@ -5,3 +5,4 @@ pytest-cov
 respx
 freezegun
 ruff
+pip-audit

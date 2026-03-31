@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import re
 from typing import TYPE_CHECKING
 
 from pymongo import ASCENDING
@@ -27,10 +28,13 @@ from attubot.database.models import (
     YearDocument,
     YearMarkerDocument,
 )
+from attubot.logging import get_logger
 
 
 if TYPE_CHECKING:
     from attubot.config import BotTheme, GuildConfig
+
+logger = get_logger(__name__)
 
 
 class ConfigRepository:
@@ -420,7 +424,7 @@ class MessageRepository:
                 'guild_id': guild_id,
                 'channel_id': channel_id,
                 'author.bot': True,
-                'content.text': {'$regex': f'^{content_prefix}'},
+                'content.text': {'$regex': f'^{re.escape(content_prefix)}'},
                 'created_at': {'$gte': after, '$lt': before},
                 'deleted': {'$ne': True},
             })
@@ -574,6 +578,9 @@ class StarboardRepository:
 
         returns the updated doc or None if the document was not found.
         """
+        if '.' in emoji:
+            logger.warn(f'starboard: rejected emoji with dot in name: {emoji!r}')
+            return None
         from pymongo import ReturnDocument
 
         # only update if the user is NOT already in super_reactions for this emoji
@@ -597,6 +604,9 @@ class StarboardRepository:
 
         returns the updated doc or None if the document was not found.
         """
+        if '.' in emoji:
+            logger.warn(f'starboard: rejected emoji with dot in name: {emoji!r}')
+            return None
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
@@ -614,6 +624,9 @@ class StarboardRepository:
 
     async def remove_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """remove a user from the normal reaction list; returns the updated doc or None if not found"""
+        if '.' in emoji:
+            logger.warn(f'starboard: rejected emoji with dot in name: {emoji!r}')
+            return None
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
@@ -628,6 +641,9 @@ class StarboardRepository:
 
     async def remove_super_reaction(self, message_id: int, emoji: str, user_id: int) -> StarredMessageDocument | None:
         """remove a user from the super reaction list; returns the updated doc or None if not found"""
+        if '.' in emoji:
+            logger.warn(f'starboard: rejected emoji with dot in name: {emoji!r}')
+            return None
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
@@ -642,6 +658,9 @@ class StarboardRepository:
 
     async def clear_emoji_reactions(self, message_id: int, emoji: str) -> StarredMessageDocument | None:
         """clear all normal and super reactions for a specific emoji; returns updated doc or None if not found."""
+        if '.' in emoji:
+            logger.warn(f'starboard: rejected emoji with dot in name: {emoji!r}')
+            return None
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(
@@ -670,9 +689,18 @@ class StarboardRepository:
 
     async def set_starboard_message(self, message_id: int, starboard_message_id: int | None):
         """link or unlink a starboard channel post to this document"""
-        await self.db[self.COLLECTION].update_one(
+        result = await self.db[self.COLLECTION].update_one(
             {'message_id': message_id},
             {'$set': {'starboard_message_id': starboard_message_id}},
+        )
+        if result.matched_count == 0:
+            logger.warn(f'starboard: set_starboard_message matched 0 docs for message_id {message_id}')
+
+    async def set_reply_created(self, message_id: int):
+        """mark that a reply post has been sent for an uneditable predecessor post"""
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': message_id},
+            {'$set': {'reply_created': True}},
         )
 
     async def delete(self, message_id: int) -> bool:
@@ -774,6 +802,7 @@ class ReloadSignalRepository:
         # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead.
         # if an older unique index exists under the same auto-generated name, drop it first to avoid IndexKeySpecsConflict (code 86).
         from pymongo.errors import OperationFailure
+
         try:
             await self.db[self.COLLECTION].create_index(
                 [('signal_type', ASCENDING), ('guild_id', ASCENDING)],

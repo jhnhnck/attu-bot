@@ -38,7 +38,10 @@ def _build_quart_app(assets_dir: Path) -> Quart:
 def _configure_app(app: Quart) -> None:
     app.config['SECRET_KEY'] = config.web.secret_key
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB max upload
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Session lasts 30 days
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=14)
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 
 
 def _register_startup(app: Quart, assets_dir: Path) -> None:

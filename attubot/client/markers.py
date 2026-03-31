@@ -102,8 +102,8 @@ async def resolve_marker(guild: int, channel: int, year: int) -> ResolvedMarker:
 
     # build content prefix for bot header detection (strips markdown heading markers)
     year_header = format_year_line(year)
-    # extract the non-heading portion so the regex prefix works on stored message content
-    content_prefix = re.escape(year_header.lstrip('# '))
+    # extract the non-heading portion; re.escape is applied inside find_bot_header
+    content_prefix = year_header.lstrip('# ')
 
     # 2 - bot rollover header
     bot_msg = await _get_message_repo().find_bot_header(guild, channel, content_prefix, after, before)

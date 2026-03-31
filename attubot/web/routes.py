@@ -349,7 +349,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
             return jsonify({
                 'error': 'Validation failed',
-                'details': e.errors(),
+                'details': [err['msg'] for err in e.errors()],
             }), 400
         except Exception as e:
             logger.error(f'error saving guild {guild_id}: {e}')
@@ -559,7 +559,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
             return jsonify({
                 'error': 'Validation failed',
-                'details': e.errors(),
+                'details': [err['msg'] for err in e.errors()],
             }), 400
         except Exception as e:
             logger.error(f'error saving theme: {e}')
@@ -608,7 +608,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'primary_guild': config.primary_guild,
                 'error_log_guild': config.error_log[0] if config.error_log else 0,
                 'error_log_channel': config.error_log[1] if config.error_log else 0,
-                'error_hook': config.error_hook or '',
+                'error_hook': f'...{config.error_hook[-6:]}' if config.error_hook else '',
             }
 
             # Update system config in database
@@ -631,7 +631,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     'primary_guild': config.primary_guild,
                     'error_log_guild': config.error_log[0] if config.error_log else 0,
                     'error_log_channel': config.error_log[1] if config.error_log else 0,
-                    'error_hook': config.error_hook or '',
+                    'error_hook': f'...{config.error_hook[-6:]}' if config.error_hook else '',
                 }
                 changes = compare_configs(old_config, new_config)
                 if changes:

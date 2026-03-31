@@ -158,8 +158,8 @@ def login_required(f):
     @wraps(f)
     async def decorated(*args, **kwargs):
         if not is_authenticated():
-            # Store the original URL so we can redirect back after login
-            next_url = request.url
+            # store path only (not full URL) to prevent open redirect via ?next=
+            next_url = request.path
             return redirect(url_for('auth_login') + f'?next={next_url}')
         return await f(*args, **kwargs)
 
@@ -200,7 +200,8 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
 
         # Credentials exist — require a valid session
         if not is_authenticated():
-            next_url = request.url
+            # store path only (not full URL) to prevent open redirect via ?next=
+            next_url = request.path
             return redirect(url_for('auth_login') + f'?next={next_url}')
 
         # CSRF protection for all state-changing requests (L3).
@@ -330,6 +331,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     # ---- Setup begin (generate registration challenge) --------------------
 
     @app.route('/auth/setup/begin', methods=['POST'])
+    @rate_limit(10, timedelta(minutes=1))
     async def auth_setup_begin():
         db = _db_store.get_db()
 
@@ -425,6 +427,7 @@ def register_auth_routes(app):  # noqa: PLR0915 - auth route registration define
     # ---- Register additional passkey begin ---------------------------------
 
     @app.route('/auth/register/begin', methods=['POST'])
+    @rate_limit(10, timedelta(minutes=1))
     async def auth_register_begin():
         if not is_authenticated():
             return jsonify({'error': 'Not authenticated'}), 401
