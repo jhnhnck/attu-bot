@@ -241,7 +241,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
                 current_index=0,
                 page_titles=[p.title for p in pages],
                 page_keys=[p.key for p in pages],
-                expires_at=time.time() + _VIEW_TIMEOUT,
+                expires_at=int(time.time()) + _VIEW_TIMEOUT,
             )
         )
 

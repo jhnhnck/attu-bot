@@ -120,7 +120,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     Returns ('cooldown', ready_at) when the user is still on cooldown (ready_at is a unix timestamp).
     """
     cooldown = config.hatch.tuning.collect_cooldown_seconds
-    now = time.time()
+    now = int(time.time())
 
     user_doc = await _egg_user_repo.get(guild_id, user_id)
     if user_doc and user_doc.last_collected_at > 0:

@@ -149,6 +149,7 @@ class StarredMessageDocument(BaseModel):
     super_reactions: dict[str, list[int]] = {}  # emoji_str -> list of user_ids who super-reacted (1.5x weight)
     total_reactions: int = 0  # raw count of all reactors (normal + super); kept for range queries
     weighted_total: float = 0.0  # weighted sum: normal = 1.0, super = 1.5
+    reply_created: bool = False  # true once a reply has been sent to an uneditable predecessor post
 
 
 class FamilyDocument(BaseModel):
@@ -254,8 +255,8 @@ class EggDocument(BaseModel):
     guild_id: int
     user_id: int
     rarity: str  # 'common' | 'uncommon' | 'rare' | 'legendary' | 'mythical'
-    collected_at: float  # unix timestamp
-    hatches_at: float  # collected_at + rarity hatch duration
+    collected_at: int  # unix timestamp
+    hatches_at: int  # collected_at + rarity hatch duration
     hatched: bool = False
     result: str | None = None  # unicode emoji char after hatching
     message_id: int | None = None  # id of the message in user's thread
@@ -269,7 +270,7 @@ class EggUserDocument(BaseModel):
     guild_id: int
     user_id: int
     thread_id: int = 0  # user's egg collection thread
-    last_collected_at: float = 0.0  # unix timestamp; reboot-safe cooldown
+    last_collected_at: int = 0  # unix timestamp; reboot-safe cooldown
 
 
 class WikiViewDocument(BaseModel):
@@ -285,4 +286,4 @@ class WikiViewDocument(BaseModel):
     current_index: int = 0
     page_titles: list[str]  # for get_summary() calls on navigation
     page_keys: list[str]  # for page_url() calls
-    expires_at: float  # unix timestamp ttl
+    expires_at: int  # unix timestamp ttl

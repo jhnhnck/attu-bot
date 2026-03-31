@@ -777,8 +777,11 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
 
     channel = bot.get_channel(sb.channel_id)
     if channel is None:
-        logger.warn(f'starboard: channel {sb.channel_id} not in cache for guild {guild_id}')
-        return
+        try:
+            channel = await bot.fetch_channel(sb.channel_id)
+        except Exception as err:
+            logger.warn(f'starboard: channel {sb.channel_id} not found for guild {guild_id}: {err}')
+            return
 
     msg_doc = await _get_msg_repo().get(doc.message_id)
     if msg_doc is None:
@@ -815,8 +818,10 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             # post was created in discord but db write failed - delete the orphan so the
             # next reaction can retry cleanly rather than creating a duplicate
             logger.error(f'starboard: failed to record post {sb_msg.id} for message {doc.message_id}: {err}; deleting orphan')
-            with contextlib.suppress(Exception):
+            try:
                 await sb_msg.delete()
+            except Exception as del_err:
+                logger.error(f'starboard: failed to delete orphan post {sb_msg.id}: {del_err}; manual cleanup may be needed')
             return
         # bot reacts to its own starboard post with all active emojis
         for emoji in doc.reactions:
@@ -869,6 +874,10 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         await repo.set_starboard_message(doc.message_id, None)
     except discord.Forbidden:
         # not our message (old bot); send a reply to the old post so it's easy to jump to
+        if doc.reply_created:
+            # already sent a reply once; don't stack more replies if it also becomes uneditable
+            logger.debug(f'starboard: skipping repeat reply for uneditable post {doc.starboard_message_id}')
+            return
         logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
         try:
             try:
@@ -877,6 +886,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             except discord.NotFound:
                 new_msg = await channel.send(content=content, embeds=embeds)
             await repo.set_starboard_message(doc.message_id, new_msg.id)
+            await repo.set_reply_created(doc.message_id)
             for emoji in doc.reactions:
                 if doc.reactions[emoji] and emoji in sb.emojis:
                     try:
