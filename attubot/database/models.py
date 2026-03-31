@@ -261,6 +261,11 @@ class EggDocument(BaseModel):
     result: str | None = None  # unicode emoji char after hatching
     message_id: int | None = None  # id of the message in user's thread
 
+    @field_validator('collected_at', 'hatches_at', mode='before')
+    @classmethod
+    def coerce_to_int(cls, v: object) -> int:
+        return int(v)
+
 
 class EggUserDocument(BaseModel):
     """MongoDB document tracking per-user egg state"""
