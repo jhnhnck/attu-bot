@@ -808,7 +808,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         preview = (msg_doc.content.text or '*no text*')[:100]
         notification_content = f'{leading_emoji} {leading_count} | @{msg_doc.author.name}: {preview}'
         try:
-            sb_msg = await channel.send(content=notification_content, embeds=embeds)
+            sb_msg = await channel.send(content=notification_content, embeds=embeds, allowed_mentions=discord.AllowedMentions.none())  # preview contains raw user text
         except Exception as err:
             logger.error(f'starboard: failed to send post for message {doc.message_id}: {err}')
             return
