@@ -39,7 +39,7 @@ There are two runnable modes, both launched from `attu-bot.py`:
 ### package: `attubot/client/`
 | File | Role |
 |---|---|
-| `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil` |
+| `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil`; `/ping` is registered here directly as an intentional exception to the extension pattern (lightweight core health check) |
 | `core.py` | Module-level singletons: `bot` (Discord Bot), `config` (NovaConfig), `db` (MongoStorage) |
 | `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
 | `embeds.py` | `make_embed()` - standard embed builder with auto-theme color and timestamp; see `notes/embed_usage.md` |
@@ -264,6 +264,7 @@ docker compose run --build --rm --quiet-build tests
 **mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. two standing cases:
 - `bot.load_extension()` is mocked in `test_start_bot_loop.py`; compensated by `TestExtensionImports.test_extension_imports_cleanly` doing real `importlib.import_module()` for each extension. Whenever you add a file under `attubot/commands/`, verify this test still passes.
 - command tests call functions directly, bypassing `@commands.check`. compensated by predicate tests in `test_util.py`. add/update tests there when adding predicates.
+- when adding a new migration to `client/migrations.py`, add a test for its rollback path before merging.
 
 ### linting
 ```bash

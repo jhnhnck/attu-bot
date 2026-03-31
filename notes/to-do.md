@@ -18,7 +18,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### eggs / hatch game
 
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
+- ⭕ `future idea` `high effort` way to discard/recycle hatches back into eggs, loot box style
 - ⭕ `medium priority` `low effort` remove any remaining references to egg/hatch season or date
+- ⭕ `medium priority` `low effort` /eggs progress: set embed title to "user's egg collection" instead of default
+- ⭕ `medium priority` `medium effort` /eggs show: link to first egg message in thread instead of just the thread
+- ⭕ `medium priority` `medium effort` egg give dropbox crashes with exception when over 25 items; add a *more* entry that loads next 24 in a loop
 
 ### starboard
 
@@ -80,14 +84,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### code audits
 
 - `low effort` scan for security issues and vulnerabilities; check for OWASP top 10, injection risks, auth gaps, and insecure dependencies
-- ⭕ `medium priority` `high effort` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
-- ⭕ `medium priority` `high effort` audit event-driven tasks and code; identify design improvements and best practices gaps
-- ⭕ `medium priority` `medium effort` analyze the coverage report below, then audit what code we're missing and if it needs to have test cases
-- ⭕ `medium priority` `medium effort` assess whether `NovaConfig` should be split into a sub-package with separate classes for guild, global, theme, hatch game, etc
-- ⭕ `low priority` `high effort` audit starboard; learn from our mistakes to mould a better more fault tolerant, resilient system
-- ⭕ `low priority` `high effort` check code for backwards compat interfaces, see which ones we can remove/refactor out
-- ⭕ `low priority` `low effort` audit codebase for non-standard or inconsistent terminology and decide whether to standardize
-- ⭕ `low priority` `low effort` investigate unifying stored date types under one class (`config.py:108`)
 
 ### testing
 
@@ -96,17 +92,12 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` add tests for commands/debug.py (30%) and commands/time.py (40%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (38%) and tasks/error_hook.py (35%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
-- ⭕ `medium priority` `high effort` add tests for commands/fix.py (42% coverage, 483 stmts) - focus on reconcile, starboard, and emoji fix subcommands
-- ⭕ `medium priority` `high effort` add tests for commands/chat.py (16% coverage) - slash command dispatch and response logic
-- ⭕ `medium priority` `high effort` add tests for ingestor pipeline modules (discord.py and wiki.py at 0% coverage)
-- ⭕ `medium priority` `high effort` add tests for client/events.py (39% coverage) - on_ready, on_message, on_application_command_error handlers
 - ⭕ `medium priority` `high effort` add tests for client/messages.py (60% coverage) - build_message_doc, edit/delete log embeds
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
 - ⭕ `low priority` `medium effort` add tests for web/discord_integration.py (37% coverage)
 - ⭕ `low priority` `medium effort` add tests for commands/query.py (37%) and commands/stars.py (58%)
-- ⭕ `low priority` `high effort` add tests for ingestor/summarizer.py (0%) and ingestor/llm.py (21%)
 
 ---
 
@@ -121,6 +112,17 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `30 March 2026` split /eggs leaderboard into two separate commands: most hatched total and most complete set
 - 🔴 `30 March 2026` create `hatch.toml` for egg game tuning; load all tuning values through `NovaConfig` instead of hardcoding
 - 🔴 `30 March 2026` make hatch spawn pools data-driven from `hatch.toml`; move all rarity pools and creatures out of `eggs/data.py`
+
+### code audits
+
+- 🔴 `30 March 2026` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
+- 🔴 `30 March 2026` audit event-driven tasks and code; identify design improvements and best practices gaps
+- 🔴 `30 March 2026` analyze the coverage report and audit what code we're missing and if it needs to have test cases
+- 🔴 `30 March 2026` assess whether `NovaConfig` should be split into a sub-package with separate classes for guild, global, theme, hatch game, etc
+- 🔴 `30 March 2026` audit starboard; learn from our mistakes to mould a better more fault tolerant, resilient system
+- 🔴 `30 March 2026` check code for backwards compat interfaces, see which ones we can remove/refactor out
+- 🔴 `30 March 2026` audit codebase for non-standard or inconsistent terminology and decide whether to standardize
+- 🔴 `30 March 2026` investigate unifying stored date types under one class (`config.py:108`)
 
 ### maintenance
 
@@ -291,5 +293,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 30 March 2026
-total_completed: 34
+total_completed: 42
 ```
