@@ -66,27 +66,37 @@ class LogoUpdateTask(BaseTask):
 
         # edit guild and bot with new logos
         guild = bot.get_guild(config.primary_guild) or await bot.fetch_guild(config.primary_guild)
-        await guild.edit(icon=guild_icon, reason='logo update task')
-        await bot.user.edit(avatar=bot_avatar)
+        try:
+            await guild.edit(icon=guild_icon, reason='logo update task')
+        except Exception as err:
+            logger.error(f'logo update: failed to update guild icon: {err}')
+        try:
+            await bot.user.edit(avatar=bot_avatar)
+        except Exception as err:
+            logger.error(f'logo update: failed to update bot avatar: {err}')
 
         # update the emoji too. why not?
         emoji_name = guild.name.replace(' ', '_').lower()
-
-        for emoji in guild.emojis:
-            if emoji_name in emoji.name:
-                logger.debug(f'clearing old emoji "{emoji.name}"')
-                await emoji.delete()
-                break
-
-        await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
+        try:
+            for emoji in guild.emojis:
+                if emoji_name in emoji.name:
+                    logger.debug(f'clearing old emoji "{emoji.name}"')
+                    await emoji.delete()
+                    break
+            await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
+        except Exception as err:
+            logger.error(f'logo update: failed to update guild emoji: {err}')
 
         # update the bot_color role to match the current theme color
         role_id = config.primary().roles.bot_color
         if role_id:
             role = guild.get_role(role_id)
             if role is not None:
-                await role.edit(color=discord.Color(int(computed_color.lstrip('#'), 16)), reason='logo update task')
-                logger.debug(f'updated bot_color role {role.name} to {computed_color}')
+                try:
+                    await role.edit(color=discord.Color(int(computed_color.lstrip('#'), 16)), reason='logo update task')
+                    logger.debug(f'updated bot_color role {role.name} to {computed_color}')
+                except Exception as err:
+                    logger.error(f'logo update: failed to update bot_color role: {err}')
 
         # store new rotation and computed hex (keeps web ui and util.py in sync)
         config.theme.rotation = new_rotation % 360

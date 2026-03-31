@@ -51,19 +51,24 @@ class ErrorHookTask(BaseTask):
             # cleanup old urls
             for old in webhooks:
                 if old.user == bot.user and old.url != config.error_hook:
-                    logger.warn(f'deleted old webhook: {old.name}-{old.id}')
-                    await old.delete()
+                    try:
+                        await old.delete()
+                        logger.warn(f'deleted old webhook: {old.name}-{old.id}')
+                    except Exception as del_err:
+                        logger.warn(f'failed to delete old webhook {old.name}-{old.id}: {del_err}')
 
             if config.error_hook in webhook_urls:
                 logger.debug('existing error hook found; skipping refresh')
                 return
 
-            icon = await generate_png(45, '#ff4941')
-            hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
-
-            logger.info(f'created new webhook: {hook.name}-{hook.id}')
-            config.error_hook = hook.url
-            await config.config_repo.update_system_field('error_hook', hook.url)
+            try:
+                icon = await generate_png(45, '#ff4941')
+                hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
+                logger.info(f'created new webhook: {hook.name}-{hook.id}')
+                config.error_hook = hook.url
+                await config.config_repo.update_system_field('error_hook', hook.url)
+            except Exception as create_err:
+                logger.error(f'failed to create new webhook for error log: {create_err}')
 
         except Exception as err:
             logger.error(f'failed acquiring new webhook for error log: {err}')

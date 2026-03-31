@@ -39,13 +39,20 @@ class PresenceUpdateTask(BaseTask):
         if _egg_repo is None:
             return
 
-        count = await _egg_repo.count_hatched()
-        await bot.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.watching,
-                name=f'{count} eggs hatched',
+        try:
+            count = await _egg_repo.count_hatched()
+        except Exception as err:
+            logger.error(f'presence: failed to count hatched eggs: {err}')
+            return
+        try:
+            await bot.change_presence(
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name=f'{count} eggs hatched',
+                )
             )
-        )
+        except Exception as err:
+            logger.error(f'presence: failed to update presence: {err}')
 
 
 # singleton instance for registration

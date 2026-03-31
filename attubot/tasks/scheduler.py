@@ -92,11 +92,17 @@ class TaskScheduler:
             t.cancel()
 
         if self._loop_tasks:
-            await asyncio.gather(*self._loop_tasks, return_exceptions=True)
+            try:
+                await asyncio.wait_for(asyncio.gather(*self._loop_tasks, return_exceptions=True), timeout=10.0)
+            except TimeoutError:
+                logger.warn('scheduler: timed out waiting for loop tasks to stop')
 
         # wait for fire-and-forget jobs to finish
         if self._jobs:
-            await asyncio.gather(*self._jobs, return_exceptions=True)
+            try:
+                await asyncio.wait_for(asyncio.gather(*self._jobs, return_exceptions=True), timeout=10.0)
+            except TimeoutError:
+                logger.warn('scheduler: timed out waiting for jobs to stop')
 
     async def _sleep_until(self, when: datetime) -> None:
         """Sleep until a specific datetime, waking early if cancelled."""

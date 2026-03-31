@@ -267,7 +267,8 @@ async def on_raw_message_delete(payload: RawMessageDeleteEvent):
         logs_channel_id = config.guild(payload.guild_id).channels.logs
         if payload.channel_id == logs_channel_id:
             return
-    except Exception:
+    except Exception as err:
+        logger.debug(f'on_raw_message_delete: failed to get guild config for {payload.guild_id}: {err}')
         return
 
     from attubot.client.messages import log_delete
@@ -285,7 +286,8 @@ async def on_raw_bulk_message_delete(payload: RawBulkMessageDeleteEvent):
         logs_channel_id = config.guild(payload.guild_id).channels.logs
         if payload.channel_id == logs_channel_id:
             return
-    except Exception:
+    except Exception as err:
+        logger.debug(f'on_raw_bulk_message_delete: failed to get guild config for {payload.guild_id}: {err}')
         return
 
     from attubot.client.messages import log_bulk_delete
