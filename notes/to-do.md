@@ -77,6 +77,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `low priority` `low effort` add a `once` run option to `BaseTask` (`tasks/base.py:19`)
+- ⭕ `low priority` `low effort` deploy script doesn't exit cleanly on ctrl+c
 - ⭕ `low priority` `medium effort` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
 - ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?

@@ -147,7 +147,7 @@ class TestCollectEgg:
 
     async def test_cooldown_active_raises(self):
         """user collected 60s ago - still within 600s cooldown"""
-        self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=time.time() - 60)
+        self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=int(time.time()) - 60)
 
         with patch('attubot.eggs.hatching.config') as mock_config:
             mock_config.hatch.tuning.collect_cooldown_seconds = 600
@@ -159,7 +159,7 @@ class TestCollectEgg:
 
     async def test_cooldown_expired_succeeds(self):
         """user collected 1000s ago - cooldown has elapsed"""
-        self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=time.time() - 1000)
+        self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=int(time.time()) - 1000)
         self.egg_user_repo.upsert.return_value = None
         self.egg_repo.insert.return_value = None
 
@@ -1007,7 +1007,7 @@ def _make_select_menu(options: list | None = None):
 
     if options is None:
         options = [discord.SelectOption(label='common egg', value='unhatched:common')]
-    return _EggSelectMenu(options, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+    return _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
 
 
 class TestEggSelectMenu:
@@ -1127,37 +1127,33 @@ class TestEggsGiveCommand:
         await eggs_give(self.ctx, self.mock_user, None)
         assert 'yourself' in self.ctx._responses[0]['args'][0]
 
-    async def test_specific_rarity_found_sends_offer(self):
-        """rarity arg specified and egg exists - public offer posted"""
-        egg = _make_egg(rarity='rare')
-        user_doc = _make_user_doc()
+    async def test_unhatched_filter_shows_unhatched_select_menu(self):
+        """filter='unhatched' - shows select menu of unique unhatched rarities only"""
+        unhatched = [_make_egg(rarity='rare'), _make_egg(rarity='common')]
 
-        with (
-            patch.object(hatching_mod, '_egg_repo') as mock_repo,
-            patch.object(hatching_mod, '_egg_user_repo') as mock_user_repo,
-            patch('attubot.eggs.hatching._egg_emoji_str', return_value='<:rare_egg:1>'),
-        ):
-            mock_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=egg)
-            mock_user_repo.get = AsyncMock(return_value=user_doc)
-
-            from attubot.commands.eggs import eggs_give
-
-            await eggs_give(self.ctx, self.mock_user, 'rare')
-
-        self.ctx.channel.send.assert_called_once()
-        assert self.ctx._responses[0]['args'][0] == 'offer sent!'
-
-    async def test_specific_rarity_no_eggs(self):
-        """rarity arg specified but user has no matching eggs"""
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
-            mock_repo.get_oldest_unhatched_by_rarity = AsyncMock(return_value=None)
+            mock_repo.list_unhatched = AsyncMock(return_value=unhatched)
 
             from attubot.commands.eggs import eggs_give
 
-            await eggs_give(self.ctx, self.mock_user, 'legendary')
+            await eggs_give(self.ctx, self.mock_user, 'unhatched')
 
         response = self.ctx._responses[0]
-        assert 'legendary' in response['args'][0]
+        assert response['kwargs'].get('ephemeral') is True
+        select = response['kwargs']['view'].children[0]
+        assert len(select.options) == 2  # rare, common
+
+    async def test_unhatched_filter_no_eggs(self):
+        """filter='unhatched' but user has no unhatched eggs"""
+        with patch.object(hatching_mod, '_egg_repo') as mock_repo:
+            mock_repo.list_unhatched = AsyncMock(return_value=[])
+
+            from attubot.commands.eggs import eggs_give
+
+            await eggs_give(self.ctx, self.mock_user, 'unhatched')
+
+        response = self.ctx._responses[0]
+        assert 'unhatched eggs' in response['args'][0]
         assert response['kwargs'].get('ephemeral') is True
 
     async def test_no_rarity_shows_select_menu(self):

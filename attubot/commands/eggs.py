@@ -22,7 +22,8 @@ logger = get_logger(__name__)
 eggs_group = SlashCommandGroup('eggs', description='egg collection game')
 leaderboard_group = eggs_group.create_subgroup('leaderboard', 'Egg leaderboards')
 
-_GIVE_RARITY_CHOICES = ['common', 'uncommon', 'rare', 'legendary', 'mythical', 'hatched']
+_give_filter_choices = ['hatched', 'unhatched']
+_give_page_size = 24
 
 
 # --- Views ---
@@ -95,14 +96,19 @@ class EggGiftOfferView(discord.ui.View):
 class _EggSelectMenu(discord.ui.Select):
     """Select menu populated with a user's unique eggs for gifting."""
 
-    def __init__(self, options: list[discord.SelectOption], from_id: int, from_mention: str, to_id: int, to_mention: str, to_display: str, guild_id: int):
+    def __init__(self, all_options: list[discord.SelectOption], offset: int, from_id: int, from_mention: str, to_id: int, to_mention: str, to_display: str, guild_id: int):
+        self.all_options = all_options
+        self.offset = offset
         self.from_id = from_id
         self.from_mention = from_mention
         self.to_id = to_id
         self.to_mention = to_mention
         self.to_display = to_display
         self.guild_id = guild_id
-        super().__init__(placeholder='pick an egg to give', options=options, min_values=1, max_values=1)
+        page = all_options[offset : offset + _give_page_size]
+        if len(all_options) > offset + _give_page_size:
+            page = page + [discord.SelectOption(label='more...', value=f'more:{offset + _give_page_size}')]
+        super().__init__(placeholder='pick an egg to give', options=page, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.from_id:
@@ -110,6 +116,13 @@ class _EggSelectMenu(discord.ui.Select):
             return
 
         value = self.values[0]
+
+        if value.startswith('more:'):
+            new_offset = int(value[5:])
+            new_view = EggSelectView(self.all_options, new_offset, self.from_id, self.from_mention, self.to_id, self.to_mention, self.to_display, self.guild_id)
+            await interaction.response.edit_message(content='pick an egg to give:', view=new_view)
+            return
+
         prefix, key = value.split(':', 1)
 
         from attubot.eggs.hatching import _egg_repo, _egg_user_repo
@@ -139,9 +152,9 @@ class _EggSelectMenu(discord.ui.Select):
 class EggSelectView(discord.ui.View):
     """Ephemeral view wrapping _EggSelectMenu."""
 
-    def __init__(self, options: list[discord.SelectOption], from_id: int, from_mention: str, to_id: int, to_mention: str, to_display: str, guild_id: int):
+    def __init__(self, all_options: list[discord.SelectOption], offset: int, from_id: int, from_mention: str, to_id: int, to_mention: str, to_display: str, guild_id: int):
         super().__init__(timeout=120)
-        self.add_item(_EggSelectMenu(options, from_id, from_mention, to_id, to_mention, to_display, guild_id))
+        self.add_item(_EggSelectMenu(all_options, offset, from_id, from_mention, to_id, to_mention, to_display, guild_id))
 
 
 # --- Commands ---
@@ -210,8 +223,8 @@ async def eggs_view(ctx: ApplicationContext):
 
 @eggs_group.command(name='give', description='Give one of your eggs to another user')
 @discord.commands.option(name='user', required=True, description='who to give the egg to', input_type=discord.Member)
-@discord.commands.option(name='rarity', required=False, description='which rarity to give (omit to pick from a list)', choices=_GIVE_RARITY_CHOICES)
-async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str | None = None):
+@discord.commands.option(name='filter', required=False, description='show only hatched or unhatched eggs (omit for all)', choices=_give_filter_choices)
+async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str | None = None):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
@@ -222,56 +235,49 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, rarity: str |
         await ctx.respond('you cannot give eggs to yourself')
         return
 
-    from attubot.eggs.hatching import _egg_repo, _egg_user_repo
+    from attubot.eggs.hatching import _egg_repo
 
     guild_id = ctx.guild_id
     from_mention = ctx.author.mention
     to_mention = user.mention
     to_display = user.display_name
 
-    if rarity and rarity != 'hatched':
-        # specific unhatched rarity requested - go straight to offer
-        egg = await _egg_repo.get_oldest_unhatched_by_rarity(guild_id, ctx.author.id, rarity)
-        if egg is None:
-            await ctx.respond(f'you have no {rarity} eggs', ephemeral=True)
-            return
-        from_user_doc = await _egg_user_repo.get(guild_id, ctx.author.id)
-        egg_jump_url = ''
-        if from_user_doc and from_user_doc.thread_id and egg.message_id:
-            egg_jump_url = f'https://discord.com/channels/{guild_id}/{from_user_doc.thread_id}/{egg.message_id}'
-        offer_content = _offer_text(from_mention, to_mention, egg, egg_jump_url)
-        offer_view = EggGiftOfferView(egg, ctx.author.id, from_mention, user.id, to_mention, to_display, guild_id)
-        offer_msg = await ctx.channel.send(offer_content, view=offer_view)
-        offer_view.message = offer_msg
-        await ctx.respond('offer sent!', ephemeral=True)
-        return
-
-    # build select menu with deduplicated entries
+    # build select menu with deduplicated entries and counts
     options: list[discord.SelectOption] = []
 
-    if not rarity:
-        # include unhatched eggs (unique by rarity)
+    if filter != 'hatched':
         unhatched = await _egg_repo.list_unhatched(guild_id, ctx.author.id)
-        seen_rarities: set[str] = set()
+        rarity_counts: dict[str, int] = {}
         for egg in unhatched:
-            if egg.rarity not in seen_rarities:
-                seen_rarities.add(egg.rarity)
-                options.append(discord.SelectOption(label=f'{egg.rarity} egg', value=f'unhatched:{egg.rarity}'))
+            rarity_counts[egg.rarity] = rarity_counts.get(egg.rarity, 0) + 1
+        seen: set[str] = set()
+        for egg in unhatched:
+            if egg.rarity not in seen:
+                seen.add(egg.rarity)
+                count = rarity_counts[egg.rarity]
+                label = f'{egg.rarity} egg' + (f' x{count}' if count > 1 else '')
+                options.append(discord.SelectOption(label=label, value=f'unhatched:{egg.rarity}'))
 
-    # include hatched creatures (unique by result emoji)
-    hatched_eggs = await _egg_repo.list_hatched(guild_id, ctx.author.id)
-    seen_results: set[str] = set()
-    for egg in hatched_eggs:
-        if egg.result and egg.result not in seen_results:
-            seen_results.add(egg.result)
-            options.append(discord.SelectOption(label=egg.result, value=f'hatched:{egg.result}'))
+    if filter != 'unhatched':
+        hatched_eggs = await _egg_repo.list_hatched(guild_id, ctx.author.id)
+        result_counts: dict[str, int] = {}
+        for egg in hatched_eggs:
+            if egg.result:
+                result_counts[egg.result] = result_counts.get(egg.result, 0) + 1
+        seen_r: set[str] = set()
+        for egg in hatched_eggs:
+            if egg.result and egg.result not in seen_r:
+                seen_r.add(egg.result)
+                count = result_counts[egg.result]
+                label = egg.result + (f' x{count}' if count > 1 else '')
+                options.append(discord.SelectOption(label=label, value=f'hatched:{egg.result}'))
 
     if not options:
-        label = 'hatched eggs' if rarity == 'hatched' else 'eggs'
-        await ctx.respond(f'you have no {label}', ephemeral=True)
+        no_eggs_label = 'hatched eggs' if filter == 'hatched' else ('unhatched eggs' if filter == 'unhatched' else 'eggs')
+        await ctx.respond(f'you have no {no_eggs_label}', ephemeral=True)
         return
 
-    select_view = EggSelectView(options, ctx.author.id, from_mention, user.id, to_mention, to_display, guild_id)
+    select_view = EggSelectView(options, 0, ctx.author.id, from_mention, user.id, to_mention, to_display, guild_id)
     await ctx.respond('pick an egg to give:', view=select_view, ephemeral=True)
 
 
