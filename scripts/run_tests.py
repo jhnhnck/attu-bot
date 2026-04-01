@@ -11,8 +11,15 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 
-from termcolor import colored
+
+try:
+    from termcolor import colored
+
+except ImportError:
+    print('error: missing dependencies\ntry running `pyenv shell doom-bot`\nor\n`pip install -r requirements-dev.txt --upgrade`', file=sys.stderr)
+    sys.exit(1)
 
 
 def header(n: int, total: int, title: str) -> None:
@@ -46,6 +53,11 @@ def run_suite(title: str, cmd: list[str], quiet: bool, step: int, total: int) ->
 
 
 if __name__ == '__main__':
+    if not Path('/.dockerenv').exists():
+        dev_dir = Path(__file__).parent.parent.resolve()
+        cmd = ['docker', 'compose', 'run', '--build', '--rm', '--quiet-build', 'tests', 'scripts/run_tests.py', *sys.argv[1:]]
+        sys.exit(subprocess.run(cmd, cwd=dev_dir, check=False).returncode)  # noqa: S603
+
     parser = argparse.ArgumentParser(description='run attubot test suites')
     parser.add_argument('-v', '--verbose', action='store_true', help='show full test output')
     parser.add_argument('-x', action='store_true', dest='exit_early', help='stop pytest on first failure within each suite')

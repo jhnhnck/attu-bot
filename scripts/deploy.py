@@ -16,10 +16,12 @@ import time
 from pathlib import Path
 from typing import NoReturn
 
+
 try:
     from termcolor import colored
+
 except ImportError:
-    print('error: missing dependencies; run: pyenv shell doom-bot && pip install -r requirements-dev.txt --upgrade', file=sys.stderr)
+    print('error: missing dependencies\ntry running `pyenv shell doom-bot`\nor\n`pip install -r requirements-dev.txt --upgrade`', file=sys.stderr)
     sys.exit(1)
 
 
