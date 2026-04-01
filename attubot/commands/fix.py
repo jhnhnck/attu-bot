@@ -672,6 +672,17 @@ async def fix_emoji(ctx: ApplicationContext):
     await ctx.respond(f'egg emojis: {egg_names} ({len(egg_emojis)} ok)\nprogress emojis: {progress_names} ({len(progress_emojis)} ok)\nall emojis saved.')
 
 
+@fix_group.command(name='epoch', description='Prints the primary guild epoch config as a TOML block for use in deploy.py')
+@commands.check(is_bot_owner)
+async def fix_epoch(ctx: ApplicationContext):
+    guild = config.primary()
+    epoch = guild.epoch
+    rollover_h = epoch.rollover_minutes // 60
+    rollover_m = epoch.rollover_minutes % 60
+    toml = f'[epoch]\ntime = {epoch.time}\nyear = {epoch.year}\nlength = {epoch.length}\npaused = {"true" if epoch.paused else "false"}\nrollover_minutes = {epoch.rollover_minutes}  # {rollover_h:02d}:{rollover_m:02d}\n'
+    await ctx.respond(f'```toml\n{toml}```', ephemeral=True)
+
+
 # --- Extension Def ---
 
 
