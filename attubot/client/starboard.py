@@ -363,7 +363,7 @@ async def _remove_reaction_from_discord(channel_id: int, message_id: int, user_i
 
     try:
         channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
-        message = await channel.fetch_message(message_id)
+        message = channel.get_partial_message(message_id)  # type: ignore[union-attr]
         await message.remove_reaction(emoji_str, discord.Object(id=user_id))
         logger.debug(f'starboard: removed invalid reaction {emoji_str} from user {user_id} on message {message_id}')
     except Exception as err:
@@ -854,7 +854,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
     )
     if max_weight < 2:
         try:
-            sb_msg = await channel.fetch_message(doc.starboard_message_id)
+            sb_msg = channel.get_partial_message(doc.starboard_message_id)
             await sb_msg.delete()
             logger.info(f'starboard: deleted post {doc.starboard_message_id} for message {doc.message_id}; fell below threshold')
         except discord.NotFound:
@@ -865,7 +865,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             await repo.set_starboard_message(doc.message_id, None)
         return
     try:
-        sb_msg = await channel.fetch_message(doc.starboard_message_id)
+        sb_msg = channel.get_partial_message(doc.starboard_message_id)
         await sb_msg.edit(content=content, embeds=embeds)
         logger.debug(f'starboard: updated post {doc.starboard_message_id} ({doc.total_reactions} reactions)')
     except discord.NotFound:
@@ -881,7 +881,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
         try:
             try:
-                old_msg = await channel.fetch_message(doc.starboard_message_id)
+                old_msg = channel.get_partial_message(doc.starboard_message_id)
                 new_msg = await channel.send(content=content, embeds=embeds, reference=old_msg)
             except discord.NotFound:
                 new_msg = await channel.send(content=content, embeds=embeds)

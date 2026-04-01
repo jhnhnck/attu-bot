@@ -214,7 +214,7 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
 
     if egg.message_id is None:
         raise RuntimeError(f'egg {egg.egg_id} has no message_id stored')
-    msg = await thread.fetch_message(egg.message_id)  # type: ignore[union-attr]
+    msg = thread.get_partial_message(egg.message_id)  # type: ignore[union-attr]
     jump_url = msg.jump_url
 
     if egg.result is None:
@@ -254,7 +254,7 @@ async def transfer_egg(guild_id: int, egg_id: str, from_user_id: int, to_user_id
                     thread = None
         if thread is not None:
             try:
-                old_msg = await thread.fetch_message(egg.message_id)  # type: ignore[union-attr]
+                old_msg = thread.get_partial_message(egg.message_id)  # type: ignore[union-attr]
                 await old_msg.delete()
             except (discord.NotFound, discord.Forbidden):
                 pass  # already gone or no permission; proceed with transfer

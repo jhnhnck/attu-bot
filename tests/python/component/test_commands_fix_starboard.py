@@ -90,7 +90,7 @@ class TestFixStarboardPurge:
 
         fake_msg = AsyncMock()
         fake_channel = AsyncMock()
-        fake_channel.fetch_message = AsyncMock(return_value=fake_msg)
+        fake_channel.get_partial_message = MagicMock(return_value=fake_msg)
 
         message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
 
@@ -111,8 +111,10 @@ class TestFixStarboardPurge:
 
         await sb.upsert(_sb_doc(msg_id, starboard_message_id=sb_post_id))
 
+        fake_msg = AsyncMock()
+        fake_msg.delete = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
         fake_channel = AsyncMock()
-        fake_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
+        fake_channel.get_partial_message = MagicMock(return_value=fake_msg)
 
         message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
 

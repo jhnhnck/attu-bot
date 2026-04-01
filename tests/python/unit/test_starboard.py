@@ -558,7 +558,7 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
 
     sb_msg = AsyncMock()
     channel = AsyncMock()
-    channel.fetch_message = AsyncMock(return_value=sb_msg)
+    channel.get_partial_message = MagicMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
     with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
@@ -582,7 +582,7 @@ async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock
 
     sb_msg = AsyncMock()
     channel = AsyncMock()
-    channel.fetch_message = AsyncMock(return_value=sb_msg)
+    channel.get_partial_message = MagicMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
     with patch('attubot.client.core.bot') as mock_bot, patch('attubot.client.messages._message_repo') as mock_msg_repo, patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):

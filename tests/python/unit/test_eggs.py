@@ -234,7 +234,7 @@ class TestHatchEgg:
         mock_thread = MagicMock()
         mock_msg = AsyncMock()
         mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
-        mock_thread.fetch_message = AsyncMock(return_value=mock_msg)
+        mock_thread.get_partial_message = MagicMock(return_value=mock_msg)
         self.mock_bot.get_channel.return_value = mock_thread
 
         result, ts = await hatch_egg(test_guild, test_user)
@@ -460,7 +460,7 @@ class TestHatchEggCacheMiss:
         mock_thread = MagicMock()
         mock_msg = AsyncMock()
         mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
-        mock_thread.fetch_message = AsyncMock(return_value=mock_msg)
+        mock_thread.get_partial_message = MagicMock(return_value=mock_msg)
 
         mock_guild = MagicMock()
         mock_guild.fetch_channel = AsyncMock(return_value=mock_thread)
@@ -749,7 +749,7 @@ class TestTransferEgg:
         mock_new_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/333333333333'
 
         mock_thread = MagicMock()
-        mock_thread.fetch_message = AsyncMock(return_value=mock_old_msg)
+        mock_thread.get_partial_message = MagicMock(return_value=mock_old_msg)
         mock_thread.send = AsyncMock(return_value=mock_new_msg)
 
         # both from-user and to-user get a doc with the same test_thread (simpler mocking)
@@ -1384,7 +1384,7 @@ class TestHatchEggGuards:
         mock_thread = MagicMock()
         mock_msg = AsyncMock()
         mock_msg.jump_url = f'https://discord.com/channels/{test_guild}/{test_thread}/{test_message}'
-        mock_thread.fetch_message = AsyncMock(return_value=mock_msg)
+        mock_thread.get_partial_message = MagicMock(return_value=mock_msg)
         self.mock_bot.get_channel.return_value = mock_thread
 
         with pytest.raises(RuntimeError, match='no result set'):

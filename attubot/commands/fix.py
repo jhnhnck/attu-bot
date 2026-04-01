@@ -625,7 +625,7 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
             cfg = config.guild(ctx.guild.id)
             sb_channel = bot.get_channel(cfg.starboard.channel_id)
             if sb_channel:
-                sb_msg = await sb_channel.fetch_message(doc.starboard_message_id)
+                sb_msg = sb_channel.get_partial_message(doc.starboard_message_id)
                 await sb_msg.delete()
                 deleted_post = True
         except discord.NotFound:

@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import time
 from collections.abc import Coroutine
 from datetime import datetime
 
@@ -139,7 +140,13 @@ class TaskScheduler:
                 if not self._running:
                     break
 
+                t0 = time.perf_counter()
                 await task.run()
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                if elapsed_ms >= 5000:
+                    logger.warn(f'slow task: {task.name} took {elapsed_ms:.0f}ms')
+                else:
+                    logger.debug(f'task timing: {task.name} took {elapsed_ms:.0f}ms')
 
             except asyncio.CancelledError:
                 break

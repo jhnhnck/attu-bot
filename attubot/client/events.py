@@ -9,6 +9,7 @@ import asyncio
 import contextlib
 import signal
 import sys
+import time
 
 import anyio
 from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, RawReactionActionEvent, RawReactionClearEmojiEvent, RawReactionClearEvent
@@ -22,6 +23,9 @@ from attubot.logging import get_logger
 
 
 logger = get_logger(__name__)
+
+slow_command_threshold_ms = 500
+_cmd_start_times: dict[int, float] = {}
 
 _READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108 - intentional healthcheck sentinel path in docker container
 
@@ -318,6 +322,7 @@ async def on_member_join(member: Member):
 
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
+    _cmd_start_times[ctx.interaction.id] = time.perf_counter()
     logger.info(f'command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
     # shift theme hue by 1 degree on every command invocation
@@ -327,6 +332,17 @@ async def on_application_command(ctx: ApplicationContext):
             await config.theme.save()
         except Exception as err:
             logger.warn(f'failed to save theme after hue shift: {err}')
+
+
+@bot.after_invoke
+async def on_application_command_complete(ctx: ApplicationContext):
+    start = _cmd_start_times.pop(ctx.interaction.id, None)
+    if start is not None:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        if elapsed_ms >= slow_command_threshold_ms:
+            logger.warn(f'slow command: /{ctx.command} took {elapsed_ms:.0f}ms')
+        else:
+            logger.debug(f'command timing: /{ctx.command} took {elapsed_ms:.0f}ms')
 
 
 logger.info('registered event handlers')

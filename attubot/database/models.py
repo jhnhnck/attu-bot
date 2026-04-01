@@ -264,7 +264,7 @@ class EggDocument(BaseModel):
     @field_validator('collected_at', 'hatches_at', mode='before')
     @classmethod
     def coerce_to_int(cls, v: object) -> int:
-        return int(v)
+        return int(v)  # pyright: ignore[reportArgumentType]
 
 
 class EggUserDocument(BaseModel):
@@ -280,7 +280,7 @@ class EggUserDocument(BaseModel):
     @field_validator('last_collected_at', mode='before')
     @classmethod
     def coerce_to_int(cls, v: object) -> int:
-        return int(v)
+        return int(v)  # pyright: ignore[reportArgumentType]
 
 
 class WikiViewDocument(BaseModel):
