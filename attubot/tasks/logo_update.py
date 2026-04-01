@@ -61,8 +61,8 @@ class LogoUpdateTask(BaseTask):
         computed_color = f'#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}'
 
         # generate new icons
-        bot_avatar = await generate_png(new_rotation, computed_color)
-        guild_icon = await generate_png(new_rotation, theme.guild_color)
+        bot_avatar = await generate_png(new_rotation, computed_color, theme.logo_rings, theme.logo_planet)
+        guild_icon = await generate_png(new_rotation, theme.guild_color, theme.logo_rings, theme.logo_planet)
 
         # edit guild and bot with new logos
         guild = bot.get_guild(config.primary_guild) or await bot.fetch_guild(config.primary_guild)

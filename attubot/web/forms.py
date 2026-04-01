@@ -236,6 +236,8 @@ class ThemeConfigForm(BaseModel):
     max_rate: float = Field(default=0.5, ge=0.0, le=360.0)
     bot_color: str = Field(default='#ff0000', pattern=r'^#[0-9a-fA-F]{6}$')
     guild_color: str = Field(default='#ffffff', pattern=r'^#[0-9a-fA-F]{6}$')
+    logo_rings: str = Field(default='#000000', pattern=r'^#[0-9a-fA-F]{6}$')
+    logo_planet: str = Field(default='#000000', pattern=r'^#[0-9a-fA-F]{6}$')
 
 
 class SystemConfigForm(BaseModel):

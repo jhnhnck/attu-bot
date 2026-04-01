@@ -37,18 +37,19 @@ async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:
 
 
 # this is rotated by -45deg initially
-def generate_svg(rotation: float, background: str, foreground='#000000') -> str:
+def generate_svg(rotation: float, background: str, rings: str = '#000000', planet: str = '#000000') -> str:
     return f"""<?xml version="1.0" encoding="utf-8"?>
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
         viewBox="0 0 1682 1682" style="enable-background:new 0 0 1682 1682;" xml:space="preserve">
     <style type="text/css">
         .back {{ fill: {background}; }}
-        .fore {{ fill: {foreground}; transform-origin: center; }}
+        .rings {{ fill: {rings}; transform-origin: center; }}
+        .planet {{ fill: {planet}; transform-origin: center; }}
     </style>
     <g id="Layer_0" class="back">
         <circle r="841" cx="841" cy="841"/>
     </g>
-    <g id="Layer_1" class="fore" transform="scale(0.925) rotate({rotation % 360})">
+    <g id="Layer_1" class="rings" transform="scale(0.925) rotate({rotation % 360})">
         <path d="M1110.2,1463c-83.1,35.1-171.3,53-262.3,53s-179.2-17.8-262.3-53c-80.2-33.9-152.3-82.5-214.2-144.4
             c-61.9-61.9-110.4-133.9-144.4-214.2c-35.1-83.1-53-171.3-53-262.3c0-90.9,17.8-179.2,53-262.3c24.8-58.6,57.4-112.8,97.3-161.9
             c-37.9-45.3-74.6-89.1-109.6-130.9C84.3,434.9,5,629,5,841.6c0,462.5,375,837.5,837.5,837.5c160.9,0,311.1-45.4,438.7-124
@@ -68,6 +69,8 @@ def generate_svg(rotation: float, background: str, foreground='#000000') -> str:
             c1.3-3,2.7-5.9,4.1-8.9c1.4-2.9,2.9-5.8,4.4-8.7c1.5-2.9,3.1-5.7,4.7-8.6c0.8-1.4,1.6-2.8,2.5-4.2c1.1-1.9,2.3-3.7,3.4-5.6
             c2.3-3.7,4.8-7.3,7.3-10.9s5.1-7.1,7.8-10.6c6.8-8.7,14.1-17,22-24.8c25.4-25.4,55-45.1,87.3-58.3c31.9-13.1,66.3-20,101.8-20
             c71.4,0,138.5,27.8,189,78.3s78.3,117.6,78.3,189C1109.8,861,1108,879,1104.5,896.5z"/>
+    </g>
+    <g id="Layer_2" class="planet" transform="scale(0.925) rotate({rotation % 360})">
         <path d="M974.4,717c-33.2-34.9-80.1-56.6-131.9-56.6c-100.5,0-182.3,81.8-182.3,182.3c0,100.5,81.8,182.3,182.3,182.3
             c50.3,0,95.9-20.4,128.9-53.5c1-1,2.1-2.1,3.1-3.1c2-2.1,4-4.3,5.9-6.5c1.9-2.2,3.8-4.5,5.6-6.8c24.4-31,38.9-70.1,38.9-112.5
             c0-47.1-18-90.1-47.4-122.5C976.4,719.1,975.4,718,974.4,717z"/>
@@ -75,6 +78,6 @@ def generate_svg(rotation: float, background: str, foreground='#000000') -> str:
     </svg>""".strip()
 
 
-async def generate_png(rotation: float, background: str, foreground: str = '#000000', height: int = 500, width: int = 500) -> bytes:
-    svg = generate_svg(rotation, background=background, foreground=foreground)
+async def generate_png(rotation: float, background: str, rings: str = '#000000', planet: str = '#000000', height: int = 500, width: int = 500) -> bytes:
+    svg = generate_svg(rotation, background=background, rings=rings, planet=planet)
     return await svg_to_png(svg, height, width)

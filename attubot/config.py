@@ -72,6 +72,8 @@ class BotTheme(BaseModel):
     max_rate: float = 0.5
     bot_color: str = '#ff0000'
     guild_color: str = '#ffffff'
+    logo_rings: str = '#000000'
+    logo_planet: str = '#000000'
     saturation: float = 1.0
     lightness: float = 0.5
     egg_emojis: dict[str, int] = {}

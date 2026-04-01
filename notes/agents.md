@@ -305,6 +305,7 @@ See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree
 Notes in `notes/` with relevant implementation details:
 
 **`notes/style/`** - conventions and usage patterns
+- [`generic_style_guide.md`](notes/style/generic_style_guide.md) - writing principles, punctuation rules, inline tags, and change/status note formats for notes and to-do entries
 - [`commit_style.md`](notes/style/commit_style.md) - commit message format, types, and tone
 - [`comment_style.md`](notes/style/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
 - [`message_style.md`](notes/style/message_style.md) - log message and Discord response style (tone, capitalization, error format, custom emojis)
@@ -325,6 +326,7 @@ Notes in `notes/` with relevant implementation details:
 - [`dev_setup.md`](notes/dev/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 
 **`notes/`**
+- [`to-do.md`](notes/to-do.md) - active project to-do list, test coverage table, and completed task history
 - [`.meta.md`](.meta.md) - guide for recreating this agents.md and notes/ system in another repository
 ---
 

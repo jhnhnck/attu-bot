@@ -95,9 +95,11 @@ async def _initialize_startup(assets_dir: Path):
     theme = config.theme
     rotation = theme.rotation if theme else 0.0
     bot_color = theme.bot_color if theme else '#ff0000'
+    logo_rings = theme.logo_rings if theme else '#000000'
+    logo_planet = theme.logo_planet if theme else '#000000'
 
     try:
-        favicon_png = await generate_png(rotation, bot_color, foreground='#000000', height=256, width=256)
+        favicon_png = await generate_png(rotation, bot_color, logo_rings, logo_planet, height=256, width=256)
         await anyio.Path(favicon_path).write_bytes(favicon_png)
         logger.info(f'favicon generated at {favicon_path}')
     except PermissionError as err:

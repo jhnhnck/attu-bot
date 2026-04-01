@@ -469,6 +469,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'max_rate': theme.max_rate,
             'bot_color': theme.bot_color,
             'guild_color': theme.guild_color,
+            'logo_rings': theme.logo_rings,
+            'logo_planet': theme.logo_planet,
             'egg_emojis': theme.egg_emojis,
         })
 
@@ -482,6 +484,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         svg = generate_svg(
             rotation=theme.rotation,
             background=theme.bot_color,
+            rings=theme.logo_rings,
+            planet=theme.logo_planet,
         )
         return Response(svg, mimetype='image/svg+xml')
 
@@ -502,6 +506,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'max_rate': config.theme.max_rate,
                 'bot_color': config.theme.bot_color,
                 'guild_color': config.theme.guild_color,
+                'logo_rings': config.theme.logo_rings,
+                'logo_planet': config.theme.logo_planet,
             }
 
             # Update theme
@@ -509,6 +515,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             config.theme.max_rate = validated.max_rate
             config.theme.bot_color = validated.bot_color
             config.theme.guild_color = validated.guild_color
+            config.theme.logo_rings = validated.logo_rings
+            config.theme.logo_planet = validated.logo_planet
 
             # Save to database
             await config.theme.save()
@@ -523,6 +531,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                     'max_rate': config.theme.max_rate,
                     'bot_color': config.theme.bot_color,
                     'guild_color': config.theme.guild_color,
+                    'logo_rings': config.theme.logo_rings,
+                    'logo_planet': config.theme.logo_planet,
                 }
                 changes = compare_configs(old_config, new_config)
                 if changes:
