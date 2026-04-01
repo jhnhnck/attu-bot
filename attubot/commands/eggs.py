@@ -58,7 +58,15 @@ class EggGiftOfferView(discord.ui.View):
         self.guild_id = guild_id
         self.message: discord.Message | None = None
 
-    @discord.ui.button(label='Accept', style=discord.ButtonStyle.success)
+    @discord.ui.button(label='Decline', style=discord.ButtonStyle.secondary)
+    async def decline(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if interaction.user.id != self.to_id:
+            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
+            return
+        self.stop()
+        await interaction.response.edit_message(content=f'{self.to_mention} said no', view=None)
+
+    @discord.ui.button(label='Accept', style=discord.ButtonStyle.primary)
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
         if interaction.user.id != self.to_id:
             await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
@@ -76,14 +84,6 @@ class EggGiftOfferView(discord.ui.View):
             await interaction.response.edit_message(content='this egg is no longer available', view=None)
             return
         await interaction.response.edit_message(content=f'sent! {new_jump_url}', view=None)
-
-    @discord.ui.button(label='Decline', style=discord.ButtonStyle.danger)
-    async def decline(self, button: discord.ui.Button, interaction: discord.Interaction):
-        if interaction.user.id != self.to_id:
-            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
-            return
-        self.stop()
-        await interaction.response.edit_message(content=f'{self.to_mention} said no', view=None)
 
     async def on_timeout(self):
         import contextlib
