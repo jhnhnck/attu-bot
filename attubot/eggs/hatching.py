@@ -74,9 +74,10 @@ async def ensure_eggs_ready() -> None:
     logger.info('egg event is ready')
 
 
-async def get_or_create_user_thread(guild_id: int, user_id: int, username: str) -> discord.Thread:
+async def get_or_create_user_thread(guild_id: int, user_id: int, username: str, user_doc: EggUserDocument | None = None) -> discord.Thread:
     """Retrieve the egg thread for a user, creating it if it doesn't exist yet."""
-    user_doc = await _egg_user_repo.get(guild_id, user_id)
+    if user_doc is None:
+        user_doc = await _egg_user_repo.get(guild_id, user_id)
 
     if user_doc and user_doc.thread_id:
         thread = bot.get_channel(user_doc.thread_id)
@@ -135,8 +136,8 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     # determine result (mythical is always dragon)
     result = random.choice(config.hatch.pools[rarity])
 
-    # ensure thread exists
-    thread = await get_or_create_user_thread(guild_id, user_id, username)
+    # ensure thread exists; pass user_doc to avoid a second db fetch
+    thread = await get_or_create_user_thread(guild_id, user_id, username, user_doc=user_doc)
 
     # post egg message (just the custom emoji)
     msg = await thread.send(_egg_emoji_str(rarity))

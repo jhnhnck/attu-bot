@@ -325,13 +325,9 @@ async def on_application_command(ctx: ApplicationContext):
     _cmd_start_times[ctx.interaction.id] = time.perf_counter()
     logger.info(f'command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
-    # shift theme hue by 1 degree on every command invocation
+    # shift theme hue by 1 degree on every command invocation (save deferred to after_invoke)
     if config.theme is not None:
         config.theme.bot_color = shift_hue(config.theme.bot_color)
-        try:
-            await config.theme.save()
-        except Exception as err:
-            logger.warn(f'failed to save theme after hue shift: {err}')
 
 
 @bot.after_invoke
@@ -343,6 +339,13 @@ async def on_application_command_complete(ctx: ApplicationContext):
             logger.warn(f'slow command: /{ctx.command} took {elapsed_ms:.0f}ms')
         else:
             logger.debug(f'command timing: /{ctx.command} took {elapsed_ms:.0f}ms')
+
+    # persist theme hue after timing so the db write doesn't inflate measured command time
+    if config.theme is not None:
+        try:
+            await config.theme.save()
+        except Exception as err:
+            logger.warn(f'failed to save theme after hue shift: {err}')
 
 
 logger.info('registered event handlers')

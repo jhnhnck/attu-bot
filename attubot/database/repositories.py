@@ -989,8 +989,9 @@ class EggRepository:
     async def init_indexes(self) -> None:
         """Create required indexes"""
         await self.db[self.COLLECTION].create_index('egg_id', unique=True)
+        # covers get_oldest_ready() and get_next_unhatched() filter + sort on hatches_at
         await self.db[self.COLLECTION].create_index(
-            [('guild_id', ASCENDING), ('user_id', ASCENDING)],
+            [('guild_id', ASCENDING), ('user_id', ASCENDING), ('hatched', ASCENDING), ('hatches_at', ASCENDING)],
         )
 
     async def insert(self, doc: EggDocument) -> None:
