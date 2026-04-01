@@ -11,7 +11,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from deploy import abort, check_container_health, compute_new_version, parse_version
 
 
@@ -44,15 +43,24 @@ class TestParseVersion:
 
 class TestComputeNewVersion:
     def test_minor_bump_two_part(self):
-        ver, tag = compute_new_version('1.2', 'minor')
+        with patch('deploy.compute_attu_year', return_value=1):
+            ver, tag = compute_new_version('1.2', 'minor')
         assert ver == '1.3'
         assert tag == '1.3.0'
 
     def test_minor_bump_three_part(self):
         # patch part is stripped; base is still bumped
-        ver, tag = compute_new_version('1.2.1', 'minor')
+        with patch('deploy.compute_attu_year', return_value=1):
+            ver, tag = compute_new_version('1.2.1', 'minor')
         assert ver == '1.3'
         assert tag == '1.3.0'
+
+    def test_minor_bump_attu_year_rollover(self):
+        # when attu year has advanced, major resets and minor starts at 0
+        with patch('deploy.compute_attu_year', return_value=2):
+            ver, tag = compute_new_version('1.9', 'minor')
+        assert ver == '2.0'
+        assert tag == '2.0.0'
 
     def test_patch_bump_no_existing_tags(self):
         with patch('deploy.git_cmd', return_value=''):

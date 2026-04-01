@@ -13,8 +13,11 @@ import shlex
 import subprocess
 import sys
 import time
+import tomllib
+from datetime import date, datetime
 from pathlib import Path
 from typing import NoReturn
+from zoneinfo import ZoneInfo
 
 
 try:
@@ -29,6 +32,16 @@ except ImportError:
 dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
 version_file = dev_dir / 'attubot' / '__init__.py'
+
+# epoch snapshot — paste the output of /fix epoch here when the epoch changes
+_epoch_toml = """\
+[epoch]
+time = 1772229600
+year = 76
+length = 21
+paused = false
+rollover_minutes = 1020  # 17:00
+"""
 
 
 # --- helpers ---
@@ -71,11 +84,27 @@ def parse_version(content: str) -> tuple[str, str]:
     return m.group(1), m.group(0)
 
 
+def compute_attu_year() -> int:
+    """compute the current attu year from the epoch snapshot in _EPOCH_TOML."""
+    epoch = tomllib.loads(_epoch_toml)['epoch']
+    tz = ZoneInfo('UTC')
+    rollover_minutes: int = epoch['rollover_minutes']
+    rollover_time = datetime.min.time().replace(hour=rollover_minutes // 60, minute=rollover_minutes % 60, tzinfo=tz)
+    epoch_dt = datetime.combine(datetime.fromtimestamp(epoch['time']).astimezone(), rollover_time)
+    today_dt = datetime.combine(date.today(), rollover_time)
+    elapsed_days = int((today_dt - epoch_dt).total_seconds() / 86400)
+    year: int = epoch['year'] + (elapsed_days // epoch['length'])
+    if (elapsed_days % epoch['length']) == 0 and datetime.now().astimezone() < today_dt:
+        year -= 1
+    return year
+
+
 def compute_new_version(current: str, bump: str) -> tuple[str, str]:
     """return (new_version, tag) for the given bump type."""
     parts = current.split('.')
     if bump == 'minor':
-        new_ver = f'{parts[0]}.{int(parts[1]) + 1}'
+        attu_year = compute_attu_year()
+        new_ver = f'{attu_year}.0' if attu_year != int(parts[0]) else f'{parts[0]}.{int(parts[1]) + 1}'
         return new_ver, f'{new_ver}.0'
 
     # patch - find latest tag matching current base, increment patch
@@ -84,7 +113,7 @@ def compute_new_version(current: str, bump: str) -> tuple[str, str]:
     max_patch = -1
     for tag in tags_out.splitlines():
         tag_parts = tag.strip().split('.')
-        if len(tag_parts) == 3 and tag_parts[2].isdigit():
+        if len(tag_parts) == 3 and tag_parts[2].isdigit() and f'{tag_parts[0]}.{tag_parts[1]}' == base:
             max_patch = max(max_patch, int(tag_parts[2]))
     new_ver = f'{base}.{max_patch + 1}'
     return new_ver, new_ver
@@ -397,11 +426,11 @@ if __name__ == '__main__':
             if merged and saved_sha and new_tag:
                 print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
                 subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback on interrupt
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - rollback on interrupt
+                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on interrupt
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
             elif committed and new_tag:
                 print(colored('rolling back version commit and tag', 'yellow'), file=sys.stderr)
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - rollback on interrupt
+                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on interrupt
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
             elif version_modified and content:
                 version_file.write_text(content)
