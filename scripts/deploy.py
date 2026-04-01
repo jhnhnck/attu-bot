@@ -123,17 +123,88 @@ def check_container_health(cwd: Path) -> list[str]:
     return problems
 
 
+def revert_to_tag(tag: str, dry_run: bool = False) -> None:
+    """revert trunk to a previous version tag and rebuild containers."""
+    total = 5
+    n = 0
+
+    # --- 1. verify tag exists ---
+    n += 1
+    header(n, total, f'verifying tag {tag}')
+    try:
+        git_cmd(['rev-parse', '--verify', tag])
+    except RuntimeError:
+        abort(f"tag {tag!r} not found in dev repo; check with: git tag -l '*{tag.split('.')[-1]}*'")
+    print(colored(f'  tag {tag} found', 'green'))
+
+    # --- 2. check trunk is clean ---
+    n += 1
+    header(n, total, 'checking trunk working directory')
+    trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
+    trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
+    if trunk_dirty:
+        abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+    current_sha = git_cmd(['rev-parse', '--short', 'HEAD'], cwd=prod_dir)
+    print(colored(f'  trunk is clean (currently at {current_sha})', 'green'))
+
+    # --- 3. reset trunk to tag and force-push ---
+    n += 1
+    header(n, total, f'resetting trunk to {tag}')
+    if not dry_run:
+        try:
+            git_cmd(['reset', '--hard', tag], cwd=prod_dir)
+            git_cmd(['push', '--force', 'origin', 'trunk'], cwd=prod_dir)
+        except RuntimeError as e:
+            abort(f'revert failed: {e}')
+        print(colored(f'  trunk reset to {tag} and pushed', 'green'))
+    else:
+        print(colored(f'  (dry run) would git reset --hard {tag} and force-push origin trunk', 'dark_grey'))
+
+    # --- 4. rebuild containers ---
+    n += 1
+    header(n, total, 'rebuilding containers')
+    run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run)
+    if not dry_run:
+        print(colored('  waiting 60s for containers to stabilize', 'cyan'))
+        time.sleep(60)
+    else:
+        print(colored('  (dry run) would run docker compose up --build -d', 'dark_grey'))
+
+    # --- 5. health check ---
+    n += 1
+    header(n, total, 'checking container health')
+    if not dry_run:
+        problems = check_container_health(prod_dir)
+        if problems:
+            abort('unhealthy containers after revert:\n  ' + '\n  '.join(problems))
+        print(colored('  all containers healthy', 'green'))
+    else:
+        print(colored('  (dry run) would check container health', 'dark_grey'))
+
+    print(colored(f'\nreverted to {tag} successfully', 'light_green'))
+    print(colored('  note: dev branch still points to the pre-revert state; adjust manually if needed', 'cyan'))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='bump version, tag, and optionally deploy attubot')
     parser.add_argument('bump', nargs='?', default='minor', choices=['minor', 'patch'], help='version bump type (default: minor)')
     parser.add_argument('--no-tests', action='store_true', help='skip all test runs')
     parser.add_argument('--dry-run', action='store_true', help='print steps without making changes')
     parser.add_argument('--deploy', action='store_true', help='rebuild containers and push to remote after tagging and merging trunk')
+    parser.add_argument('--revert', metavar='TAG', help='revert trunk to a previous version tag and rebuild containers')
     args = parser.parse_args()
 
     dry_run: bool = args.dry_run
     do_deploy: bool = args.deploy
     skip_tests: bool = args.no_tests
+
+    if args.revert:
+        try:
+            revert_to_tag(args.revert, dry_run=dry_run)
+        except KeyboardInterrupt:
+            print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
+            sys.exit(130)
+        sys.exit(0)
 
     # count total steps up front
     total = 7  # branch check, new commits check, stash dev, trunk clean, version bump, commit+tag, merge
@@ -184,6 +255,8 @@ if __name__ == '__main__':
         print(colored('  dev is clean', 'green'))
 
     merged = False
+    committed = False
+    version_modified = False
     saved_sha: str | None = None
     new_tag: str | None = None
     new_ver: str | None = None
@@ -225,6 +298,7 @@ if __name__ == '__main__':
         if not dry_run:
             updated = content.replace(old_assignment, f"__version__ = '{new_ver}'", 1)
             version_file.write_text(updated)
+            version_modified = True
 
         # --- 7. commit and tag ---
         n += 1
@@ -233,6 +307,7 @@ if __name__ == '__main__':
             try:
                 git_cmd(['add', str(version_file)])
                 git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
+                committed = True
                 git_cmd(['tag', new_tag])
             except RuntimeError as e:
                 # restore the file if commit failed before any git state changed
@@ -313,6 +388,22 @@ if __name__ == '__main__':
             sys.exit(1)
 
         print(colored(f'\ndeployed version {new_ver} successfully', 'light_green'))
+
+    except KeyboardInterrupt:
+        print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
+        if not dry_run:
+            if merged and saved_sha and new_tag:
+                print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
+                subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback on interrupt
+                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - rollback on interrupt
+                subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
+            elif committed and new_tag:
+                print(colored('rolling back version commit and tag', 'yellow'), file=sys.stderr)
+                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - rollback on interrupt
+                subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
+            elif version_modified and content:
+                version_file.write_text(content)
+        sys.exit(130)
 
     finally:
         if stashed and not dry_run:

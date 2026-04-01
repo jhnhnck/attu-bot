@@ -70,15 +70,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` we use hard-coded custom emojis in a lot of the responses; centralize this into one place; already storing some emoji ids with the theme
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
-- ⭕ `low priority` `medium effort` update run_tests.py to match the polish of deploy.py - better output, progress bars, clear pass/fail summary
-- ⭕ `low priority` `low effort` add progress bars to run_tests.py
 - ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `low priority` `low effort` add a `once` run option to `BaseTask` (`tasks/base.py:19`)
-- ⭕ `low priority` `low effort` deploy script doesn't exit cleanly on ctrl+c
-- ⭕ `low priority` `medium effort` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
 - ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 
@@ -133,6 +129,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `30 March 2026` fix deploy script not fast-forwarding trunk to version tag without --deploy
 - 🔴 `30 March 2026` fix deploy rollback not undoing version bump commit and tag on dev
 - 🔴 `30 March 2026` change backfill task to debug logging; report start and end only
+- 🔴 `31 March 2026` deploy script doesn't exit cleanly on ctrl+c
+- 🔴 `31 March 2026` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
+- 🔴 `31 March 2026` update run_tests.py to match the polish of deploy.py - better output, timing, clear pass/fail summary
+- 🔴 `31 March 2026` add progress bars / step output to run_tests.py
 
 ---
 
@@ -293,6 +293,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 30 March 2026
-total_completed: 42
+last_updated: 31 March 2026
+total_completed: 46
 ```
