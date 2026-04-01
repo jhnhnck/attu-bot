@@ -26,11 +26,11 @@ logger = get_logger(__name__)
 class LogoUpdateTask(BaseTask):
     """Recurring task to keep the logo in sync with theme settings.
 
-    Runs on a fixed 2.5-minute interval. Color is derived from HSL values stored in theme config.
+    Runs on a fixed 10-minute interval. Color is derived from HSL values stored in theme config.
     """
 
     name: str = 'LogoUpdateEvent'
-    interval: timedelta | None = timedelta(minutes=2, seconds=30)
+    interval: timedelta | None = timedelta(minutes=10)
 
     async def on_start(self) -> None:
         await config.wait_for_load()
