@@ -15,7 +15,7 @@ __schema__ = '2.5.3'  # previously __version__
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'
 
-__version__ = '77.6.6'
+__version__ = '77.6.7'
 __build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
 
 # --- Re-exports for backward compatibility ---
