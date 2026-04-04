@@ -165,7 +165,7 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     try:
         git_cmd(['rev-parse', '--verify', tag])
     except RuntimeError:
-        abort(f"tag {tag!r} not found in dev repo; check with: git tag -l '*{tag.split('.')[-1]}*'")
+        abort(f"tag {tag!r} not found in dev repo; check with: git tag -l '*{tag.rsplit('.', 1)[-1]}*'")
     print(colored(f'  tag {tag} found', 'green'))
 
     # --- 2. check trunk is clean ---
@@ -288,6 +288,9 @@ if __name__ == '__main__':
     merged = False
     committed = False
     version_modified = False
+    content = ''
+    pyproject_content = ''
+    pyproject_file: Path | None = None
     saved_sha: str | None = None
     new_tag: str | None = None
     new_ver: str | None = None
@@ -326,9 +329,13 @@ if __name__ == '__main__':
         new_ver, new_tag = compute_new_version(current_ver, args.bump)
         print(colored(f'  {current_ver} -> {new_ver}  (tag: {new_tag})', 'cyan'))
 
+        pyproject_file = dev_dir / 'pyproject.toml'
         if not dry_run:
             updated = content.replace(old_assignment, f"__version__ = '{new_ver}'", 1)
             version_file.write_text(updated)
+            pyproject_content = pyproject_file.read_text()
+            pyproject_updated = re.sub(r'^version = "[^"]+"', f'version = "{new_ver}"', pyproject_content, count=1, flags=re.MULTILINE)
+            pyproject_file.write_text(pyproject_updated)
             version_modified = True
 
         # --- 7. commit and tag ---
@@ -336,13 +343,14 @@ if __name__ == '__main__':
         header(n, total, 'committing and tagging')
         if not dry_run:
             try:
-                git_cmd(['add', str(version_file)])
+                git_cmd(['add', str(version_file), str(pyproject_file)])
                 git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
                 committed = True
                 git_cmd(['tag', new_tag])
             except RuntimeError as e:
                 # restore the file if commit failed before any git state changed
                 version_file.write_text(content)
+                pyproject_file.write_text(pyproject_content)
                 abort(f'git commit/tag failed: {e}')
             print(colored(f'  committed and tagged {new_tag}', 'green'))
         else:
@@ -358,7 +366,7 @@ if __name__ == '__main__':
                 print(colored('  merged', 'green'))
             except RuntimeError as e:
                 # undo the version bump commit and tag before aborting
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - rollback on merge failure
+                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on merge failure
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on merge failure
                 abort(f'merge into trunk failed (version bump rolled back): {e}')
         else:
@@ -409,7 +417,7 @@ if __name__ == '__main__':
             if merged and not dry_run:
                 print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
                 trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
-                dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S603, S607 - undo version bump commit on dev
+                dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - undo version bump commit on dev
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on dev
                 rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
@@ -434,6 +442,8 @@ if __name__ == '__main__':
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
             elif version_modified and content:
                 version_file.write_text(content)
+                if pyproject_content and pyproject_file is not None:
+                    pyproject_file.write_text(pyproject_content)
         sys.exit(130)
 
     finally:
