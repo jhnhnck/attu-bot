@@ -15,6 +15,7 @@ _time.tzset()
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import discord
 import pytest
 
 from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
@@ -1137,3 +1138,980 @@ class TestJobFixAuthorNames:
 
         # edit is called once at the 50-user mark, then once more for the final summary
         assert status_msg.edit.call_count >= 2
+
+
+# --- _serialize_embeds ---
+
+
+class TestSerializeEmbeds:
+    def _make_embed(self, **kwargs) -> discord.Embed:
+        e = MagicMock(spec=discord.Embed)
+        e.title = kwargs.get('title')
+        e.description = kwargs.get('description')
+        e.url = kwargs.get('url')
+        e.color = kwargs.get('color')
+        e.image = kwargs.get('image')
+        e.thumbnail = kwargs.get('thumbnail')
+        e.video = kwargs.get('video')
+        e.fields = kwargs.get('fields', [])
+        e.footer = kwargs.get('footer')
+        e.author = kwargs.get('author')
+        e.timestamp = kwargs.get('timestamp')
+        return e
+
+    def test_empty_embed(self):
+        from attubot.client.messages import _serialize_embeds
+
+        result = _serialize_embeds([self._make_embed()])
+        assert result == [{}]
+
+    def test_empty_list(self):
+        from attubot.client.messages import _serialize_embeds
+
+        assert _serialize_embeds([]) == []
+
+    def test_title_and_description(self):
+        from attubot.client.messages import _serialize_embeds
+
+        embed = self._make_embed(title='My Title', description='some desc')
+        result = _serialize_embeds([embed])
+        assert result[0]['title'] == 'My Title'
+        assert result[0]['description'] == 'some desc'
+
+    def test_url_and_color(self):
+        from attubot.client.messages import _serialize_embeds
+
+        color = MagicMock()
+        color.value = 0xFF0000
+        embed = self._make_embed(url='https://example.com', color=color)
+        result = _serialize_embeds([embed])
+        assert result[0]['url'] == 'https://example.com'
+        assert result[0]['color'] == 0xFF0000
+
+    def test_image_url(self):
+        from attubot.client.messages import _serialize_embeds
+
+        image = MagicMock()
+        image.url = 'https://example.com/image.png'
+        embed = self._make_embed(image=image)
+        result = _serialize_embeds([embed])
+        assert result[0]['image_url'] == 'https://example.com/image.png'
+
+    def test_thumbnail_url(self):
+        from attubot.client.messages import _serialize_embeds
+
+        thumb = MagicMock()
+        thumb.url = 'https://example.com/thumb.png'
+        embed = self._make_embed(thumbnail=thumb)
+        result = _serialize_embeds([embed])
+        assert result[0]['thumbnail_url'] == 'https://example.com/thumb.png'
+
+    def test_video_url(self):
+        from attubot.client.messages import _serialize_embeds
+
+        video = MagicMock()
+        video.url = 'https://example.com/video.mp4'
+        embed = self._make_embed(video=video)
+        result = _serialize_embeds([embed])
+        assert result[0]['video_url'] == 'https://example.com/video.mp4'
+
+    def test_video_without_url_excluded(self):
+        from attubot.client.messages import _serialize_embeds
+
+        video = MagicMock()
+        video.url = None
+        embed = self._make_embed(video=video)
+        result = _serialize_embeds([embed])
+        assert 'video_url' not in result[0]
+
+    def test_fields(self):
+        from attubot.client.messages import _serialize_embeds
+
+        field = MagicMock()
+        field.name = 'Field Name'
+        field.value = 'Field Value'
+        field.inline = True
+        embed = self._make_embed(fields=[field])
+        result = _serialize_embeds([embed])
+        assert result[0]['fields'] == [{'name': 'Field Name', 'value': 'Field Value', 'inline': True}]
+
+    def test_footer_text_only(self):
+        from attubot.client.messages import _serialize_embeds
+
+        footer = MagicMock()
+        footer.text = 'Footer text'
+        footer.icon_url = None
+        embed = self._make_embed(footer=footer)
+        result = _serialize_embeds([embed])
+        assert result[0]['footer_text'] == 'Footer text'
+        assert 'footer_icon_url' not in result[0]
+
+    def test_footer_with_icon_url(self):
+        from attubot.client.messages import _serialize_embeds
+
+        footer = MagicMock()
+        footer.text = 'Footer'
+        footer.icon_url = 'https://example.com/icon.png'
+        embed = self._make_embed(footer=footer)
+        result = _serialize_embeds([embed])
+        assert result[0]['footer_icon_url'] == 'https://example.com/icon.png'
+
+    def test_footer_no_text_excluded(self):
+        from attubot.client.messages import _serialize_embeds
+
+        footer = MagicMock()
+        footer.text = None
+        embed = self._make_embed(footer=footer)
+        result = _serialize_embeds([embed])
+        assert 'footer_text' not in result[0]
+
+    def test_author_name_only(self):
+        from attubot.client.messages import _serialize_embeds
+
+        author = MagicMock()
+        author.name = 'Author Name'
+        author.url = None
+        author.icon_url = None
+        embed = self._make_embed(author=author)
+        result = _serialize_embeds([embed])
+        assert result[0]['author_name'] == 'Author Name'
+        assert 'author_url' not in result[0]
+        assert 'author_icon_url' not in result[0]
+
+    def test_author_with_url_and_icon(self):
+        from attubot.client.messages import _serialize_embeds
+
+        author = MagicMock()
+        author.name = 'Author'
+        author.url = 'https://example.com/author'
+        author.icon_url = 'https://example.com/author.png'
+        embed = self._make_embed(author=author)
+        result = _serialize_embeds([embed])
+        assert result[0]['author_url'] == 'https://example.com/author'
+        assert result[0]['author_icon_url'] == 'https://example.com/author.png'
+
+    def test_author_no_name_excluded(self):
+        from attubot.client.messages import _serialize_embeds
+
+        author = MagicMock()
+        author.name = None
+        embed = self._make_embed(author=author)
+        result = _serialize_embeds([embed])
+        assert 'author_name' not in result[0]
+
+    def test_timestamp(self):
+        from attubot.client.messages import _serialize_embeds
+
+        ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+        embed = self._make_embed(timestamp=ts)
+        result = _serialize_embeds([embed])
+        assert result[0]['timestamp'] == ts.isoformat()
+
+    def test_multiple_embeds(self):
+        from attubot.client.messages import _serialize_embeds
+
+        e1 = self._make_embed(title='First')
+        e2 = self._make_embed(title='Second')
+        result = _serialize_embeds([e1, e2])
+        assert len(result) == 2
+        assert result[0]['title'] == 'First'
+        assert result[1]['title'] == 'Second'
+
+
+# --- build_message_doc ---
+
+
+class TestBuildMessageDoc:
+    async def test_plain_text_message(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message(content='hello world')
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.message_id == test_message
+        assert doc.guild_id == test_guild
+        assert doc.channel_id == test_channel
+        assert doc.content.text == 'hello world'
+        assert doc.content.attachments == []
+        assert doc.content.embeds == []
+        assert doc.content.sticker_ids == []
+        assert doc.refs.reply_to is None
+        assert doc.parent_channel_id is None
+
+    async def test_message_with_image_attachment(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        attachment = MagicMock()
+        attachment.filename = 'photo.png'
+        attachment.url = 'https://cdn.discord.com/photo.png'
+        attachment.content_type = 'image/png'
+        attachment.size = 12345
+
+        msg = _make_mock_message()
+        msg.attachments = [attachment]
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert len(doc.content.attachments) == 1
+        assert doc.content.attachments[0]['filename'] == 'photo.png'
+        assert doc.content.attachments[0]['content_type'] == 'image/png'
+        assert doc.content.attachments[0]['saved_path'] is None
+
+    async def test_message_with_stickers(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        sticker = MagicMock()
+        sticker.id = 9999001
+        sticker.url = 'https://cdn.discord.com/stickers/9999001.png'
+
+        msg = _make_mock_message()
+        msg.stickers = [sticker]
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.sticker_ids == [9999001]
+        assert doc.content.sticker_urls == ['https://cdn.discord.com/stickers/9999001.png']
+
+    async def test_message_with_embed(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        embed = MagicMock(spec=discord.Embed)
+        embed.title = 'Link Preview'
+        embed.description = 'some description'
+        embed.url = 'https://example.com'
+        embed.color = None
+        image = MagicMock()
+        image.url = 'https://example.com/img.png'
+        embed.image = image
+        embed.thumbnail = None
+        video = MagicMock()
+        video.url = 'https://example.com/vid.mp4'
+        embed.video = video
+        embed.fields = []
+        embed.footer = None
+        embed.author = None
+        embed.timestamp = None
+
+        msg = _make_mock_message()
+        msg.embeds = [embed]
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert len(doc.content.embeds) == 1
+        assert doc.content.embeds[0]['title'] == 'Link Preview'
+        assert doc.content.embeds[0]['image_url'] == 'https://example.com/img.png'
+        assert doc.content.embeds[0]['video_url'] == 'https://example.com/vid.mp4'
+
+    async def test_reply_message_sets_reply_to(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message()
+        reference = MagicMock()
+        reference.message_id = 777777777
+        msg.reference = reference
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.refs.reply_to == 777777777
+
+    async def test_thread_message_sets_parent_channel_id(self, mock_message_repo, guild):
+        from discord import Thread
+
+        from attubot.client.messages import build_message_doc
+
+        parent_channel_id = 3333333333
+
+        msg = _make_mock_message()
+        # replace channel with a Thread-like mock
+        thread_channel = MagicMock(spec=Thread)
+        thread_channel.id = test_channel
+        thread_channel.parent_id = parent_channel_id
+        thread_channel.permissions_for = MagicMock(return_value=MagicMock(read_messages=True))
+        msg.channel = thread_channel
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.parent_channel_id == parent_channel_id
+
+    async def test_non_thread_has_no_parent_channel_id(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message()
+        # default mock channel is not a Thread instance
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.parent_channel_id is None
+
+    async def test_public_channel_flag_true(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message(public=True)
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.public is True
+
+    async def test_private_channel_flag_false(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message(public=False)
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.public is False
+
+    async def test_forwarded_message_sets_content(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        snapshot_msg = MagicMock()
+        snapshot_msg.content = 'forwarded content'
+        snapshot_msg.attachments = []
+        snapshot_msg.embeds = []
+        sticker = MagicMock()
+        sticker.id = 111
+        sticker.url = 'https://cdn.discord.com/stickers/111.png'
+        snapshot_msg.stickers = [sticker]
+
+        snapshot = MagicMock()
+        snapshot.message = snapshot_msg
+
+        msg = _make_mock_message(content='')
+        msg.snapshots = [snapshot]
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.forwarded is True
+        assert doc.content.text == 'forwarded content'
+        assert doc.content.sticker_ids == [111]
+
+
+# --- _is_public ---
+
+
+class TestIsPublic:
+    def test_no_guild_returns_false(self):
+        from attubot.client.messages import _is_public
+
+        msg = _make_mock_message()
+        msg.guild = None
+        assert _is_public(msg) is False
+
+    def test_public_channel_returns_true(self):
+        from attubot.client.messages import _is_public
+
+        msg = _make_mock_message(public=True)
+        assert _is_public(msg) is True
+
+    def test_private_channel_returns_false(self):
+        from attubot.client.messages import _is_public
+
+        msg = _make_mock_message(public=False)
+        assert _is_public(msg) is False
+
+
+# --- _is_archive_channel ---
+
+
+class TestIsArchiveChannel:
+    def test_returns_false_when_guild_not_found(self):
+        from attubot.client.messages import _is_archive_channel
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.side_effect = Exception('unknown guild')
+            result = _is_archive_channel(test_channel, test_guild)
+
+        assert result is False
+
+    def test_returns_true_for_lore_channel(self):
+        from attubot.client.messages import _is_archive_channel
+
+        gc = MagicMock()
+        gc.channels.lore_channels = [test_channel]
+        gc.channels.canon_channels = []
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.return_value = gc
+            result = _is_archive_channel(test_channel, test_guild)
+
+        assert result is True
+
+    def test_returns_true_for_canon_channel(self):
+        from attubot.client.messages import _is_archive_channel
+
+        gc = MagicMock()
+        gc.channels.lore_channels = []
+        gc.channels.canon_channels = [test_channel]
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.return_value = gc
+            result = _is_archive_channel(test_channel, test_guild)
+
+        assert result is True
+
+    def test_returns_false_for_normal_channel(self):
+        from attubot.client.messages import _is_archive_channel
+
+        gc = MagicMock()
+        gc.channels.lore_channels = []
+        gc.channels.canon_channels = []
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.return_value = gc
+            result = _is_archive_channel(test_channel, test_guild)
+
+        assert result is False
+
+    def test_returns_true_for_thread_in_lore_channel(self):
+        from attubot.client.messages import _is_archive_channel
+
+        parent_id = 4444444444
+        thread_id = 5555555556
+
+        gc = MagicMock()
+        gc.channels.lore_channels = [parent_id]
+        gc.channels.canon_channels = []
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.return_value = gc
+            result = _is_archive_channel(thread_id, test_guild, parent_channel_id=parent_id)
+
+        assert result is True
+
+
+# --- _backup_path ---
+
+
+class TestBackupPath:
+    def test_returns_none_when_backup_disabled(self):
+        from attubot.client.messages import _backup_path
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.backup = None
+            result = _backup_path()
+
+        assert result is None
+
+    def test_returns_none_when_no_backup_path(self):
+        from attubot.client.messages import _backup_path
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.backup = MagicMock()
+            mock_config.backup.path = None
+            result = _backup_path()
+
+        assert result is None
+
+    def test_returns_path_when_configured(self):
+        import anyio
+
+        from attubot.client.messages import _backup_path
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.backup = MagicMock()
+            mock_config.backup.path = '/var/backups'
+            result = _backup_path()
+
+        assert result == anyio.Path('/var/backups')
+
+
+# --- _truncate ---
+
+
+class TestTruncate:
+    def test_short_string_unchanged(self):
+        from attubot.client.messages import _truncate
+
+        assert _truncate('hello') == 'hello'
+
+    def test_string_at_limit_unchanged(self):
+        from attubot.client.messages import _truncate
+
+        text = 'x' * 1024
+        assert _truncate(text) == text
+
+    def test_long_string_truncated(self):
+        from attubot.client.messages import _truncate
+
+        text = 'x' * 2000
+        result = _truncate(text)
+        assert len(result) == 1024
+        assert result.endswith('...')
+
+    def test_custom_limit(self):
+        from attubot.client.messages import _truncate
+
+        text = 'abcdefgh'
+        result = _truncate(text, limit=5)
+        assert len(result) == 5
+        assert result.endswith('...')
+
+
+# --- _get_logs_channel ---
+
+
+class TestGetLogsChannel:
+    async def test_returns_none_when_guild_not_found(self):
+        from attubot.client.messages import _get_logs_channel
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.side_effect = Exception('unknown')
+            result = await _get_logs_channel(test_guild)
+
+        assert result is None
+
+    async def test_returns_none_when_logs_channel_zero(self):
+        from attubot.client.messages import _get_logs_channel
+
+        gc = MagicMock()
+        gc.channels.logs = 0
+
+        with patch('attubot.client.messages.config') as mock_config:
+            mock_config.guild.return_value = gc
+            result = await _get_logs_channel(test_guild)
+
+        assert result is None
+
+    async def test_returns_none_when_bot_guild_not_found(self):
+        from attubot.client.messages import _get_logs_channel
+
+        gc = MagicMock()
+        gc.channels.logs = test_logs
+
+        with patch('attubot.client.messages.config') as mock_config, patch('attubot.client.messages.bot') as mock_bot:
+            mock_config.guild.return_value = gc
+            mock_bot.get_guild.return_value = None
+            result = await _get_logs_channel(test_guild)
+
+        assert result is None
+
+    async def test_returns_channel_when_found(self):
+        from attubot.client.messages import _get_logs_channel
+
+        gc = MagicMock()
+        gc.channels.logs = test_logs
+        mock_channel = MagicMock()
+
+        with patch('attubot.client.messages.config') as mock_config, patch('attubot.client.messages.bot') as mock_bot:
+            mock_config.guild.return_value = gc
+            mock_bot.get_guild.return_value = MagicMock()
+            mock_bot.get_guild.return_value.get_channel.return_value = mock_channel
+            result = await _get_logs_channel(test_guild)
+
+        assert result is mock_channel
+
+
+# --- _resolve_avatar ---
+
+
+class TestResolveAvatar:
+    def test_returns_member_avatar_when_found(self):
+        from attubot.client.messages import _resolve_avatar
+
+        member = MagicMock()
+        member.display_avatar.url = 'https://cdn.discord.com/member.png'
+
+        mock_guild = MagicMock()
+        mock_guild.get_member.return_value = member
+
+        with patch('attubot.client.messages.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            result = _resolve_avatar(test_guild, test_user)
+
+        assert result == 'https://cdn.discord.com/member.png'
+
+    def test_falls_back_to_user_avatar_when_no_member(self):
+        from attubot.client.messages import _resolve_avatar
+
+        mock_guild = MagicMock()
+        mock_guild.get_member.return_value = None
+
+        user = MagicMock()
+        user.display_avatar.url = 'https://cdn.discord.com/user.png'
+
+        with patch('attubot.client.messages.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            mock_bot.get_user.return_value = user
+            result = _resolve_avatar(test_guild, test_user)
+
+        assert result == 'https://cdn.discord.com/user.png'
+
+    def test_returns_none_when_no_guild_and_no_user(self):
+        from attubot.client.messages import _resolve_avatar
+
+        with patch('attubot.client.messages.bot') as mock_bot:
+            mock_bot.get_guild.return_value = None
+            mock_bot.get_user.return_value = None
+            result = _resolve_avatar(test_guild, test_user)
+
+        assert result is None
+
+
+# --- poll text ---
+
+
+class TestBuildMessageDocPoll:
+    async def test_poll_text_without_results(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        answer1 = MagicMock()
+        answer1.emoji = None
+        answer1.text = 'Option A'
+        answer1.id = 1
+
+        answer2 = MagicMock()
+        answer2.emoji = '🐣'
+        answer2.text = 'Option B'
+        answer2.id = 2
+
+        poll = MagicMock()
+        poll.question.text = 'Favorite color?'
+        poll.results = None
+        poll.answers = [answer1, answer2]
+
+        msg = _make_mock_message()
+        msg.poll = poll
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.poll_text is not None
+        assert 'Favorite color?' in doc.content.poll_text
+        assert 'Option A' in doc.content.poll_text
+        assert 'Option B' in doc.content.poll_text
+
+    async def test_poll_text_with_results(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        answer = MagicMock()
+        answer.emoji = None
+        answer.text = 'Yes'
+        answer.id = 1
+
+        answer_count = MagicMock()
+        answer_count.id = 1
+        answer_count.count = 42
+
+        poll_results = MagicMock()
+        poll_results.answer_counts = [answer_count]
+
+        poll = MagicMock()
+        poll.question.text = 'Do you agree?'
+        poll.results = poll_results
+        poll.answers = [answer]
+
+        msg = _make_mock_message()
+        msg.poll = poll
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.poll_text is not None
+        assert '42 votes' in doc.content.poll_text
+
+    async def test_no_poll_text_when_no_poll(self, mock_message_repo, guild):
+        from attubot.client.messages import build_message_doc
+
+        msg = _make_mock_message()
+        # default mock has no poll attribute (getattr returns None)
+        msg.poll = None
+
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            doc = await build_message_doc(msg)
+
+        assert doc.content.poll_text is None
+
+
+# --- store_message AutoReconnect retry ---
+
+
+class TestStoreMessageRetry:
+    async def test_retries_on_auto_reconnect(self, mock_message_repo, guild):
+        from pymongo.errors import AutoReconnect
+
+        from attubot.client.messages import store_message
+
+        # first call raises, second succeeds
+        mock_message_repo.upsert = AsyncMock(side_effect=[AutoReconnect('conn reset'), None])
+
+        msg = _make_mock_message()
+        with patch('attubot.client.messages._is_archive_channel', return_value=False):
+            await store_message(msg)
+
+        assert mock_message_repo.upsert.call_count == 2
+
+
+# --- log_edit additional branches ---
+
+
+class TestLogEditAdditional:
+    async def test_drops_event_with_no_content_key(self, mock_message_repo, guild):
+        from attubot.client.messages import log_edit
+
+        payload = MagicMock()
+        payload.guild_id = test_guild
+        payload.channel_id = test_channel
+        payload.message_id = test_message
+        # no 'content' key in payload.data simulates embed unfurl or pin toggle
+        payload.data = {'edited_timestamp': '2024-01-01T12:00:00+00:00'}
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_edit(payload)
+
+        mock_message_repo.mark_edited.assert_not_called()
+        logs_ch.send.assert_not_called()
+
+    async def test_drops_event_when_content_unchanged(self, mock_message_repo, guild):
+        from attubot.client.messages import log_edit
+
+        same_content = 'same text'
+        stored_doc = _make_msg_doc(content=same_content, created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload(new_content=same_content)
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_edit(payload)
+
+        # mark_edited must still run even when content is the same - but embed must not be sent
+        # (the guard returns before sending the embed, after mark_edited is called)
+        logs_ch.send.assert_not_called()
+
+    async def test_mark_edited_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_edit
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_edited = AsyncMock(side_effect=Exception('db error'))
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload(new_content='changed')
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            # should not raise
+            await log_edit(payload)
+
+    async def test_send_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_edit
+
+        stored_doc = _make_msg_doc(content='original', created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        logs_ch.send = AsyncMock(side_effect=Exception('discord error'))
+        payload = _make_raw_edit_payload(new_content='changed')
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            # should not raise
+            await log_edit(payload)
+
+    async def test_edit_embed_no_before_field_when_no_stored_doc(self, mock_message_repo, guild):
+        from attubot.client.messages import log_edit
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_edited = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_edit_payload(new_content='new text')
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_edit(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        # no stored doc means old_content is None; 'Before' field must be absent
+        assert 'Before' not in field_names
+        assert 'After' in field_names
+
+
+# --- log_delete additional branches ---
+
+
+class TestLogDeleteAdditional:
+    async def test_embed_includes_attachments_field(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        stored_doc = _make_msg_doc(
+            content='hi',
+            attachments=[{'filename': 'photo.jpg', 'url': 'https://cdn.discord.com/photo.jpg', 'content_type': 'image/jpeg', 'size': 5000, 'saved_path': None}],
+            created_at=1000,
+        )
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        assert 'Attachments' in field_names
+
+    async def test_send_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        stored_doc = _make_msg_doc(content='hi', created_at=1000)
+        mock_message_repo.get = AsyncMock(return_value=stored_doc)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        logs_ch.send = AsyncMock(side_effect=Exception('discord error'))
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            # should not raise
+            await log_delete(_make_raw_delete_payload())
+
+    async def test_mark_deleted_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_deleted = AsyncMock(side_effect=Exception('db error'))
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=_make_logs_channel()):
+            # should not raise
+            await log_delete(_make_raw_delete_payload())
+
+    async def test_no_logs_channel_still_marks_deleted(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=None):
+            await log_delete(_make_raw_delete_payload())
+
+        mock_message_repo.mark_deleted.assert_called_once()
+
+    async def test_generic_description_when_no_stored_doc(self, mock_message_repo, guild):
+        from attubot.client.messages import log_delete
+
+        mock_message_repo.get = AsyncMock(return_value=None)
+        mock_message_repo.mark_deleted = AsyncMock()
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_delete(_make_raw_delete_payload())
+
+        embed = logs_ch.send.call_args[1]['embed']
+        assert 'a message was deleted' in embed.description.lower()
+
+
+# --- log_bulk_delete additional branches ---
+
+
+class TestLogBulkDeleteAdditional:
+    async def test_skips_when_no_logs_channel(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock()
+        payload = _make_raw_bulk_delete_payload()
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=None):
+            await log_bulk_delete(payload)
+
+        # mark_bulk_deleted must not run if there is no logs channel
+        mock_message_repo.mark_bulk_deleted.assert_not_called()
+
+    async def test_mark_bulk_deleted_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock(side_effect=Exception('db error'))
+        logs_ch = _make_logs_channel()
+        payload = _make_raw_bulk_delete_payload()
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            # should not raise
+            await log_bulk_delete(payload)
+
+        # embed still sent even if mark_bulk_deleted failed
+        logs_ch.send.assert_called_once()
+
+    async def test_send_error_is_swallowed(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock()
+        logs_ch = _make_logs_channel()
+        logs_ch.send = AsyncMock(side_effect=Exception('discord error'))
+        payload = _make_raw_bulk_delete_payload()
+
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            # should not raise
+            await log_bulk_delete(payload)
+
+    async def test_cached_messages_preview_shown(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock()
+
+        cached = []
+        for i in range(3):
+            m = MagicMock()
+            m.content = f'message {i}'
+            m.author.id = test_user + i
+            cached.append(m)
+
+        payload = _make_raw_bulk_delete_payload()
+        payload.cached_messages = cached
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_bulk_delete(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_names = [f.name for f in embed.fields]
+        assert 'Preview' in field_names
+
+    async def test_cached_messages_more_than_five_shows_overflow(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock()
+
+        cached = []
+        for i in range(8):
+            m = MagicMock()
+            m.content = f'message {i}'
+            m.author.id = test_user + i
+            cached.append(m)
+
+        payload = _make_raw_bulk_delete_payload()
+        payload.cached_messages = cached
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_bulk_delete(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_values = {f.name: f.value for f in embed.fields}
+        assert '...and 3 more' in field_values.get('Preview', '')
+
+    async def test_long_cached_message_content_truncated(self, mock_message_repo, guild):
+        from attubot.client.messages import log_bulk_delete
+
+        mock_message_repo.mark_bulk_deleted = AsyncMock()
+
+        m = MagicMock()
+        m.content = 'x' * 100  # over 60 chars
+        m.author.id = test_user
+
+        payload = _make_raw_bulk_delete_payload()
+        payload.cached_messages = [m]
+
+        logs_ch = _make_logs_channel()
+        with patch('attubot.client.messages._get_logs_channel', return_value=logs_ch):
+            await log_bulk_delete(payload)
+
+        embed = logs_ch.send.call_args[1]['embed']
+        field_values = {f.name: f.value for f in embed.fields}
+        preview = field_values.get('Preview', '')
+        assert '...' in preview
