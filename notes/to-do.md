@@ -20,13 +20,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
 - ⭕ `future idea` `high effort` way to discard/recycle hatches back into eggs, loot box style
 - ⭕ `medium priority` `low effort` remove any remaining references to egg/hatch season or date
-- ⭕ `medium priority` `low effort` /eggs progress: set embed title to "user's egg collection" instead of default
 - ⭕ `medium priority` `medium effort` /eggs show: link to first egg message in thread instead of just the thread
 - ⭕ `medium priority` `medium effort` egg give dropbox crashes with exception when over 25 items; add a *more* entry that loads next 24 in a loop
 
 ### starboard
 
-- ⭕ `medium priority` `low effort` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
@@ -54,6 +52,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `low priority` `medium effort` split up `command_ask` into smaller functions - currently flagged by PLR0912/PLR0915 (`commands/chat.py:112`)
 - ⭕ `future idea` `low effort` display image URLs in `/ask` responses; `file_path` already stored in Qdrant payload, ready to swap in
 
+### debug commands
+
+- ⭕ `low priority` `low effort` audit debug commands for embed/theme consistency — `/debug version` already uses `make_embed` and bot theme; several others (message_stats, dump_config, dump_starboard, eggs_show, previews) respond with plain text
+
 ### moderation / logging
 
 - ⭕ `medium priority` `medium effort` add kick, ban, and timeout commands
@@ -66,6 +68,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### maintenance
 
+- ⭕ `low priority` `low effort` git-info stage in dockerfile reports line-change count in version string, but we only deploy tagged commits now — changed lines will always be 0; remove or replace with something meaningful
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` we use hard-coded custom emojis in a lot of the responses; centralize this into one place; already storing some emoji ids with the theme
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
@@ -74,7 +77,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
-- ⭕ `low priority` `low effort` add a `once` run option to `BaseTask` (`tasks/base.py:19`)
 - ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 
@@ -89,7 +91,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` add tests for commands/debug.py (30%) and commands/time.py (40%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (38%) and tasks/error_hook.py (35%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
-- ⭕ `medium priority` `high effort` add tests for client/messages.py (60% coverage) - build_message_doc, edit/delete log embeds
+- ⭕ `low priority` `low effort` fix js test count in run_tests.py summary — `extract_counts` regex matches vitest's "test files 2 passed" line instead of the individual test count line (`scripts/run_tests.py:29`)
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
@@ -109,6 +111,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `30 March 2026` split /eggs leaderboard into two separate commands: most hatched total and most complete set
 - 🔴 `30 March 2026` create `hatch.toml` for egg game tuning; load all tuning values through `NovaConfig` instead of hardcoding
 - 🔴 `30 March 2026` make hatch spawn pools data-driven from `hatch.toml`; move all rarity pools and creatures out of `eggs/data.py`
+- 🔴 `3 April 2026` /eggs progress: set embed title to user's egg collection
+
+### starboard
+
+- 🔴 `3 April 2026` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
 
 ### code audits
 
@@ -133,6 +140,12 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `31 March 2026` deploy.py --revert option; takes a version tag, resets trunk to that commit, and rebuilds containers
 - 🔴 `31 March 2026` update run_tests.py to match the polish of deploy.py - better output, timing, clear pass/fail summary
 - 🔴 `31 March 2026` add progress bars / step output to run_tests.py
+- 🔴 `3 April 2026` switch dockerfile base image to `ghcr.io/astral-sh/uv:python3.13-trixie` and replace pip usage with uv
+- 🔴 `3 April 2026` add a `once` run option to `BaseTask`
+
+### testing
+
+- 🔴 `3 April 2026` add tests for client/messages.py - build_message_doc, edit/delete log embeds
 
 ---
 
@@ -293,6 +306,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 31 March 2026
-total_completed: 46
+last_updated: 3 April 2026
+total_completed: 51
 ```

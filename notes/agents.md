@@ -19,9 +19,20 @@ There are two runnable modes, both launched from `attu-bot.py`:
 
 1. do not edit the rules.
 1. do not perform any interactions with Discord without asking.
-1. do not create commits without being explicitly asked to.
+1. do not create commits without being explicitly asked to; ask for confirmation immediately before running each `git commit`, even when already instructed to commit.
 1. all noqa comments must include a valid reason
 1. check the current time at the start of each conversation. if it is past 12:30 AM ET, suggest a natural stopping point before continuing any task.
+
+## sub-agents
+
+when operating as a sub-agent (spawned via the agent tool), assume other agents may be working concurrently in the same repository:
+
+- do not run git operations that modify shared state (`checkout`, `reset`, `merge`, `rebase`, `stash`) unless isolated in a worktree
+- do not assume exclusive access to any file or the working directory
+- prefer additive changes; avoid deleting or overwriting files without checking for concurrent edits
+- if isolated git work is needed, use a worktree (`EnterWorktree`) rather than modifying the main tree
+
+---
 
 ## architecture
 
@@ -285,6 +296,43 @@ See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree
 
 ---
 
+## feature completion checklist
+
+work through every applicable item before considering a feature done.
+
+### tests
+- write or update unit tests for all new logic (`tests/python/unit/`)
+- write component tests if new repository methods or DB operations are added (`tests/python/component/`)
+- if a new command file is added under `attubot/commands/`, verify `TestExtensionImports.test_extension_imports_cleanly` still passes (mock compensation rule)
+- if new `@commands.check` predicates are added, add/update predicate tests in `test_util.py`
+- if a new migration is added to `client/migrations.py`, add a rollback path test before merging
+- if a new config field is added, add a roundtrip test (see "adding a new config field")
+- run the full test suite: `docker compose run --build --rm --quiet-pull tests`
+
+### documentation
+- update the relevant feature spec in `notes/features/` if behavior or storage changed
+- if the feature is new and complex, stable, and referenceable, propose a new note file following `notes/.meta.md` guidance (common types: feature.md, library_usage.md, domain_concept.md)
+- update the reference notes table in this file if a new note file is created
+- update `notes/to-do.md` to reflect completed work
+
+### configuration (if adding config fields)
+- follow the full tier-2 or tier-3 checklist in "configuration system" above
+- tier-3 fields: cover all six steps (`models.py`, `config.py` model, `load_guild()`, `forms.py`, template, `app.js` `populateField`)
+- if the field gates an extension: handle the `False → True` transition in the activating task and in `reload_watcher.py`
+
+### web interface (if adding web-facing config or new pages/endpoints)
+- follow the "adding a new config field" or "adding a new page/endpoint" guide in `notes/features/web.md`
+- all mutations: add audit logging via `web_app.audit_logger.log_change()`
+- all mutations: send a reload signal via `send_signal()` after save
+- new API endpoints must follow the standard shape: `{'error': '...'}` on failure, `{'success': True, 'message': '...'}` on success
+
+### linting
+- `ruff check .` — fix all issues; `noqa` suppressions require a reason
+- `ruff format --check .` — format must be clean
+- `npm run lint` — run if any JS was modified
+
+---
+
 ## important patterns & pitfalls
 
 - **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. migrations are also skipped.
@@ -365,5 +413,5 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 3 April 2026 (sub-agents section added)
 ```
