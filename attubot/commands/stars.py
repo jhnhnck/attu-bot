@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 _PAGE_SIZE = 10
 
 stars_group = SlashCommandGroup('stars', description='Starboard browsing and leaderboards')
+leaderboard_group = stars_group.create_subgroup('leaderboard', 'Starboard leaderboards')
 
 
 def _get_sb_repo():
@@ -258,7 +259,7 @@ async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_ke
     await ctx.respond(embed=embed)
 
 
-@stars_group.command(name='most-stars', description='Top users by total stars received')
+@leaderboard_group.command(name='most-stars', description='Top users by total stars received')
 async def stars_most_stars(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()
@@ -270,7 +271,7 @@ async def stars_most_stars(ctx: ApplicationContext):
     await _leaderboard_embed(ctx, rows, 'total_stars', 'stars received', 'Most Stars Received')
 
 
-@stars_group.command(name='most-starred', description='Top users by number of messages on the starboard')
+@leaderboard_group.command(name='most-starred', description='Top users by number of messages on the starboard')
 async def stars_most_starred(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()
@@ -282,7 +283,7 @@ async def stars_most_starred(ctx: ApplicationContext):
     await _leaderboard_embed(ctx, rows, 'starred_messages', 'messages starred', 'Most Messages Starred')
 
 
-@stars_group.command(name='most-given', description='Top users by total stars given')
+@leaderboard_group.command(name='most-given', description='Top users by total stars given')
 async def stars_most_given(ctx: ApplicationContext):
     try:
         sb_repo = _get_sb_repo()

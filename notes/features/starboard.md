@@ -42,11 +42,12 @@ Only emojis listed in `emojis` are tracked. Any other reaction is silently ignor
 ### Content string
 
 ```
-⭐ **4** | 🌟 **1** | https://discord.com/channels/<guild>/<channel>/<message>
+⭐ **4** | 🌟 **1.5** | https://discord.com/channels/<guild>/<channel>/<message>
 ```
 
 - only emojis with at least one reaction are listed
-- sorted by count descending
+- sorted by weighted count descending
+- counts are shown as integers when whole (e.g. `4`), decimals when fractional (e.g. `1.5`)
 - jump url is always last
 
 ### Embed color
@@ -82,10 +83,13 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 
 | Function | Purpose |
 |---|---|
-| `handle_star_add(guild_id, channel_id, message_id, user_id, emoji_str)` | entry point for `on_raw_reaction_add` |
-| `handle_star_remove(guild_id, channel_id, message_id, user_id, emoji_str)` | entry point for `on_raw_reaction_remove` |
-| `build_content(reactions, jump_url, emoji_colors)` | builds the content string |
-| `dominant_color(reactions, emoji_colors)` | returns the color int for the highest-count emoji |
+| `handle_star_add(guild_id, channel_id, message_id, user_id, emoji_str, is_burst)` | entry point for `on_raw_reaction_add` |
+| `handle_star_remove(guild_id, channel_id, message_id, user_id, emoji_str, is_burst)` | entry point for `on_raw_reaction_remove` |
+| `handle_star_clear(guild_id, channel_id, message_id)` | entry point for `on_raw_reaction_clear` (all emojis cleared) |
+| `handle_star_clear_emoji(guild_id, channel_id, message_id, emoji_str)` | entry point for `on_raw_reaction_clear_emoji` (single emoji cleared) |
+| `_fetch_store_and_backfill(guild_id, channel_id, message_id, guild_config)` | fetches a message from discord, stores it, and backfills all existing reactions |
+| `build_content(reactions, jump_url, emoji_colors, super_reactions)` | builds the content string |
+| `dominant_color(reactions, emoji_colors, fallback, super_reactions)` | returns the color int for the highest weighted-count emoji |
 | `build_embeds(message_doc, guild_id, color)` | builds the full embed list for a starred message |
 | `parse_starboard_content(content)` | parses a legacy content string into `(emoji_counts, jump_url)` |
 | `parse_jump_url(url)` | extracts `(guild_id, channel_id, message_id)` from a jump url |
@@ -104,8 +108,10 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 | `/stars most-stars` | leaderboard - top users by stars received |
 | `/stars most-starred` | leaderboard - top users by messages on the starboard |
 | `/stars most-given` | leaderboard - top users by stars given |
-| `/fix starboard` | ingest existing starboard posts into the database |
-| `/fix starboard-recount` | recount all reaction totals from stored reaction data |
+| `/fix starboard recover [days]` | scan the starboard channel for bot posts and restore missing db records or fix broken links (default 7 days) |
+| `/fix starboard recount` | re-fetch live discord reactions for all starred messages and rebuild reaction lists |
+| `/fix starboard regen` | rebuild every starboard post for this guild |
+| `/fix starboard purge <message_link>` | remove a message from the starboard db (and delete its discord post if possible) |
 
 ---
 
@@ -120,15 +126,32 @@ document: `StarredMessageDocument`
 | `guild_id` | `int` | guild |
 | `author_id` | `int` | message author |
 | `starboard_message_id` | `int \| None` | linked starboard post id |
-| `reactions` | `dict[str, list[int]]` | emoji -> list of user ids who reacted |
-| `total_reactions` | `int` | sum of all reaction counts (denormalized for queries) |
+| `reactions` | `dict[str, list[int]]` | emoji -> list of user ids who normal-reacted (1.0x weight) |
+| `super_reactions` | `dict[str, list[int]]` | emoji -> list of user ids who super-reacted (1.5x weight) |
+| `total_reactions` | `int` | raw count of all reactors (normal + super); kept for range queries |
+| `weighted_total` | `float` | weighted sum: normal = 1.0, super = 1.5 |
+| `reply_created` | `bool` | true once a reply has been sent to an uneditable predecessor post |
 
-key methods: `add_reaction`, `remove_reaction`, `get_by_starboard_message`, `get_random`, `set_starboard_message`, `leaderboard_most_stars`, `leaderboard_most_starred`, `leaderboard_most_given`
+key methods: `add_reaction`, `add_super_reaction`, `remove_reaction`, `remove_super_reaction`, `clear_emoji_reactions`, `clear_all_reactions`, `get_by_starboard_message`, `get_random`, `set_starboard_message`, `leaderboard_most_stars`, `leaderboard_most_starred`, `leaderboard_most_given`
+
+---
+
+## Sweeps
+
+after each new starboard post is created, the bot checks if the same author has consecutive posts at the tail of the guild's starboard history and announces milestones:
+
+| streak | announcement |
+|---|---|
+| 3 | `@user sweeps! 🧹` |
+| 5 | `@user sweeps more! 🧹🥈` |
+| 11 | `@user sweeps even more! 🧹🥇` |
+
+only announces at exactly those counts - no announcement at 4, 6, etc. errors during sweep check are swallowed so they never block post creation.
 
 ---
 
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 1 April 2026
 ```
