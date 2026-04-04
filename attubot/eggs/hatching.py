@@ -166,7 +166,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
     return (msg.jump_url, None)
 
 
-async def run_hatch_animation(message: discord.Message, result: str, rarity: str) -> None:
+async def run_hatch_animation(message: discord.Message | discord.PartialMessage, result: str, rarity: str) -> None:
     """Run the three-stage hatch animation on an existing thread message.
 
     Stages:

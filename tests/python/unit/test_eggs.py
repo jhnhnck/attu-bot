@@ -41,13 +41,13 @@ test_message = 222222222222
 # ---- helpers ----
 
 
-def _make_egg(*, hatched=False, hatches_at=0.0, message_id=test_message, rarity='common', result='🐣'):
+def _make_egg(*, hatched=False, hatches_at=0, message_id=test_message, rarity='common', result='🐣'):
     return EggDocument(
         egg_id='test-egg-id',
         guild_id=test_guild,
         user_id=test_user,
         rarity=rarity,
-        collected_at=1000.0,
+        collected_at=1000,
         hatches_at=hatches_at,
         hatched=hatched,
         result=result,
@@ -55,7 +55,7 @@ def _make_egg(*, hatched=False, hatches_at=0.0, message_id=test_message, rarity=
     )
 
 
-def _make_user_doc(*, thread_id=test_thread, last_collected_at=0.0):
+def _make_user_doc(*, thread_id=test_thread, last_collected_at=0):
     return EggUserDocument(
         guild_id=test_guild,
         user_id=test_user,
@@ -215,16 +215,16 @@ class TestHatchEgg:
 
     async def test_egg_not_ready(self):
         self.egg_repo.get_oldest_ready.return_value = None
-        next_egg = _make_egg(hatches_at=9999.0)
+        next_egg = _make_egg(hatches_at=9999)
         self.egg_repo.get_next_unhatched.return_value = next_egg
 
         result, ts = await hatch_egg(test_guild, test_user)
 
         assert result == ''
-        assert ts == 9999.0
+        assert ts == 9999
 
     async def test_egg_ready(self):
-        egg = _make_egg(hatches_at=100.0, result='🐣')
+        egg = _make_egg(hatches_at=100, result='🐣')
         self.egg_repo.get_oldest_ready.return_value = egg
         self.egg_repo.mark_hatched.return_value = None
 
@@ -450,7 +450,7 @@ class TestHatchEggCacheMiss:
 
     async def test_thread_cache_miss_fetches_from_guild(self):
         """thread not in bot cache - should fetch via guild api"""
-        egg = _make_egg(hatches_at=100.0, result='🐣')
+        egg = _make_egg(hatches_at=100, result='🐣')
         self.egg_repo.get_oldest_ready.return_value = egg
         self.egg_repo.mark_hatched.return_value = None
 
@@ -475,7 +475,7 @@ class TestHatchEggCacheMiss:
 
     async def test_guild_cache_miss_raises(self):
         """both thread and guild not in cache - should raise"""
-        egg = _make_egg(hatches_at=100.0, result='🐣')
+        egg = _make_egg(hatches_at=100, result='🐣')
         self.egg_repo.get_oldest_ready.return_value = egg
 
         user_doc = _make_user_doc()
@@ -489,7 +489,7 @@ class TestHatchEggCacheMiss:
 
     async def test_missing_message_id_raises(self):
         """egg with no message_id stored - should raise before attempting fetch"""
-        egg = _make_egg(hatches_at=100.0, result='🐣', message_id=None)  # pyright: ignore[reportArgumentType]
+        egg = _make_egg(hatches_at=100, result='🐣', message_id=None)  # pyright: ignore[reportArgumentType]
         self.egg_repo.get_oldest_ready.return_value = egg
 
         user_doc = _make_user_doc()
@@ -1356,7 +1356,7 @@ class TestHatchEggGuards:
 
     async def test_no_user_doc_raises(self):
         """user_doc is None after finding a ready egg - raises RuntimeError"""
-        egg = _make_egg(hatches_at=100.0, result='🐣')
+        egg = _make_egg(hatches_at=100, result='🐣')
         self.egg_repo.get_oldest_ready.return_value = egg
         self.egg_user_repo.get.return_value = None
 
@@ -1365,7 +1365,7 @@ class TestHatchEggGuards:
 
     async def test_zero_thread_id_raises(self):
         """user_doc exists but thread_id == 0 - raises RuntimeError"""
-        egg = _make_egg(hatches_at=100.0, result='🐣')
+        egg = _make_egg(hatches_at=100, result='🐣')
         self.egg_repo.get_oldest_ready.return_value = egg
         user_doc = _make_user_doc(thread_id=0)
         self.egg_user_repo.get.return_value = user_doc
@@ -1375,7 +1375,7 @@ class TestHatchEggGuards:
 
     async def test_no_result_raises(self):
         """egg.result is None - raises RuntimeError before animation starts"""
-        egg = _make_egg(hatches_at=100.0, result=None)  # pyright: ignore[reportArgumentType]
+        egg = _make_egg(hatches_at=100, result=None)  # pyright: ignore[reportArgumentType]
         self.egg_repo.get_oldest_ready.return_value = egg
 
         user_doc = _make_user_doc()

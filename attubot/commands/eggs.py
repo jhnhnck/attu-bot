@@ -307,7 +307,7 @@ async def eggs_progress(ctx: ApplicationContext):
     lines.append(f'total: {total_bar} {total_unique}/{total_possible}')
     lines.append(f'{total_collected} eggs collected; {total_hatched} eggs hatched')
 
-    embed = make_embed(description='\n'.join(lines), timestamp=False)
+    embed = make_embed(f"{ctx.author.display_name}'s egg collection", description='\n'.join(lines), timestamp=False)
     await ctx.respond(embed=embed)
 
 
