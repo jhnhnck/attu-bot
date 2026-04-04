@@ -12,11 +12,12 @@ from datetime import datetime, timedelta
 class BaseTask(ABC):
     """Abstract base for all recurring tasks.
 
-    Two scheduling modes:
+    Three scheduling modes:
       - fixed interval: set `interval`; `next_run()` is unused
       - dynamic schedule: override `next_run()` to return the exact datetime for the next
         execution; `interval` should be set to None
-      - TODO: this should probably have a 'once' option.
+      - run once: set `run_once = True`; `run()` is called on the first tick, then the
+        task stops; `on_stop()` is called automatically after `run()` completes
 
     The scheduler calls `on_start()` once before entering the run loop, then either
     sleeps for `interval` or sleeps until the datetime returned by `next_run()` before
@@ -29,6 +30,7 @@ class BaseTask(ABC):
     name: str = 'unnamed_task'
     interval: timedelta | None = timedelta(minutes=1)
     run_immediately: bool = False
+    run_once: bool = False
 
     @abstractmethod
     async def run(self) -> None:

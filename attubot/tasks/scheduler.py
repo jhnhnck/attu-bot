@@ -111,7 +111,7 @@ class TaskScheduler:
         if delay > 0:
             await asyncio.sleep(delay)
 
-    async def _run_loop(self, task: BaseTask) -> None:
+    async def _run_loop(self, task: BaseTask) -> None:  # noqa: PLR0912 - run_once/run_immediately/interval branches are all distinct scheduling paths
         """Internal: run a task in a loop until shutdown."""
         await task.on_start()
 
@@ -124,6 +124,10 @@ class TaskScheduler:
             except Exception as e:
                 logger.error(f'error in task {task.name} (immediate run): {e}')
                 await logger.send_to_webhook(e, location=f'recurring task: {task.name} (immediate run)')
+
+            if task.run_once:
+                await task.on_stop()
+                return
 
         while self._running:
             try:
@@ -143,6 +147,10 @@ class TaskScheduler:
                 t0 = time.perf_counter()
                 await task.run()
                 elapsed_ms = (time.perf_counter() - t0) * 1000
+
+                if task.run_once:
+                    break
+
                 if elapsed_ms >= 5000:
                     logger.warn(f'slow task: {task.name} took {elapsed_ms:.0f}ms')
                 else:

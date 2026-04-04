@@ -24,6 +24,7 @@ All recurring tasks extend `BaseTask` (`attubot/tasks/base.py`). Key class attri
 | `name` | `str` | Identifier used in logs and `TaskLoop[name]` wrapper |
 | `interval` | `timedelta \| None` | Fixed sleep between ticks; set to `None` for dynamic scheduling |
 | `run_immediately` | `bool` | If `True`, `run()` is called once right after `on_start()` before the first sleep |
+| `run_once` | `bool` | If `True`, `run()` is called exactly once then the task stops; works with or without `run_immediately` |
 
 Lifecycle methods called by the scheduler - override as needed:
 
@@ -57,6 +58,24 @@ class DatabaseBackupTask(BaseTask):
 
     async def run(self) -> None: ...
 ```
+
+### run-once example
+
+use `run_once = True` for tasks that need lifecycle hooks (`on_start`, `on_stop`, error reporting) but should only execute `run()` a single time. pair with `run_immediately = True` to run on the first tick without waiting for the interval:
+
+```python
+class ChatInitTask(BaseTask):
+    name: str = 'ChatInit'
+    interval: timedelta | None = timedelta(hours=1)
+    run_immediately: bool = True
+    run_once: bool = True
+
+    async def on_start(self) -> None: ...  # await dependencies
+    async def run(self) -> None: ...        # called once, then task exits
+    async def on_stop(self) -> None: ...   # cleanup
+```
+
+with `run_immediately = False`, the task sleeps one interval first, then calls `run()` once and stops.
 
 ### Registering a task
 
