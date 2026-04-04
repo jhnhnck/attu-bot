@@ -36,6 +36,18 @@ docker compose -f docker-compose.dev.yml run --build --rm tests
 The mongo container starts fresh from the seed archive on every run (tmpfs data dir).
 If no seed file exists, mongo starts empty - tests create their own data and are unaffected.
 
+## local venv (optional, for ide support)
+
+no `.venv` exists in the project root yet; create one and install all deps for ide type checking and autocomplete:
+
+```bash
+cd /srv/services/doom-bot-dev
+uv venv
+uv sync
+```
+
+activate with `source .venv/bin/activate` or point your ide to `.venv/bin/python`. if a `.venv` already exists, skip `uv venv` and just re-run the install.
+
 ## Deploying to prod
 
 ```bash
@@ -70,5 +82,5 @@ bash scripts/create_dev_seed.sh /some/other/path/seed.archive
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 2026-04-03
 ```

@@ -1,5 +1,44 @@
+[project]
+name = "attubot"
+version = "77.6.7"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "aiohttp",
+    "anthropic",
+    "anyio>=4.12.0",
+    "httpx",
+    "hypercorn>=0.16.0",
+    "mwparserfromhell",
+    "py-cord[speed]<3",
+    "pydantic",
+    "pymongo>=4.6.0",
+    "qdrant-client",
+    "quart-rate-limiter>=0.9.0",
+    "quart>=0.19.0",
+    "sentence-transformers",
+    "termcolor",
+    "tomlkit",
+    "webauthn>=2.0.0",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "coverage[toml]",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "respx",
+    "freezegun",
+    "ruff",
+    "pip-audit",
+    "basedpyright>=1.39.0",
+]
+
 [tool.ruff]
-exclude = ["*.wip.py", "wip/"]
+exclude = ["*.wip.py", "wip/", ".venv/"]
 target-version = "py313"
 line-length = 320
 preview = true
@@ -79,13 +118,14 @@ convention = "google"
 [tool.basedpyright]
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
+extraPaths = ["scripts"]
 reportOptionalOperand = false
 reportOptionalMemberAccess = false
 reportOptionalSubscript = false
 reportInvalidCast = false
 reportFunctionMemberAccess = false
 reportAttributeAccessIssue = false
-exclude = ["*.wip.py", "wip/"]
+exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
