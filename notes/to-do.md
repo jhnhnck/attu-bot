@@ -86,10 +86,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### testing
 
-- ⭕ `medium priority` `medium effort` add tests for tasks/scheduler.py (29% coverage) - task scheduling, cancellation, restart logic
+- ⭕ `medium priority` `medium effort` add tests for tasks/scheduler.py (46% coverage) - task scheduling, cancellation, restart logic
 - ⭕ `medium priority` `medium effort` add tests for commands/link.py (25%) and commands/marker.py (30%)
-- ⭕ `medium priority` `medium effort` add tests for commands/debug.py (30%) and commands/time.py (40%)
-- ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (38%) and tasks/error_hook.py (35%)
+- ⭕ `medium priority` `medium effort` add tests for commands/debug.py (33%) and commands/time.py (40%)
+- ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (32%) and tasks/error_hook.py (31%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
 - ⭕ `low priority` `low effort` fix js test count in run_tests.py summary — `extract_counts` regex matches vitest's "test files 2 passed" line instead of the individual test count line (`scripts/run_tests.py:29`)
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
@@ -153,14 +153,14 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8477 | 3147 | 2102 | 247 | 60% |
+| 8631 | 3142 | 2140 | 244 | 61% |
 
 ### attubot
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/__init__.py | 11 | 0 | 0 | 0 | 100% |
-| attubot/config.py | 449 | 154 | 88 | 22 | 61% |
+| attubot/config.py | 477 | 161 | 90 | 23 | 62% |
 | attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
@@ -171,16 +171,16 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/client/__init__.py | 49 | 4 | 6 | 0 | 93% |
 | attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
 | attubot/client/core.py | 12 | 0 | 0 | 0 | 100% |
-| attubot/client/embeds.py | 19 | 2 | 12 | 3 | 84% |
-| attubot/client/events.py | 247 | 145 | 70 | 2 | 39% |
+| attubot/client/embeds.py | 19 | 2 | 12 | 2 | 87% |
+| attubot/client/events.py | 262 | 155 | 76 | 2 | 38% |
 | attubot/client/families.py | 36 | 20 | 8 | 0 | 36% |
 | attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
 | attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
-| attubot/client/messages.py | 323 | 115 | 118 | 18 | 60% |
+| attubot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
 | attubot/client/migrations.py | 266 | 266 | 56 | 0 | 0% |
 | attubot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
-| attubot/client/starboard.py | 563 | 162 | 222 | 44 | 69% |
-| attubot/client/util.py | 56 | 12 | 10 | 1 | 71% |
+| attubot/client/starboard.py | 572 | 171 | 224 | 44 | 68% |
+| attubot/client/util.py | 56 | 11 | 10 | 0 | 74% |
 | attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
 ### attubot/commands
@@ -189,13 +189,13 @@ _see the [meta](#meta) section at the end of this file for format reference._
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
-| attubot/commands/debug.py | 208 | 136 | 36 | 0 | 30% |
-| attubot/commands/eggs.py | 229 | 28 | 64 | 4 | 88% |
-| attubot/commands/fix.py | 483 | 272 | 126 | 11 | 42% |
+| attubot/commands/debug.py | 215 | 135 | 38 | 0 | 33% |
+| attubot/commands/eggs.py | 246 | 35 | 72 | 6 | 86% |
+| attubot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
 | attubot/commands/link.py | 110 | 79 | 12 | 0 | 25% |
 | attubot/commands/marker.py | 82 | 53 | 16 | 0 | 30% |
 | attubot/commands/query.py | 33 | 18 | 8 | 0 | 37% |
-| attubot/commands/stars.py | 200 | 77 | 38 | 5 | 58% |
+| attubot/commands/stars.py | 201 | 77 | 38 | 5 | 58% |
 | attubot/commands/time.py | 43 | 24 | 4 | 0 | 40% |
 | attubot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
 | attubot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
@@ -206,17 +206,17 @@ _see the [meta](#meta) section at the end of this file for format reference._
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/database/__init__.py | 68 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
-| attubot/database/models.py | 176 | 0 | 0 | 0 | 100% |
-| attubot/database/repositories.py | 532 | 131 | 84 | 5 | 72% |
+| attubot/database/models.py | 187 | 0 | 0 | 0 | 100% |
+| attubot/database/repositories.py | 561 | 149 | 98 | 10 | 70% |
 
 ### attubot/eggs
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/eggs/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/eggs/data.py | 4 | 0 | 0 | 0 | 100% |
+| attubot/eggs/data.py | 4 | 4 | 0 | 0 | 0% |
 | attubot/eggs/emojis.py | 52 | 0 | 8 | 0 | 100% |
-| attubot/eggs/hatching.py | 155 | 6 | 48 | 5 | 94% |
+| attubot/eggs/hatching.py | 155 | 6 | 50 | 5 | 94% |
 
 ### attubot/ingestor
 
@@ -239,30 +239,30 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
-| attubot/tasks/base.py | 12 | 3 | 0 | 0 | 75% |
+| attubot/tasks/__init__.py | 23 | 0 | 0 | 0 | 100% |
+| attubot/tasks/base.py | 13 | 3 | 0 | 0 | 77% |
 | attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
-| attubot/tasks/egg_cleanup.py | 49 | 5 | 16 | 2 | 89% |
-| attubot/tasks/error_hook.py | 44 | 26 | 8 | 0 | 35% |
-| attubot/tasks/logo_update.py | 55 | 31 | 10 | 1 | 38% |
+| attubot/tasks/egg_cleanup.py | 50 | 8 | 16 | 3 | 83% |
+| attubot/tasks/error_hook.py | 50 | 32 | 8 | 0 | 31% |
+| attubot/tasks/logo_update.py | 67 | 43 | 10 | 1 | 32% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
 | attubot/tasks/nova_year.py | 122 | 49 | 40 | 1 | 57% |
-| attubot/tasks/presence.py | 24 | 4 | 4 | 2 | 79% |
+| attubot/tasks/presence.py | 28 | 10 | 2 | 1 | 63% |
 | attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
-| attubot/tasks/scheduler.py | 96 | 61 | 30 | 1 | 29% |
+| attubot/tasks/scheduler.py | 113 | 56 | 36 | 5 | 46% |
 
 ### attubot/web
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/web/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/web/app.py | 121 | 19 | 6 | 2 | 83% |
+| attubot/web/app.py | 126 | 19 | 6 | 2 | 84% |
 | attubot/web/audit.py | 75 | 21 | 20 | 3 | 68% |
-| attubot/web/auth.py | 256 | 80 | 60 | 6 | 68% |
+| attubot/web/auth.py | 258 | 80 | 60 | 6 | 69% |
 | attubot/web/discord_integration.py | 105 | 62 | 26 | 4 | 37% |
-| attubot/web/forms.py | 185 | 15 | 62 | 6 | 87% |
-| attubot/web/routes.py | 577 | 104 | 166 | 28 | 80% |
+| attubot/web/forms.py | 187 | 15 | 62 | 6 | 88% |
+| attubot/web/routes.py | 579 | 104 | 166 | 28 | 80% |
 
 ### attubot/wiki
 
