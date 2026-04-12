@@ -89,7 +89,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` add tests for commands/debug.py (33%) and commands/time.py (40%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (32%) and tasks/error_hook.py (31%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
-- ⭕ `low priority` `low effort` fix js test count in run_tests.py summary — `extract_counts` regex matches vitest's "test files 2 passed" line instead of the individual test count line (`scripts/run_tests.py:29`)
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
@@ -150,6 +149,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### testing
 
 - 🔴 `3 April 2026` add tests for client/messages.py - build_message_doc, edit/delete log embeds
+- 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 
 ---
 

@@ -27,13 +27,15 @@ def header(n: int, total: int, title: str) -> None:
 
 
 def extract_counts(output: str) -> str | None:
-    """extract a short count summary from pytest output, e.g. '42 passed, 1 warning'."""
-    m = re.search(r'(\d+ (?:passed|failed)[^\n]*)', output)
-    if not m:
+    """extract a short count summary from pytest or vitest output."""
+    matches = re.findall(r'(\d+ (?:passed|failed)[^\n]*)', output)
+    if not matches:
         return None
-    # strip trailing "in X.Xs" and warning counts to keep it short
-    counts = re.sub(r',?\s*\d+ warning[s]?', '', m.group(1))
-    counts = re.sub(r'\s+in\s+[\d.]+s.*', '', counts).strip()
+    raw = matches[-1]
+    # strip trailing "in X.Xs", warning counts, and vitest "(N)" suffixes
+    counts = re.sub(r',?\s*\d+ warning[s]?', '', raw)
+    counts = re.sub(r'\s+in\s+[\d.]+s.*', '', counts)
+    counts = re.sub(r'\s*\(\d+\)', '', counts).strip()
     return counts or None
 
 
