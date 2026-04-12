@@ -23,6 +23,26 @@ class MigrationError(Exception):
     """Raised when a migration fails; signals the bot should not continue initializing."""
 
 
+# --- Runner ---
+
+
+async def run_pending_migrations(*, stage: str = 'load') -> None:
+    """run all pending migrations for the given stage, re-reading the db version after each step"""
+    table = ready_migration_table if stage == 'ready' else load_migration_table
+    system_config = await config.config_repo.get_system()
+
+    try:
+        for fn in table:
+            await fn(system_config.version)
+            system_config = await config.config_repo.get_system()
+    except MigrationError as e:
+        logger.fatal(f'{stage}-stage migration failed; refusing to continue: {e}')
+        raise
+
+    system_config = await config.config_repo.get_system()
+    logger.info(f'{stage}-stage migrations complete: now at version {system_config.version}')
+
+
 # --- Backup / Restore Helpers ---
 
 

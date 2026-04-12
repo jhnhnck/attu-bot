@@ -16,13 +16,19 @@ import anyio
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
-from attubot import __schema__
+from attubot import __config_version__, __schema__
 from attubot.database.models import ChatConfigDocument
 from attubot.database.repositories import ChatConfigRepository, ConfigRepository
 from attubot.logging import get_logger
 
 
 logger = get_logger(__name__)
+
+
+def _version_gte(version: str, minimum: str) -> bool:
+    """return True if version >= minimum using simple semver tuple comparison"""
+    return tuple(int(x) for x in version.split('.')) >= tuple(int(x) for x in minimum.split('.'))
+
 
 # config object double for this file to avoid import loop
 _config: 'NovaConfig'
@@ -340,12 +346,12 @@ class NovaConfig:
         with self.path.open() as file:
             self._raw = cast(RawConfig, tomlkit.load(file))
 
-        # validate config version
-        if self._raw['config_version'] != self.config_version:
-            logger.fatal('incompatible config version')
-            raise ConfigLoadError('incompatible config file version')
+        # validate config file format version
+        if not _version_gte(self._raw['config_version'], __config_version__):
+            logger.fatal(f'incompatible config version: file={self._raw["config_version"]} required>={__config_version__}')
+            raise ConfigLoadError(f'config file version {self._raw["config_version"]} is below required {__config_version__}')
         else:
-            logger.info(f'matched file version: {__schema__}')
+            logger.info(f'config file version {self._raw["config_version"]} satisfies >={__config_version__}')
 
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
@@ -476,21 +482,9 @@ class NovaConfig:
             if self.test_mode or self.web_mode or self.ingestor_mode:
                 logger.info('skipping migrations (TEST_MODE, web_mode, or ingestor_mode)')
             else:
-                logger.info('running migrations')
+                from attubot.client.migrations import run_pending_migrations
 
-                from attubot.client.migrations import MigrationError, load_migration_table
-
-                try:
-                    for migration in load_migration_table:
-                        await migration(system_config.version)
-                        system_config = await self.config_repo.get_system()
-                except MigrationError as e:
-                    logger.fatal(f'migration failed; refusing to continue initialization: {e}')
-                    raise
-
-                # Reload system config after load-stage migrations
-                system_config = await self.config_repo.get_system()
-                logger.info(f'load-stage migrations complete: now at version {system_config.version}')
+                await run_pending_migrations(stage='load')
 
         self._get_event('load').set()
 
@@ -563,20 +557,9 @@ class NovaConfig:
         if not self.test_mode and not self.web_mode:
             system_config = await self.config_repo.get_system()
             if system_config.version != self.config_version:
-                logger.info(f'running ready-stage migrations: {system_config.version} -> {self.config_version}')
+                from attubot.client.migrations import run_pending_migrations
 
-                from attubot.client.migrations import MigrationError, ready_migration_table
-
-                try:
-                    for migration in ready_migration_table:
-                        await migration(system_config.version)
-                        system_config = await self.config_repo.get_system()
-                except MigrationError as e:
-                    logger.fatal(f'ready-stage migration failed: {e}')
-                    raise
-
-                system_config = await self.config_repo.get_system()
-                logger.info(f'ready-stage migrations complete: now at version {system_config.version}')
+                await run_pending_migrations(stage='ready')
 
         self._get_event('ready').set()
 
