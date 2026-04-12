@@ -10,7 +10,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 - `medium priority` `low effort` assign any to-dos without an effort or category; update priorities; move completed and sort all
 - `medium priority` `low effort` run docker tests with --coverage flag; update coverage in second section; update testing to-dos with gaps
-- `low priority` `medium effort` add more stats to web interface
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
@@ -20,7 +19,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
 - ⭕ `future idea` `high effort` way to discard/recycle hatches back into eggs, loot box style
 - ⭕ `medium priority` `medium effort` /eggs show: link to first egg message in thread instead of just the thread
-- ⭕ `low priority` `low effort` /eggs progress: update embed title to "whoever's hatched collection"
 
 ### starboard
 
@@ -29,10 +27,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
 - ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
-
-### reminders
-
-- ⭕ `future idea` `medium effort` /remind command: pings you when a specific attu year and optionally day-month rolls around (from walt)
 
 ### wiki
 
@@ -68,8 +62,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### web interface
 
-- ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes for
-- ⭕ `low priority` `medium effort` primary / secondary guild toggle instead of having all guilds
+see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `notes/reports/web_interface_audit.md` for the current state audit.
+
+- ⭕ `high priority` `high effort` implement web improvement plan (sidebar layout, guild toggle, save manager, split guild config, merge dashboard, API cleanup)
+- ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes
 
 ### maintenance
 
@@ -120,6 +116,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `3 April 2026` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
 - 🔴 `11 April 2026` fix self-star cascade bug: starring the starboard mirror post when your star created it no longer removes the original from the board
 
+### reminders
+
+- 🔴 `11 April 2026` /remind command: pings you when a specific attu year and optionally day-month rolls around (from walt)
+
 ### code audits
 
 - 🔴 `30 March 2026` audit for anything not properly using our systems: scheduler, config, db, commands, files organized correctly, etc
@@ -137,6 +137,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### maintenance
 
+- 🔴 `12 April 2026` decouple TOML config version from db migration version; split `__schema__` and `__config_version__`; move migration runner into `migrations.py`
 - 🔴 deploy script (scripts/deploy.py)
 - 🔴 `30 March 2026` fix deploy script not pushing version tag alongside trunk
 - 🔴 `30 March 2026` catch import errors in deploy.py and suggest fix command
@@ -318,6 +319,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 11 April 2026
-total_completed: 60
+last_updated: 12 April 2026
+total_completed: 62
 ```

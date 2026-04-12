@@ -16,6 +16,7 @@ from attubot.tasks.message_backfill import MessageBackfillTask, message_backfill
 from attubot.tasks.nova_year import NovaYearTask, nova_year_task
 from attubot.tasks.presence import PresenceUpdateTask, presence_update_task
 from attubot.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
+from attubot.tasks.reminder import ReminderTask, reminder_task
 from attubot.tasks.scheduler import TaskScheduler, scheduler
 
 
@@ -31,6 +32,7 @@ scheduler.register(db_backup_task)
 scheduler.register(message_backfill_task)
 scheduler.register(egg_cleanup_task)
 scheduler.register(presence_update_task)
+scheduler.register(reminder_task)
 
 
 __all__ = [
@@ -44,6 +46,7 @@ __all__ = [
     'NovaYearTask',
     'PresenceUpdateTask',
     'ReloadWatcherTask',
+    'ReminderTask',
     'TaskScheduler',
     'chat_init_task',
     'db_backup_task',
@@ -55,5 +58,6 @@ __all__ = [
     'nova_year_task',
     'presence_update_task',
     'reload_watcher_task',
+    'reminder_task',
     'scheduler',
 ]

@@ -103,6 +103,7 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `year.py` | `/year` | Year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
 | `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress |
+| `remind.py` | `/remind` | In-universe date reminders - add, list, cancel; fires when haracalnde date arrives |
 
 ### package: `attubot/ingestor/`
 RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu_chat.md`](notes/features/attu_chat.md) for full design and decisions.
@@ -139,6 +140,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
 | `presence.py` | `PresenceUpdateTask` - updates bot presence to reflect hatched egg count; 30-minute schedule, also triggered after each hatch |
 | `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads on a configurable interval |
+| `reminder.py` | `ReminderTask` - dynamic scheduling; delivers in-universe date reminders when haracalnde dates arrive |
 
 ### package: `attubot/wiki/`
 | File | Role |
@@ -163,6 +165,15 @@ Quart application with route registration, WebAuthn passkey auth, Discord OAuth 
 3. **MongoDB** - runtime guild-level settings (epoch, channels, roles, users, theme)
 
 `NovaConfig` loads in three stages - code that touches the DB or bot must wait for the appropriate stage (`on_init` / `on_load` / `on_ready`). Use the provided `wait_for_*` async methods if you need to gate on a stage.
+
+### versioning
+
+two independent version constants live in `attubot/__init__.py`:
+
+- **`__schema__`** - db migration version; bumped for every migration in `client/migrations.py`. compared against the version stored in MongoDB (`global_config.system.version`) to decide whether to run migrations.
+- **`__config_version__`** - minimum compatible TOML config file version; bumped only when the TOML file format changes (new sections, renamed keys, etc.). the TOML's `config_version` field is checked with `>=` against this value on startup.
+
+db-only migrations bump `__schema__` only. TOML format changes bump both and update `config/attu-bot.sample.toml`. migration execution is handled by `run_pending_migrations()` in `client/migrations.py`; `NovaConfig` calls it at the appropriate lifecycle stage.
 
 ### adding a new config field
 
@@ -368,6 +379,7 @@ Notes in `notes/` with relevant implementation details:
 - [`starboard.md`](notes/features/starboard.md) - starboard feature spec and embed structure reference
 - [`markers.md`](notes/features/markers.md) - marker system spec (resolution order, storage, commands, web API)
 - [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
+- [`reminders.md`](notes/features/reminders.md) - in-universe date reminders, fire time computation, storage, commands
 - [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
 - [`web.md`](notes/features/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
 - [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions
