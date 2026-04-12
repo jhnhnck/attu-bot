@@ -19,19 +19,24 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 - ⭕ `future idea` `high effort` slight rebrand of the game into "hatch!"
 - ⭕ `future idea` `high effort` way to discard/recycle hatches back into eggs, loot box style
-- ⭕ `medium priority` `low effort` remove any remaining references to egg/hatch season or date
 - ⭕ `medium priority` `medium effort` /eggs show: link to first egg message in thread instead of just the thread
-- ⭕ `medium priority` `medium effort` egg give dropbox crashes with exception when over 25 items; add a *more* entry that loads next 24 in a loop
+- ⭕ `low priority` `low effort` /eggs progress: update embed title to "whoever's hatched collection"
 
 ### starboard
 
+- ⭕ `medium priority` `medium effort` bug: starboard doesn't render multiple images from messages with more than one attachment (from cowboy)
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
 - ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
 
+### reminders
+
+- ⭕ `future idea` `medium effort` /remind command: pings you when a specific attu year and optionally day-month rolls around (from walt)
+
 ### wiki
 
+- ⭕ `medium priority` `low effort` bug: wiki lookup pagination allows negative index via rapid button clicks — `_prev_callback`/`_next_callback` have no bounds check; the `disabled` state only rebuilds after the async wiki fetch, so concurrent clicks bypass it; corrupted index persists to db (from banarnar)
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
 
@@ -41,6 +46,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - ⭕ `high priority` `medium effort` add Qdrant + ingestor services to docker-compose; deploy Phase 1 foundation
 - ⭕ `high priority` `medium effort` complete wiki ingestion pipeline and validate retrieval quality before moving to Phase 2
 - ⭕ `medium priority` `high effort` implement Discord ingestion pipeline - reply chain traversal, time-window grouping, and Claude Haiku summarization (Phase 2)
+- ⭕ `medium priority` `medium effort` add option to ignore specific time periods for the discord ingestor
 - ⭕ `medium priority` `low effort` add `llm_api_key` to `ChatConfig`; wire as Bearer token in `LLMClient` for both llama-server instances (Phase 2)
 - ⭕ `medium priority` `high effort` implement PDF/DOCX document ingestion pipeline with shared volume watching (Phase 3)
 - ⭕ `medium priority` `high effort` implement image captioning pipeline via Claude Haiku vision (Phase 3)
@@ -101,6 +107,8 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 eggs leaderboard for most complete hatched set and most hatched total
 - 🔴 task to clean up non-egg messages in the egg threads
 - 🔴 refactor all custom emojis into a single place, and have all be configurable
+- 🔴 `11 April 2026` remove remaining references to egg/hatch season or date
+- 🔴 `11 April 2026` egg give dropbox pagination with "more" entry that loads next 24 (verified already implemented; stale to-do removed)
 - 🔴 `30 March 2026` check audit log in `on_message_delete` to skip modlog for bot-initiated cleanup deletes
 - 🔴 `30 March 2026` split /eggs leaderboard into two separate commands: most hatched total and most complete set
 - 🔴 `30 March 2026` create `hatch.toml` for egg game tuning; load all tuning values through `NovaConfig` instead of hardcoding
@@ -141,15 +149,15 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `31 March 2026` add progress bars / step output to run_tests.py
 - 🔴 `3 April 2026` switch dockerfile base image to `ghcr.io/astral-sh/uv:python3.13-trixie` and replace pip usage with uv
 - 🔴 `3 April 2026` add a `once` run option to `BaseTask`
-- 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
 - 🔴 `11 April 2026` remove meaningless `GIT_CHANGED` line-count from dockerfile version string (always 0 on tagged deploys)
+- 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
 
 ### testing
 
 - 🔴 `3 April 2026` add tests for client/messages.py - build_message_doc, edit/delete log embeds
-- 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 - 🔴 `11 April 2026` add tests for tasks/scheduler.py — add_job, start_all, stop_all, dynamic scheduling, error handling, properties (46% → 82%)
 - 🔴 `11 April 2026` add tests for commands/link.py (25%) and commands/marker.py (30%)
+- 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 
 ---
 
@@ -157,14 +165,14 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8631 | 3142 | 2140 | 244 | 61% |
+| 8646 | 2997 | 2122 | 240 | 63% |
 
 ### attubot
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/__init__.py | 11 | 0 | 0 | 0 | 100% |
-| attubot/config.py | 477 | 161 | 90 | 23 | 62% |
+| attubot/config.py | 478 | 161 | 90 | 23 | 62% |
 | attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
@@ -172,19 +180,19 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/client/__init__.py | 49 | 4 | 6 | 0 | 93% |
+| attubot/client/__init__.py | 50 | 4 | 6 | 0 | 93% |
 | attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
 | attubot/client/core.py | 12 | 0 | 0 | 0 | 100% |
-| attubot/client/embeds.py | 19 | 2 | 12 | 2 | 87% |
-| attubot/client/events.py | 262 | 155 | 76 | 2 | 38% |
+| attubot/client/embeds.py | 27 | 2 | 16 | 2 | 91% |
+| attubot/client/events.py | 263 | 155 | 76 | 2 | 38% |
 | attubot/client/families.py | 36 | 20 | 8 | 0 | 36% |
 | attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
 | attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
 | attubot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
 | attubot/client/migrations.py | 266 | 266 | 56 | 0 | 0% |
 | attubot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
-| attubot/client/starboard.py | 572 | 171 | 224 | 44 | 68% |
-| attubot/client/util.py | 56 | 11 | 10 | 0 | 74% |
+| attubot/client/starboard.py | 576 | 168 | 226 | 44 | 69% |
+| attubot/client/util.py | 56 | 12 | 10 | 1 | 71% |
 | attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
 ### attubot/commands
@@ -194,10 +202,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
 | attubot/commands/debug.py | 215 | 135 | 38 | 0 | 33% |
-| attubot/commands/eggs.py | 246 | 35 | 72 | 6 | 86% |
+| attubot/commands/eggs.py | 246 | 30 | 72 | 4 | 88% |
 | attubot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
-| attubot/commands/link.py | 110 | 79 | 12 | 0 | 25% |
-| attubot/commands/marker.py | 82 | 53 | 16 | 0 | 30% |
+| attubot/commands/link.py | 110 | 24 | 12 | 1 | 80% |
+| attubot/commands/marker.py | 82 | 9 | 16 | 2 | 89% |
 | attubot/commands/query.py | 33 | 18 | 8 | 0 | 37% |
 | attubot/commands/stars.py | 201 | 77 | 38 | 5 | 58% |
 | attubot/commands/time.py | 43 | 24 | 4 | 0 | 40% |
@@ -210,7 +218,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/database/__init__.py | 68 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
-| attubot/database/models.py | 187 | 0 | 0 | 0 | 100% |
+| attubot/database/models.py | 188 | 0 | 0 | 0 | 100% |
 | attubot/database/repositories.py | 561 | 149 | 98 | 10 | 70% |
 
 ### attubot/eggs
@@ -251,10 +259,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 | attubot/tasks/error_hook.py | 50 | 32 | 8 | 0 | 31% |
 | attubot/tasks/logo_update.py | 67 | 43 | 10 | 1 | 32% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
-| attubot/tasks/nova_year.py | 122 | 49 | 40 | 1 | 57% |
+| attubot/tasks/nova_year.py | 123 | 49 | 40 | 1 | 57% |
 | attubot/tasks/presence.py | 28 | 10 | 2 | 1 | 63% |
 | attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
-| attubot/tasks/scheduler.py | 113 | 56 | 36 | 5 | 46% |
+| attubot/tasks/scheduler.py | 113 | 19 | 36 | 6 | 82% |
 
 ### attubot/web
 
@@ -262,11 +270,11 @@ _see the [meta](#meta) section at the end of this file for format reference._
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/web/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/web/app.py | 126 | 19 | 6 | 2 | 84% |
-| attubot/web/audit.py | 75 | 21 | 20 | 3 | 68% |
+| attubot/web/audit.py | 81 | 21 | 22 | 3 | 71% |
 | attubot/web/auth.py | 258 | 80 | 60 | 6 | 69% |
 | attubot/web/discord_integration.py | 105 | 62 | 26 | 4 | 37% |
-| attubot/web/forms.py | 187 | 15 | 62 | 6 | 88% |
-| attubot/web/routes.py | 579 | 104 | 166 | 28 | 80% |
+| attubot/web/forms.py | 202 | 26 | 68 | 6 | 82% |
+| attubot/web/routes.py | 556 | 91 | 134 | 21 | 83% |
 
 ### attubot/wiki
 
@@ -310,6 +318,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 3 April 2026
-total_completed: 51
+last_updated: 11 April 2026
+total_completed: 60
 ```

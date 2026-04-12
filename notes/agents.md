@@ -27,10 +27,13 @@ There are two runnable modes, both launched from `attu-bot.py`:
 
 when operating as a sub-agent (spawned via the agent tool), assume other agents may be working concurrently in the same repository:
 
+- **work off the `dev` branch** — the dev worktree lives at `/srv/services/doom-bot-dev`; when isolated in a worktree, ensure it is based on `dev`, not `trunk`
 - do not run git operations that modify shared state (`checkout`, `reset`, `merge`, `rebase`, `stash`) unless isolated in a worktree
 - do not assume exclusive access to any file or the working directory
 - prefer additive changes; avoid deleting or overwriting files without checking for concurrent edits
 - if isolated git work is needed, use a worktree (`EnterWorktree`) rather than modifying the main tree
+- **do not run tests** — never invoke `pytest`, `docker compose run ... tests`, `npm test`, or any test runner; testing is the responsibility of the main agent only
+- **do not run docker commands** — never invoke `docker`, `docker compose`, or any container tooling
 
 ---
 
@@ -135,7 +138,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
 | `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
 | `presence.py` | `PresenceUpdateTask` - updates bot presence to reflect hatched egg count; 30-minute schedule, also triggered after each hatch |
-| `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads; runs every 6 hours during egg season |
+| `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads on a configurable interval |
 
 ### package: `attubot/wiki/`
 | File | Role |

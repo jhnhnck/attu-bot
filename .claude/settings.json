@@ -1,4 +1,23 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "Bash(python -m pytest:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(git apply:*)",
+      "Bash(git add:*)",
+      "Bash(git mv:*)",
+      "Read(//srv/services/doom-bot/.claude/worktrees/agent-a581e42a/attubot/web/**)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -32,25 +51,5 @@
         ]
       }
     ]
-  },
-  "permissions": {
-    "allow": [
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "WebSearch",
-      "Bash(python -m pytest:*)",
-      "Bash(docker compose:*)",
-      "Bash(ruff check:*)",
-      "Bash(ruff format:*)",
-      "Bash(git apply:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git mv:*)"
-    ]
-  },
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
-  "includeCoAuthoredBy": false
+  }
 }
