@@ -88,6 +88,8 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - ⭕ `medium priority` `medium effort` add tests for commands/debug.py (33%) and commands/time.py (40%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (32%) and tasks/error_hook.py (31%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
+- ⭕ `medium priority` `medium effort` add tests for client/migrations.py (30%) - schema migration runner and version logic
+- ⭕ `medium priority` `medium effort` add tests for tasks/reminder.py (40%) - reminder scheduling and dispatch
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
@@ -166,14 +168,14 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8646 | 2997 | 2122 | 240 | 63% |
+| 8914 | 2967 | 2184 | 244 | 64% |
 
 ### attubot
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/__init__.py | 11 | 0 | 0 | 0 | 100% |
-| attubot/config.py | 478 | 161 | 90 | 23 | 62% |
+| attubot/__init__.py | 12 | 0 | 0 | 0 | 100% |
+| attubot/config.py | 462 | 143 | 86 | 23 | 65% |
 | attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
@@ -190,9 +192,9 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
 | attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
 | attubot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
-| attubot/client/migrations.py | 266 | 266 | 56 | 0 | 0% |
+| attubot/client/migrations.py | 291 | 193 | 58 | 1 | 30% |
 | attubot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
-| attubot/client/starboard.py | 576 | 168 | 226 | 44 | 69% |
+| attubot/client/starboard.py | 580 | 168 | 226 | 44 | 69% |
 | attubot/client/util.py | 56 | 12 | 10 | 1 | 71% |
 | attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
@@ -203,12 +205,13 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
 | attubot/commands/debug.py | 215 | 135 | 38 | 0 | 33% |
-| attubot/commands/eggs.py | 246 | 30 | 72 | 4 | 88% |
+| attubot/commands/eggs.py | 246 | 12 | 72 | 5 | 95% |
 | attubot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
 | attubot/commands/link.py | 110 | 24 | 12 | 1 | 80% |
 | attubot/commands/marker.py | 82 | 9 | 16 | 2 | 89% |
 | attubot/commands/query.py | 33 | 18 | 8 | 0 | 37% |
-| attubot/commands/stars.py | 201 | 77 | 38 | 5 | 58% |
+| attubot/commands/remind.py | 89 | 21 | 20 | 1 | 76% |
+| attubot/commands/stars.py | 202 | 77 | 38 | 5 | 58% |
 | attubot/commands/time.py | 43 | 24 | 4 | 0 | 40% |
 | attubot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
 | attubot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
@@ -217,10 +220,10 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/database/__init__.py | 68 | 4 | 0 | 0 | 94% |
+| attubot/database/__init__.py | 72 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
-| attubot/database/models.py | 188 | 0 | 0 | 0 | 100% |
-| attubot/database/repositories.py | 561 | 149 | 98 | 10 | 70% |
+| attubot/database/models.py | 202 | 0 | 0 | 0 | 100% |
+| attubot/database/repositories.py | 599 | 149 | 102 | 10 | 72% |
 
 ### attubot/eggs
 
@@ -252,7 +255,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/tasks/__init__.py | 23 | 0 | 0 | 0 | 100% |
+| attubot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
 | attubot/tasks/base.py | 13 | 3 | 0 | 0 | 77% |
 | attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
@@ -263,6 +266,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/tasks/nova_year.py | 123 | 49 | 40 | 1 | 57% |
 | attubot/tasks/presence.py | 28 | 10 | 2 | 1 | 63% |
 | attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
+| attubot/tasks/reminder.py | 106 | 58 | 40 | 1 | 40% |
 | attubot/tasks/scheduler.py | 113 | 19 | 36 | 6 | 82% |
 
 ### attubot/web
