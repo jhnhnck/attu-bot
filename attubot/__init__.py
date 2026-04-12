@@ -26,6 +26,7 @@ from attubot.client import (  # noqa: F401
     _load_event_handlers,
     _load_extensions,
     _register_core_commands,
+    _setup_discord_logging,
     command_ping,
     extensions_list,
     start_bot_loop,

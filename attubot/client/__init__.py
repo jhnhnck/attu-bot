@@ -17,7 +17,7 @@ from discord import ApplicationCommand, ApplicationContext
 import attubot.commands
 from attubot.client.core import bot, config, db  # noqa: F401 - re-exported as client API
 from attubot.client.embeds import ui_emoji
-from attubot.logging import get_logger
+from attubot.logging import PycordBridgeHandler, get_logger
 
 
 logger = get_logger(__name__)
@@ -29,7 +29,8 @@ logger.info('initializing')
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx: ApplicationContext):
-    await ctx.respond(f'Pong! {ui_emoji("rockball")}')
+    latency_ms = round(ctx.bot.latency * 1000)
+    await ctx.respond(f'Pong! ({latency_ms}ms) {ui_emoji("rockball")}')
 
 
 # --- Extensions ---
@@ -48,6 +49,15 @@ def _check_deps():
         if where is None:
             raise Exception(f'missing dependency: {cmd}')
         logger.info(f'found dependency: {where}')
+
+
+def _setup_discord_logging():
+    """bridge pycord rate-limit logs into the project logger"""
+    import logging as _logging
+
+    discord_http_logger = _logging.getLogger('discord.http')
+    discord_http_logger.addHandler(PycordBridgeHandler(get_logger('discord.http')))
+    discord_http_logger.setLevel(_logging.DEBUG)
 
 
 def _load_event_handlers():
@@ -74,6 +84,7 @@ def _load_extensions():
 
 def start_bot_loop():
     logger.info('starting doombot')
+    _setup_discord_logging()
     config.on_init()
     _check_deps()
     _load_event_handlers()

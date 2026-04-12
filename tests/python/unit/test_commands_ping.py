@@ -25,14 +25,17 @@ import pytest
 class TestPingCommand:
     @pytest.mark.asyncio
     async def test_ping_responds_pong(self, mock_ctx):
-        """Test that /ping responds with 'Pong!'"""
+        """Test that /ping responds with 'Pong!' and latency"""
         from attubot import command_ping
+
+        mock_ctx.bot.latency = 0.042
 
         await command_ping(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
         assert 'Pong!' in response
+        assert '(42ms)' in response
         assert '<:rockball:1308981475114225694>' in response
 
 

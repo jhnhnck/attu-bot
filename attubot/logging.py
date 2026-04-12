@@ -89,5 +89,49 @@ class Logger:
             self.error(f'Issue logging error to configured webhook: {err}')
 
 
+class PycordBridgeHandler:
+    """stdlib logging handler that forwards pycord log records to the custom logger"""
+
+    def __init__(self, target: Logger):
+        import logging as _logging
+
+        self.level = _logging.DEBUG
+        self._target = target
+        self._formatter: _logging.Formatter | None = None
+        self._name: str | None = None
+
+    def setLevel(self, level: int) -> None:
+        self.level = level
+
+    def setFormatter(self, fmt) -> None:
+        self._formatter = fmt
+
+    def set_name(self, name: str) -> None:
+        self._name = name
+
+    def get_name(self) -> str | None:
+        return self._name
+
+    name = property(get_name, set_name)
+
+    def format(self, record) -> str:
+        if self._formatter:
+            return self._formatter.format(record)
+        return record.getMessage()
+
+    def handle(self, record) -> None:
+        if record.levelno >= self.level:
+            self.emit(record)
+
+    def emit(self, record) -> None:
+        import logging as _logging
+
+        msg = self.format(record)
+        if record.levelno >= _logging.WARNING:
+            self._target.warn(msg)
+        elif record.levelno >= _logging.DEBUG:
+            self._target.debug(msg)
+
+
 def get_logger(class_name: str) -> Logger:
     return Logger(class_name)

@@ -44,6 +44,48 @@ def _patch_all_startup(
 # ============================================================
 
 
+class TestSetupDiscordLogging:
+    """unit: _setup_discord_logging() bridges pycord rate-limit logs to the project logger"""
+
+    def test_attaches_handler_to_discord_http_logger(self):
+        """a PycordBridgeHandler is added to the discord.http stdlib logger"""
+        import logging as _logging
+
+        from attubot.logging import PycordBridgeHandler
+
+        discord_http_logger = _logging.getLogger('discord.http')
+        initial_count = len(discord_http_logger.handlers)
+
+        attubot._setup_discord_logging()
+
+        new_handlers = discord_http_logger.handlers[initial_count:]
+        assert any(isinstance(h, PycordBridgeHandler) for h in new_handlers)
+
+        # cleanup: remove the handler we just added
+        for h in new_handlers:
+            if isinstance(h, PycordBridgeHandler):
+                discord_http_logger.removeHandler(h)
+
+    def test_sets_discord_http_logger_to_debug(self):
+        """discord.http logger level is set to DEBUG"""
+        import logging as _logging
+
+        discord_http_logger = _logging.getLogger('discord.http')
+        original_level = discord_http_logger.level
+
+        attubot._setup_discord_logging()
+
+        assert discord_http_logger.level == _logging.DEBUG
+
+        # cleanup
+        discord_http_logger.setLevel(original_level)
+        from attubot.logging import PycordBridgeHandler
+
+        for h in list(discord_http_logger.handlers):
+            if isinstance(h, PycordBridgeHandler):
+                discord_http_logger.removeHandler(h)
+
+
 class TestStartBotLoopPipeline:
     """unit: start_bot_loop() pipeline steps are called in the correct order"""
 
