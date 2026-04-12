@@ -26,6 +26,10 @@ _starboard_repo: StarboardRepository | None = None
 # per-message locks to serialize reaction processing and prevent concurrent races
 _message_locks: dict[int, asyncio.Lock] = {}
 
+# tracks bot-initiated reaction removals so handle_star_remove can ignore the
+# echoed on_raw_reaction_remove event from discord. keyed by (channel, message, user, emoji).
+_pending_bot_removals: set[tuple[int, int, int, str]] = set()
+
 _IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.apng'}
 
 # regex to extract per-emoji counts and the jump url from a starboard content string
@@ -358,15 +362,22 @@ def _is_image(attachment: dict) -> bool:
 
 
 async def _remove_reaction_from_discord(channel_id: int, message_id: int, user_id: int, emoji_str: str) -> None:
-    """remove an invalid reaction from discord, suppressing all errors."""
+    """remove an invalid reaction from discord, suppressing all errors.
+
+    registers the removal in _pending_bot_removals so that the echoed
+    on_raw_reaction_remove event is ignored by handle_star_remove.
+    """
     from attubot.client.core import bot
 
+    _pending_bot_removals.add((channel_id, message_id, user_id, emoji_str))
     try:
         channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
         message = channel.get_partial_message(message_id)  # type: ignore[union-attr]
         await message.remove_reaction(emoji_str, discord.Object(id=user_id))
         logger.debug(f'starboard: removed invalid reaction {emoji_str} from user {user_id} on message {message_id}')
     except Exception as err:
+        # removal failed; discard the pending entry since no event will fire
+        _pending_bot_removals.discard((channel_id, message_id, user_id, emoji_str))
         logger.debug(f'starboard: could not remove reaction {emoji_str} from user {user_id} on message {message_id}: {err}')
 
 
@@ -673,6 +684,15 @@ async def handle_star_remove(
 
     sb = guild_config.starboard
     if not sb.channel_id or emoji_str not in sb.emojis:
+        return
+
+    # bot-initiated removals (self-star, duplicate cleanup) register a pending key
+    # before calling _remove_reaction_from_discord; consume it here so the echoed
+    # discord event doesn't decrement the user's legitimate vote
+    pending_key = (channel_id, message_id, user_id, emoji_str)
+    if pending_key in _pending_bot_removals:
+        _pending_bot_removals.discard(pending_key)
+        logger.debug(f'starboard: ignoring bot-initiated removal for {user_id} on {message_id}')
         return
 
     repo = _get_repo()

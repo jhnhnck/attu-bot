@@ -436,6 +436,47 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
     mock_sync.assert_called_once()
 
 
+async def test_handle_star_remove_bot_initiated_ignored(make_starboard_guild, mock_sb_and_msg_repos):
+    """bot-initiated removals (self-star, duplicate cleanup) must not decrement the original message's reactions"""
+    from attubot.client.starboard import _pending_bot_removals, handle_star_remove
+
+    sb_repo, msg_repo = mock_sb_and_msg_repos
+    make_starboard_guild()
+
+    # simulate the bot registering a pending removal (as _remove_reaction_from_discord does)
+    _pending_bot_removals.add((test_starboard_channel, test_starboard_msg, user_a, emoji_star))
+
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        await handle_star_remove(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
+
+    # the pending key should be consumed and no DB mutation should happen
+    assert (test_starboard_channel, test_starboard_msg, user_a, emoji_star) not in _pending_bot_removals
+    sb_repo.remove_reaction.assert_not_called()
+    mock_sync.assert_not_called()
+
+
+async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboard_guild, mock_sb_and_msg_repos):
+    """user manually removing their reaction from the starboard post should decrement the original"""
+    from attubot.client.starboard import handle_star_remove
+
+    sb_repo, msg_repo = mock_sb_and_msg_repos
+    make_starboard_guild()
+
+    # starboard post links back to original message
+    existing_doc = _make_star_doc(starboard_message_id=test_starboard_msg, message_id=test_message)
+    sb_repo.get_by_starboard_message = AsyncMock(return_value=existing_doc)
+
+    # no pending key — this is a real user action, not bot-initiated
+    updated_doc = _make_star_doc(message_id=test_message)
+    sb_repo.remove_reaction = AsyncMock(return_value=updated_doc)
+
+    with patch('attubot.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        await handle_star_remove(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_b, emoji_str=emoji_star)
+
+    sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_b)
+    mock_sync.assert_called_once()
+
+
 # ---- one-vote-per-user, auto-remove, and threshold tests ----
 
 emoji_glow = '🌟'

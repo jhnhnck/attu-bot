@@ -114,6 +114,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### starboard
 
 - 🔴 `3 April 2026` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
+- 🔴 `11 April 2026` fix self-star cascade bug: starring the starboard mirror post when your star created it no longer removes the original from the board
 
 ### code audits
 
