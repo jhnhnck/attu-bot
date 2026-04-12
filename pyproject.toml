@@ -1,6 +1,6 @@
 [project]
 name = "attubot"
-version = "77.6.7"
+version = "78.0"
 requires-python = ">=3.9,<3.14"
 dependencies = [
     "aiohttp",
