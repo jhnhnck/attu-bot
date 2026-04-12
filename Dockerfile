@@ -11,9 +11,8 @@ WORKDIR /src
 COPY . .
 RUN set -eux; \
     GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"; \
-    GIT_CHANGED="$(git diff HEAD --numstat 2>/dev/null | awk '{s+=$1+$2} END {print s+0}')"; \
     BUILD_TIME="$(date '+%a %b %d %H:%M:%S %Z %Y')"; \
-    sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}+${GIT_CHANGED}'|" attubot/__init__.py; \
+    sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}'|" attubot/__init__.py; \
     sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" attubot/__init__.py;
 
 # doom-bot container base - system deps, application code, and Python packages

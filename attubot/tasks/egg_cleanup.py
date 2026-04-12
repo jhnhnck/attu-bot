@@ -20,8 +20,9 @@ logger = get_logger(__name__)
 class EggCleanupTask(BaseTask):
     """Periodic task that deletes non-egg messages from egg threads.
 
-    Runs every 6 hours during egg season. For each user's egg thread, deletes
-    any message older than 12 hours whose id is not tracked in the egg database.
+    Runs on a configurable interval (default 6 hours). For each user's egg
+    thread, deletes any message older than the cleanup cutoff whose id is not
+    tracked in the egg database.
     """
 
     name: str = 'EggCleanupTask'

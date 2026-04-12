@@ -179,6 +179,7 @@ async def run_hatch_animation(message: discord.Message | discord.PartialMessage,
     await message.edit(content='💢')
     await asyncio.sleep(1)
     await message.edit(content=result)
+
     # update presence to reflect the newly hatched egg
     from attubot.tasks.presence import presence_update_task
     from attubot.tasks.scheduler import scheduler  # local import avoids circular dep

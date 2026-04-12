@@ -67,7 +67,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### maintenance
 
-- ⭕ `low priority` `low effort` git-info stage in dockerfile reports line-change count in version string, but we only deploy tagged commits now — changed lines will always be 0; remove or replace with something meaningful
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
@@ -143,6 +142,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `3 April 2026` switch dockerfile base image to `ghcr.io/astral-sh/uv:python3.13-trixie` and replace pip usage with uv
 - 🔴 `3 April 2026` add a `once` run option to `BaseTask`
 - 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
+- 🔴 `11 April 2026` remove meaningless `GIT_CHANGED` line-count from dockerfile version string (always 0 on tagged deploys)
 
 ### testing
 
