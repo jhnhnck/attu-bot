@@ -1091,6 +1091,118 @@ class TestEggSelectMenu:
 
 
 # ============================================================
+# _EggSelectMenu - pagination
+# ============================================================
+
+
+def _make_options(count: int) -> list[discord.SelectOption]:
+    """build a list of n unique select options for pagination tests."""
+    return [discord.SelectOption(label=f'creature {i}', value=f'hatched:creature_{i}') for i in range(count)]
+
+
+class TestEggSelectMenuPagination:
+    def test_under_page_size_no_more_option(self):
+        """fewer than 24 items - no 'more' option appended"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(10)
+        menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(menu.options) == 10
+        assert all(not o.value.startswith('more:') for o in menu.options)
+
+    def test_exactly_page_size_no_more_option(self):
+        """exactly 24 items - no 'more' option needed"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(24)
+        menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(menu.options) == 24
+        assert all(not o.value.startswith('more:') for o in menu.options)
+
+    def test_over_page_size_adds_more_option(self):
+        """25+ items - first page has 24 items + 1 'more' option = 25 total"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(30)
+        menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(menu.options) == 25
+        assert menu.options[-1].value == 'more:24'
+        assert menu.options[-1].label == 'more...'
+
+    def test_second_page_remainder(self):
+        """30 items starting at offset 24 - second page has 6 items, no 'more'"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(30)
+        menu = _EggSelectMenu(options, 24, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(menu.options) == 6
+        assert all(not o.value.startswith('more:') for o in menu.options)
+
+    def test_multi_page_chain(self):
+        """49 items - page 1 has 'more:24', page 2 has 'more:48', page 3 has 1 item"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(49)
+
+        # page 1
+        p1 = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(p1.options) == 25
+        assert p1.options[-1].value == 'more:24'
+
+        # page 2
+        p2 = _EggSelectMenu(options, 24, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(p2.options) == 25
+        assert p2.options[-1].value == 'more:48'
+
+        # page 3
+        p3 = _EggSelectMenu(options, 48, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+        assert len(p3.options) == 1
+        assert not p3.options[0].value.startswith('more:')
+
+    def test_no_page_exceeds_25_options(self):
+        """exhaustive check: for a large list, every page has at most 25 options"""
+        from attubot.commands.eggs import _EggSelectMenu
+
+        options = _make_options(100)
+        offset = 0
+        pages_seen = 0
+        while offset < len(options):
+            menu = _EggSelectMenu(options, offset, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+            assert len(menu.options) <= 25
+            pages_seen += 1
+            # check if last option is a 'more' link
+            if menu.options[-1].value.startswith('more:'):
+                offset = int(menu.options[-1].value[5:])
+            else:
+                break
+        # should have visited all items across all pages
+        assert pages_seen == 5  # ceil(100 / 24) = 5 pages
+
+    async def test_more_callback_advances_page(self):
+        """selecting 'more:24' edits the message with a new view at offset 24"""
+        from attubot.commands.eggs import EggSelectView, _EggSelectMenu
+
+        options = _make_options(30)
+        menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
+
+        # simulate user selecting the 'more' option
+        menu._selected_values = ['more:24']
+        menu._interaction = MagicMock()  # pycord requires _interaction for values property
+
+        interaction = _make_interaction(test_user)
+        await menu.callback(interaction)
+
+        interaction.response.edit_message.assert_called_once()
+        call_kwargs = interaction.response.edit_message.call_args.kwargs
+        assert call_kwargs['content'] == 'pick an egg to give:'
+        new_view = call_kwargs['view']
+        assert isinstance(new_view, EggSelectView)
+        # the new view's select menu should have 6 items (30 - 24)
+        new_select = new_view.children[0]
+        assert len(new_select.options) == 6
+
+
+# ============================================================
 # /eggs give command
 # ============================================================
 
