@@ -2115,3 +2115,36 @@ class TestLogBulkDeleteAdditional:
         field_values = {f.name: f.value for f in embed.fields}
         preview = field_values.get('Preview', '')
         assert '...' in preview
+
+
+# ============================================================
+# ui_emoji helper
+# ============================================================
+
+
+class TestUiEmoji:
+    def test_returns_fallback_when_theme_is_none(self):
+        """ui_emoji degrades gracefully before config loads"""
+        from attubot.client.embeds import ui_emoji
+
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme = None
+            assert ui_emoji('rockball', fallback='') == ''
+            assert ui_emoji('rockball', fallback=':rock:') == ':rock:'
+
+    def test_returns_formatted_emoji_when_configured(self):
+        """ui_emoji returns discord emoji string when theme has the emoji id"""
+        from attubot.client.embeds import ui_emoji
+
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.ui_emojis = {'rockball': 1308981475114225694}
+            assert ui_emoji('rockball') == '<:rockball:1308981475114225694>'
+
+    def test_returns_fallback_when_emoji_not_in_config(self):
+        """ui_emoji returns fallback when the emoji name isn't configured"""
+        from attubot.client.embeds import ui_emoji
+
+        with patch('attubot.client.core.config') as mock_config:
+            mock_config.theme.ui_emojis = {}
+            assert ui_emoji('missing') == ''
+            assert ui_emoji('missing', fallback=':shrug:') == ':shrug:'

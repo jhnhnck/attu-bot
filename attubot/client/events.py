@@ -17,6 +17,7 @@ from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
 from attubot.client.core import bot, config
+from attubot.client.embeds import ui_emoji
 from attubot.client.util import shift_hue
 from attubot.config import UnauthorizedGuild
 from attubot.logging import get_logger
@@ -171,11 +172,11 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             await ctx.respond('This feature requires DoomBot(tm) Premium')
 
     elif isinstance(error, MissingPermissions):
-        await ctx.respond('Nice try! <:rockball:1308981475114225694>')
+        await ctx.respond(f'Nice try! {ui_emoji("rockball")}')
 
     else:
         if ctx.command.name != 'force_error':
-            await ctx.respond('An unexpected error occurred! <:rockball_player:1308977543034048552>')
+            await ctx.respond(f'An unexpected error occurred! {ui_emoji("rockball_player")}')
 
         if hasattr(ctx.response, 'jump_url'):
             link = ctx.response.jump_url
@@ -230,7 +231,7 @@ async def on_message(message: Message):
 
     if message.channel.id == activity_channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):
         if 'blocked' in message.content or 'registered' in message.content:
-            await message.add_reaction('<:tieteran_wave:1308636215930654801>')
+            await message.add_reaction(ui_emoji('tieteran_wave'))
         else:
             await message.add_reaction('💖')
 

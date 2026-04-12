@@ -637,6 +637,22 @@ async function loadThemeConfig() {
 
         syncColorInputs();
 
+        // populate ui emojis textarea
+        const uiTextarea = document.getElementById('ui_emojis_textarea');
+        if (uiTextarea) {
+            const uiEmojis = data.ui_emojis || {};
+            if (Object.keys(uiEmojis).length > 0) {
+                // serialize snowflake ids as strings to avoid js precision loss
+                const safe = {};
+                for (const [k, v] of Object.entries(uiEmojis)) {
+                    safe[k] = String(v);
+                }
+                uiTextarea.value = JSON.stringify(safe, null, 2);
+            } else {
+                uiTextarea.value = '';
+            }
+        }
+
         // populate egg emojis display
         const eggBody = document.getElementById('egg-emojis-body');
         if (eggBody) {
@@ -669,6 +685,23 @@ async function saveThemeConfig(formElement) {
 
     try {
         const data = serializeForm(formElement);
+
+        // inject ui_emojis from the textarea (outside the form)
+        const uiTextarea = document.getElementById('ui_emojis_textarea');
+        if (uiTextarea) {
+            const raw = uiTextarea.value.trim();
+            if (raw) {
+                try {
+                    data.ui_emojis = JSON.parse(raw);
+                } catch {
+                    showNotification('Invalid JSON in UI Emojis field', 'danger');
+                    return;
+                }
+            } else {
+                data.ui_emojis = {};
+            }
+        }
+
         const result = await fetchJSON('/api/theme', {
             method: 'POST',
             body: JSON.stringify(data)

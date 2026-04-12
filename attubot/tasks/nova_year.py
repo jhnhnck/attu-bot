@@ -10,6 +10,7 @@ from datetime import datetime
 
 from attubot import bot, config
 from attubot.client.calendar import format_year_line, get_next_year, get_year_status
+from attubot.client.embeds import ui_emoji
 from attubot.client.util import webhook_logging
 from attubot.client.years import Year
 from attubot.config import GuildConfig
@@ -66,7 +67,7 @@ async def job_construct_year_links(guild_id: int):
     year_idx = 1
     async for message in thread.history(limit=None, oldest_first=True):
         if message.author.id != bot.user.id:
-            await message.add_reaction('<:rockball:1308981475114225694>')
+            await message.add_reaction(ui_emoji('rockball'))
             continue
 
         block = await generate_links_block(year_idx)

@@ -28,6 +28,23 @@
         </div>
       </div>
 
+      <!-- UI Emojis -->
+      <div class="card mb-4" id="ui-emojis-card">
+        <div class="card-header">
+          <h5 class="mb-0">UI Emojis</h5>
+          <small class="text-muted">custom emojis used in bot responses (name to snowflake id)</small>
+        </div>
+        <div class="card-body">
+          <textarea
+            class="form-control font-monospace"
+            id="ui_emojis_textarea"
+            rows="6"
+            placeholder='{"rockball": 1308981475114225694, "rockball_player": 1308977543034048552}'
+          ></textarea>
+          <small class="text-muted">JSON object mapping emoji names to Discord snowflake IDs</small>
+        </div>
+      </div>
+
       <!-- Theme Form -->
       <form id="theme-config-form">
         <div class="card">

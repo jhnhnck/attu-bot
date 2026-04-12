@@ -15,7 +15,7 @@ from attubot.database.models import ChatChannelConfig, ChatConfigDocument
 from attubot.logging import get_logger
 from attubot.signals import send_signal
 from attubot.web.app import config
-from attubot.web.audit import ConfigChange, compare_configs, get_client_ip
+from attubot.web.audit import ConfigChange, compare_configs, log_audit
 from attubot.web.discord_integration import get_guild_channels, get_guild_info, get_guild_roles, get_users_info, invalidate_guild_cache
 from attubot.web.forms import ChatConfigForm, GuildConfigForm, SystemConfigForm, ThemeConfigForm
 
@@ -301,27 +301,17 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             await guild.save()
             await send_signal('guild', guild_id)
 
-            # Audit logging
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                new_config = {
-                    'channels': guild.channels.model_dump(),
-                    'epoch': guild.epoch.model_dump(),
-                    'roles': guild.roles.model_dump(),
-                    'users': guild.users.model_dump(),
-                    'starboard': guild.starboard.model_dump(),
-                }
-                changes = compare_configs(old_config, new_config)
-                if changes:
-                    await web_app.audit_logger.log_change(
-                        config_type='guild',
-                        action='update',
-                        changes=changes,
-                        ip_address=get_client_ip(),
-                        guild_id=guild_id,
-                        success=True,
-                    )
+            # audit logging
+            new_config = {
+                'channels': guild.channels.model_dump(),
+                'epoch': guild.epoch.model_dump(),
+                'roles': guild.roles.model_dump(),
+                'users': guild.users.model_dump(),
+                'starboard': guild.starboard.model_dump(),
+            }
+            changes = compare_configs(old_config, new_config)
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
 
             logger.info(f'guild {guild_id} configuration saved')
 
@@ -333,19 +323,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         except ValidationError as e:
             logger.error(f'validation error for guild {guild_id}: {e}')
 
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='guild',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=False,
-                    error_message=f'Validation error: {e!s}',
-                )
+            await log_audit('guild', 'update', [], guild_id=guild_id, success=False, error_message=f'Validation error: {e!s}')
 
             return jsonify({
                 'error': 'Validation failed',
@@ -353,20 +331,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             }), 400
         except Exception as e:
             logger.error(f'error saving guild {guild_id}: {e}')
-
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='guild',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=False,
-                    error_message=str(e),
-                )
+            await log_audit('guild', 'update', [], guild_id=guild_id, success=False, error_message=str(e))
 
             return jsonify({'error': 'Failed to save configuration'}), 500
 
@@ -406,14 +371,17 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         try:
             success = await config.load_guild(guild_id)
             if success:
+                await log_audit('guild', 'reload', [], guild_id=guild_id)
                 return jsonify({
                     'success': True,
                     'message': 'Configuration reloaded from database',
                 })
             else:
+                await log_audit('guild', 'reload', [], guild_id=guild_id, success=False, error_message='load_guild returned false')
                 return jsonify({'error': 'Failed to reload configuration'}), 500
         except Exception as e:
             logger.error(f'error reloading guild {guild_id}: {e}')
+            await log_audit('guild', 'reload', [], guild_id=guild_id, success=False, error_message=str(e))
             return jsonify({'error': 'Failed to reload configuration'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/channels')
@@ -453,6 +421,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         invalidate_guild_cache(guild_id)
+        await log_audit('guild', 'cache_invalidate', [], guild_id=guild_id)
         return jsonify({'success': True, 'message': 'Cache invalidated'})
 
     # ========== API Routes - Theme Config ==========
@@ -472,6 +441,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'logo_rings': theme.logo_rings,
             'logo_planet': theme.logo_planet,
             'egg_emojis': theme.egg_emojis,
+            'ui_emojis': {k: str(v) for k, v in theme.ui_emojis.items()},
         })
 
     @app.route('/api/theme/icon.svg')
@@ -508,6 +478,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'guild_color': config.theme.guild_color,
                 'logo_rings': config.theme.logo_rings,
                 'logo_planet': config.theme.logo_planet,
+                'ui_emojis': config.theme.ui_emojis,
             }
 
             # Update theme
@@ -517,32 +488,25 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             config.theme.guild_color = validated.guild_color
             config.theme.logo_rings = validated.logo_rings
             config.theme.logo_planet = validated.logo_planet
+            config.theme.ui_emojis = validated.ui_emojis
 
             # Save to database
             await config.theme.save()
             await send_signal('theme')
 
-            # Audit logging
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                new_config = {
-                    'rotation': config.theme.rotation,
-                    'max_rate': config.theme.max_rate,
-                    'bot_color': config.theme.bot_color,
-                    'guild_color': config.theme.guild_color,
-                    'logo_rings': config.theme.logo_rings,
-                    'logo_planet': config.theme.logo_planet,
-                }
-                changes = compare_configs(old_config, new_config)
-                if changes:
-                    await web_app.audit_logger.log_change(
-                        config_type='theme',
-                        action='update',
-                        changes=changes,
-                        ip_address=get_client_ip(),
-                        success=True,
-                    )
+            # audit logging
+            new_config = {
+                'rotation': config.theme.rotation,
+                'max_rate': config.theme.max_rate,
+                'bot_color': config.theme.bot_color,
+                'guild_color': config.theme.guild_color,
+                'logo_rings': config.theme.logo_rings,
+                'logo_planet': config.theme.logo_planet,
+                'ui_emojis': config.theme.ui_emojis,
+            }
+            changes = compare_configs(old_config, new_config)
+            if changes:
+                await log_audit('theme', 'update', changes)
 
             logger.info('theme configuration saved')
 
@@ -554,18 +518,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         except ValidationError as e:
             logger.error(f'validation error for theme: {e}')
 
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='theme',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=f'Validation error: {e!s}',
-                )
+            await log_audit('theme', 'update', [], success=False, error_message=f'Validation error: {e!s}')
 
             return jsonify({
                 'error': 'Validation failed',
@@ -573,19 +526,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             }), 400
         except Exception as e:
             logger.error(f'error saving theme: {e}')
-
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='theme',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=str(e),
-                )
+            await log_audit('theme', 'update', [], success=False, error_message=str(e))
 
             return jsonify({'error': 'Failed to save theme'}), 500
 
@@ -633,25 +574,16 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             await config.load_globals()
             await send_signal('system')
 
-            # Audit logging
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                new_config = {
-                    'primary_guild': config.primary_guild,
-                    'error_log_guild': config.error_log[0] if config.error_log else 0,
-                    'error_log_channel': config.error_log[1] if config.error_log else 0,
-                    'error_hook': f'...{config.error_hook[-6:]}' if config.error_hook else '',
-                }
-                changes = compare_configs(old_config, new_config)
-                if changes:
-                    await web_app.audit_logger.log_change(
-                        config_type='system',
-                        action='update',
-                        changes=changes,
-                        ip_address=get_client_ip(),
-                        success=True,
-                    )
+            # audit logging
+            new_config = {
+                'primary_guild': config.primary_guild,
+                'error_log_guild': config.error_log[0] if config.error_log else 0,
+                'error_log_channel': config.error_log[1] if config.error_log else 0,
+                'error_hook': f'...{config.error_hook[-6:]}' if config.error_hook else '',
+            }
+            changes = compare_configs(old_config, new_config)
+            if changes:
+                await log_audit('system', 'update', changes)
 
             logger.info('system configuration saved')
 
@@ -663,18 +595,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         except ValidationError as e:
             logger.error(f'validation error for system config: {e}')
 
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='system',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=f'Validation error: {e!s}',
-                )
+            await log_audit('system', 'update', [], success=False, error_message=f'Validation error: {e!s}')
 
             return jsonify({
                 'error': 'Validation failed',
@@ -689,19 +610,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             }), 400
         except Exception as e:
             logger.error(f'error saving system config: {e}')
-
-            # Log failed attempt
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='system',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=str(e),
-                )
+            await log_audit('system', 'update', [], success=False, error_message=str(e))
 
             return jsonify({'error': 'Failed to save system configuration'}), 500
 
@@ -790,19 +699,10 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             await send_signal('chat')
 
             # audit logging
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                new_config = config.chat_runtime.model_dump()
-                changes = compare_configs(old_config, new_config)
-                if changes:
-                    await web_app.audit_logger.log_change(
-                        config_type='chat',
-                        action='update',
-                        changes=changes,
-                        ip_address=get_client_ip(),
-                        success=True,
-                    )
+            new_config = config.chat_runtime.model_dump()
+            changes = compare_configs(old_config, new_config)
+            if changes:
+                await log_audit('chat', 'update', changes)
 
             logger.info('chat configuration saved')
 
@@ -814,17 +714,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         except ValidationError as e:
             logger.error(f'validation error for chat config: {e}')
 
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='chat',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=f'Validation error: {e!s}',
-                )
+            await log_audit('chat', 'update', [], success=False, error_message=f'Validation error: {e!s}')
 
             return jsonify({
                 'error': 'Validation failed',
@@ -832,18 +722,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             }), 400
         except Exception as e:
             logger.error(f'error saving chat config: {e}')
-
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='chat',
-                    action='update',
-                    changes=[],
-                    ip_address=get_client_ip(),
-                    success=False,
-                    error_message=str(e),
-                )
+            await log_audit('chat', 'update', [], success=False, error_message=str(e))
 
             return jsonify({'error': 'Failed to save chat configuration'}), 500
 
@@ -1030,24 +909,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 await new_year.save()
                 message = f'Year {year} created successfully'
 
-            # Audit log
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='year',
-                    action='create' if not existing else 'update',
-                    changes=[ConfigChange(field='year_data', old_value=str(existing) if existing else None, new_value=str(data))],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=True,
-                )
+            await log_audit('year', 'create' if not existing else 'update', [ConfigChange(field='year_data', old_value=str(existing) if existing else None, new_value=str(data))], guild_id=guild_id)
 
             logger.info(f'year {year} {"updated" if existing else "created"} for guild {guild_id}')
             return jsonify({'success': True, 'message': message})
 
         except Exception as e:
             logger.error(f'error creating/updating year {year} for guild {guild_id}: {e}')
+            await log_audit('year', 'create', [], guild_id=guild_id, success=False, error_message=str(e))
             return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/years/<int:year>', methods=['DELETE'])
@@ -1065,24 +934,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
             await existing.delete()
 
-            # Audit log
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='year',
-                    action='delete',
-                    changes=[ConfigChange(field='year', old_value=year, new_value=None)],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=True,
-                )
+            await log_audit('year', 'delete', [ConfigChange(field='year', old_value=year, new_value=None)], guild_id=guild_id)
 
             logger.info(f'year {year} deleted for guild {guild_id}')
             return jsonify({'success': True, 'message': f'Year {year} deleted successfully'})
 
         except Exception as e:
             logger.error(f'error deleting year {year} for guild {guild_id}: {e}')
+            await log_audit('year', 'delete', [], guild_id=guild_id, success=False, error_message=str(e))
             return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Markers ==========
@@ -1214,23 +1073,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 await new_marker.save()
                 msg = f'Marker for year {year} channel {channel} created successfully'
 
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='marker',
-                    action='create' if not existing else 'update',
-                    changes=[ConfigChange(field='marker_data', old_value=str(existing) if existing else None, new_value=str(data))],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=True,
-                )
+            await log_audit('marker', 'create' if not existing else 'update', [ConfigChange(field='marker_data', old_value=str(existing) if existing else None, new_value=str(data))], guild_id=guild_id)
 
             logger.info(f'marker year={year} channel={channel} {"updated" if existing else "created"} for guild {guild_id}')
             return jsonify({'success': True, 'message': msg})
 
         except Exception as e:
             logger.error(f'error creating/updating marker for year {year} channel {channel} in guild {guild_id}: {e}')
+            await log_audit('marker', 'create', [], guild_id=guild_id, success=False, error_message=str(e))
             return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/api/guilds/<int:guild_id>/markers/<int:year>/<int:channel>', methods=['DELETE'])
@@ -1248,23 +1098,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
             await existing.delete()
 
-            from attubot.web import app as web_app
-
-            if web_app.audit_logger:
-                await web_app.audit_logger.log_change(
-                    config_type='marker',
-                    action='delete',
-                    changes=[ConfigChange(field='marker', old_value=f'year={year} channel={channel}', new_value=None)],
-                    ip_address=get_client_ip(),
-                    guild_id=guild_id,
-                    success=True,
-                )
+            await log_audit('marker', 'delete', [ConfigChange(field='marker', old_value=f'year={year} channel={channel}', new_value=None)], guild_id=guild_id)
 
             logger.info(f'marker year={year} channel={channel} deleted for guild {guild_id}')
             return jsonify({'success': True, 'message': f'Marker for year {year} channel {channel} deleted successfully'})
 
         except Exception as e:
             logger.error(f'error deleting marker for year {year} channel {channel} in guild {guild_id}: {e}')
+            await log_audit('marker', 'delete', [], guild_id=guild_id, success=False, error_message=str(e))
             return jsonify({'error': 'Internal server error'}), 500
 
     # ========== API Routes - Time/Calendar ==========

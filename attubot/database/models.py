@@ -44,6 +44,7 @@ class ThemeDocument(BaseModel):
     lightness: float = 0.5
     egg_emojis: dict[str, int] = {}
     progress_emojis: dict[str, int] = {}
+    ui_emojis: dict[str, int] = {}
 
 
 class SystemConfigDocument(BaseModel):

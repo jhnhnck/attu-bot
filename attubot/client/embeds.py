@@ -12,6 +12,18 @@ from discord import Color, Embed
 from attubot.client.util import theme_color
 
 
+def ui_emoji(name: str, fallback: str = '') -> str:
+    """Format a custom UI emoji from the theme config, or return fallback."""
+    from attubot.client.core import config
+
+    if config.theme is None:
+        return fallback
+    emoji_id = config.theme.ui_emojis.get(name)
+    if emoji_id:
+        return f'<:{name}:{emoji_id}>'
+    return fallback
+
+
 def make_embed(
     title: str | None = None,
     *,

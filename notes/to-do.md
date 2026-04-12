@@ -63,14 +63,12 @@ _see the [meta](#meta) section at the end of this file for format reference._
 ### web interface
 
 - ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes for
-- ⭕ `medium priority` `medium effort` web audit log should be enforced, not optional - currently guarded by `if web_app.audit_logger:` which silently skips auditing if not configured
 - ⭕ `low priority` `medium effort` primary / secondary guild toggle instead of having all guilds
 
 ### maintenance
 
 - ⭕ `low priority` `low effort` git-info stage in dockerfile reports line-change count in version string, but we only deploy tagged commits now — changed lines will always be 0; remove or replace with something meaningful
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
-- ⭕ `medium priority` `medium effort` we use hard-coded custom emojis in a lot of the responses; centralize this into one place; already storing some emoji ids with the theme
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
 - ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
@@ -128,6 +126,10 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `30 March 2026` audit codebase for non-standard or inconsistent terminology and decide whether to standardize
 - 🔴 `30 March 2026` investigate unifying stored date types under one class (`config.py:108`)
 
+### web interface
+
+- 🔴 `11 April 2026` enforce web audit logging — replaced optional `if web_app.audit_logger:` guards with `log_audit()` helper; added error-path and missing-route audit coverage
+
 ### maintenance
 
 - 🔴 deploy script (scripts/deploy.py)
@@ -142,6 +144,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `31 March 2026` add progress bars / step output to run_tests.py
 - 🔴 `3 April 2026` switch dockerfile base image to `ghcr.io/astral-sh/uv:python3.13-trixie` and replace pip usage with uv
 - 🔴 `3 April 2026` add a `once` run option to `BaseTask`
+- 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
 
 ### testing
 

@@ -53,6 +53,19 @@ def restore_config_state():
     # event states must be saved separately - the events dict is mutated in-place
     saved_events = {k: v.is_set() for k, v in config._events.items()}
 
+    # ensure tests always have a valid theme with default emoji IDs
+    if config.theme is None:
+        from attubot.config import BotTheme
+
+        config.theme = BotTheme(
+            ui_emojis={
+                'rockball': 1308981475114225694,
+                'rockball_player': 1308977543034048552,
+                'crackerpeaty': 1214140141245825024,
+                'tieteran_wave': 1308636215930654801,
+            },
+        )
+
     yield
 
     # remove any instance attrs added during the test (e.g. load_guild=AsyncMock())

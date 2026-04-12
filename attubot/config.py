@@ -78,6 +78,7 @@ class BotTheme(BaseModel):
     lightness: float = 0.5
     egg_emojis: dict[str, int] = {}
     progress_emojis: dict[str, int] = {}
+    ui_emojis: dict[str, int] = {}
 
     async def save(self):
         """Save theme to MongoDB"""
@@ -675,6 +676,7 @@ class NovaConfig:
                     lightness=doc.lightness,
                     egg_emojis=doc.egg_emojis,
                     progress_emojis=doc.progress_emojis,
+                    ui_emojis=doc.ui_emojis,
                 )
             else:
                 # Create defaults

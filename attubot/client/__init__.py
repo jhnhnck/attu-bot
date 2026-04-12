@@ -16,6 +16,7 @@ from discord import ApplicationCommand, ApplicationContext
 
 import attubot.commands
 from attubot.client.core import bot, config, db  # noqa: F401 - re-exported as client API
+from attubot.client.embeds import ui_emoji
 from attubot.logging import get_logger
 
 
@@ -28,7 +29,7 @@ logger.info('initializing')
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
 async def command_ping(ctx: ApplicationContext):
-    await ctx.respond('Pong! <:rockball:1308981475114225694>')
+    await ctx.respond(f'Pong! {ui_emoji("rockball")}')
 
 
 # --- Extensions ---

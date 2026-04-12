@@ -11,6 +11,7 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from attubot import config
+from attubot.client.embeds import ui_emoji
 from attubot.client.util import theme_color
 from attubot.logging import get_logger
 
@@ -49,7 +50,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
 
     if doc is None:
         label = 'exactly 1 star' if max_total == 1 else f'{min_total}+ stars'
-        await ctx.respond(f'no messages found with {label} <:rockball_player:1308977543034048552>', ephemeral=True)
+        await ctx.respond(f'no messages found with {label} {ui_emoji("rockball_player")}', ephemeral=True)
         return
 
     try:
@@ -246,7 +247,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
 async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_key: str, value_label: str, title: str) -> None:
     """build and send a numbered leaderboard embed."""
     if not rows:
-        await ctx.respond(f'no data yet for {title.lower()} <:rockball_player:1308977543034048552>', ephemeral=True)
+        await ctx.respond(f'no data yet for {title.lower()} {ui_emoji("rockball_player")}', ephemeral=True)
         return
 
     lines = []

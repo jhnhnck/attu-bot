@@ -22,7 +22,7 @@ from discord.utils import snowflake_time
 
 from attubot import __build_time__, __schema__, __title__, __version__, config
 from attubot.client.calendar import get_year_span, get_year_status
-from attubot.client.embeds import make_embed
+from attubot.client.embeds import make_embed, ui_emoji
 from attubot.client.util import is_bot_owner
 from attubot.logging import get_logger
 from attubot.tasks import scheduler
@@ -52,13 +52,13 @@ async def command_pong(ctx: ApplicationContext):
         logger.info(f'pong task sleeping for {sleep_time} seconds')
         await asyncio.sleep(sleep_time)
 
-        await ctx.channel.send(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+        await ctx.channel.send(f'{ctx.author.mention}! {ui_emoji("rockball")}')
 
     if config.is_owner(ctx.author.id):
-        await ctx.respond(f'{ctx.author.mention}! <:rockball:1308981475114225694>')
+        await ctx.respond(f'{ctx.author.mention}! {ui_emoji("rockball")}')
 
     else:
-        await ctx.respond('Ping! <:rockball:1308981475114225694>')
+        await ctx.respond(f'Ping! {ui_emoji("rockball")}')
         from attubot.tasks import scheduler
 
         scheduler.add_job(wait_random(), 'PongTask', ctx.author.name)
@@ -195,7 +195,7 @@ async def debug_message(ctx: ApplicationContext, link):
                 break
 
         if message is None:
-            await ctx.respond("Couldn't find message! <:rockball_player:1308977543034048552>")
+            await ctx.respond(f"Couldn't find message! {ui_emoji('rockball_player')}")
             return
 
         # build summary embed
@@ -228,7 +228,7 @@ async def debug_message(ctx: ApplicationContext, link):
         await ctx.respond(embed=embed, file=discord.File(buf, filename=f'message_{message.id}.json'))
 
     except Exception as err:
-        await ctx.respond('could not locate message (check logs) <:rockball_player:1308977543034048552>')
+        await ctx.respond(f'could not locate message (check logs) {ui_emoji("rockball_player")}')
         logger.error(f'debug message: {err}')
 
 

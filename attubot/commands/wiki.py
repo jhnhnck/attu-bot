@@ -16,7 +16,7 @@ from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
 from attubot import bot, config
-from attubot.client.embeds import make_embed
+from attubot.client.embeds import make_embed, ui_emoji
 from attubot.client.util import is_authorized_guild
 from attubot.database.models import WikiViewDocument
 from attubot.logging import get_logger
@@ -117,7 +117,7 @@ class WikiLookupView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self._invoker_user_id:
-            await interaction.response.send_message("those aren't yours to press <:rockball:1308981475114225694>", ephemeral=True)
+            await interaction.response.send_message(f"those aren't yours to press {ui_emoji('rockball')}", ephemeral=True)
             return False
         return True
 
@@ -203,7 +203,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
 
     # handle no results
     if len(pages) == 0:
-        await ctx.respond(f'**Oops, no results for __{query}__!** <:rockball_player:1308977543034048552>')
+        await ctx.respond(f'**Oops, no results for __{query}__!** {ui_emoji("rockball_player")}')
         return
 
     site_info = await wiki.search.site_info()

@@ -91,6 +91,11 @@ async def web_app():
     # Set init time for uptime calculation
     web_app_module.config._init_time = _time.time() - 3600  # 1 hour ago
 
+    # Mock audit logger so error-path audit calls don't crash
+    mock_audit_logger = MagicMock()
+    mock_audit_logger.log_change = AsyncMock()
+    web_app_module.audit_logger = mock_audit_logger
+
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
     from attubot.config import PathsConfig, WebConfig

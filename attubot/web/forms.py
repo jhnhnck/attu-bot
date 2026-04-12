@@ -238,6 +238,24 @@ class ThemeConfigForm(BaseModel):
     guild_color: str = Field(default='#ffffff', pattern=r'^#[0-9a-fA-F]{6}$')
     logo_rings: str = Field(default='#000000', pattern=r'^#[0-9a-fA-F]{6}$')
     logo_planet: str = Field(default='#000000', pattern=r'^#[0-9a-fA-F]{6}$')
+    ui_emojis: dict[str, int] = Field(default_factory=dict)
+
+    @field_validator('ui_emojis', mode='before')
+    @classmethod
+    def parse_ui_emojis(cls, v):
+        """accept JSON string or dict of name -> snowflake id"""
+        import json
+
+        if isinstance(v, str):
+            if not v.strip():
+                return {}
+            try:
+                v = json.loads(v)
+            except Exception as err:
+                raise ValueError(f'ui_emojis could not be parsed as JSON: {err}')
+        if not isinstance(v, dict):
+            raise ValueError(f'ui_emojis must be a dict, got {type(v).__name__}')
+        return {str(k): int(val) for k, val in v.items()}
 
 
 class SystemConfigForm(BaseModel):

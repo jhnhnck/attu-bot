@@ -163,6 +163,24 @@ class AuditLogger:
         return await self.get_logs(limit=limit)
 
 
+async def log_audit(config_type: str, action: str, changes: list[ConfigChange], *, guild_id: int | None = None, success: bool = True, error_message: str | None = None) -> None:
+    """log an audit entry; logs error if audit logger is not yet initialized."""
+    from attubot.web import app as web_app
+
+    if web_app.audit_logger is None:
+        logger.error('audit logger not initialized; skipping audit log')
+        return
+    await web_app.audit_logger.log_change(
+        config_type=config_type,
+        action=action,
+        changes=changes,
+        ip_address=get_client_ip(),
+        guild_id=guild_id,
+        success=success,
+        error_message=error_message,
+    )
+
+
 def get_client_ip() -> str:
     """Return the real client IP, honouring reverse-proxy headers.
 

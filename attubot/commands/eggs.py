@@ -11,7 +11,7 @@ import discord
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from attubot import config
-from attubot.client.embeds import make_embed
+from attubot.client.embeds import make_embed, ui_emoji
 from attubot.database.models import EggDocument
 from attubot.eggs import hatching
 from attubot.logging import get_logger
@@ -61,7 +61,7 @@ class EggGiftOfferView(discord.ui.View):
     @discord.ui.button(label='Decline', style=discord.ButtonStyle.secondary)
     async def decline(self, button: discord.ui.Button, interaction: discord.Interaction):
         if interaction.user.id != self.to_id:
-            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
+            await interaction.response.send_message(f'not for you! {ui_emoji("crackerpeaty")}', ephemeral=True)
             return
         self.stop()
         await interaction.response.edit_message(content=f'{self.to_mention} said no', view=None)
@@ -69,7 +69,7 @@ class EggGiftOfferView(discord.ui.View):
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.primary)
     async def accept(self, button: discord.ui.Button, interaction: discord.Interaction):
         if interaction.user.id != self.to_id:
-            await interaction.response.send_message('not for you! <:crackerpeaty:1214140141245825024>', ephemeral=True)
+            await interaction.response.send_message(f'not for you! {ui_emoji("crackerpeaty")}', ephemeral=True)
             return
         self.stop()
         try:
@@ -112,7 +112,7 @@ class _EggSelectMenu(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.from_id:
-            await interaction.response.send_message('not yours! <:crackerpeaty:1214140141245825024>', ephemeral=True)
+            await interaction.response.send_message(f'not yours! {ui_emoji("crackerpeaty")}', ephemeral=True)
             return
 
         value = self.values[0]
