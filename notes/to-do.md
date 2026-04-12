@@ -72,6 +72,8 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
+- ⭕ `low priority` `low effort` bug: `time_advance` passes `cfg.guild.id` to `scheduler.add_job` but `GuildConfig` has no `.guild` attr; should be `cfg.id` (`commands/time.py:34`)
+- ⭕ `low priority` `low effort` bug: pycord `DeprecationWarning` on python 3.13 — `asyncio.get_event_loop()` called without a running loop (`discord/client.py:250`); will break on a future python version. upstream issue, may need a pycord upgrade or workaround
 - ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
@@ -85,16 +87,10 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### testing
 
-- ⭕ `medium priority` `medium effort` add tests for commands/debug.py (33%) and commands/time.py (40%)
-- ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (32%) and tasks/error_hook.py (31%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
 - ⭕ `medium priority` `medium effort` add tests for client/migrations.py (30%) - schema migration runner and version logic
-- ⭕ `medium priority` `medium effort` add tests for tasks/reminder.py (40%) - reminder scheduling and dispatch
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
-- ⭕ `low priority` `low effort` add tests for client/families.py (36%) and database/connection.py (59%)
-- ⭕ `low priority` `medium effort` add tests for wiki/pages.py (17% coverage) - page fetch and parsing
-- ⭕ `low priority` `medium effort` add tests for web/discord_integration.py (37% coverage)
-- ⭕ `low priority` `medium effort` add tests for commands/query.py (37%) and commands/stars.py (58%)
+- ⭕ `low priority` `medium effort` add tests for wiki/pages.py (21% coverage) - page fetch and parsing
 
 ---
 
@@ -161,6 +157,13 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - 🔴 `11 April 2026` add tests for tasks/scheduler.py — add_job, start_all, stop_all, dynamic scheduling, error handling, properties (46% → 82%)
 - 🔴 `11 April 2026` add tests for commands/link.py (25%) and commands/marker.py (30%)
 - 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
+- 🔴 `12 April 2026` add tests for commands/debug.py (33% → 86%) and commands/time.py (40% → 96%)
+- 🔴 `12 April 2026` add tests for tasks/logo_update.py (32% → 99%) and tasks/error_hook.py (31% → 100%)
+- 🔴 `12 April 2026` add tests for tasks/reminder.py (40% → 94%)
+- 🔴 `12 April 2026` add tests for commands/query.py (37% → 95%) and commands/stars.py (58% → 88%)
+- 🔴 `12 April 2026` add tests for client/families.py (36% → 100%) and database/connection.py (59% → 100%)
+- 🔴 `12 April 2026` add tests for web/discord_integration.py (37% → 93%)
+- 🔴 `12 April 2026` add tests for tasks/presence.py (63% → 100%) and wiki/client.py (59% → 100%)
 
 ---
 
@@ -168,7 +171,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 | Stmts | Miss | Branch | BrPart | Cover |
 |------:|-----:|-------:|-------:|------:|
-| 8914 | 2967 | 2184 | 244 | 64% |
+| 8951 | 2542 | 2192 | 244 | 69% |
 
 ### attubot
 
@@ -176,26 +179,26 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/__init__.py | 12 | 0 | 0 | 0 | 100% |
 | attubot/config.py | 462 | 143 | 86 | 23 | 65% |
-| attubot/logging.py | 43 | 7 | 0 | 0 | 84% |
+| attubot/logging.py | 73 | 22 | 8 | 0 | 63% |
 | attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
 ### attubot/client
 
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/client/__init__.py | 50 | 4 | 6 | 0 | 93% |
+| attubot/client/__init__.py | 57 | 4 | 6 | 0 | 94% |
 | attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
 | attubot/client/core.py | 12 | 0 | 0 | 0 | 100% |
-| attubot/client/embeds.py | 27 | 2 | 16 | 2 | 91% |
+| attubot/client/embeds.py | 27 | 1 | 16 | 1 | 95% |
 | attubot/client/events.py | 263 | 155 | 76 | 2 | 38% |
-| attubot/client/families.py | 36 | 20 | 8 | 0 | 36% |
+| attubot/client/families.py | 36 | 0 | 8 | 0 | 100% |
 | attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
 | attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
 | attubot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
 | attubot/client/migrations.py | 291 | 193 | 58 | 1 | 30% |
 | attubot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
 | attubot/client/starboard.py | 580 | 168 | 226 | 44 | 69% |
-| attubot/client/util.py | 56 | 12 | 10 | 1 | 71% |
+| attubot/client/util.py | 56 | 11 | 10 | 1 | 73% |
 | attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
 ### attubot/commands
@@ -204,15 +207,15 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
-| attubot/commands/debug.py | 215 | 135 | 38 | 0 | 33% |
+| attubot/commands/debug.py | 215 | 31 | 38 | 4 | 86% |
 | attubot/commands/eggs.py | 246 | 12 | 72 | 5 | 95% |
 | attubot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
 | attubot/commands/link.py | 110 | 24 | 12 | 1 | 80% |
 | attubot/commands/marker.py | 82 | 9 | 16 | 2 | 89% |
-| attubot/commands/query.py | 33 | 18 | 8 | 0 | 37% |
+| attubot/commands/query.py | 33 | 2 | 8 | 0 | 95% |
 | attubot/commands/remind.py | 89 | 21 | 20 | 1 | 76% |
-| attubot/commands/stars.py | 202 | 77 | 38 | 5 | 58% |
-| attubot/commands/time.py | 43 | 24 | 4 | 0 | 40% |
+| attubot/commands/stars.py | 202 | 27 | 38 | 3 | 88% |
+| attubot/commands/time.py | 43 | 2 | 4 | 0 | 96% |
 | attubot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
 | attubot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
 
@@ -221,7 +224,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | Module | Stmts | Miss | Branch | BrPart | Cover |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/database/__init__.py | 72 | 4 | 0 | 0 | 94% |
-| attubot/database/connection.py | 53 | 20 | 10 | 2 | 59% |
+| attubot/database/connection.py | 53 | 0 | 10 | 0 | 100% |
 | attubot/database/models.py | 202 | 0 | 0 | 0 | 100% |
 | attubot/database/repositories.py | 599 | 149 | 102 | 10 | 72% |
 
@@ -260,13 +263,13 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
 | attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
 | attubot/tasks/egg_cleanup.py | 50 | 8 | 16 | 3 | 83% |
-| attubot/tasks/error_hook.py | 50 | 32 | 8 | 0 | 31% |
-| attubot/tasks/logo_update.py | 67 | 43 | 10 | 1 | 32% |
+| attubot/tasks/error_hook.py | 50 | 0 | 8 | 0 | 100% |
+| attubot/tasks/logo_update.py | 67 | 0 | 10 | 1 | 99% |
 | attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
 | attubot/tasks/nova_year.py | 123 | 49 | 40 | 1 | 57% |
-| attubot/tasks/presence.py | 28 | 10 | 2 | 1 | 63% |
+| attubot/tasks/presence.py | 28 | 0 | 2 | 0 | 100% |
 | attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
-| attubot/tasks/reminder.py | 106 | 58 | 40 | 1 | 40% |
+| attubot/tasks/reminder.py | 106 | 7 | 40 | 2 | 94% |
 | attubot/tasks/scheduler.py | 113 | 19 | 36 | 6 | 82% |
 
 ### attubot/web
@@ -277,7 +280,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/web/app.py | 126 | 19 | 6 | 2 | 84% |
 | attubot/web/audit.py | 81 | 21 | 22 | 3 | 71% |
 | attubot/web/auth.py | 258 | 80 | 60 | 6 | 69% |
-| attubot/web/discord_integration.py | 105 | 62 | 26 | 4 | 37% |
+| attubot/web/discord_integration.py | 105 | 4 | 26 | 5 | 93% |
 | attubot/web/forms.py | 202 | 26 | 68 | 6 | 82% |
 | attubot/web/routes.py | 556 | 91 | 134 | 21 | 83% |
 
@@ -288,9 +291,9 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 | attubot/wiki/__init__.py | 15 | 5 | 2 | 0 | 59% |
 | attubot/wiki/admin.py | 23 | 0 | 2 | 0 | 100% |
 | attubot/wiki/auth.py | 19 | 0 | 0 | 0 | 100% |
-| attubot/wiki/client.py | 22 | 9 | 0 | 0 | 59% |
+| attubot/wiki/client.py | 22 | 0 | 0 | 0 | 100% |
 | attubot/wiki/models.py | 29 | 0 | 2 | 0 | 100% |
-| attubot/wiki/pages.py | 70 | 56 | 12 | 0 | 17% |
+| attubot/wiki/pages.py | 70 | 53 | 12 | 0 | 21% |
 | attubot/wiki/search.py | 29 | 0 | 0 | 0 | 100% |
 
 ---
@@ -324,5 +327,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 12 April 2026
-total_completed: 62
+total_completed: 69
 ```

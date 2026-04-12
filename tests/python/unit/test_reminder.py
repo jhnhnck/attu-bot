@@ -15,7 +15,7 @@ import time as _time
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -286,3 +286,309 @@ class TestRemindCancelValidation:
         mock_repo.delete.assert_called_once_with(reminder.reminder_id)
         response = mock_ctx._responses[0]['args'][0]
         assert 'cancelled' in response
+
+
+# --- _deliver_reminder ---
+
+
+class TestDeliverReminder:
+    @pytest.mark.asyncio
+    async def test_happy_path_sends_to_original_channel(self, guild):
+        """delivers the reminder message to the original channel."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        reminder = _make_reminder(attu_year=5, attu_month=3, attu_day=15, note='do the thing')
+
+        mock_channel = AsyncMock()
+        mock_guild = MagicMock()
+        mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await _deliver_reminder(reminder)
+
+        mock_channel.send.assert_called_once()
+        msg = mock_channel.send.call_args[0][0]
+        assert f'<@{test_user}>' in msg
+        assert '15-3 5 PC' in msg
+        assert 'do the thing' in msg
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_meta_chat(self, make_guild):
+        """falls back to meta_chat when the original channel is not found."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        cfg = make_guild()
+        meta_channel_id = 7777777777
+        cfg.channels.meta_chat = meta_channel_id
+
+        reminder = _make_reminder(attu_year=5)
+
+        mock_meta_channel = AsyncMock()
+        mock_guild = MagicMock()
+
+        def _get_channel(cid):
+            if cid == meta_channel_id:
+                return mock_meta_channel
+            return None
+
+        mock_guild.get_channel_or_thread = MagicMock(side_effect=_get_channel)
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await _deliver_reminder(reminder)
+
+        mock_meta_channel.send.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_guild_not_found(self):
+        """logs warning and returns when guild is not found."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        reminder = _make_reminder()
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = None
+            # should not raise
+            await _deliver_reminder(reminder)
+
+    @pytest.mark.asyncio
+    async def test_no_channel_at_all(self, make_guild):
+        """logs warning when neither original channel nor meta_chat is found."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        cfg = make_guild()
+        cfg.channels.meta_chat = 0  # no meta chat configured
+
+        reminder = _make_reminder()
+
+        mock_guild = MagicMock()
+        mock_guild.get_channel_or_thread = MagicMock(return_value=None)
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            # should not raise
+            await _deliver_reminder(reminder)
+
+    @pytest.mark.asyncio
+    async def test_includes_message_link(self, guild):
+        """includes a jump url when the reminder has a message_id."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        reminder = _make_reminder(attu_year=5, message_id=1234567890)
+
+        mock_channel = AsyncMock()
+        mock_guild = MagicMock()
+        mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await _deliver_reminder(reminder)
+
+        msg = mock_channel.send.call_args[0][0]
+        assert 'discord.com/channels' in msg
+
+    @pytest.mark.asyncio
+    async def test_no_note_no_message_id(self, guild):
+        """message has no note line and no jump url when both are absent."""
+        from attubot.tasks.reminder import _deliver_reminder
+
+        reminder = _make_reminder(attu_year=5, note='', message_id=0)
+
+        mock_channel = AsyncMock()
+        mock_guild = MagicMock()
+        mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
+
+        with patch('attubot.tasks.reminder.bot') as mock_bot:
+            mock_bot.get_guild.return_value = mock_guild
+            await _deliver_reminder(reminder)
+
+        msg = mock_channel.send.call_args[0][0]
+        assert f'<@{test_user}>' in msg
+        assert 'Year 5 PC' in msg
+        # no note or link appended
+        assert '\n>' not in msg
+        assert 'discord.com/channels' not in msg
+
+
+# --- ReminderTask.run ---
+
+
+class TestReminderTaskRun:
+    @pytest.mark.asyncio
+    async def test_fires_overdue_reminders(self, guild):
+        """run() fires reminders whose fire time is in the past and marks them fired."""
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        reminder = _make_reminder(attu_year=1, attu_month=1, attu_day=1)
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
+
+        # fire time in the past
+        past_span = AttuYearSpan(start_time=1000000, end_time=1200000, duration=14)
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=past_span),
+            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+        ):
+            await task.run()
+
+        mock_deliver.assert_called_once_with(reminder)
+        mock_repo.mark_fired.assert_called_once()
+        assert mock_repo.mark_fired.call_args[0][0] == reminder.reminder_id
+
+    @pytest.mark.asyncio
+    async def test_skips_future_reminders(self, guild):
+        """run() does not fire reminders whose fire time is in the future."""
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        reminder = _make_reminder(attu_year=99, attu_month=1, attu_day=1)
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
+
+        # fire time far in the future
+        future_span = AttuYearSpan(start_time=9999999999, end_time=9999999999 + 1209600, duration=14)
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=future_span),
+            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+        ):
+            await task.run()
+
+        mock_deliver.assert_not_called()
+        mock_repo.mark_fired.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_when_fire_time_none(self, guild):
+        """run() skips reminders whose fire time cannot be computed (paused guild, etc.)."""
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        reminder = _make_reminder(attu_year=5)
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
+            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+        ):
+            await task.run()
+
+        mock_deliver.assert_not_called()
+        mock_repo.mark_fired.assert_not_called()
+
+
+# --- ReminderTask.next_run ---
+
+
+class TestReminderTaskNextRun:
+    @pytest.mark.asyncio
+    @freeze_time('2024-06-01 12:00:00')
+    async def test_no_pending_reminders(self, guild):
+        """returns ~30 minutes from now when there are no unfired reminders."""
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[])
+
+        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+            result = await task.next_run()
+
+        assert result is not None
+        from datetime import datetime, timedelta
+
+        expected = datetime(2024, 6, 1, 12, 30).astimezone()
+        assert abs((result - expected).total_seconds()) < 5
+
+    @pytest.mark.asyncio
+    @freeze_time('2024-06-01 12:00:00')
+    async def test_earliest_fire_time(self, guild):
+        """returns the earliest fire time across all pending reminders."""
+        from datetime import datetime, timedelta
+
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        r1 = _make_reminder(reminder_id='r1', attu_year=5, attu_month=6)
+        r2 = _make_reminder(reminder_id='r2', attu_year=5, attu_month=3)
+
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[r1, r2])
+
+        # r1 fires later than r2
+        fire_r1 = datetime(2024, 8, 1, 12, 0).astimezone()
+        fire_r2 = datetime(2024, 7, 1, 12, 0).astimezone()
+
+        async def mock_compute(reminder):
+            if reminder.reminder_id == 'r1':
+                return fire_r1
+            return fire_r2
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.compute_fire_time', side_effect=mock_compute),
+        ):
+            result = await task.next_run()
+
+        assert result is not None
+        assert result == fire_r2
+
+    @pytest.mark.asyncio
+    @freeze_time('2024-06-01 12:00:00')
+    async def test_overdue_returns_now(self, guild):
+        """returns now when a reminder is already overdue."""
+        from datetime import datetime
+
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        reminder = _make_reminder(attu_year=1)
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
+
+        overdue_time = datetime(2024, 1, 1, 0, 0).astimezone()
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=overdue_time),
+        ):
+            result = await task.next_run()
+
+        assert result is not None
+        now = datetime(2024, 6, 1, 12, 0).astimezone()
+        assert abs((result - now).total_seconds()) < 5
+
+    @pytest.mark.asyncio
+    @freeze_time('2024-06-01 12:00:00')
+    async def test_all_paused_returns_30_minutes(self, guild):
+        """returns ~30 minutes from now when all reminders belong to paused/unauthorized guilds."""
+        from datetime import datetime
+
+        from attubot.tasks.reminder import ReminderTask
+
+        task = ReminderTask()
+
+        reminder = _make_reminder(attu_year=5)
+        mock_repo = AsyncMock()
+        mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
+
+        with (
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
+        ):
+            result = await task.next_run()
+
+        assert result is not None
+        expected = datetime(2024, 6, 1, 12, 30).astimezone()
+        assert abs((result - expected).total_seconds()) < 5
