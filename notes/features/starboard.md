@@ -33,6 +33,7 @@ Only emojis listed in `emojis` are tracked. Any other reaction is silently ignor
 - if the starboard post was created by an old bot (can't edit it), the bot sends a reply with the updated content and tracks that as the new post
 - if a starboard post is deleted externally, the reference is cleared so a new post can be created next time the count changes
 - a star should only ever be removed when explicitly received as a reaction remove event
+- when the bot removes a reaction (self-star, duplicate cleanup), it registers the removal in `_pending_bot_removals` so the echoed `on_raw_reaction_remove` event from discord is ignored and does not decrement legitimate votes
 - a reaction on the response to a /star random or /star lost command should count towards the message it refers to.
 
 ---
@@ -153,5 +154,5 @@ only announces at exactly those counts - no announcement at 4, 6, etc. errors du
 ## metadata
 
 ```yaml
-last_updated: 1 April 2026
+last_updated: 12 April 2026
 ```
