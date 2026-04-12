@@ -551,3 +551,28 @@ async def migration_restructure_messages():
 async def migration_2_5_3():
     """Guild config: primary/secondary keys replace authorized list in attu-bot.toml."""
     logger.info('running migration to 2.5.3')
+
+
+# Version 2.5.4
+@migration(old='2.5.3', new='2.5.4')
+async def migration_seed_ui_emojis():
+    """Seed ui_emojis on ThemeDocument with the previously hardcoded emoji IDs."""
+    from attubot.client.core import db
+
+    logger.info('running migration to 2.5.4: seeding ui_emojis')
+
+    database = db.get_db()
+    result = await database.global_config.update_one(
+        {'config_type': 'theme', '$or': [{'ui_emojis': {'$exists': False}}, {'ui_emojis': {}}]},
+        {
+            '$set': {
+                'ui_emojis': {
+                    'rockball': 1308981475114225694,
+                    'rockball_player': 1308977543034048552,
+                    'crackerpeaty': 1214140141245825024,
+                    'tieteran_wave': 1308636215930654801,
+                }
+            }
+        },
+    )
+    logger.info(f'migration 2.5.4: {"seeded" if result.modified_count else "already populated, skipped"} ui_emojis')

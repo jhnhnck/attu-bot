@@ -98,10 +98,13 @@ class ConfigRepository:
             max_rate=theme.max_rate,
             bot_color=theme.bot_color,
             guild_color=theme.guild_color,
+            logo_rings=theme.logo_rings,
+            logo_planet=theme.logo_planet,
             saturation=theme.saturation,
             lightness=theme.lightness,
             egg_emojis=theme.egg_emojis,
             progress_emojis=theme.progress_emojis,
+            ui_emojis=theme.ui_emojis,
         ).model_dump()
         await self.db[self.GLOBAL_COLLECTION].update_one(
             {'config_type': 'theme'},
