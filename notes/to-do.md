@@ -84,7 +84,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### testing
 
-- ⭕ `medium priority` `medium effort` add tests for commands/link.py (25%) and commands/marker.py (30%)
 - ⭕ `medium priority` `medium effort` add tests for commands/debug.py (33%) and commands/time.py (40%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/logo_update.py (32%) and tasks/error_hook.py (31%)
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
@@ -150,6 +149,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - 🔴 `3 April 2026` add tests for client/messages.py - build_message_doc, edit/delete log embeds
 - 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 - 🔴 `11 April 2026` add tests for tasks/scheduler.py — add_job, start_all, stop_all, dynamic scheduling, error handling, properties (46% → 82%)
+- 🔴 `11 April 2026` add tests for commands/link.py (25%) and commands/marker.py (30%)
 
 ---
 
