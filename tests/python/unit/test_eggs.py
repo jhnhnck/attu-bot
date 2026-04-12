@@ -581,6 +581,39 @@ class TestEggCommands:
 
 
 # ============================================================
+# /eggs progress command
+# ============================================================
+
+
+class TestEggsProgress:
+    @pytest.fixture(autouse=True)
+    def setup(self, make_guild, mock_ctx_factory):
+        make_guild(guild_id=test_guild)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        ctx.guild_id = test_guild
+        ctx.author.display_name = 'TestPlayer'
+        self.ctx = ctx
+
+    async def test_embed_title_includes_display_name(self):
+        """embed title is "{display_name}'s egg collection" """
+        with (
+            patch.object(hatching_mod, '_egg_repo') as mock_repo,
+            patch('attubot.eggs.emojis.render_progress_bar', return_value='▓▓▓░░░░░░░'),
+            patch('attubot.commands.eggs.config') as mock_config,
+        ):
+            mock_config.authorized_guilds = {test_guild}
+            mock_config.hatch.rarities = ['common']
+            mock_config.hatch.pools = {'common': ['🐣']}
+            mock_repo.get_user_egg_stats = AsyncMock(return_value=(10, 5, {'common': 1}))
+            from attubot.commands.eggs import eggs_progress
+
+            await eggs_progress(self.ctx)
+
+        embed = self.ctx._responses[0]['kwargs']['embed']
+        assert embed.title == "TestPlayer's egg collection"
+
+
+# ============================================================
 # /eggs leaderboard hatched command
 # ============================================================
 

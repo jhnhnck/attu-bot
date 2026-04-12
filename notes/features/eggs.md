@@ -143,7 +143,7 @@ Slash commands are defined in `attubot/commands/eggs.py`.
 
 ## Egg Progress
 
-`/eggs progress` shows a Pokédex-style completion tracker: how many distinct creatures you've hatched out of each rarity's full pool. Output is one line per rarity plus a totals line, each with a 10-segment progress bar and `n/pool_size` count. The last line shows raw totals: `X eggs collected; Y eggs hatched`.
+`/eggs progress` shows a Pokédex-style completion tracker: how many distinct creatures you've hatched out of each rarity's full pool. Output is one line per rarity plus a totals line, each with a 10-segment progress bar and `n/pool_size` count. The last line shows raw totals: `X eggs collected; Y eggs hatched`. the embed title is set to `"{display_name}'s egg collection"`.
 
 Pool sizes: common 27, uncommon 23, rare 20, legendary 12, mythical 3, total 85.
 
@@ -176,5 +176,5 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 12 April 2026
 ```

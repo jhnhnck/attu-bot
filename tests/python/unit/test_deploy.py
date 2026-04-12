@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import json
+import re
 import subprocess
 from pathlib import Path
 from unittest.mock import patch
@@ -165,6 +166,40 @@ class TestCheckContainerHealth:
         data = json.dumps([{'State': 'dead'}])
         problems = self._run(data)
         assert problems == ['?: state=dead']
+
+
+# ---------------------------------------------------------------------------
+# abort
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# pyproject.toml version bump regex
+# ---------------------------------------------------------------------------
+
+
+class TestPyprojectVersionBump:
+    """the deploy script uses re.sub to update the version in pyproject.toml"""
+
+    _pattern = r'^version = "[^"]+"'
+
+    def test_replaces_version_line(self):
+        content = '[project]\nname = "attubot"\nversion = "1.2"\ndescription = "a bot"\n'
+        result = re.sub(self._pattern, 'version = "1.3"', content, count=1, flags=re.MULTILINE)
+        assert 'version = "1.3"' in result
+        assert 'version = "1.2"' not in result
+
+    def test_preserves_other_lines(self):
+        content = '[project]\nname = "attubot"\nversion = "1.2"\ndescription = "a bot"\n'
+        result = re.sub(self._pattern, 'version = "1.3"', content, count=1, flags=re.MULTILINE)
+        assert 'name = "attubot"' in result
+        assert 'description = "a bot"' in result
+
+    def test_only_replaces_first_match(self):
+        content = '[project]\nversion = "1.2"\n\n[tool.other]\nversion = "0.9"\n'
+        result = re.sub(self._pattern, 'version = "1.3"', content, count=1, flags=re.MULTILINE)
+        assert result.count('version = "1.3"') == 1
+        assert 'version = "0.9"' in result
 
 
 # ---------------------------------------------------------------------------
