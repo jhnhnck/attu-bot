@@ -209,6 +209,18 @@ class TestConfigRepositoryTheme:
         assert doc.rotation == 90.0
         assert doc.bot_color == '#ff0000'
 
+    async def test_theme_roundtrip_ui_emojis(self, db):
+        from attubot.config import BotTheme
+
+        repo = ConfigRepository(db)
+        await repo.init_indexes()
+        emojis = {'rockball': 1308981475114225694, 'crackerpeaty': 1214140141245825024}
+        theme = BotTheme(rotation=0.0, max_rate=0.5, bot_color='#000000', guild_color='#ffffff', ui_emojis=emojis)
+        await repo.save_theme(theme)
+        doc = await repo.get_theme()
+        assert doc is not None
+        assert doc.ui_emojis == emojis
+
     async def test_theme_upsert(self, db):
         from attubot.config import BotTheme
 

@@ -173,52 +173,94 @@ class TestRunPendingMigrations:
 class TestMigrationSeedUiEmojis:
     """unit: migration_seed_ui_emojis seeds emoji IDs on theme document"""
 
-    async def test_seeds_when_missing(self):
-        """ui_emojis is empty or absent — migration inserts the default emojis"""
+    @pytest.fixture
+    def mock_db(self):
         mock_result = MagicMock()
         mock_result.modified_count = 1
 
         mock_collection = MagicMock()
         mock_collection.update_one = AsyncMock(return_value=mock_result)
+        mock_collection.find = MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[])))
+        mock_collection.delete_many = AsyncMock()
+        mock_collection.insert_many = AsyncMock()
 
-        mock_db = MagicMock()
-        mock_db.global_config = mock_collection
+        db = MagicMock()
+        db.global_config = mock_collection
+        db.__getitem__ = MagicMock(return_value=mock_collection)
+        return db
 
+    async def test_seeds_when_missing(self, mock_db):
+        """ui_emojis is empty or absent — migration inserts the default emojis"""
         with patch('attubot.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
             from attubot.client.migrations import migration_seed_ui_emojis
 
-            await migration_seed_ui_emojis()
+            await migration_seed_ui_emojis('2.5.3')
 
-        mock_collection.update_one.assert_awaited_once()
-        call_args = mock_collection.update_one.call_args
-        set_doc = call_args[0][1]['$set']['ui_emojis']
+        # seed call + version bump call
+        assert mock_db.global_config.update_one.await_count == 2
+        seed_call = mock_db.global_config.update_one.call_args_list[0]
+        set_doc = seed_call[0][1]['$set']['ui_emojis']
         assert set_doc['rockball'] == 1308981475114225694
         assert set_doc['crackerpeaty'] == 1214140141245825024
         assert len(set_doc) == 4
 
-    async def test_skips_when_already_populated(self):
+    async def test_takes_backup_before_update(self, mock_db):
+        """backup is taken from global_config before the update runs"""
+        with patch('attubot.client.core.db') as mock_core_db:
+            mock_core_db.get_db.return_value = mock_db
+
+            from attubot.client.migrations import migration_seed_ui_emojis
+
+            await migration_seed_ui_emojis('2.5.3')
+
+        # _backup_collection reads via db['global_config'].find()
+        mock_db.__getitem__.assert_any_call('global_config')
+
+    async def test_restores_on_failure(self, mock_db):
+        """if the update fails, global_config is restored from the backup"""
+        mock_db.global_config.update_one = AsyncMock(side_effect=RuntimeError('db error'))
+        backup_docs = [{'config_type': 'theme', 'rotation': 0.0}]
+        mock_db.__getitem__.return_value.find.return_value.to_list = AsyncMock(return_value=backup_docs)
+
+        with (
+            patch('attubot.client.core.db') as mock_core_db,
+            pytest.raises(Exception, match='Migration to 2.5.4 failed'),
+        ):
+            mock_core_db.get_db.return_value = mock_db
+
+            from attubot.client.migrations import migration_seed_ui_emojis
+
+            await migration_seed_ui_emojis('2.5.3')
+
+        # _restore_collection should have been called: delete_many + insert_many
+        restore_collection = mock_db.__getitem__.return_value
+        restore_collection.delete_many.assert_awaited_once()
+        restore_collection.insert_many.assert_awaited_once()
+
+    async def test_skips_when_already_populated(self, mock_db):
         """ui_emojis already has values — filter excludes the doc, modified_count is 0"""
-        mock_result = MagicMock()
-        mock_result.modified_count = 0
-
-        mock_collection = MagicMock()
-        mock_collection.update_one = AsyncMock(return_value=mock_result)
-
-        mock_db = MagicMock()
-        mock_db.global_config = mock_collection
+        mock_db.global_config.update_one.return_value.modified_count = 0
 
         with patch('attubot.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
             from attubot.client.migrations import migration_seed_ui_emojis
 
-            await migration_seed_ui_emojis()
+            await migration_seed_ui_emojis('2.5.3')
 
-        # still called, but the filter ensures no-op
-        mock_collection.update_one.assert_awaited_once()
-        call_args = mock_collection.update_one.call_args
-        query_filter = call_args[0][0]
+        seed_call = mock_db.global_config.update_one.call_args_list[0]
+        query_filter = seed_call[0][0]
         assert query_filter['config_type'] == 'theme'
         assert '$or' in query_filter
+
+    async def test_skipped_when_version_past(self):
+        """wrapper bails out when db version != old version"""
+        with patch('attubot.client.core.db') as mock_core_db:
+            from attubot.client.migrations import migration_seed_ui_emojis
+
+            await migration_seed_ui_emojis('2.5.4')
+
+        # db should never be touched
+        mock_core_db.get_db.assert_not_called()

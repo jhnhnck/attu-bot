@@ -158,6 +158,25 @@ Existing form models: `GuildConfigForm`, `ThemeConfigForm`, `SystemConfigForm`.
 
 ---
 
+## UI Emojis (Theme Config)
+
+custom emoji IDs are centralized in `ThemeDocument.ui_emojis` (a `dict[str, int]`), replacing previously hard-coded emoji IDs scattered across command files.
+
+| key | purpose |
+|---|---|
+| `rockball` | general-purpose embed decoration |
+| `rockball_player` | user-facing embed decoration |
+| `crackerpeaty` | bot personality emoji |
+| `tieteran_wave` | greeting/farewell emoji |
+
+**helper:** `ui_emoji(name)` in `attubot/client/embeds.py` returns a formatted `<:name:id>` string, falling back to an empty string if the key is missing.
+
+**web management:** the theme config page (`GET /theme`) includes a form section for editing emoji IDs. saved via `POST /api/theme` alongside other theme fields. changes are audit-logged and trigger a `send_signal('theme')` reload.
+
+**migration:** `migration_2_5_4` seeds the default emoji IDs on first run if `ui_emojis` is empty or absent.
+
+---
+
 ## Discord Cache
 
 `discord_integration.py` wraps bot API calls with an in-memory cache (300s TTL).
@@ -228,8 +247,16 @@ After a successful write: emit a signal if the bot needs to reload, then log to 
 
 ---
 
+## planned restructure
+
+a major restructure is planned - see [`notes/plans/web_improvement.md`](../plans/web_improvement.md) for the full implementation plan and [`notes/reports/web_interface_audit.md`](../reports/web_interface_audit.md) for the current state audit and gap analysis.
+
+key changes: sidebar navigation replacing the guild picker dashboard and nested tabs, session-based guild toggle, per-section PATCH endpoints, unified save manager with dirty tracking and field-level validation errors, mobile offcanvas layout.
+
+---
+
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 12 April 2026
 ```

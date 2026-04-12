@@ -582,17 +582,25 @@ async def migration_seed_ui_emojis():
     logger.info('running migration to 2.5.4: seeding ui_emojis')
 
     database = db.get_db()
-    result = await database.global_config.update_one(
-        {'config_type': 'theme', '$or': [{'ui_emojis': {'$exists': False}}, {'ui_emojis': {}}]},
-        {
-            '$set': {
-                'ui_emojis': {
-                    'rockball': 1308981475114225694,
-                    'rockball_player': 1308977543034048552,
-                    'crackerpeaty': 1214140141245825024,
-                    'tieteran_wave': 1308636215930654801,
+    backup = await _backup_collection(database, 'global_config')
+
+    try:
+        result = await database.global_config.update_one(
+            {'config_type': 'theme', '$or': [{'ui_emojis': {'$exists': False}}, {'ui_emojis': {}}]},
+            {
+                '$set': {
+                    'ui_emojis': {
+                        'rockball': 1308981475114225694,
+                        'rockball_player': 1308977543034048552,
+                        'crackerpeaty': 1214140141245825024,
+                        'tieteran_wave': 1308636215930654801,
+                    }
                 }
-            }
-        },
-    )
-    logger.info(f'migration 2.5.4: {"seeded" if result.modified_count else "already populated, skipped"} ui_emojis')
+            },
+        )
+        logger.info(f'migration 2.5.4: {"seeded" if result.modified_count else "already populated, skipped"} ui_emojis')
+
+    except Exception:
+        logger.error('migration 2.5.4 failed; restoring global_config from snapshot')
+        await _restore_collection(database, 'global_config', backup)
+        raise
