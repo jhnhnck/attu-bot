@@ -8,6 +8,7 @@ Unit tests for TaskScheduler._run_loop with run_once semantics.
 All tests mock asyncio.sleep to avoid real delays.
 """
 
+import asyncio
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
@@ -177,3 +178,306 @@ class TestNormalLoopTask:
             await scheduler._run_loop(task)
 
         assert call_count >= 3
+
+
+# ============================================================
+# add_job
+# ============================================================
+
+
+class TestAddJob:
+    async def test_add_job_runs_coroutine(self):
+        """add_job wraps a coroutine in a fire-and-forget task that actually executes."""
+        scheduler = TaskScheduler()
+        ran = False
+
+        async def simple_coro():
+            nonlocal ran
+            ran = True
+
+        with patch('attubot.tasks.scheduler.logger'):
+            scheduler.add_job(simple_coro(), 'TestJob')
+            # let the event loop process the background task
+            await asyncio.sleep(0)
+
+        assert ran
+
+    async def test_add_job_logs_error_on_exception(self):
+        """a job that raises should not propagate; the scheduler logs the error."""
+        scheduler = TaskScheduler()
+
+        async def failing_coro():
+            raise RuntimeError('boom')
+
+        with (
+            patch('attubot.tasks.scheduler.logger') as mock_logger,
+        ):
+            mock_logger.send_to_webhook = AsyncMock()
+            scheduler.add_job(failing_coro(), 'FailJob')
+            await asyncio.sleep(0)
+
+        mock_logger.error.assert_called_once()
+
+    async def test_add_job_names_with_context_parts(self):
+        """add_job(coro, 'Kind', 'a', 'b') names the asyncio task 'Kind[a:b]'."""
+        scheduler = TaskScheduler()
+
+        async def noop():
+            pass
+
+        with patch('attubot.tasks.scheduler.logger'):
+            scheduler.add_job(noop(), 'Kind', 'a', 'b')
+
+        # the task should be in _jobs with the formatted name
+        assert len(scheduler._jobs) == 1
+        task = next(iter(scheduler._jobs))
+        assert task.get_name() == 'Kind[a:b]'
+
+    async def test_done_callback_discards_from_set(self):
+        """after a job completes, the done callback removes it from _jobs."""
+        scheduler = TaskScheduler()
+
+        async def noop():
+            pass
+
+        with patch('attubot.tasks.scheduler.logger'):
+            scheduler.add_job(noop(), 'Ephemeral')
+            assert len(scheduler._jobs) == 1
+            # let the task complete and the done callback fire
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
+        assert len(scheduler._jobs) == 0
+
+
+# ============================================================
+# start_all
+# ============================================================
+
+
+class _SimpleTask(BaseTask):
+    """minimal concrete task for start_all/stop_all tests."""
+
+    name: str = 'simple_task'
+    interval: timedelta | None = timedelta(seconds=60)
+
+    async def run(self) -> None:
+        pass
+
+
+class TestStartAll:
+    async def test_start_all_creates_loop_tasks(self):
+        """registering 2 tasks and calling start_all() populates _loop_tasks."""
+        scheduler = TaskScheduler()
+        scheduler.register(_SimpleTask())
+        scheduler.register(_SimpleTask())
+
+        with patch('asyncio.sleep', new_callable=AsyncMock):
+            await scheduler.start_all()
+            # yield so the loop tasks actually get created
+            await asyncio.sleep(0)
+
+        assert len(scheduler._loop_tasks) == 2
+        assert scheduler._running is True
+
+        # cleanup
+        await scheduler.stop_all()
+
+    async def test_start_all_double_start_warns(self):
+        """calling start_all() twice logs a warning on the second call."""
+        scheduler = TaskScheduler()
+        scheduler.register(_SimpleTask())
+
+        with (
+            patch('asyncio.sleep', new_callable=AsyncMock),
+            patch('attubot.tasks.scheduler.logger') as mock_logger,
+        ):
+            await scheduler.start_all()
+            await scheduler.start_all()
+
+        mock_logger.warn.assert_called_once()
+
+        # cleanup
+        scheduler._running = False
+        for t in list(scheduler._loop_tasks):
+            t.cancel()
+        await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
+
+
+# ============================================================
+# stop_all
+# ============================================================
+
+
+class TestStopAll:
+    async def test_stop_all_cancels_tasks(self):
+        """after stop_all(), _running is False."""
+        scheduler = TaskScheduler()
+        scheduler.register(_SimpleTask())
+
+        with patch('asyncio.sleep', new_callable=AsyncMock):
+            await scheduler.start_all()
+            await asyncio.sleep(0)
+            await scheduler.stop_all()
+
+        assert scheduler._running is False
+
+    async def test_stop_all_when_not_running_is_noop(self):
+        """calling stop_all() on a fresh scheduler does not raise."""
+        scheduler = TaskScheduler()
+        # should complete without error
+        await scheduler.stop_all()
+        assert scheduler._running is False
+
+
+# ============================================================
+# dynamic scheduling: next_run returning None
+# ============================================================
+
+
+class _NoneNextRunTask(BaseTask):
+    """task with interval=None whose next_run() always returns None."""
+
+    name: str = 'none_next_run_task'
+    interval: timedelta | None = None
+
+    async def run(self) -> None:
+        pass
+
+    async def next_run(self):
+        return None
+
+
+class TestDynamicScheduling:
+    async def test_next_run_returning_none_stops_task(self):
+        """when next_run() returns None for an interval=None task, the loop exits and on_stop fires."""
+        scheduler = _make_scheduler()
+        task = _NoneNextRunTask()
+        task.on_start = AsyncMock()
+        task.on_stop = AsyncMock()
+        task.run = AsyncMock()
+
+        with (
+            patch('asyncio.sleep', new_callable=AsyncMock),
+            patch('attubot.tasks.scheduler.logger'),
+        ):
+            await scheduler._run_loop(task)
+
+        task.on_stop.assert_awaited_once()
+        # run() should never be called since next_run() returned None before run()
+        task.run.assert_not_awaited()
+
+
+# ============================================================
+# error in run()
+# ============================================================
+
+
+class _FailThenSucceedTask(BaseTask):
+    """task that raises on the first call then succeeds."""
+
+    name: str = 'fail_then_succeed'
+    interval: timedelta | None = timedelta(seconds=1)
+
+    def __init__(self):
+        self.call_count = 0
+
+    async def run(self) -> None:
+        self.call_count += 1
+        if self.call_count == 1:
+            raise RuntimeError('first run fails')
+
+
+class TestErrorInRun:
+    async def test_exception_logged_but_loop_continues(self):
+        """an exception in run() is caught; the loop continues and run() is called again."""
+        scheduler = _make_scheduler()
+        task = _FailThenSucceedTask()
+        task.on_start = AsyncMock()
+        task.on_stop = AsyncMock()
+
+        # stop after 2 calls
+        original_run = task.run
+
+        async def counting_run():
+            await original_run()
+            if task.call_count >= 2:
+                scheduler._running = False
+
+        task.run = counting_run
+
+        with (
+            patch('asyncio.sleep', new_callable=AsyncMock),
+            patch('attubot.tasks.scheduler.logger') as mock_logger,
+        ):
+            mock_logger.send_to_webhook = AsyncMock()
+            await scheduler._run_loop(task)
+
+        assert task.call_count >= 2
+        mock_logger.error.assert_called_once()
+
+
+# ============================================================
+# properties: count and running_tasks
+# ============================================================
+
+
+class TestProperties:
+    async def test_count_includes_jobs_and_loops(self):
+        """count returns the total of fire-and-forget jobs plus loop tasks."""
+        scheduler = TaskScheduler()
+        scheduler.register(_SimpleTask())
+        blocker = asyncio.Event()
+
+        async def long_running():
+            await blocker.wait()
+
+        with (
+            patch('attubot.tasks.scheduler.logger'),
+            patch.object(TaskScheduler, '_run_loop', new_callable=AsyncMock),
+        ):
+            await scheduler.start_all()
+            await asyncio.sleep(0)
+            scheduler.add_job(long_running(), 'LongJob')
+
+        # 1 loop task + 1 job = 2
+        assert scheduler.count == 2
+
+        # cleanup - unblock the job so it finishes cleanly
+        blocker.set()
+        await asyncio.sleep(0)
+        scheduler._running = False
+        for t in list(scheduler._loop_tasks):
+            t.cancel()
+        await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
+
+    async def test_running_tasks_returns_names(self):
+        """running_tasks includes names from both jobs and loop tasks."""
+        scheduler = TaskScheduler()
+        task = _SimpleTask()
+        task.name = 'my_task'
+        scheduler.register(task)
+        blocker = asyncio.Event()
+
+        async def long_running():
+            await blocker.wait()
+
+        with (
+            patch('attubot.tasks.scheduler.logger'),
+            patch.object(TaskScheduler, '_run_loop', new_callable=AsyncMock),
+        ):
+            await scheduler.start_all()
+            await asyncio.sleep(0)
+            scheduler.add_job(long_running(), 'MyJob')
+
+        names = scheduler.running_tasks
+        assert 'TaskLoop[my_task]' in names
+        assert 'MyJob' in names
+
+        # cleanup - unblock the job so it finishes cleanly
+        blocker.set()
+        await asyncio.sleep(0)
+        scheduler._running = False
+        for t in list(scheduler._loop_tasks):
+            t.cancel()
+        await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
