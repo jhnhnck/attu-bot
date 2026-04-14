@@ -146,7 +146,7 @@ wheels = [
 
 [[package]]
 name = "attubot"
-version = "78.0"
+version = "78.0.2"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -1476,15 +1476,15 @@ wheels = [
 
 [[package]]
 name = "py-cord"
-version = "2.7.1"
+version = "2.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/56/74d5a2c9e9c23c449a999b89abeaa2a77a2be56017d001218556d5886960/py_cord-2.7.1.tar.gz", hash = "sha256:100935f37e77ba8ac1e3eff0b180e6d69bcac083de81d4c83d42327d9a2eddee", size = 1132229, upload-time = "2026-02-09T08:54:59.949Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/75/5b510b4f30c0fe9ae0c440d968e32df1d8857562e49cc652e4f491871384/py_cord-2.7.2.tar.gz", hash = "sha256:86d2172c5b0de33d3aa5611d940dd98acfb1b95adfa10ae7b749e6aaf923ffff", size = 1132471, upload-time = "2026-04-14T11:21:20.481Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/ee/38f9707fd4d7381dea3257a5278de9d23f62d3b2781702b293ead12c0671/py_cord-2.7.1-py3-none-any.whl", hash = "sha256:d95301226f0642f6f3b23e21c31987ebbe23fdb7007cbc8143b010eb6780dec1", size = 1207918, upload-time = "2026-02-09T08:54:58.428Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/4c/1d623000e5a91236895d89bfc2a2947db328182715ac2d7e7ef727938e77/py_cord-2.7.2-py3-none-any.whl", hash = "sha256:e25e5e9392f297b3d8fb8f9f31e57989276c1e2b12ebed5a7b1040dd5891d972", size = 1208198, upload-time = "2026-04-14T11:21:18.741Z" },
 ]
 
 [package.optional-dependencies]
