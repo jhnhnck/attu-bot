@@ -436,7 +436,7 @@ async def _fetch_store_and_backfill(
                 )
                 await repo.upsert(existing_doc)
             await repo.add_reaction(message_id, emoji, user.id)
-            logger.info(f'starboard: backfilled {emoji} from user {user.id} on message {message_id}')
+            logger.info(f'starboard: backfilled {emoji} from @{user.name} on message {message_id}')
             backfilled += 1
 
     if backfilled:
@@ -660,7 +660,9 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
         if updated is None:
             return
 
-        logger.info(f'starboard: {emoji_str} ({reaction_kind}) from user {user_id} on message {real_message_id}; weighted total now {updated.weighted_total}')
+        _user = _bot.get_user(user_id)
+        _user_tag = f'@{_user.name}' if _user else str(user_id)
+        logger.info(f'starboard: {emoji_str} ({reaction_kind}) from {_user_tag} on message {real_message_id}; weighted total now {updated.weighted_total}')
 
         await _sync_starboard_post(guild_id, updated, guild_config)
 
@@ -674,6 +676,7 @@ async def handle_star_remove(
     is_burst: bool = False,
 ) -> None:
     """process a star removal; updates the starboard post if it exists."""
+    from attubot.client.core import bot as _bot
     from attubot.client.core import config
     from attubot.client.messages import _get_repo as _get_msg_repo
 
@@ -718,7 +721,9 @@ async def handle_star_remove(
         if updated is None:
             return
 
-        logger.info(f'starboard: {emoji_str} removed by user {user_id} on message {real_message_id}; weighted total now {updated.weighted_total}')
+        _user = _bot.get_user(user_id)
+        _user_tag = f'@{_user.name}' if _user else str(user_id)
+        logger.info(f'starboard: {emoji_str} removed by {_user_tag} on message {real_message_id}; weighted total now {updated.weighted_total}')
 
         await _sync_starboard_post(guild_id, updated, guild_config)
 
