@@ -166,6 +166,7 @@ class ChatConfig(BaseModel):
 
 class HatchTuning(BaseModel):
     collect_cooldown_seconds: int
+    hatch_cooldown_seconds: int
     animation_wait_min: int
     animation_wait_max: int
     cleanup_interval_hours: int

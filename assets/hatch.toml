@@ -1,5 +1,6 @@
 [tuning]
 collect_cooldown_seconds = 600
+hatch_cooldown_seconds = 5
 animation_wait_min = 8
 animation_wait_max = 12
 cleanup_interval_hours = 6

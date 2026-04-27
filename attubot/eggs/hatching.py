@@ -25,6 +25,13 @@ logger = get_logger(__name__)
 _egg_repo: EggRepository | None = None
 _egg_user_repo: EggUserRepository | None = None
 
+# per-user in-memory hatch cooldown tracking (monotonic time)
+_hatch_last_used: dict[int, float] = {}
+
+# debounce presence updates triggered by hatch animations (monotonic time)
+_last_presence_update: float = 0.0
+_PRESENCE_DEBOUNCE_SECONDS: float = 15.0
+
 
 def hatch_date(year: int) -> date:
     """Calculate the hatch day for the given year using the Meeus/Jones/Butcher algorithm."""
@@ -154,14 +161,17 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
         result=result,
         message_id=msg.id,
     )
-    await _egg_repo.insert(egg)
-
     # update cooldown
     if user_doc is None:
         user_doc = EggUserDocument(guild_id=guild_id, user_id=user_id, thread_id=thread.id, last_collected_at=now)
     else:
         user_doc.last_collected_at = now
-    await _egg_user_repo.upsert(user_doc)
+
+    # persist egg and update cooldown concurrently (independent collections)
+    await asyncio.gather(
+        _egg_repo.insert(egg),
+        _egg_user_repo.upsert(user_doc),
+    )
 
     return (msg.jump_url, None)
 
@@ -180,20 +190,33 @@ async def run_hatch_animation(message: discord.Message | discord.PartialMessage,
     await asyncio.sleep(1)
     await message.edit(content=result)
 
-    # update presence to reflect the newly hatched egg
-    from attubot.tasks.presence import presence_update_task
-    from attubot.tasks.scheduler import scheduler  # local import avoids circular dep
+    # update presence to reflect the newly hatched egg (debounced)
+    global _last_presence_update
+    now = time.monotonic()
+    if now - _last_presence_update >= _PRESENCE_DEBOUNCE_SECONDS:
+        _last_presence_update = now
+        from attubot.tasks.presence import presence_update_task
+        from attubot.tasks.scheduler import scheduler  # local import avoids circular dep
 
-    scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'immediate')
+        scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'immediate')
 
 
 async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
     """Hatch the oldest ready egg for a user.
 
     Returns (jump_url, None) when a hatch was triggered.
+    Returns ('cooldown', ready_at) when the user is on hatch cooldown.
     Returns ('', next_hatches_at) when no egg is ready yet.
     Returns ('no_eggs', None) when the user has no eggs at all.
     """
+    cooldown = config.hatch.tuning.hatch_cooldown_seconds
+    if cooldown > 0:
+        now_mono = time.monotonic()
+        last = _hatch_last_used.get(user_id, 0.0)
+        if now_mono - last < cooldown:
+            ready_at = time.time() + (cooldown - (now_mono - last))
+            return ('cooldown', ready_at)
+
     egg = await _egg_repo.get_oldest_ready(guild_id, user_id)
     if egg is None:
         # check if there are any eggs at all
@@ -230,6 +253,7 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
 
     scheduler.add_job(run_hatch_animation(msg, egg.result, egg.rarity), 'HatchAnimation', egg.egg_id)
 
+    _hatch_last_used[user_id] = time.monotonic()
     return (jump_url, None)
 
 

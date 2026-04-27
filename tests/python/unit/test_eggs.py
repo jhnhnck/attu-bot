@@ -191,16 +191,20 @@ class TestHatchEgg:
     def setup_repos(self):
         mock_egg_repo = AsyncMock()
         mock_egg_user_repo = AsyncMock()
+        hatching_mod._hatch_last_used.clear()
 
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
             patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
+            mock_config.hatch.tuning.hatch_cooldown_seconds = 5
             self.egg_repo = mock_egg_repo
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
+            self.mock_config = mock_config
             self.mock_add_job = mock_add_job
             yield
 
@@ -435,13 +439,16 @@ class TestHatchEggCacheMiss:
     def setup_repos(self):
         mock_egg_repo = AsyncMock()
         mock_egg_user_repo = AsyncMock()
+        hatching_mod._hatch_last_used.clear()
 
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
             patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
+            mock_config.hatch.tuning.hatch_cooldown_seconds = 5
             self.egg_repo = mock_egg_repo
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
@@ -1488,12 +1495,15 @@ class TestHatchEggGuards:
     def setup_repos(self):
         mock_egg_repo = AsyncMock()
         mock_egg_user_repo = AsyncMock()
+        hatching_mod._hatch_last_used.clear()
 
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
             patch('attubot.eggs.hatching.bot') as mock_bot,
+            patch('attubot.eggs.hatching.config') as mock_config,
         ):
+            mock_config.hatch.tuning.hatch_cooldown_seconds = 5
             self.egg_repo = mock_egg_repo
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
@@ -1546,6 +1556,7 @@ class TestRunHatchAnimationExtra:
         """scheduler.add_job is called once after the animation completes"""
         mock_message = MagicMock()
         mock_message.edit = AsyncMock()
+        hatching_mod._last_presence_update = 0.0
 
         with (
             patch('attubot.eggs.hatching.asyncio') as mock_asyncio,

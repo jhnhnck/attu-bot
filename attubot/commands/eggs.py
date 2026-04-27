@@ -191,7 +191,10 @@ async def eggs_hatch(ctx: ApplicationContext):
 
     result, next_ts = await hatching.hatch_egg(ctx.guild_id, ctx.author.id)
 
-    if result == 'no_eggs':
+    if result == 'cooldown':
+        assert next_ts is not None  # noqa: S101 - guaranteed by cooldown sentinel
+        await ctx.respond(f'slow down, try again <t:{int(next_ts)}:R>', ephemeral=True)
+    elif result == 'no_eggs':
         await ctx.respond('you have no eggs')
     elif result == '':
         assert next_ts is not None  # noqa: S101 - guaranteed float when result is empty string by contract
