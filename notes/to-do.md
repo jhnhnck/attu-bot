@@ -173,13 +173,13 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ## coverage
 
-| Stmts | Miss | Branch | BrPart | Cover |
+| Statements | Miss | Branch | Branch Parts | Coverage |
 |------:|-----:|-------:|-------:|------:|
 | 8951 | 2542 | 2192 | 244 | 69% |
 
 ### attubot
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/__init__.py | 12 | 0 | 0 | 0 | 100% |
 | attubot/config.py | 462 | 143 | 86 | 23 | 65% |
@@ -188,7 +188,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/client
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/client/__init__.py | 57 | 4 | 6 | 0 | 94% |
 | attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
@@ -207,7 +207,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/commands
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
@@ -225,7 +225,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/database
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/database/__init__.py | 72 | 4 | 0 | 0 | 94% |
 | attubot/database/connection.py | 53 | 0 | 10 | 0 | 100% |
@@ -234,7 +234,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/eggs
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/eggs/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/eggs/data.py | 4 | 4 | 0 | 0 | 0% |
@@ -243,7 +243,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/ingestor
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/ingestor/__init__.py | 32 | 26 | 2 | 0 | 18% |
 | attubot/ingestor/embedder.py | 24 | 13 | 4 | 0 | 39% |
@@ -260,7 +260,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/tasks
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
 | attubot/tasks/base.py | 13 | 3 | 0 | 0 | 77% |
@@ -278,7 +278,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/web
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/web/__init__.py | 0 | 0 | 0 | 0 | 100% |
 | attubot/web/app.py | 126 | 19 | 6 | 2 | 84% |
@@ -290,7 +290,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### attubot/wiki
 
-| Module | Stmts | Miss | Branch | BrPart | Cover |
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
 | attubot/wiki/__init__.py | 15 | 5 | 2 | 0 | 59% |
 | attubot/wiki/admin.py | 23 | 0 | 2 | 0 | 100% |

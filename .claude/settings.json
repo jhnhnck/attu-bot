@@ -14,8 +14,7 @@
       "Bash(ruff format:*)",
       "Bash(git apply:*)",
       "Bash(git add:*)",
-      "Bash(git mv:*)",
-      "Read(//srv/services/doom-bot/.claude/worktrees/agent-a581e42a/attubot/web/**)"
+      "Bash(git mv:*)"
     ]
   },
   "hooks": {
