@@ -49,11 +49,11 @@ def _make_reminder(**kwargs) -> ReminderDocument:
 class TestFormatAttuDate:
     def test_year_only(self):
         r = _make_reminder(attu_year=5, attu_month=None, attu_day=None)
-        assert format_attu_date(r) == 'Year 5 PC'
+        assert format_attu_date(r) == '5 PC'
 
     def test_year_and_month(self):
         r = _make_reminder(attu_year=5, attu_month=3, attu_day=None)
-        assert format_attu_date(r) == 'month 3, Year 5 PC'
+        assert format_attu_date(r) == '1-3 5 PC'
 
     def test_year_month_and_day(self):
         r = _make_reminder(attu_year=5, attu_month=3, attu_day=15)
@@ -183,7 +183,7 @@ class TestRemindAddValidation:
 
         mock_ctx.respond.assert_called_once()
         args = mock_ctx._responses[0]
-        assert 'already passed' in args['args'][0]
+        assert 'must be in the future' in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio
@@ -209,11 +209,34 @@ class TestRemindAddValidation:
         assert doc.attu_year == 5
         assert doc.note == 'test note'
 
-        # should have responded with confirmation
+        # should have responded with an embed confirmation
         assert len(mock_ctx._responses) == 1
-        response = mock_ctx._responses[0]['args'][0]
-        assert 'reminder set for' in response
-        assert 'Year 5 PC' in response
+        embed = mock_ctx._responses[0]['kwargs']['embed']
+        assert embed.title == 'reminder'
+        assert '5 PC' in embed.description
+        assert 'test note' in embed.description
+
+    @pytest.mark.asyncio
+    @freeze_time('2024-01-02 12:00:00')
+    async def test_future_date_wakes_reminder_task(self, mock_ctx, guild):
+        """Successful insert should call request_wake() on the reminder task."""
+        from attubot.commands.remind import remind_add
+
+        span = AttuYearSpan(start_time=1708000000, end_time=1709209600, duration=14)
+
+        mock_repo = AsyncMock()
+        mock_interaction_msg = AsyncMock()
+        mock_interaction_msg.id = 1111111111
+        mock_ctx.interaction.original_response = AsyncMock(return_value=mock_interaction_msg)
+
+        with (
+            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span),
+            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
+            patch('attubot.commands.remind.reminder_task') as mock_task,
+        ):
+            await remind_add(mock_ctx, year=5)
+
+        mock_task.request_wake.assert_called_once()
 
 
 # --- /remind cancel validation ---
@@ -267,7 +290,7 @@ class TestRemindCancelValidation:
             await remind_cancel(mock_ctx, reminder_id=fired_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
-        assert 'already fired' in args['args'][0]
+        assert 'already been reminded' in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio
@@ -294,7 +317,7 @@ class TestRemindCancelValidation:
 class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_happy_path_sends_to_original_channel(self, guild):
-        """delivers the reminder message to the original channel."""
+        """delivers the reminder embed to the original channel with a user mention."""
         from attubot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, attu_month=3, attu_day=15, note='do the thing')
@@ -308,10 +331,12 @@ class TestDeliverReminder:
             await _deliver_reminder(reminder)
 
         mock_channel.send.assert_called_once()
-        msg = mock_channel.send.call_args[0][0]
-        assert f'<@{test_user}>' in msg
-        assert '15-3 5 PC' in msg
-        assert 'do the thing' in msg
+        kwargs = mock_channel.send.call_args.kwargs
+        assert f'<@{test_user}>' in kwargs['content']
+        embed = kwargs['embed']
+        assert embed.title == 'reminder'
+        assert '15-3 5 PC' in embed.description
+        assert 'do the thing' in embed.description
 
     @pytest.mark.asyncio
     async def test_fallback_to_meta_chat(self, make_guild):
@@ -372,7 +397,7 @@ class TestDeliverReminder:
 
     @pytest.mark.asyncio
     async def test_includes_message_link(self, guild):
-        """includes a jump url when the reminder has a message_id."""
+        """includes a jump url in the embed when the reminder has a message_id."""
         from attubot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, message_id=1234567890)
@@ -385,12 +410,12 @@ class TestDeliverReminder:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
-        msg = mock_channel.send.call_args[0][0]
-        assert 'discord.com/channels' in msg
+        embed = mock_channel.send.call_args.kwargs['embed']
+        assert 'discord.com/channels' in embed.description
 
     @pytest.mark.asyncio
     async def test_no_note_no_message_id(self, guild):
-        """message has no note line and no jump url when both are absent."""
+        """embed has no note line and no jump url when both are absent."""
         from attubot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, note='', message_id=0)
@@ -403,12 +428,13 @@ class TestDeliverReminder:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
-        msg = mock_channel.send.call_args[0][0]
-        assert f'<@{test_user}>' in msg
-        assert 'Year 5 PC' in msg
+        kwargs = mock_channel.send.call_args.kwargs
+        assert f'<@{test_user}>' in kwargs['content']
+        embed = kwargs['embed']
+        assert '5 PC' in embed.description
         # no note or link appended
-        assert '\n>' not in msg
-        assert 'discord.com/channels' not in msg
+        assert '\n>' not in embed.description
+        assert 'discord.com/channels' not in embed.description
 
 
 # --- ReminderTask.run ---

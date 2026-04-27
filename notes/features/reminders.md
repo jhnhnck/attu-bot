@@ -87,6 +87,7 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 - **bot restart**: overdue reminders (fire time in the past) are delivered immediately on the next `run()`.
 - **channel deleted**: falls back to `meta_chat` from the guild config.
 - **guild removed**: `config.guild()` raises `UnauthorizedGuild`; reminder becomes dormant until the guild is re-added.
+- **new reminder while sleeping**: `/remind add` calls `reminder_task.request_wake()` after inserting, which interrupts the task's current sleep so `next_run()` is re-evaluated immediately. this prevents a newly created reminder from being delayed until a prior sleep target expires.
 
 ---
 
@@ -104,5 +105,5 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 ## metadata
 
 ```yaml
-last_updated: 12 April 2026
+last_updated: 13 April 2026
 ```

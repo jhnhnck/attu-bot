@@ -18,7 +18,7 @@ from attubot.client.embeds import make_embed
 from attubot.client.util import is_authorized_guild
 from attubot.database.models import ReminderDocument
 from attubot.logging import get_logger
-from attubot.tasks.reminder import _get_repo, compute_fire_time, format_attu_date
+from attubot.tasks.reminder import _get_repo, compute_fire_time, format_attu_date, reminder_task
 
 
 logger = get_logger(__name__)
@@ -66,15 +66,19 @@ async def remind_add(ctx: ApplicationContext, year: int, month: int | None = Non
     from datetime import datetime
 
     if fire_dt <= datetime.now().astimezone():
-        await ctx.respond('failed: that date has already passed', ephemeral=True)
+        await ctx.respond('failed: dates must be in the future', ephemeral=True)
         return
 
     repo = _get_repo()
     await repo.insert(reminder)
+    reminder_task.request_wake()
 
     date_str = format_attu_date(reminder)
     fire_ts = int(fire_dt.timestamp())
-    await ctx.respond(f'reminder set for **{date_str}** (<t:{fire_ts}:R>)')
+    description = f'{date_str}\n> {reminder.note}' if reminder.note else date_str
+    embed = make_embed(title='reminder', description=description)
+    embed.add_field(name='date', value=f'<t:{fire_ts}:R>', inline=False)
+    await ctx.respond(embed=embed)
 
     # grab the bot response message id for jump URL construction
     try:
@@ -134,7 +138,7 @@ async def remind_cancel(ctx: ApplicationContext, reminder_id: str):
         return
 
     if reminder.fired:
-        await ctx.respond('failed: that reminder has already fired', ephemeral=True)
+        await ctx.respond('failed: you have already been reminded of that', ephemeral=True)
         return
 
     date_str = format_attu_date(reminder)

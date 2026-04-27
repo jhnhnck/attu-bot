@@ -11,6 +11,7 @@ import discord
 
 from attubot import bot, config
 from attubot.client.calendar import get_year_span
+from attubot.client.embeds import make_embed
 from attubot.client.util import format_message_link, webhook_logging
 from attubot.config import UnauthorizedGuild
 from attubot.database.models import ReminderDocument
@@ -37,9 +38,9 @@ def _get_repo() -> ReminderRepository:
 def format_attu_date(reminder: ReminderDocument) -> str:
     """Format a reminder's target date as a human-readable haracalnde date string."""
     if reminder.attu_month is None:
-        return f'Year {reminder.attu_year} PC'
+        return f'{reminder.attu_year} PC'
     if reminder.attu_day is None:
-        return f'month {reminder.attu_month}, Year {reminder.attu_year} PC'
+        return f'1-{reminder.attu_month} {reminder.attu_year} PC'
     return f'{reminder.attu_day}-{reminder.attu_month} {reminder.attu_year} PC'
 
 
@@ -98,18 +99,16 @@ async def _deliver_reminder(reminder: ReminderDocument) -> None:
         return
 
     date_str = format_attu_date(reminder)
-    note_str = f'\n> {reminder.note}' if reminder.note else ''
+    description = f'{date_str}\n> {reminder.note}' if reminder.note else date_str
 
     if reminder.message_id:
         jump_url = format_message_link(reminder.guild_id, reminder.channel_id, reminder.message_id)
-        origin_str = f'\n{jump_url}'
-    else:
-        origin_str = ''
+        description += f'\n{jump_url}'
 
-    msg = f'<@{reminder.user_id}> reminder: **{date_str}** has arrived!{note_str}{origin_str}'
+    embed = make_embed(title='reminder', description=description)
 
     try:
-        await channel.send(msg)
+        await channel.send(content=f'<@{reminder.user_id}>', embed=embed)
     except discord.HTTPException as e:
         logger.error(f'reminder {reminder.reminder_id}: failed to send: {e!s}')
 
