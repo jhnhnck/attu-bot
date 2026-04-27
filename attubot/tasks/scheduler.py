@@ -105,10 +105,19 @@ class TaskScheduler:
             except TimeoutError:
                 logger.warn('scheduler: timed out waiting for jobs to stop')
 
-    async def _sleep_until(self, when: datetime) -> None:
-        """Sleep until a specific datetime, waking early if cancelled."""
+    async def _sleep_until(self, when: datetime, wake_event: asyncio.Event | None = None) -> None:
+        """Sleep until a specific datetime, waking early if cancelled or wake_event is set."""
         delay = (when - datetime.now().astimezone()).total_seconds()
-        if delay > 0:
+        if delay <= 0:
+            return
+
+        if wake_event is not None:
+            try:
+                wake_event.clear()
+                await asyncio.wait_for(wake_event.wait(), timeout=delay)
+            except TimeoutError:
+                pass  # normal expiry; scheduled time arrived
+        else:
             await asyncio.sleep(delay)
 
     async def _run_loop(self, task: BaseTask) -> None:  # noqa: PLR0912 - run_once/run_immediately/interval branches are all distinct scheduling paths
@@ -137,7 +146,10 @@ class TaskScheduler:
                     if next_dt is None:
                         logger.error(f'task {task.name} has no interval and next_run() returned None; stopping')
                         break
-                    await self._sleep_until(next_dt)
+                    event = asyncio.Event()
+                    task._wake_event = event
+                    await self._sleep_until(next_dt, wake_event=event)
+                    task._wake_event = None
                 else:
                     await asyncio.sleep(task.interval.total_seconds())
 

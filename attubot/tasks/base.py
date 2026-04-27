@@ -5,6 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
@@ -31,6 +32,14 @@ class BaseTask(ABC):
     interval: timedelta | None = timedelta(minutes=1)
     run_immediately: bool = False
     run_once: bool = False
+
+    # managed by the scheduler; set during dynamic sleeps, None otherwise
+    _wake_event: asyncio.Event | None = None
+
+    def request_wake(self) -> None:
+        """Interrupt a dynamic sleep so next_run() is re-evaluated immediately."""
+        if self._wake_event is not None:
+            self._wake_event.set()
 
     @abstractmethod
     async def run(self) -> None:

@@ -34,6 +34,7 @@ Lifecycle methods called by the scheduler - override as needed:
 | `run()` | Every tick (required - abstract) |
 | `next_run()` | If `interval is None`; return the `datetime` for the next tick |
 | `on_stop()` | Once, after the loop exits |
+| `request_wake()` | Call from outside the task to interrupt a dynamic sleep; causes `next_run()` to be re-evaluated immediately. no-op if the task is not currently sleeping |
 
 ### Fixed interval example
 
@@ -172,5 +173,5 @@ Command files (`attubot/commands/`) can import `scheduler` at the top of the mod
 ## metadata
 
 ```yaml
-last_updated: 30 March 2026
+last_updated: 13 April 2026
 ```

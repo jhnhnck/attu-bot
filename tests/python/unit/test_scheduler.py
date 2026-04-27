@@ -9,7 +9,7 @@ All tests mock asyncio.sleep to avoid real delays.
 """
 
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 from attubot.tasks.base import BaseTask
@@ -481,3 +481,100 @@ class TestProperties:
         for t in list(scheduler._loop_tasks):
             t.cancel()
         await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
+
+
+# ============================================================
+# _sleep_until with wake_event (interruptible sleep)
+# ============================================================
+
+
+class TestSleepUntilWake:
+    async def test_pre_set_event_returns_immediately(self):
+        """when the wake event is already set, _sleep_until returns without sleeping."""
+        scheduler = TaskScheduler()
+        event = asyncio.Event()
+        event.set()
+
+        target = datetime.now().astimezone() + timedelta(hours=1)
+
+        with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
+            await scheduler._sleep_until(target, wake_event=event)
+
+        mock_sleep.assert_not_awaited()
+
+    async def test_past_target_returns_immediately(self):
+        """when the target is in the past, _sleep_until returns regardless of event."""
+        scheduler = TaskScheduler()
+        event = asyncio.Event()
+
+        target = datetime.now().astimezone() - timedelta(seconds=10)
+        await scheduler._sleep_until(target, wake_event=event)
+        # should complete without blocking
+
+    async def test_no_event_falls_back_to_sleep(self):
+        """without a wake_event, _sleep_until uses plain asyncio.sleep."""
+        scheduler = TaskScheduler()
+        target = datetime.now().astimezone() + timedelta(seconds=5)
+
+        with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
+            await scheduler._sleep_until(target)
+
+        mock_sleep.assert_awaited_once()
+        delay = mock_sleep.call_args[0][0]
+        assert 4.0 < delay <= 5.0
+
+
+# ============================================================
+# dynamic task: request_wake() re-evaluates next_run()
+# ============================================================
+
+
+class _WakeableDynamicTask(BaseTask):
+    """dynamic task that tracks next_run() call count."""
+
+    name: str = 'wakeable_dynamic_task'
+    interval: timedelta | None = None
+
+    def __init__(self):
+        self.next_run_calls = 0
+        self.run_calls = 0
+        self._scheduler_ref: TaskScheduler | None = None
+
+    async def next_run(self):
+        self.next_run_calls += 1
+        # first call: sleep far in the future; after wake: stop the scheduler
+        if self.next_run_calls >= 2:
+            self._scheduler_ref._running = False
+            return datetime.now().astimezone()
+        return datetime.now().astimezone() + timedelta(hours=24)
+
+    async def run(self):
+        self.run_calls += 1
+
+
+class TestDynamicWake:
+    async def test_request_wake_re_evaluates_next_run(self):
+        """calling request_wake() during a dynamic sleep causes next_run() to be re-evaluated."""
+        scheduler = _make_scheduler()
+        task = _WakeableDynamicTask()
+        task._scheduler_ref = scheduler
+        task.on_start = AsyncMock()
+        task.on_stop = AsyncMock()
+
+        async def wake_after_brief_delay():
+            # yield so the loop enters _sleep_until
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            task.request_wake()
+
+        trigger = asyncio.create_task(wake_after_brief_delay())
+
+        with patch('attubot.tasks.scheduler.logger'):
+            await scheduler._run_loop(task)
+
+        await trigger
+
+        # next_run() called at least twice: initial + after wake
+        assert task.next_run_calls >= 2
+        # run() called at least once (for the overdue fire after wake)
+        assert task.run_calls >= 1
