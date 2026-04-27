@@ -29,11 +29,13 @@ services:
       timeout: 5s
       retries: 10
 
-  mongo-init:
+  ferret-init:
     build:
       context: .
       target: tester
     restart: no
+    env_file:
+      - ./.env
     depends_on:
       ferret:
         condition: service_started
@@ -58,7 +60,7 @@ services:
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
     depends_on:
-      mongo-init:
+      ferret-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
