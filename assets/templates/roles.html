@@ -1,0 +1,41 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid">
+  <div class="mb-4">
+    <h1 class="h3">
+      <i data-feather="shield" class="me-2"></i>
+      Role Configuration
+    </h1>
+    <p class="text-muted mb-0">Configure Discord roles for bot features</p>
+  </div>
+
+  <form id="roles-form" data-guild-id="{{ active_guild_id }}">
+    <div class="card">
+      <div class="card-body">
+        <div class="col-md-6 mb-3">
+          <label class="form-label" for="role_announcements">Announcements Role</label>
+          <select class="form-select discord-role-select" id="role_announcements" name="announcements">
+            <option value="0">Loading roles...</option>
+          </select>
+          <small class="text-muted">Role to ping for year change announcements</small>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label" for="role_bot_color">Bot Color Role</label>
+          <select class="form-select discord-role-select" id="role_bot_color" name="bot_color">
+            <option value="0">Loading roles...</option>
+          </select>
+          <small class="text-muted">Role whose color is synced to the bot theme color</small>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %} {% block extra_scripts %}
+{% if ssr_data %}<script type="application/json" id="ssr-data">{{ ssr_data | safe }}</script>{% endif %}
+<script type="module" nonce="{{ csp_nonce }}">
+  import { initRolesPage } from "{{ url_for('static', filename='js/pages/roles.js') }}";
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof feather !== 'undefined') feather.replace();
+    initRolesPage("{{ active_guild_id }}");
+  });
+</script>
+{% endblock %}

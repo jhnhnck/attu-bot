@@ -123,12 +123,25 @@ async def _initialize_startup(assets_dir: Path):
 
 
 def _register_template_hooks(app: Quart) -> None:
+    from attubot import __version__
+
+    @app.url_defaults
+    def static_cache_buster(endpoint, values):
+        if endpoint == 'static':
+            values['v'] = __version__
+
     @app.template_filter('timestamp_to_date')
     def timestamp_to_date_filter(ts):
         try:
             return datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M')
         except Exception:
             return 'Unknown'
+
+    @app.template_filter('format_uptime')
+    def format_uptime_filter(seconds):
+        from attubot.web.helpers import format_uptime
+
+        return format_uptime(seconds or 0)
 
     @app.before_request
     async def set_csp_nonce() -> None:
@@ -156,11 +169,45 @@ def _register_template_hooks(app: Quart) -> None:
         except Exception:
             return {'csrf_token': '', 'csp_nonce': ''}
 
+    @app.context_processor
+    async def inject_guild_context():
+        """inject active guild info into all templates for sidebar and guild toggle."""
+        from quart import session
+
+        active_guild_id = session.get('active_guild')
+        if not active_guild_id or active_guild_id not in config.authorized_guilds:
+            active_guild_id = config.primary_guild
+
+        active_guild = config.guilds.get(active_guild_id)
+        active_guild_name = str(active_guild) if active_guild else f'Guild {active_guild_id}'
+
+        primary_guild_id = config.primary_guild
+        secondary_guild_id = config.secondary_server if hasattr(config, 'secondary_server') else None
+
+        primary_guild = config.guilds.get(primary_guild_id)
+        primary_guild_name = str(primary_guild) if primary_guild else f'Guild {primary_guild_id}'
+
+        secondary_guild_name = None
+        if secondary_guild_id:
+            secondary_guild = config.guilds.get(secondary_guild_id)
+            secondary_guild_name = str(secondary_guild) if secondary_guild else f'Guild {secondary_guild_id}'
+
+        return {
+            'active_guild_id': active_guild_id,
+            'active_guild_name': active_guild_name,
+            'is_primary_guild': active_guild_id == primary_guild_id,
+            'primary_guild_id': primary_guild_id,
+            'primary_guild_name': primary_guild_name,
+            'secondary_guild_id': secondary_guild_id,
+            'secondary_guild_name': secondary_guild_name,
+        }
+
 
 def _register_rate_limits_and_routes(app: Quart) -> None:
-    from quart_rate_limiter import RateLimit, RateLimiter
+    from quart_rate_limiter import RateLimiter
 
-    RateLimiter(app, default_limits=[RateLimit(60, timedelta(minutes=1))])
+    # no default limits; per-route @rate_limit decorators on auth endpoints still apply
+    RateLimiter(app)
 
     from attubot.web.auth import register_auth_routes
 

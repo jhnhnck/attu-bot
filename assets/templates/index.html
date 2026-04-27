@@ -6,250 +6,187 @@
   .stat-card:hover {
     transform: translateY(-2px);
   }
-  .guild-card {
-    transition: box-shadow 0.2s ease-in-out;
-  }
-  .guild-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  }
 </style>
 {% endblock %} {% block content %}
-<div id="dashboard" class="container-fluid py-4">
+<div id="dashboard" class="container-fluid">
   <!-- Page Header -->
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-6">
-        <i data-feather="home" class="me-2"></i>
-        Dashboard
-      </h1>
-      <p class="text-muted">
-        Select a guild to configure or manage system settings
-      </p>
-    </div>
+  <div class="mb-4">
+    <h1 class="h3">
+      <i data-feather="home" class="me-2"></i>
+      dashboard
+    </h1>
+    <p class="text-muted mb-0">system overview and active guild status</p>
   </div>
 
-  <!-- Stats Cards -->
-  <div class="row mb-4" id="guild-stats">
-    <div class="col-md-3 mb-3">
-      <div class="card stat-card bg-primary text-white">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-subtitle mb-2 opacity-75">Guilds</h6>
-              <h2 class="card-title mb-0" id="stat-guilds">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              </h2>
-            </div>
-            <i data-feather="server" style="width: 48px; height: 48px; opacity: 0.5"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stat-card bg-success text-white">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-subtitle mb-2 opacity-75">Years Recorded</h6>
-              <h2 class="card-title mb-0" id="stat-years">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              </h2>
-            </div>
-            <i data-feather="calendar" style="width: 48px; height: 48px; opacity: 0.5"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stat-card bg-info text-white">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-subtitle mb-2 opacity-75">Markers</h6>
-              <h2 class="card-title mb-0" id="stat-markers">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              </h2>
-            </div>
-            <i data-feather="map-pin" style="width: 48px; height: 48px; opacity: 0.5"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card stat-card bg-warning text-white">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-subtitle mb-2 opacity-75">Total Stars</h6>
-              <h2 class="card-title mb-0" id="stat-stars">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              </h2>
-            </div>
-            <i data-feather="star" style="width: 48px; height: 48px; opacity: 0.5"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- System Status -->
-  <div class="row mb-4">
-    <div class="col">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <span class="me-2">System Status:</span>
-            <span id="stat-status" class="badge bg-secondary">
-              <span
-                class="spinner-border spinner-border-sm"
-                role="status"
-              ></span>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Guild Cards -->
-  <div class="row mb-4">
-    <div class="col">
-      <h2 class="h4 mb-3">
-        <i data-feather="users" class="me-2"></i>
-        Guilds
-      </h2>
-    </div>
-  </div>
-
-  <div class="row" id="guild-cards">
-    {% for guild in guilds %}
-    <div class="col-md-6 col-lg-4 mb-4">
-      <div class="card guild-card h-100 shadow-sm">
-        <div
-          class="card-header d-flex justify-content-between align-items-center"
-        >
-          <h5 class="card-title mb-0">
-            <i data-feather="server" class="me-2"></i>
-            {{ guild.name }}
-          </h5>
-          {% if guild.configured %}
-          <span class="badge bg-success">Configured</span>
+  <!-- System Status Row -->
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 mb-4">
+    <div class="col mb-3">
+      <div class="card stat-card h-100 text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small mb-1">database</div>
+          {% if stats.system %}
+          <span class="badge {{ 'bg-success' if stats.system.db_connected else 'bg-danger' }}">
+            {{ 'connected' if stats.system.db_connected else 'offline' }}
+          </span>
           {% else %}
-          <span class="badge bg-warning">Not Configured</span>
+          <span class="badge bg-secondary">-</span>
           {% endif %}
         </div>
-        <div class="card-body">
-          <p class="card-text">
-            <small class="text-muted">
-              <i data-feather="hash"></i>
-              Guild ID: <code>{{ guild.id }}</code>
-            </small>
-          </p>
-        </div>
-        <div class="card-footer bg-transparent">
-          <a href="/guild/{{ guild.id }}" class="btn btn-primary btn-sm">
-            <i data-feather="settings" class="me-1"></i>
-            Configure
-          </a>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card h-100 text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small mb-1">config</div>
+          {% if stats.system %}
+          <span class="badge {{ 'bg-success' if stats.system.config_loaded else 'bg-warning' }}">
+            {{ 'loaded' if stats.system.config_loaded else 'not loaded' }}
+          </span>
+          {% else %}
+          <span class="badge bg-secondary">-</span>
+          {% endif %}
         </div>
       </div>
     </div>
-    {% endfor %}
+    <div class="col mb-3">
+      <div class="card stat-card h-100 text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small mb-1">uptime</div>
+          <span class="text-body fw-semibold">{{ stats.system.uptime_seconds | format_uptime if stats.system else '-' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card h-100 text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small mb-1">guilds</div>
+          <span class="text-body fw-semibold">{{ stats.guilds.configured }}/{{ stats.guilds.total if stats.guilds else '-' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card h-100 text-center">
+        <div class="card-body py-3">
+          <div class="text-muted small mb-1">version</div>
+          <span class="text-body fw-semibold">{{ stats.system.config_version if stats.system else '-' }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Quick Access Cards -->
-  <div class="row mt-4">
-    <div class="col">
-      <h2 class="h4 mb-3">
-        <i data-feather="zap" class="me-2"></i>
-        Quick Access
-      </h2>
+  <!-- Data Summary Cards (active guild) -->
+  <h5 class="mb-3">data summary</h5>
+  <div class="row row-cols-2 row-cols-md-4 mb-4">
+    <div class="col mb-3">
+      <div class="card stat-card bg-primary bg-opacity-10">
+        <div class="card-body text-center py-3">
+          <h3 class="mb-0">{{ stats.data.total_years if stats.data else 0 }}</h3>
+          <small class="text-muted">years</small>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card bg-info bg-opacity-10">
+        <div class="card-body text-center py-3">
+          <h3 class="mb-0">{{ stats.data.total_markers if stats.data else 0 }}</h3>
+          <small class="text-muted">markers</small>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card bg-warning bg-opacity-10">
+        <div class="card-body text-center py-3">
+          <h3 class="mb-0">{{ '{:,}'.format(stats.data.total_stars) if stats.data else 0 }}</h3>
+          <small class="text-muted">stars</small>
+        </div>
+      </div>
+    </div>
+    <div class="col mb-3">
+      <div class="card stat-card bg-success bg-opacity-10">
+        <div class="card-body text-center py-3">
+          <h3 class="mb-0">{{ stats.data.total_eggs_hatched if stats.data else 0 }}</h3>
+          <small class="text-muted">eggs hatched</small>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="row">
+    <!-- Current Time Status (active guild) -->
     <div class="col-md-6 mb-4">
       <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">
-            <i data-feather="droplet" class="me-2"></i>
-            Theme Configuration
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i data-feather="clock" class="me-2"></i>
+            time status
           </h5>
-          <p class="card-text text-muted">
-            Customize bot colors, rotation, and appearance settings
-          </p>
-          <a href="/theme" class="btn btn-outline-primary btn-sm">
-            <i data-feather="edit-2" class="me-1"></i>
-            Edit Theme
-          </a>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">current date</span>
+            <span class="fw-semibold">{{ haracalnde_now or '-' }}</span>
+          </div>
+          {% if time_status %}
+          <div class="progress mb-2" style="height: 12px">
+            {% set pct = ((time_status.current_day / time_status.year_length * 100) | round | int) if time_status.year_length else 0 %}
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ pct }}%" aria-valuenow="{{ pct }}"></div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">status</span>
+            <span class="small">
+              {% if time_status.paused %}
+              <span class="badge bg-warning">paused</span>
+              {% else %}
+              <span class="badge bg-success">running</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="/time" class="btn btn-primary btn-sm">view details</a>
         </div>
       </div>
     </div>
+
+    <!-- Recent Audit Log -->
     <div class="col-md-6 mb-4">
       <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">
-            <i data-feather="sliders" class="me-2"></i>
-            System Configuration
-          </h5>
-          <p class="card-text text-muted">
-            Manage error logging, webhooks, and system-wide settings
-          </p>
-          <a href="/system" class="btn btn-outline-primary btn-sm">
-            <i data-feather="edit-2" class="me-1"></i>
-            Edit System
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6 mb-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">
-            <i data-feather="message-circle" class="me-2"></i>
-            Chat Configuration
-          </h5>
-          <p class="card-text text-muted">
-            Ingestion pipelines, retrieval settings, and channel list for /ask
-          </p>
-          <a href="/chat" class="btn btn-outline-primary btn-sm">
-            <i data-feather="edit-2" class="me-1"></i>
-            Edit Chat Config
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6 mb-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">
+        <div class="card-header">
+          <h5 class="mb-0">
             <i data-feather="file-text" class="me-2"></i>
-            Audit Log
+            recent changes
           </h5>
-          <p class="card-text text-muted">View configuration change history</p>
-          <a href="/audit" class="btn btn-outline-primary btn-sm">
-            <i data-feather="search" class="me-1"></i>
-            View Logs
-          </a>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {% if audit_logs %}
+              {% for log in audit_logs %}
+              <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                <div>
+                  {% set type_colors = {'guild': 'success', 'theme': 'warning', 'system': 'danger', 'chat': 'info'} %}
+                  <span class="badge bg-{{ type_colors.get(log.config_type, 'secondary') }} me-1">{{ log.config_type }}</span>
+                  <span class="small">{{ log.action }}</span>
+                </div>
+                <small class="text-muted">{{ log.haracalnde or log.timestamp_formatted }}</small>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="list-group-item text-center text-muted py-3">no recent changes</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="/audit" class="btn btn-primary btn-sm">view all</a>
         </div>
       </div>
     </div>
   </div>
 </div>
 {% endblock %} {% block extra_scripts %}
-<!-- Dashboard Page Controller -->
 <script type="module" nonce="{{ csp_nonce }}">
-  import { initDashboard } from "{{ url_for('static', filename='js/pages/dashboard.js') }}";
-
-  // Initialize dashboard when page loads
-  document.addEventListener("DOMContentLoaded", () => {
-    // Re-initialize Feather icons for dynamically loaded content
-    if (typeof feather !== "undefined") {
-      feather.replace();
-    }
-
-    // Initialize dashboard
-    initDashboard();
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof feather !== 'undefined') feather.replace();
   });
 </script>
 {% endblock %}

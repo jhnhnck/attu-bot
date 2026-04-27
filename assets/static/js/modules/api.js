@@ -139,6 +139,49 @@ export class ApiClient {
         });
     }
 
+    // Per-section PATCH endpoints
+    async patchChannels(guildId, data) {
+        return this.fetch(`/api/guilds/${this.toParam(guildId)}/channels`, {
+            method: 'PATCH',
+            body: JSON.stringify(this.stringifyBigInts(data)),
+        });
+    }
+
+    async patchEpoch(guildId, data) {
+        return this.fetch(`/api/guilds/${this.toParam(guildId)}/epoch`, {
+            method: 'PATCH',
+            body: JSON.stringify(this.stringifyBigInts(data)),
+        });
+    }
+
+    async patchRoles(guildId, data) {
+        return this.fetch(`/api/guilds/${this.toParam(guildId)}/roles`, {
+            method: 'PATCH',
+            body: JSON.stringify(this.stringifyBigInts(data)),
+        });
+    }
+
+    async patchUsers(guildId, data) {
+        return this.fetch(`/api/guilds/${this.toParam(guildId)}/users`, {
+            method: 'PATCH',
+            body: JSON.stringify(this.stringifyBigInts(data)),
+        });
+    }
+
+    async patchStarboard(guildId, data) {
+        return this.fetch(`/api/guilds/${this.toParam(guildId)}/starboard`, {
+            method: 'PATCH',
+            body: JSON.stringify(this.stringifyBigInts(data)),
+        });
+    }
+
+    async setGuild(guildId) {
+        return this.fetch('/api/set-guild', {
+            method: 'POST',
+            body: JSON.stringify({ guild_id: this.toParam(guildId) }),
+        });
+    }
+
     // Years endpoints
     async getYears(guildId) {
         return this.fetch(`/api/guilds/${this.toParam(guildId)}/years`);

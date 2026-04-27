@@ -1,0 +1,53 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid">
+  <div class="mb-4">
+    <h1 class="h3">
+      <i data-feather="clock" class="me-2"></i>
+      Epoch Configuration
+    </h1>
+    <p class="text-muted mb-0">Configure time progression and epoch settings</p>
+  </div>
+
+  <form id="epoch-form" data-guild-id="{{ active_guild_id }}">
+    <div class="card">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="epoch_time">Epoch Start Time (Unix Timestamp)</label>
+            <input class="form-control" id="epoch_time" name="time" type="number" placeholder="0" />
+            <small class="text-muted">Unix timestamp of when the epoch starts</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="epoch_year">Starting Year</label>
+            <input class="form-control" id="epoch_year" name="year" type="number" placeholder="1" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="epoch_length">Year Length (days)</label>
+            <input class="form-control" id="epoch_length" name="length" type="number" placeholder="14" min="1" max="365" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="rollover_time">Daily Rollover Time</label>
+            <input class="form-control" id="rollover_time" name="rollover_time" type="text" placeholder="17:00" pattern="[0-2][0-9]:[0-5][0-9]" style="max-width: 120px" />
+            <small class="text-muted">Time when day transitions occur (HH:MM format)</small>
+          </div>
+          <div class="col-12 mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="epoch_paused" name="paused" />
+              <label class="form-check-label" for="epoch_paused">Pause time progression</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %} {% block extra_scripts %}
+{% if ssr_data %}<script type="application/json" id="ssr-data">{{ ssr_data | safe }}</script>{% endif %}
+<script type="module" nonce="{{ csp_nonce }}">
+  import { initEpochPage } from "{{ url_for('static', filename='js/pages/epoch.js') }}";
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof feather !== 'undefined') feather.replace();
+    initEpochPage("{{ active_guild_id }}");
+  });
+</script>
+{% endblock %}

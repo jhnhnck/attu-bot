@@ -64,7 +64,6 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `notes/reports/web_interface_audit.md` for the current state audit.
 
-- ⭕ `high priority` `high effort` implement web improvement plan (sidebar layout, guild toggle, save manager, split guild config, merge dashboard, API cleanup)
 - ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes
 
 ### maintenance
@@ -135,6 +134,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### web interface
 
+- 🔴 `26 April 2026` implement web improvement plan — sidebar layout, guild toggle, session-based active guild, split guild config pages (channels/epoch/roles/users/starboard) with per-section PATCH endpoints, SSR helpers, save manager with dirty tracking, legacy redirects
 - 🔴 `11 April 2026` enforce web audit logging — replaced optional `if web_app.audit_logger:` guards with `log_audit()` helper; added error-path and missing-route audit coverage
 
 ### maintenance

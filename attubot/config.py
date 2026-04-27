@@ -530,8 +530,8 @@ class NovaConfig:
                 return_exceptions=False,
             )
 
-        # Only chmod if not in test mode (volume may be read-only in tests)
-        if not self.test_mode:
+        # only chmod if not in test/web mode (volume may be read-only)
+        if not self.test_mode and not self.web_mode:
             await anyio.Path(self.path).chmod(0o660)
 
         # manually fetch owner info ourselves bc pycord is weird

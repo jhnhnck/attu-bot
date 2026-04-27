@@ -1,10 +1,9 @@
 /**
  * Dashboard Page Controller
- * Handles the main dashboard/index page
+ * Handles the combined overview dashboard
  */
 
 import { api } from '../modules/api.js';
-import { showError, showLoadingOverlay } from '../modules/ui.js';
 
 /**
  * Initialize dashboard page
@@ -13,127 +12,166 @@ export function initDashboard() {
     const dashboardEl = document.getElementById('dashboard');
     if (!dashboardEl) {return;}
 
-    // Load guild data via API (for dynamic updates)
-    loadGuildStats();
-
-    // Initialize any dashboard-specific functionality
-    console.log('Dashboard initialized');
+    // load all dashboard data in parallel
+    Promise.all([
+        loadStats(),
+        loadTimeStatus(),
+        loadRecentAudit(),
+    ]);
 }
 
 /**
- * Load guild statistics for dashboard cards
+ * Load system statistics
  */
-async function loadGuildStats() {
-    const statsContainer = document.getElementById('guild-stats');
-    if (!statsContainer) {return;}
-
+async function loadStats() {
     try {
-        // Show loading state
-        showLoadingOverlay(statsContainer, true);
-
-        // Fetch admin stats
         const stats = await api.getStats();
 
-        // Update stats display
-        updateStatsDisplay(stats);
-    } catch (error) {
-        console.error('Failed to load guild stats:', error);
-        showError(error, 'Failed to Load Stats');
-    } finally {
-        showLoadingOverlay(statsContainer, false);
+        // system status
+        const dbEl = document.getElementById('stat-db');
+        if (dbEl && stats.system) {
+            dbEl.textContent = stats.system.db_connected ? 'Connected' : 'Offline';
+            dbEl.className = `badge ${stats.system.db_connected ? 'bg-success' : 'bg-danger'}`;
+        }
+
+        const configEl = document.getElementById('stat-config');
+        if (configEl && stats.system) {
+            configEl.textContent = stats.system.config_loaded ? 'Loaded' : 'Not Loaded';
+            configEl.className = `badge ${stats.system.config_loaded ? 'bg-success' : 'bg-warning'}`;
+        }
+
+        const uptimeEl = document.getElementById('stat-uptime');
+        if (uptimeEl && stats.system) {
+            uptimeEl.textContent = formatUptime(stats.system.uptime_seconds || 0);
+        }
+
+        const guildsEl = document.getElementById('stat-guilds');
+        if (guildsEl && stats.guilds) {
+            guildsEl.textContent = `${stats.guilds.configured}/${stats.guilds.total}`;
+        }
+
+        const versionEl = document.getElementById('stat-version');
+        if (versionEl && stats.system) {
+            versionEl.textContent = stats.system.config_version || '-';
+        }
+
+        // data summary
+        if (stats.data) {
+            setText('stat-years', stats.data.total_years || 0);
+            setText('stat-markers', stats.data.total_markers || 0);
+            setText('stat-stars', (stats.data.total_stars || 0).toLocaleString());
+            setText('stat-eggs', stats.data.total_eggs_hatched || 0);
+        }
+    } catch (err) {
+        console.error('Failed to load stats:', err);
     }
 }
 
 /**
- * Update the stats display
+ * Load time status for active guild
  */
-function updateStatsDisplay(stats) {
-    // Update guild count
-    const guildCountEl = document.getElementById('stat-guilds');
-    if (guildCountEl && stats.guilds) {
-        guildCountEl.textContent = `${stats.guilds.configured}/${stats.guilds.total}`;
-    }
+async function loadTimeStatus() {
+    try {
+        // use the active guild (from the guild context injected server-side)
+        // the /api/guilds/<id>/time endpoint needs the guild id; we'll get it from admin stats
+        const stats = await api.getStats();
+        if (!stats.guilds?.authorized?.length) {return;}
 
-    // Update years count
-    const yearsCountEl = document.getElementById('stat-years');
-    if (yearsCountEl && stats.data) {
-        yearsCountEl.textContent = stats.data.total_years || 0;
-    }
+        // use the first authorized guild as a proxy for active guild
+        const guildId = stats.guilds.authorized[0];
+        const time = await api.getTime(guildId);
 
-    // Update markers count
-    const markersCountEl = document.getElementById('stat-markers');
-    if (markersCountEl && stats.data) {
-        markersCountEl.textContent = stats.data.total_markers || 0;
-    }
+        setText('dash-year', `Year ${time.current_year}`);
+        setText('dash-day', `${time.current_day} / ${time.year_length}`);
 
-    // Update total stars count
-    const starsCountEl = document.getElementById('stat-stars');
-    if (starsCountEl && stats.data) {
-        starsCountEl.textContent = (stats.data.total_stars || 0).toLocaleString();
-    }
+        const pct = time.year_length > 0 ? Math.round((time.current_day / time.year_length) * 100) : 0;
+        const bar = document.getElementById('dash-progress');
+        if (bar) {
+            bar.style.width = `${pct}%`;
+            bar.setAttribute('aria-valuenow', pct);
+        }
 
-    // Update system status
-    const statusEl = document.getElementById('stat-status');
-    if (statusEl && stats.system) {
-        const isConnected = stats.system.db_connected && stats.system.config_loaded;
-        statusEl.textContent = isConnected ? 'Online' : 'Offline';
-        statusEl.className = isConnected ? 'badge bg-success' : 'badge bg-danger';
+        const pausedEl = document.getElementById('dash-paused');
+        if (pausedEl) {
+            pausedEl.innerHTML = time.paused
+                ? '<span class="badge bg-warning">Paused</span>'
+                : '<span class="badge bg-success">Running</span>';
+        }
+    } catch (err) {
+        console.error('Failed to load time status:', err);
+        setText('dash-year', '-');
+        setText('dash-day', '-');
     }
 }
 
 /**
- * Format guild ID for display
+ * Load recent audit log entries
  */
-export function formatGuildId(id) {
-    if (typeof id === 'bigint') {
-        return id.toString();
-    }
-    return String(id);
-}
+async function loadRecentAudit() {
+    const container = document.getElementById('dash-audit');
+    if (!container) {return;}
 
-/**
- * Get guild card template
- */
-export function getGuildCardTemplate(guild) {
-    const {configured} = guild;
-    const statusClass = configured ? 'bg-success' : 'bg-warning';
-    const statusText = configured ? 'Configured' : 'Not Configured';
+    try {
+        const data = await api.getAuditLogs({ limit: 5 });
+        const logs = data.logs || [];
 
-    return `
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i data-feather="users" class="me-2"></i>
-                        ${escapeHtml(guild.name)}
-                    </h5>
-                    <span class="badge ${statusClass}">${statusText}</span>
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="list-group-item text-center text-muted py-3">No recent changes</div>';
+            return;
+        }
+
+        container.innerHTML = logs.map(log => {
+            const badge = log.success
+                ? `<span class="badge bg-${typeBadge(log.config_type)} me-1">${escapeHtml(log.config_type)}</span>`
+                : '<span class="badge bg-danger me-1">failed</span>';
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div>
+                        ${badge}
+                        <span class="small">${escapeHtml(log.action)}</span>
+                    </div>
+                    <small class="text-muted">${escapeHtml(log.timestamp_formatted)}</small>
                 </div>
-                <div class="card-body">
-                    <p class="card-text">
-                        <small class="text-muted">
-                            <i data-feather="hash"></i>
-                            Guild ID: <code>${formatGuildId(guild.id)}</code>
-                        </small>
-                    </p>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="/guild/${formatGuildId(guild.id)}" class="btn btn-primary btn-sm">
-                        <i data-feather="settings" class="me-1"></i>
-                        Configure
-                    </a>
-                </div>
-            </div>
-        </div>
-    `;
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Failed to load audit logs:', err);
+        container.innerHTML = '<div class="list-group-item text-center text-muted py-3">Failed to load</div>';
+    }
 }
 
-/**
- * Escape HTML to prevent XSS
- */
+function typeBadge(type) {
+    switch (type) {
+        case 'guild': return 'success';
+        case 'theme': return 'warning';
+        case 'system': return 'danger';
+        case 'chat': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) {el.textContent = text;}
+}
+
+function formatUptime(seconds) {
+    if (seconds < 60) {return `${seconds}s`;}
+    if (seconds < 3600) {return `${Math.floor(seconds / 60)}m`;}
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h < 24) {return `${h}h ${m}m`;}
+    const d = Math.floor(h / 24);
+    return `${d}d ${h % 24}h`;
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
+// re-export for backwards compatibility
+export function formatGuildId(id) {
+    return typeof id === 'bigint' ? id.toString() : String(id);
+}

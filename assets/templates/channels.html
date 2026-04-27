@@ -1,0 +1,111 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3">
+        <i data-feather="hash" class="me-2"></i>
+        Channel Configuration
+      </h1>
+      <p class="text-muted mb-0">Configure Discord channels for various bot features</p>
+    </div>
+    <button class="btn btn-secondary btn-sm" type="button" id="refresh-discord-btn">
+      <i data-feather="refresh-cw" class="me-1"></i> Refresh Discord Data
+    </button>
+  </div>
+
+  <form id="channels-form" data-guild-id="{{ active_guild_id }}">
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="activity">Activity Channel</label>
+            <select class="form-select discord-channel-select" id="activity" name="activity">
+              <option value="0">Loading channels...</option>
+            </select>
+            <small class="text-muted">Channel for activity monitoring</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="announcements">Announcements Channel</label>
+            <select class="form-select discord-channel-select" id="announcements" name="announcements">
+              <option value="0">Loading channels...</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="year_vc">Year Voice Channel</label>
+            <select class="form-select discord-channel-select" id="year_vc" name="year_vc">
+              <option value="0">Loading channels...</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="year_links">Year Links Channel</label>
+            <select class="form-select discord-channel-select" id="year_links" name="year_links">
+              <option value="0">Loading channels...</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="meta_chat">Meta Chat Channel</label>
+            <select class="form-select discord-channel-select" id="meta_chat" name="meta_chat">
+              <option value="0">Loading channels...</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="general">General Channel</label>
+            <select class="form-select discord-channel-select" id="general" name="general">
+              <option value="0">Loading channels...</option>
+            </select>
+            <small class="text-muted">Channel for welcome messages</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="logs">Logs Channel</label>
+            <select class="form-select discord-channel-select" id="logs" name="logs">
+              <option value="0">Loading channels...</option>
+            </select>
+            <small class="text-muted">Channel for member join logs</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="eggs">Eggs Channel</label>
+            <select class="form-select discord-channel-select" id="eggs" name="eggs">
+              <option value="0">Loading channels...</option>
+            </select>
+            <small class="text-muted">Channel for the egg collection game</small>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="lore_channels">Lore Channels</label>
+            <div class="input-group mb-2">
+              <input class="form-control" id="lore_channel_input" type="text" placeholder="Channel ID" />
+              <button class="btn btn-outline-secondary" type="button" id="add-lore-btn">Add</button>
+            </div>
+            <input type="hidden" id="lore_channels" name="lore_channels" />
+            <ul id="list-lore_channels" class="list-group list-group-flush"></ul>
+            <small class="text-muted">Channels for lore content</small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="canon_channels">Canon Channels</label>
+            <div class="input-group mb-2">
+              <input class="form-control" id="canon_channel_input" type="text" placeholder="Channel ID" />
+              <button class="btn btn-outline-secondary" type="button" id="add-canon-btn">Add</button>
+            </div>
+            <input type="hidden" id="canon_channels" name="canon_channels" />
+            <ul id="list-canon_channels" class="list-group list-group-flush"></ul>
+            <small class="text-muted">Additional channels included in year search/link lookups</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %} {% block extra_scripts %}
+{% if ssr_data %}<script type="application/json" id="ssr-data">{{ ssr_data | safe }}</script>{% endif %}
+<script type="module" nonce="{{ csp_nonce }}">
+  import { initChannelsPage } from "{{ url_for('static', filename='js/pages/channels.js') }}";
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof feather !== 'undefined') feather.replace();
+    initChannelsPage("{{ active_guild_id }}");
+  });
+</script>
+{% endblock %}

@@ -6,9 +6,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 from pydantic import ValidationError
-from quart import Quart, Response, jsonify, render_template, request
+from quart import Quart, Response, jsonify, redirect, render_template, request, session
 
-from attubot.client.core import db
 from attubot.client.logo import generate_svg
 from attubot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 from attubot.database.models import ChatChannelConfig, ChatConfigDocument
@@ -17,10 +16,27 @@ from attubot.signals import send_signal
 from attubot.web.app import config
 from attubot.web.audit import ConfigChange, compare_configs, log_audit
 from attubot.web.discord_integration import get_guild_channels, get_guild_info, get_guild_roles, get_users_info, invalidate_guild_cache
-from attubot.web.forms import ChatConfigForm, GuildConfigForm, SystemConfigForm, ThemeConfigForm
+from attubot.web.forms import ChatConfigForm, GuildChannelsForm, GuildConfigForm, GuildEpochForm, GuildRolesForm, GuildStarboardForm, GuildUsersForm, SystemConfigForm, ThemeConfigForm
 
 
 logger = get_logger(__name__)
+
+
+def get_active_guild() -> int:
+    """return the active guild id from session, falling back to primary_guild."""
+    guild_id = session.get('active_guild')
+    if guild_id and guild_id in config.authorized_guilds:
+        return guild_id
+    return config.primary_guild
+
+
+def _validation_error_fields(exc: ValidationError) -> dict[str, str]:
+    """reshape pydantic ValidationError into a field-path -> message dict for frontend field-level display."""
+    fields = {}
+    for err in exc.errors():
+        path = '.'.join(str(loc) for loc in err['loc'])
+        fields[path] = err['msg']
+    return fields
 
 
 def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines many routes inline by design
@@ -30,138 +46,350 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
     @app.route('/')
     async def index():
-        """Dashboard - guild overview"""
-        guilds = []
-        for guild_id in config.authorized_guilds:
-            guild_config = config.guilds.get(guild_id)
-            guilds.append({
-                'id': guild_id,
-                'name': str(guild_config) if guild_config else f'Guild {guild_id}',
-                'configured': guild_id in config.valid_guilds,
-            })
-        return await render_template('index.html', title='Dashboard', guilds=guilds)
+        """Dashboard - combined overview with server-side data"""
+        import asyncio
+        import time as time_mod
 
-    @app.route('/guild/<int:guild_id>')
-    async def guild_config_page(guild_id: int):
-        """Guild configuration editor"""
-        if guild_id not in config.authorized_guilds:
-            return await render_template(
-                'error.html',
-                title='Unauthorized',
-                error='This guild is not authorized',
-            ), 403
+        from attubot.web.helpers import get_admin_stats_data, get_recent_audit_data, get_time_status_data
 
-        guild = config.guilds.get(guild_id)
-        if not guild:
-            return await render_template(
-                'error.html',
-                title='Not Found',
-                error='Guild configuration not found',
-            ), 404
+        guild_id = get_active_guild()
+
+        stats, time_data, audit_logs = await asyncio.gather(
+            get_admin_stats_data(),
+            get_time_status_data(guild_id),
+            get_recent_audit_data(guild_id=guild_id, limit=5),
+            return_exceptions=True,
+        )
+
+        empty_stats = {'guilds': {}, 'data': {}, 'system': {}}
+        if isinstance(stats, Exception):
+            logger.error(f'dashboard stats failed: {stats}')
+            stats = empty_stats
+        if isinstance(time_data, Exception):
+            logger.error(f'dashboard time failed: {time_data}')
+            time_data = {}
+        if isinstance(audit_logs, Exception):
+            logger.error(f'dashboard audit failed: {audit_logs}')
+            audit_logs = []
+
+        # compute haracalnde date for current time
+        haracalnde_now = ''
+        try:
+            from attubot.client.calendar import haracalnde_date
+
+            haracalnde_now = await haracalnde_date(int(time_mod.time()), guild_id)
+        except Exception as e:
+            logger.debug(f'haracalnde date failed: {e}')
 
         return await render_template(
-            'guild_config.html',
-            title=f'Guild Configuration - {guild}',
-            guild_id=guild_id,
-            guild_name=str(guild),
+            'index.html',
+            title='dashboard',
+            stats=stats,
+            time_status=time_data,
+            audit_logs=audit_logs,
+            haracalnde_now=haracalnde_now,
         )
 
     @app.route('/theme')
     async def theme_config_page():
         """Theme configuration editor"""
-        return await render_template('theme_config.html', title='Theme Configuration')
+        return await render_template('theme_config.html', title='theme')
 
     @app.route('/system')
     async def system_config_page():
         """System configuration editor"""
-        return await render_template('system_config.html', title='System Configuration')
+        return await render_template('system_config.html', title='system')
 
     @app.route('/audit')
     async def audit_log_page():
         """Audit log viewer"""
-        return await render_template('audit_log.html', title='Audit Log')
-
-    # ========== New Bootstrap Page Routes ==========
-
-    @app.route('/guild/<int:guild_id>/years')
-    async def years_page(guild_id: int):
-        """Years viewer page"""
-        if guild_id not in config.authorized_guilds:
-            return await render_template(
-                'error.html',
-                title='Unauthorized',
-                error='This guild is not authorized',
-            ), 403
-
-        guild = config.guilds.get(guild_id)
-        if not guild:
-            return await render_template(
-                'error.html',
-                title='Not Found',
-                error='Guild configuration not found',
-            ), 404
-
-        return await render_template(
-            'years.html',
-            title=f'Years - {guild}',
-            guild_id=guild_id,
-            guild_name=str(guild),
-        )
-
-    @app.route('/guild/<int:guild_id>/markers')
-    async def markers_page(guild_id: int):
-        """Markers viewer page"""
-        if guild_id not in config.authorized_guilds:
-            return await render_template(
-                'error.html',
-                title='Unauthorized',
-                error='This guild is not authorized',
-            ), 403
-
-        guild = config.guilds.get(guild_id)
-        if not guild:
-            return await render_template(
-                'error.html',
-                title='Not Found',
-                error='Guild configuration not found',
-            ), 404
-
-        return await render_template(
-            'markers.html',
-            title=f'Markers - {guild}',
-            guild_id=guild_id,
-            guild_name=str(guild),
-        )
-
-    @app.route('/guild/<int:guild_id>/time')
-    async def time_status_page(guild_id: int):
-        """Time status page"""
-        if guild_id not in config.authorized_guilds:
-            return await render_template(
-                'error.html',
-                title='Unauthorized',
-                error='This guild is not authorized',
-            ), 403
-
-        guild = config.guilds.get(guild_id)
-        if not guild:
-            return await render_template(
-                'error.html',
-                title='Not Found',
-                error='Guild configuration not found',
-            ), 404
-
-        return await render_template(
-            'time_status.html',
-            title=f'Time Status - {guild}',
-            guild_id=guild_id,
-            guild_name=str(guild),
-        )
+        return await render_template('audit_log.html', title='audit log')
 
     @app.route('/admin/stats')
     async def admin_stats_page():
         """Admin statistics page"""
-        return await render_template('admin_stats.html', title='Statistics')
+        return await render_template('admin_stats.html', title='statistics')
+
+    # ========== New Split Config Page Routes ==========
+
+    async def _render_config_page(template: str, title: str):
+        """shared helper for guild config pages - loads SSR data."""
+        import json
+
+        from attubot.web.helpers import get_guild_config_data
+
+        guild_id = get_active_guild()
+        guild = config.guilds.get(guild_id)
+
+        try:
+            ssr = await get_guild_config_data(guild_id)
+        except Exception as e:
+            logger.error(f'SSR data load failed for {template}: {e}')
+            ssr = {}
+
+        return await render_template(
+            template,
+            title=title,
+            guild_id=guild_id,
+            guild_name=str(guild),
+            ssr_data=json.dumps(ssr, default=str) if ssr else '',
+        )
+
+    @app.route('/channels')
+    async def channels_page():
+        """Channel configuration page"""
+        return await _render_config_page('channels.html', 'channels')
+
+    @app.route('/epoch')
+    async def epoch_page():
+        """Epoch configuration page"""
+        return await _render_config_page('epoch.html', 'epoch')
+
+    @app.route('/roles')
+    async def roles_page():
+        """Roles configuration page"""
+        return await _render_config_page('roles.html', 'roles')
+
+    @app.route('/users')
+    async def users_page():
+        """Users configuration page"""
+        return await _render_config_page('users.html', 'users')
+
+    @app.route('/starboard')
+    async def starboard_page():
+        """Starboard configuration page"""
+        return await _render_config_page('starboard.html', 'starboard')
+
+    # ========== Session-based guild data pages ==========
+
+    @app.route('/years')
+    async def years_session_page():
+        """Years viewer page (session-based guild)"""
+        guild_id = get_active_guild()
+        guild = config.guilds.get(guild_id)
+        return await render_template('years.html', title='years', guild_id=guild_id, guild_name=str(guild))
+
+    @app.route('/markers')
+    async def markers_session_page():
+        """Markers viewer page (session-based guild)"""
+        guild_id = get_active_guild()
+        guild = config.guilds.get(guild_id)
+        return await render_template('markers.html', title='markers', guild_id=guild_id, guild_name=str(guild))
+
+    @app.route('/time')
+    async def time_session_page():
+        """Time status page (session-based guild)"""
+        guild_id = get_active_guild()
+        guild = config.guilds.get(guild_id)
+        return await render_template('time_status.html', title='time status', guild_id=guild_id, guild_name=str(guild))
+
+    # ========== Legacy Redirects ==========
+
+    @app.route('/guild/<int:guild_id>')
+    async def legacy_guild(guild_id: int):
+        """Legacy guild config redirect - sets session and redirects to /channels"""
+        if guild_id in config.authorized_guilds:
+            session['active_guild'] = guild_id
+        return redirect('/channels')
+
+    @app.route('/guild/<int:guild_id>/years')
+    async def legacy_years(guild_id: int):
+        """Legacy years redirect"""
+        if guild_id in config.authorized_guilds:
+            session['active_guild'] = guild_id
+        return redirect('/years')
+
+    @app.route('/guild/<int:guild_id>/markers')
+    async def legacy_markers(guild_id: int):
+        """Legacy markers redirect"""
+        if guild_id in config.authorized_guilds:
+            session['active_guild'] = guild_id
+        return redirect('/markers')
+
+    @app.route('/guild/<int:guild_id>/time')
+    async def legacy_time(guild_id: int):
+        """Legacy time redirect"""
+        if guild_id in config.authorized_guilds:
+            session['active_guild'] = guild_id
+        return redirect('/time')
+
+    # ========== API Routes - Guild Session ==========
+
+    @app.route('/api/set-guild', methods=['POST'])
+    async def api_set_guild():
+        """Set the active guild in session"""
+        data = await request.get_json()
+        if not data or 'guild_id' not in data:
+            return jsonify({'error': 'guild_id is required'}), 400
+
+        guild_id = int(data['guild_id'])
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+
+        session['active_guild'] = guild_id
+        return jsonify({'success': True, 'message': f'Active guild set to {guild_id}'})
+
+    # ========== API Routes - Per-Section PATCH ==========
+
+    @app.route('/api/guilds/<int:guild_id>/channels', methods=['PATCH'])
+    async def api_patch_channels(guild_id: int):
+        """Update guild channels configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildChannelsForm(**form_data)
+            old_section = guild.channels.model_dump()
+            guild.channels = GuildChannels(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.channels.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='channels')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'Channels saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving channels for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save channels'}), 500
+
+    @app.route('/api/guilds/<int:guild_id>/epoch', methods=['PATCH'])
+    async def api_patch_epoch(guild_id: int):
+        """Update guild epoch configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildEpochForm(**form_data)
+            old_section = guild.epoch.model_dump()
+            guild.epoch = GuildEpoch(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.epoch.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='epoch')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'Epoch saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving epoch for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save epoch'}), 500
+
+    @app.route('/api/guilds/<int:guild_id>/roles', methods=['PATCH'])
+    async def api_patch_roles(guild_id: int):
+        """Update guild roles configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildRolesForm(**form_data)
+            old_section = guild.roles.model_dump()
+            guild.roles = GuildRoles(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.roles.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='roles')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'Roles saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving roles for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save roles'}), 500
+
+    @app.route('/api/guilds/<int:guild_id>/users', methods=['PATCH'])
+    async def api_patch_users(guild_id: int):
+        """Update guild users configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildUsersForm(**form_data)
+            old_section = guild.users.model_dump()
+            guild.users = GuildUsers(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.users.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='users')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'Users saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving users for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save users'}), 500
+
+    @app.route('/api/guilds/<int:guild_id>/starboard', methods=['PATCH'])
+    async def api_patch_starboard(guild_id: int):
+        """Update guild starboard configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildStarboardForm(**form_data)
+            old_section = guild.starboard.model_dump()
+            guild.starboard = GuildStarboard(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.starboard.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='starboard')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'Starboard saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving starboard for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save starboard'}), 500
 
     # ========== API Routes - Guild Config ==========
 
@@ -196,9 +424,11 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         all_channels = await get_guild_channels(guild_id)
         channel_map = {ch['id']: ch['name'] for ch in (all_channels or [])}
 
-        # Fetch Discord users for marker name resolution
+        # Fetch Discord users for marker and valid_bots name resolution
         marker_user_ids = [int(user_id) for user_id in guild.users.markers if user_id]
-        users_info = await get_users_info(marker_user_ids) if marker_user_ids else []
+        valid_bot_ids = [int(b) for b in guild.starboard.valid_bots if b]
+        all_user_ids = list(set(marker_user_ids + valid_bot_ids))
+        users_info = await get_users_info(all_user_ids) if all_user_ids else []
         user_map = {user['id']: user.get('global_name') or user.get('name', 'Unknown') for user in users_info}
 
         # Helper function to get channel name from ID
@@ -259,6 +489,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'channel_id_name': get_channel_name(guild.starboard.channel_id),
                 'emojis': guild.starboard.emojis,
                 'valid_bots': [str(b) for b in guild.starboard.valid_bots],
+                'valid_bots_names': [get_user_name(b) for b in guild.starboard.valid_bots],
             },
         })
 
@@ -436,11 +667,14 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
         return jsonify({
             'rotation': theme.rotation,
             'max_rate': theme.max_rate,
+            'saturation': theme.saturation,
+            'lightness': theme.lightness,
             'bot_color': theme.bot_color,
             'guild_color': theme.guild_color,
             'logo_rings': theme.logo_rings,
             'logo_planet': theme.logo_planet,
             'egg_emojis': theme.egg_emojis,
+            'progress_emojis': getattr(theme, 'progress_emojis', {}),
             'ui_emojis': {k: str(v) for k, v in theme.ui_emojis.items()},
         })
 
@@ -474,6 +708,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             old_config = {
                 'rotation': config.theme.rotation,
                 'max_rate': config.theme.max_rate,
+                'saturation': config.theme.saturation,
+                'lightness': config.theme.lightness,
                 'bot_color': config.theme.bot_color,
                 'guild_color': config.theme.guild_color,
                 'logo_rings': config.theme.logo_rings,
@@ -484,6 +720,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             # Update theme
             config.theme.rotation = validated.rotation
             config.theme.max_rate = validated.max_rate
+            config.theme.saturation = validated.saturation
+            config.theme.lightness = validated.lightness
             config.theme.bot_color = validated.bot_color
             config.theme.guild_color = validated.guild_color
             config.theme.logo_rings = validated.logo_rings
@@ -498,6 +736,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             new_config = {
                 'rotation': config.theme.rotation,
                 'max_rate': config.theme.max_rate,
+                'saturation': config.theme.saturation,
+                'lightness': config.theme.lightness,
                 'bot_color': config.theme.bot_color,
                 'guild_color': config.theme.guild_color,
                 'logo_rings': config.theme.logo_rings,
@@ -619,7 +859,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
     @app.route('/chat')
     async def chat_config_page():
         """Chat runtime configuration editor"""
-        return await render_template('chat_config.html', title='Chat Configuration')
+        return await render_template('chat_config.html', title='chat')
 
     # ========== API Routes - Chat Config ==========
 
@@ -1117,33 +1357,12 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             return jsonify({'error': 'Unauthorized guild'}), 403
 
         try:
-            from attubot.client.calendar import get_next_year, get_year_status
+            from attubot.web.helpers import get_time_status_data
 
-            guild_config = config.guilds.get(guild_id)
-            if not guild_config:
+            data = await get_time_status_data(guild_id)
+            if not data:
                 return jsonify({'error': 'Guild not configured'}), 404
-
-            elapsed_days, current_year = get_year_status(guild_id)
-            next_rollover = get_next_year(guild_id)
-
-            # Get rollover time as string
-            rollover_time = guild_config.epoch.get_rollover_time()
-            rollover_str = rollover_time.strftime('%H:%M')
-
-            return jsonify({
-                'guild_id': str(guild_id),
-                'current_year': current_year,
-                'elapsed_days': elapsed_days,
-                'current_day': (elapsed_days % guild_config.epoch.length) + 1,
-                'next_rollover': int(next_rollover.timestamp()),
-                'next_rollover_formatted': next_rollover.strftime('%Y-%m-%d %H:%M:%S %Z'),
-                'paused': guild_config.epoch.paused,
-                'year_length': guild_config.epoch.length,
-                'rollover_time': rollover_str,
-                'rollover_minutes': guild_config.epoch.rollover_minutes,
-                'epoch_time': guild_config.epoch.time,
-                'epoch_year': guild_config.epoch.year,
-            })
+            return jsonify(data)
 
         except Exception as e:
             logger.error(f'error fetching time status for guild {guild_id}: {e}')
@@ -1178,78 +1397,9 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
     async def api_get_admin_stats():
         """Get system statistics"""
         try:
-            from attubot.client.markers import YearMarker
-            from attubot.client.years import Year
+            from attubot.web.helpers import get_admin_stats_data
 
-            # Collect statistics
-            total_guilds = len(config.authorized_guilds)
-            configured_guilds = len(config.valid_guilds)
-
-            # Count years, markers, and stars across all guilds
-            total_years = 0
-            total_markers = 0
-            total_starred_messages = 0
-            total_stars = 0
-            from attubot.client.starboard import _get_repo as _get_sb_repo
-
-            try:
-                sb_repo = _get_sb_repo()
-                for guild_id in config.authorized_guilds:
-                    total_years += await Year.total(guild_id)
-                    total_markers += await YearMarker.total(guild_id)
-                    total_starred_messages += await sb_repo.total_for_guild(guild_id)
-                    total_stars += await sb_repo.sum_reactions_for_guild(guild_id)
-            except RuntimeError:
-                # starboard not yet initialized (e.g. web-only mode)
-                for guild_id in config.authorized_guilds:
-                    total_years += await Year.total(guild_id)
-                    total_markers += await YearMarker.total(guild_id)
-
-            total_eggs_hatched = 0
-            try:
-                from attubot.eggs.hatching import _egg_repo as egg_repo
-
-                if egg_repo is not None:
-                    total_eggs_hatched = await egg_repo.count_hatched()
-            except Exception as e:
-                logger.debug(f'egg stats unavailable: {e}')
-
-            # Database connection status
-            try:
-                db_connected = db.get_db() is not None
-            except Exception:
-                db_connected = False
-
-            # Config status
-            config_loaded = config._get_event('load').is_set()
-
-            # Uptime (if available)
-            import time
-
-            uptime_seconds = int(time.time() - config._init_time) if hasattr(config, '_init_time') else 0
-
-            return jsonify({
-                'guilds': {
-                    'total': total_guilds,
-                    'configured': configured_guilds,
-                    'authorized': list(str(g) for g in config.authorized_guilds),
-                },
-                'data': {
-                    'total_years': total_years,
-                    'total_markers': total_markers,
-                    'total_starred_messages': total_starred_messages,
-                    'total_stars': total_stars,
-                    'total_eggs_hatched': total_eggs_hatched,
-                },
-                'system': {
-                    'db_connected': db_connected,
-                    'config_loaded': config_loaded,
-                    'uptime_seconds': uptime_seconds,
-                    'primary_guild': str(config.primary_guild),
-                    'config_version': config.config_version,
-                },
-            })
-
+            return jsonify(await get_admin_stats_data())
         except Exception as e:
             logger.error(f'error fetching admin stats: {e}')
             return jsonify({'error': 'Failed to fetch statistics'}), 500

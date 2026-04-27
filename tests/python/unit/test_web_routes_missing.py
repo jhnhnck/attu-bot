@@ -141,15 +141,14 @@ class TestMissingGuildRoutes:
 
     @pytest.mark.asyncio
     async def test_guild_config_page_not_found(self, client):
-        """Test guild config page for authorized but missing guild"""
+        """Test guild config page redirects even when guild is missing (legacy redirect)"""
         from attubot.web.app import config
 
         with patch.dict(config.guilds, {}, clear=False):
             del config.guilds[test_guild]
             response = await client.get(f'/guild/{test_guild}')
-            assert response.status_code == 404
-            html = await response.get_data(as_text=True)
-            assert 'Not Found' in html
+            assert response.status_code == 302
+            assert response.headers['Location'].endswith('/channels')
 
 
 class TestMissingThemeRoutes:

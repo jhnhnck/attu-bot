@@ -182,7 +182,7 @@
     ></script>
 
     <script type="module" nonce="{{ csp_nonce }}">
-      import { beginRegistration } from "/static/js/modules/webauthn.js";
+      import { beginRegistration } from "{{ url_for('static', filename='js/modules/webauthn.js') }}";
 
       function showError(msg) {
         const area = document.getElementById("status-area");

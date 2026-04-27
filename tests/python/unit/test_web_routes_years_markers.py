@@ -519,7 +519,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats(self, client):
         """Test GET /api/admin/stats returns system statistics"""
-        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.helpers.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(side_effect=[10, 5])  # Called twice for 2 guilds
             mock_marker.total = AsyncMock(side_effect=[20, 8])
             mock_db.get_db.side_effect = RuntimeError('not connected')
@@ -537,7 +537,7 @@ class TestAdminStatsAPI:
     @pytest.mark.asyncio
     async def test_get_admin_stats_db_not_connected(self, client):
         """Test GET /api/admin/stats handles disconnected database"""
-        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.routes.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
+        with patch('attubot.client.years.Year') as mock_year, patch('attubot.client.markers.YearMarker') as mock_marker, patch('attubot.web.helpers.db') as mock_db, patch('attubot.client.starboard._get_repo', side_effect=RuntimeError('not initialized')):
             mock_year.total = AsyncMock(return_value=0)
             mock_marker.total = AsyncMock(return_value=0)
             mock_db.get_db.side_effect = RuntimeError('not connected')
@@ -555,45 +555,45 @@ class TestAdminStatsAPI:
 class TestPageRoutes:
     @pytest.mark.asyncio
     async def test_years_page_authorized(self, client):
-        """Test GET /guild/<id>/years renders years page"""
+        """Test GET /guild/<id>/years redirects to /years (legacy redirect)"""
         response = await client.get(f'/guild/{test_guild}/years')
-        assert response.status_code == 200
-        html = await response.get_data(as_text=True)
-        assert 'Year' in html
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/years')
 
     @pytest.mark.asyncio
     async def test_years_page_unauthorized(self, client):
-        """Test GET /guild/<id>/years returns 403 for unauthorized guild"""
+        """Test GET /guild/<id>/years redirects even for unauthorized guild"""
         response = await client.get('/guild/999999/years')
-        assert response.status_code == 403
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/years')
 
     @pytest.mark.asyncio
     async def test_markers_page_authorized(self, client):
-        """Test GET /guild/<id>/markers renders markers page"""
+        """Test GET /guild/<id>/markers redirects to /markers (legacy redirect)"""
         response = await client.get(f'/guild/{test_guild}/markers')
-        assert response.status_code == 200
-        html = await response.get_data(as_text=True)
-        assert 'Marker' in html
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/markers')
 
     @pytest.mark.asyncio
     async def test_markers_page_unauthorized(self, client):
-        """Test GET /guild/<id>/markers returns 403 for unauthorized guild"""
+        """Test GET /guild/<id>/markers redirects even for unauthorized guild"""
         response = await client.get('/guild/999999/markers')
-        assert response.status_code == 403
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/markers')
 
     @pytest.mark.asyncio
     async def test_time_page_authorized(self, client):
-        """Test GET /guild/<id>/time renders time status page"""
+        """Test GET /guild/<id>/time redirects to /time (legacy redirect)"""
         response = await client.get(f'/guild/{test_guild}/time')
-        assert response.status_code == 200
-        html = await response.get_data(as_text=True)
-        assert 'Time' in html or 'Epoch' in html
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/time')
 
     @pytest.mark.asyncio
     async def test_time_page_unauthorized(self, client):
-        """Test GET /guild/<id>/time returns 403 for unauthorized guild"""
+        """Test GET /guild/<id>/time redirects even for unauthorized guild"""
         response = await client.get('/guild/999999/time')
-        assert response.status_code == 403
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/time')
 
     @pytest.mark.asyncio
     async def test_admin_stats_page(self, client):

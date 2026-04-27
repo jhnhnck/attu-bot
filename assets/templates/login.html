@@ -107,7 +107,7 @@
     ></script>
 
     <script type="module" nonce="{{ csp_nonce }}">
-      import { beginAuthentication } from "/static/js/modules/webauthn.js";
+      import { beginAuthentication } from "{{ url_for('static', filename='js/modules/webauthn.js') }}";
 
       // Get redirect target; reject anything that isn't a relative path (open redirect guard)
       const params = new URLSearchParams(window.location.search);

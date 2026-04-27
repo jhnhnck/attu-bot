@@ -152,31 +152,26 @@ class TestHealthEndpoint:
 class TestPageRoutes:
     @pytest.mark.asyncio
     async def test_index_page(self, client):
-        """Test index page renders guild list"""
+        """Test index page renders dashboard"""
         response = await client.get('/')
         assert response.status_code == 200
 
         html = await response.get_data(as_text=True)
-        assert 'Dashboard' in html
-        assert str(test_guild) in html
+        assert 'dashboard' in html
 
     @pytest.mark.asyncio
     async def test_guild_config_page_authorized(self, client):
-        """Test guild config page for authorized guild"""
+        """Test guild config page redirects to /channels (legacy redirect)"""
         response = await client.get(f'/guild/{test_guild}')
-        assert response.status_code == 200
-
-        html = await response.get_data(as_text=True)
-        assert 'Guild Configuration' in html
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/channels')
 
     @pytest.mark.asyncio
     async def test_guild_config_page_unauthorized(self, client):
-        """Test guild config page for unauthorized guild"""
+        """Test guild config page redirect even for unauthorized guild (session not set)"""
         response = await client.get('/guild/999999')
-        assert response.status_code == 403
-
-        html = await response.get_data(as_text=True)
-        assert 'Unauthorized' in html or 'not authorized' in html
+        assert response.status_code == 302
+        assert response.headers['Location'].endswith('/channels')
 
     @pytest.mark.asyncio
     async def test_theme_config_page(self, client):

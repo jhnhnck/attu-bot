@@ -3,18 +3,12 @@
   <div class="row justify-content-center">
     <div class="col-md-8">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 class="display-6">
-            <i data-feather="droplet" class="me-2"></i>
-            Theme Configuration
-          </h1>
-          <p class="text-muted">Customize bot appearance and colors</p>
-        </div>
-        <a href="/" class="btn btn-outline-secondary">
-          <i data-feather="arrow-left" class="me-1"></i>
-          Back
-        </a>
+      <div class="mb-4">
+        <h1 class="h3">
+          <i data-feather="droplet" class="me-2"></i>
+          Theme Configuration
+        </h1>
+        <p class="text-muted mb-0">Customize bot appearance and colors</p>
       </div>
 
       <!-- Egg Emojis (read-only) -->
@@ -28,20 +22,50 @@
         </div>
       </div>
 
+      <!-- Progress Emojis (read-only) -->
+      <div class="card mb-4" id="progress-emojis-card">
+        <div class="card-header">
+          <h5 class="mb-0">Progress Emojis</h5>
+          <small class="text-muted">managed via the emoji generation system</small>
+        </div>
+        <div class="card-body" id="progress-emojis-body">
+          <p class="text-muted mb-0">loading...</p>
+        </div>
+      </div>
+
       <!-- UI Emojis -->
       <div class="card mb-4" id="ui-emojis-card">
         <div class="card-header">
           <h5 class="mb-0">UI Emojis</h5>
-          <small class="text-muted">custom emojis used in bot responses (name to snowflake id)</small>
+          <small class="text-muted">custom emojis used in bot responses</small>
         </div>
-        <div class="card-body">
-          <textarea
-            class="form-control font-monospace"
-            id="ui_emojis_textarea"
-            rows="6"
-            placeholder='{"rockball": 1308981475114225694, "rockball_player": 1308977543034048552}'
-          ></textarea>
-          <small class="text-muted">JSON object mapping emoji names to Discord snowflake IDs</small>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr><th class="ps-3">name</th><th>emoji text</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="ps-3 align-middle"><code>rockball</code></td>
+                <td><input class="form-control form-control-sm ui-emoji-input" id="ui_emoji_rockball" data-key="rockball" placeholder=":rockball:" style="max-width: 200px" /></td>
+              </tr>
+              <tr>
+                <td class="ps-3 align-middle"><code>rockball_player</code></td>
+                <td><input class="form-control form-control-sm ui-emoji-input" id="ui_emoji_rockball_player" data-key="rockball_player" placeholder=":rockball_player:" style="max-width: 200px" /></td>
+              </tr>
+              <tr>
+                <td class="ps-3 align-middle"><code>crackerpeaty</code></td>
+                <td><input class="form-control form-control-sm ui-emoji-input" id="ui_emoji_crackerpeaty" data-key="crackerpeaty" placeholder=":crackerpeaty:" style="max-width: 200px" /></td>
+              </tr>
+              <tr>
+                <td class="ps-3 align-middle"><code>tieteran_wave</code></td>
+                <td><input class="form-control form-control-sm ui-emoji-input" id="ui_emoji_tieteran_wave" data-key="tieteran_wave" placeholder=":tieteran_wave:" style="max-width: 200px" /></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="px-3 pb-2">
+            <small class="text-muted">enter Discord snowflake IDs for each emoji</small>
+          </div>
         </div>
       </div>
 
@@ -99,43 +123,130 @@
               >
             </div>
 
-            <hr />
-
             <div class="mb-3">
-              <label class="form-label" for="rotation">Rotation</label>
-              <input
-                class="form-control"
-                id="rotation"
-                name="rotation"
-                type="number"
-                step="0.1"
-                value="0.0"
-                style="max-width: 150px"
-              />
-              <small class="text-muted">Theme rotation value</small>
+              <label class="form-label" for="logo_rings">Logo Rings Color</label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  class="form-control form-control-color"
+                  id="logo_rings_picker"
+                  type="color"
+                  value="#000000"
+                />
+                <input
+                  class="form-control"
+                  id="logo_rings"
+                  name="logo_rings"
+                  type="text"
+                  value="#000000"
+                  placeholder="#000000"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  style="max-width: 120px"
+                />
+              </div>
+              <small class="text-muted">Color of the logo ring elements</small>
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="max_rate">Max Rate</label>
-              <input
-                class="form-control"
-                id="max_rate"
-                name="max_rate"
-                type="number"
-                step="0.1"
-                value="0.5"
-                min="0"
-                max="1"
-                style="max-width: 150px"
-              />
-              <small class="text-muted">Maximum rate value (0.0 - 1.0)</small>
+              <label class="form-label" for="logo_planet">Logo Planet Color</label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  class="form-control form-control-color"
+                  id="logo_planet_picker"
+                  type="color"
+                  value="#000000"
+                />
+                <input
+                  class="form-control"
+                  id="logo_planet"
+                  name="logo_planet"
+                  type="text"
+                  value="#000000"
+                  placeholder="#000000"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  style="max-width: 120px"
+                />
+              </div>
+              <small class="text-muted">Color of the logo planet element</small>
+            </div>
+
+            <hr />
+
+            <div class="mb-3">
+              <a class="text-decoration-none small" data-bs-toggle="collapse" href="#advanced-theme-settings" role="button" aria-expanded="false" aria-controls="advanced-theme-settings">
+                <i data-feather="chevron-right" class="me-1" style="width:14px;height:14px"></i>
+                Advanced HSL Settings
+              </a>
+            </div>
+
+            <div class="collapse" id="advanced-theme-settings">
+              <div class="mb-3">
+                <label class="form-label" for="rotation">Rotation</label>
+                <input
+                  class="form-control"
+                  id="rotation"
+                  name="rotation"
+                  type="number"
+                  step="0.1"
+                  value="0.0"
+                  style="max-width: 150px"
+                />
+                <small class="text-muted">Hue rotation offset in degrees for dynamic color generation</small>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="saturation">Saturation</label>
+                <input
+                  class="form-control"
+                  id="saturation"
+                  name="saturation"
+                  type="number"
+                  step="0.01"
+                  value="1.0"
+                  min="0"
+                  max="1"
+                  style="max-width: 150px"
+                />
+                <small class="text-muted">Color intensity multiplier (0 = grayscale, 1 = full color)</small>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="lightness">Lightness</label>
+                <input
+                  class="form-control"
+                  id="lightness"
+                  name="lightness"
+                  type="number"
+                  step="0.01"
+                  value="0.5"
+                  min="0"
+                  max="1"
+                  style="max-width: 150px"
+                />
+                <small class="text-muted">Base lightness for generated colors (0 = black, 1 = white)</small>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="max_rate">Max Rate</label>
+                <input
+                  class="form-control"
+                  id="max_rate"
+                  name="max_rate"
+                  type="number"
+                  step="0.1"
+                  value="0.5"
+                  min="0"
+                  max="360"
+                  style="max-width: 150px"
+                />
+                <small class="text-muted">Maximum hue shift rate in degrees per cycle</small>
+              </div>
             </div>
           </div>
 
           <div class="card-footer">
             <div class="d-flex justify-content-between">
               <button
-                class="btn btn-outline-secondary"
+                class="btn btn-secondary"
                 type="button"
                 id="reset-theme-btn"
               >

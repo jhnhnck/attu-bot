@@ -88,6 +88,31 @@ function showLoadingOverlay(element, show = true) {
     }
 }
 
+// delayed loading overlay - avoids jarring flashes on fast loads
+function showLoadingOverlayDelayed(element, delayMs = 200) {
+    const MIN_VISIBLE = 300;
+    let shown = false;
+    let showTime = 0;
+    const timer = setTimeout(() => {
+        showLoadingOverlay(element, true);
+        shown = true;
+        showTime = Date.now();
+    }, delayMs);
+    return {
+        hide() {
+            clearTimeout(timer);
+            if (shown) {
+                const elapsed = Date.now() - showTime;
+                if (elapsed < MIN_VISIBLE) {
+                    setTimeout(() => { showLoadingOverlay(element, false); }, MIN_VISIBLE - elapsed);
+                } else {
+                    showLoadingOverlay(element, false);
+                }
+            }
+        },
+    };
+}
+
 // Fetch JSON from API
 async function fetchJSON(url, options = {}) {
     try {
@@ -275,7 +300,7 @@ async function loadDiscordData(guildId) {
 
 async function loadGuildConfig(guildId) {
     const container = document.getElementById('guild-config-form');
-    if (container) {showLoadingOverlay(container, true);}
+    const loader = container ? showLoadingOverlayDelayed(container) : null;
 
     try {
         await loadDiscordData(guildId);
@@ -316,11 +341,12 @@ async function loadGuildConfig(guildId) {
             initListField('starboard_valid_bots', data.starboard.valid_bots);
         }
 
-        showNotification('Configuration loaded', 'success');
+
+
     } catch {
         showNotification('Failed to load configuration', 'danger');
     } finally {
-        if (container) {showLoadingOverlay(container, false);}
+        if (loader) {loader.hide();}
     }
 }
 
@@ -625,33 +651,49 @@ window.removeEmoji = removeEmoji;
 
 async function loadThemeConfig() {
     const container = document.getElementById('theme-config-form');
-    if (container) {showLoadingOverlay(container, true);}
+    const loader = container ? showLoadingOverlayDelayed(container) : null;
 
     try {
         const data = await fetchJSON('/api/theme');
 
         populateField('rotation', data.rotation);
         populateField('max_rate', data.max_rate);
+        populateField('saturation', data.saturation);
+        populateField('lightness', data.lightness);
         populateField('bot_color', data.bot_color);
         populateField('guild_color', data.guild_color);
+        populateField('logo_rings', data.logo_rings);
+        populateField('logo_planet', data.logo_planet);
 
         syncColorInputs();
 
-        // populate ui emojis textarea
-        const uiTextarea = document.getElementById('ui_emojis_textarea');
-        if (uiTextarea) {
-            const uiEmojis = data.ui_emojis || {};
-            if (Object.keys(uiEmojis).length > 0) {
-                // serialize snowflake ids as strings to avoid js precision loss
-                const safe = {};
-                for (const [k, v] of Object.entries(uiEmojis)) {
-                    safe[k] = String(v);
-                }
-                uiTextarea.value = JSON.stringify(safe, null, 2);
+        // populate progress emojis display (read-only)
+        const progressBody = document.getElementById('progress-emojis-body');
+        if (progressBody) {
+            const pEmojis = data.progress_emojis || {};
+            const keys = Object.keys(pEmojis);
+            if (keys.length === 0) {
+                progressBody.innerHTML = '<p class="text-muted mb-0">no progress emojis configured</p>';
             } else {
-                uiTextarea.value = '';
+                const rows = keys.map(k => {
+                    const id = pEmojis[k] || 0;
+                    const idStr = id ? String(id) : '<span class="text-muted">not set</span>';
+                    return `<tr><td>${k}</td><td><code>${idStr}</code></td></tr>`;
+                }).join('');
+                progressBody.innerHTML = `<table class="table table-sm mb-0"><thead><tr><th>key</th><th>emoji id</th></tr></thead><tbody>${rows}</tbody></table>`;
             }
         }
+
+        // populate ui emoji individual inputs
+        const uiEmojis = data.ui_emojis || {};
+        document.querySelectorAll('.ui-emoji-input').forEach(input => {
+            const { key } = input.dataset;
+            if (key && uiEmojis[key]) {
+                input.value = String(uiEmojis[key]);
+            } else {
+                input.value = '';
+            }
+        });
 
         // populate egg emojis display
         const eggBody = document.getElementById('egg-emojis-body');
@@ -671,11 +713,12 @@ async function loadThemeConfig() {
             }
         }
 
-        showNotification('Theme loaded', 'success');
+
+
     } catch {
         showNotification('Failed to load theme', 'danger');
     } finally {
-        if (container) {showLoadingOverlay(container, false);}
+        if (loader) {loader.hide();}
     }
 }
 
@@ -686,21 +729,16 @@ async function saveThemeConfig(formElement) {
     try {
         const data = serializeForm(formElement);
 
-        // inject ui_emojis from the textarea (outside the form)
-        const uiTextarea = document.getElementById('ui_emojis_textarea');
-        if (uiTextarea) {
-            const raw = uiTextarea.value.trim();
-            if (raw) {
-                try {
-                    data.ui_emojis = JSON.parse(raw);
-                } catch {
-                    showNotification('Invalid JSON in UI Emojis field', 'danger');
-                    return;
-                }
-            } else {
-                data.ui_emojis = {};
+        // collect ui_emojis from individual inputs
+        const uiEmojis = {};
+        document.querySelectorAll('.ui-emoji-input').forEach(input => {
+            const { key } = input.dataset;
+            const val = input.value.trim();
+            if (key && val) {
+                uiEmojis[key] = val;
             }
-        }
+        });
+        data.ui_emojis = uiEmojis;
 
         const result = await fetchJSON('/api/theme', {
             method: 'POST',
@@ -734,7 +772,9 @@ async function resetThemeConfig() {
 function syncColorInputs() {
     const colorPairs = [
         { picker: 'bot_color_picker', text: 'bot_color' },
-        { picker: 'guild_color_picker', text: 'guild_color' }
+        { picker: 'guild_color_picker', text: 'guild_color' },
+        { picker: 'logo_rings_picker', text: 'logo_rings' },
+        { picker: 'logo_planet_picker', text: 'logo_planet' },
     ];
 
     colorPairs.forEach(pair => {
@@ -763,7 +803,7 @@ function syncColorInputs() {
 
 async function loadSystemConfig() {
     const container = document.getElementById('system-config-form');
-    if (container) {showLoadingOverlay(container, true);}
+    const loader = container ? showLoadingOverlayDelayed(container) : null;
 
     try {
         const data = await fetchJSON('/api/system');
@@ -772,17 +812,10 @@ async function loadSystemConfig() {
         populateField('error_log_guild', data.error_log_guild);
         populateField('error_log_channel', data.error_log_channel);
         populateField('error_hook', data.error_hook);
-
-        const versionEl = document.getElementById('schema-version');
-        if (versionEl) {
-            versionEl.value = data.version;
-        }
-
-        showNotification('System configuration loaded', 'success');
     } catch {
         showNotification('Failed to load system configuration', 'danger');
     } finally {
-        if (container) {showLoadingOverlay(container, false);}
+        if (loader) {loader.hide();}
     }
 }
 
@@ -828,7 +861,7 @@ async function loadAuditLogs() {
     if (!tableBody) {return;}
 
     const container = tableBody.closest('.card') || tableBody.parentElement;
-    if (container) {showLoadingOverlay(container, true);}
+    const loader = container ? showLoadingOverlayDelayed(container) : null;
 
     const configType = document.getElementById('filterConfigType')?.value;
     const guildId = document.getElementById('filterGuildId')?.value;
@@ -843,7 +876,7 @@ async function loadAuditLogs() {
     } catch {
         // Error shown by fetchJSON
     } finally {
-        if (container) {showLoadingOverlay(container, false);}
+        if (loader) {loader.hide();}
     }
 }
 

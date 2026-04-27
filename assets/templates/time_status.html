@@ -8,37 +8,15 @@
   }
 </style>
 {% endblock %} {% block content %}
-<div id="time-container" class="container-fluid py-4 position-relative">
+<div id="time-container" class="container-fluid position-relative">
   <!-- Page Header -->
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-6">
-        <i data-feather="clock" class="me-2"></i>
-        Time Status - {{ guild_name }}
-      </h1>
-      <p class="text-muted">Current calendar status for this guild</p>
-    </div>
-    <div class="col-auto">
-      <a href="/guild/{{ guild_id }}" class="btn btn-outline-secondary">
-        <i data-feather="arrow-left" class="me-1"></i>
-        Back to Guild
-      </a>
-    </div>
+  <div class="mb-4">
+    <h1 class="h3">
+      <i data-feather="clock" class="me-2"></i>
+      Time Status
+    </h1>
+    <p class="text-muted mb-0">Current calendar status for this guild</p>
   </div>
-
-  <!-- Breadcrumb -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
-      <li class="breadcrumb-item">
-        <a href="/guild/{{ guild_id }}">{{ guild_name }}</a>
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">Time Status</li>
-    </ol>
-  </nav>
-
-  <!-- Guild Navigation -->
-  {% include "components/guild_nav.html" %}
 
   <!-- Current Time Display -->
   <div class="row mb-4">
@@ -110,21 +88,15 @@
           </h5>
         </div>
         <ul class="list-group list-group-flush">
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
+          <li class="list-group-item d-flex justify-content-between align-items-center">
             Year Length
             <span class="badge bg-primary" id="year-length">-</span>
           </li>
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
+          <li class="list-group-item d-flex justify-content-between align-items-center">
             Status
             <span id="paused-status">-</span>
           </li>
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
+          <li class="list-group-item d-flex justify-content-between align-items-center">
             Rollover Time
             <span id="rollover-time">-</span>
           </li>
@@ -158,15 +130,11 @@
           </h5>
         </div>
         <ul class="list-group list-group-flush">
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
+          <li class="list-group-item d-flex justify-content-between align-items-center">
             Epoch Start
             <span id="epoch-time">-</span>
           </li>
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center"
-          >
+          <li class="list-group-item d-flex justify-content-between align-items-center">
             Epoch Year
             <span id="epoch-year">-</span>
           </li>
@@ -179,14 +147,10 @@
 <script nonce="{{ csp_nonce }}">
   window.currentGuildId = "{{ guild_id }}";
 </script>
-
 <script type="module" nonce="{{ csp_nonce }}">
   import { initTimeStatus } from "{{ url_for('static', filename='js/pages/time-status.js') }}";
-
   document.addEventListener("DOMContentLoaded", () => {
-    if (typeof feather !== "undefined") {
-      feather.replace();
-    }
+    if (typeof feather !== "undefined") feather.replace();
     initTimeStatus("{{ guild_id }}");
   });
 </script>

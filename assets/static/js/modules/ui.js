@@ -215,6 +215,40 @@ export function showLoadingOverlay(element, show = true) {
 }
 
 /**
+ * Delayed loading overlay that avoids jarring flashes on fast loads.
+ * Waits before showing the spinner; if loading finishes first, no spinner appears.
+ * If the spinner did appear, keeps it visible for a minimum duration for smooth UX.
+ * @param {HTMLElement} element - The element to overlay
+ * @param {number} delayMs - Milliseconds to wait before showing (default 200)
+ * @returns {{ hide: Function }} - Call hide() when loading is done
+ */
+export function showLoadingOverlayDelayed(element, delayMs = 200) {
+    const MIN_VISIBLE = 300;
+    let shown = false;
+    let showTime = 0;
+
+    const timer = setTimeout(() => {
+        showLoadingOverlay(element, true);
+        shown = true;
+        showTime = Date.now();
+    }, delayMs);
+
+    return {
+        hide() {
+            clearTimeout(timer);
+            if (shown) {
+                const elapsed = Date.now() - showTime;
+                if (elapsed < MIN_VISIBLE) {
+                    setTimeout(() => showLoadingOverlay(element, false), MIN_VISIBLE - elapsed);
+                } else {
+                    showLoadingOverlay(element, false);
+                }
+            }
+        },
+    };
+}
+
+/**
  * Show a confirmation modal
  * @param {string} message - The confirmation message
  * @param {string} title - The modal title

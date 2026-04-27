@@ -8,37 +8,17 @@
   }
 </style>
 {% endblock %} {% block content %}
-<div id="markers-container" class="container-fluid py-4 position-relative">
+<div id="markers-container" class="container-fluid position-relative">
   <!-- Page Header -->
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-6">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3">
         <i data-feather="map-pin" class="me-2"></i>
-        Markers - {{ guild_name }}
+        Markers
       </h1>
-      <p class="text-muted">View all recorded markers for this guild</p>
-    </div>
-    <div class="col-auto">
-      <a href="/guild/{{ guild_id }}" class="btn btn-outline-secondary">
-        <i data-feather="arrow-left" class="me-1"></i>
-        Back to Guild
-      </a>
+      <p class="text-muted mb-0">View all recorded markers for this guild</p>
     </div>
   </div>
-
-  <!-- Breadcrumb -->
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
-      <li class="breadcrumb-item">
-        <a href="/guild/{{ guild_id }}">{{ guild_name }}</a>
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">Markers</li>
-    </ol>
-  </nav>
-
-  <!-- Guild Navigation -->
-  {% include "components/guild_nav.html" %}
 
   <!-- Markers Table -->
   <div class="card">
@@ -68,11 +48,8 @@
           </thead>
           <tbody id="markers-table-body">
             <tr>
-              <td colspan="6" class="text-center">
-                <div
-                  class="spinner-border spinner-border-sm me-2"
-                  role="status"
-                ></div>
+              <td colspan="7" class="text-center">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                 Loading markers...
               </td>
             </tr>
@@ -83,93 +60,46 @@
   </div>
 
   <!-- Marker Create/Edit Modal -->
-  <div
-    class="modal fade"
-    id="markerModal"
-    tabindex="-1"
-    aria-labelledby="markerModalLabel"
-    aria-hidden="true"
-  >
+  <div class="modal fade" id="markerModal" tabindex="-1" aria-labelledby="markerModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="markerModalLabel">Create Marker</h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="marker-form">
             <input type="hidden" id="marker-id" />
             <div class="mb-3">
               <label for="marker-year" class="form-label">Year Number *</label>
-              <input
-                type="number"
-                class="form-control"
-                id="marker-year"
-                required
-                min="1"
-              />
+              <input type="number" class="form-control" id="marker-year" required min="1" />
               <small class="text-muted">Which year this marker represents</small>
             </div>
             <div class="mb-3">
               <label for="marker-channel" class="form-label">Channel ID</label>
-              <input
-                type="text"
-                class="form-control"
-                id="marker-channel"
-                placeholder="Leave empty to use guild ID"
-              />
+              <input type="text" class="form-control" id="marker-channel" placeholder="Leave empty to use guild ID" />
               <small class="text-muted">Discord channel ID (optional)</small>
             </div>
             <div class="mb-3">
               <label for="marker-message" class="form-label">Message ID *</label>
-              <input
-                type="text"
-                class="form-control"
-                id="marker-message"
-                required
-              />
+              <input type="text" class="form-control" id="marker-message" required />
               <small class="text-muted">Discord message ID (snowflake)</small>
             </div>
             <div class="mb-3 form-check">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="marker-exact"
-              />
-              <label class="form-check-label" for="marker-exact">
-                Exact Marker
-              </label>
+              <input type="checkbox" class="form-check-input" id="marker-exact" />
+              <label class="form-check-label" for="marker-exact">Exact Marker</label>
               <small class="form-text text-muted d-block">Mark this as an exact timestamp</small>
             </div>
             <div class="mb-3 form-check">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="marker-wiki-page"
-              />
-              <label class="form-check-label" for="marker-wiki-page">
-                Wiki Page
-              </label>
+              <input type="checkbox" class="form-check-input" id="marker-wiki-page" />
+              <label class="form-check-label" for="marker-wiki-page">Wiki Page</label>
               <small class="form-text text-muted d-block">This marker has a wiki page</small>
             </div>
           </form>
         </div>
         <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Cancel
-          </button>
-          <button type="button" class="btn btn-primary" id="save-marker-btn">
-            Save Marker
-          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-marker-btn">Save Marker</button>
         </div>
       </div>
     </div>
@@ -179,14 +109,10 @@
 <script nonce="{{ csp_nonce }}">
   window.currentGuildId = "{{ guild_id }}";
 </script>
-
 <script type="module" nonce="{{ csp_nonce }}">
   import { initMarkers } from "{{ url_for('static', filename='js/pages/markers.js') }}";
-
   document.addEventListener("DOMContentLoaded", () => {
-    if (typeof feather !== "undefined") {
-      feather.replace();
-    }
+    if (typeof feather !== "undefined") feather.replace();
     initMarkers("{{ guild_id }}");
   });
 </script>

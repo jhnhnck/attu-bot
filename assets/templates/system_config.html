@@ -3,18 +3,12 @@
   <div class="row justify-content-center">
     <div class="col-md-8">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 class="display-6">
-            <i data-feather="sliders" class="me-2"></i>
-            System Configuration
-          </h1>
-          <p class="text-muted">System-wide settings and error logging</p>
-        </div>
-        <a href="/" class="btn btn-outline-secondary">
-          <i data-feather="arrow-left" class="me-1"></i>
-          Back
-        </a>
+      <div class="mb-4">
+        <h1 class="h3">
+          <i data-feather="sliders" class="me-2"></i>
+          System Configuration
+        </h1>
+        <p class="text-muted mb-0">System-wide settings and error logging</p>
       </div>
 
       <!-- Warning Alert -->
@@ -28,23 +22,6 @@
       <form id="system-config-form">
         <div class="card">
           <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label">Schema Version</label>
-              <input
-                class="form-control"
-                id="schema-version"
-                type="text"
-                value="loading..."
-                disabled
-                style="max-width: 150px"
-              />
-              <small class="text-muted"
-                >Current configuration schema version (read-only)</small
-              >
-            </div>
-
-            <hr />
-
             <div class="mb-3">
               <label class="form-label" for="primary_guild"
                 >Primary Guild ID</label
@@ -112,7 +89,7 @@
           <div class="card-footer">
             <div class="d-flex justify-content-between">
               <button
-                class="btn btn-outline-secondary"
+                class="btn btn-secondary"
                 type="button"
                 id="reset-system-btn"
               >
