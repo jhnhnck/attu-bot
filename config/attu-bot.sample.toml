@@ -1,4 +1,4 @@
-config_version = "2.5.3"
+config_version = "2.5.4"
 
 [paths]
 # Path to the assets directory (templates, static files, favicon)
@@ -72,3 +72,16 @@ ask_cooldown_seconds = 30
 embedding_model = "all-MiniLM-L6-v2"
 # path to prompt template directory (relative to working dir or absolute)
 prompts_dir = "assets/prompts"
+
+[trees]
+# shared hmac secret - must match DISCORD_BOT_HMAC_SECRET on both tree server instances
+# generate with: python -c "import secrets; print(secrets.token_hex(32))"
+hmac_secret = "CHANGE_ME"
+# backend base urls (docker service names resolve inside the compose network)
+dev_base_url = "http://attu-tree-dev:8000"
+prod_base_url = "http://attu-tree:8000"
+
+# discord role name -> server role mapping
+# roles not in this table are silently dropped by the server; the server recognises "admin" and "user"
+[trees.role_mapping]
+"Family Tree Admin" = "admin"

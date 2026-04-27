@@ -43,6 +43,7 @@ class RawConfig(TypedDict):
     database: dict[str, Any]
     auth: dict[str, Any]
     discord: dict[str, Any]
+    trees: dict[str, Any]
 
 
 class NovaGlobals(BaseModel):
@@ -179,6 +180,13 @@ class HatchConfig(BaseModel):
     pools: dict[str, list[str]]  # key: rarity name, value: creature list
 
 
+class TreesConfig(BaseModel):
+    hmac_secret: str
+    dev_base_url: str
+    prod_base_url: str
+    role_mapping: dict[str, str] = {}
+
+
 class GuildStarboard(BaseModel):
     channel_id: int = 0  # channel where starboard posts are sent
     emojis: dict[str, str] = {}  # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
@@ -312,6 +320,7 @@ class NovaConfig:
         self.webauthn: WebAuthnConfig = None
         self.chat: ChatConfig = None
         self.hatch: HatchConfig = None
+        self.trees: TreesConfig = None
 
         # Runtime config loaded from MongoDB
         self.chat_runtime: ChatConfigDocument = None
@@ -424,6 +433,12 @@ class NovaConfig:
         except (ValidationError, KeyError) as err:
             logger.error(f'failed to validate hatch config: {err!s}')
             raise ConfigLoadError('invalid hatch configuration')
+
+        try:
+            self.trees = TreesConfig(**self._raw.get('trees', {}))
+        except (KeyError, ValidationError) as err:
+            logger.error(f'failed to validate trees configuration: {err!s}')
+            raise ConfigLoadError('invalid trees configuration (missing [trees] section?)')
 
         self._get_event('init').set()
 

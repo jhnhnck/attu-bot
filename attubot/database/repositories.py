@@ -17,7 +17,6 @@ from attubot.database.models import (
     ChatSourceDocument,
     EggDocument,
     EggUserDocument,
-    FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
     ReloadSignalDocument,

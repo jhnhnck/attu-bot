@@ -153,21 +153,7 @@ class StarredMessageDocument(BaseModel):
     total_reactions: int = 0  # raw count of all reactors (normal + super); kept for range queries
     weighted_total: float = 0.0  # weighted sum: normal = 1.0, super = 1.5
     reply_created: bool = False  # true once a reply has been sent to an uneditable predecessor post
-
-
-class FamilyDocument(BaseModel):
-    """MongoDB document for a registered FamilyEcho family tree"""
-
-    model_config = ConfigDict(extra='ignore')
-
-    guild_id: int
-    name: str  # normalized key (lowercase, stripped)
-    display_name: str  # original-case display name
-    message_id: int | None = None  # discord message id from parsed message_link
-    channel_id: int | None = None  # channel of the original message
-    file_content: str  # full FamilyScript file text
-    set_by: int  # user id who registered it
-    set_at: int  # unix timestamp
+    source_deleted: bool = False  # true when the original discord message no longer exists (404)
 
 
 class ReloadSignalDocument(BaseModel):

@@ -114,6 +114,10 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - 🔴 `3 April 2026` group /stars leaderboard commands (most-stars, most-starred, most-given) under a /stars leaderboard subgroup for consistency with /eggs leaderboard
 - 🔴 `11 April 2026` fix self-star cascade bug: starring the starboard mirror post when your star created it no longer removes the original from the board
 
+### family trees
+
+- 🔴 `26 April 2026` replace /link family trees with /trees — hmac-signed native tree editor integration; link/show/share/unshare commands with role mapping; bumped config_version to 2.5.4
+
 ### reminders
 
 - 🔴 `11 April 2026` /remind command: pings you when a specific attu year and optionally day-month rolls around (from walt)
@@ -155,7 +159,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 - 🔴 `3 April 2026` add tests for client/messages.py - build_message_doc, edit/delete log embeds
 - 🔴 `11 April 2026` add tests for tasks/scheduler.py — add_job, start_all, stop_all, dynamic scheduling, error handling, properties (46% → 82%)
-- 🔴 `11 April 2026` add tests for commands/link.py (25%) and commands/marker.py (30%)
+- 🔴 `11 April 2026` add tests for commands/marker.py (30%)
 - 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 - 🔴 `12 April 2026` add tests for commands/debug.py (33% → 86%) and commands/time.py (40% → 96%)
 - 🔴 `12 April 2026` add tests for tasks/logo_update.py (32% → 99%) and tasks/error_hook.py (31% → 100%)

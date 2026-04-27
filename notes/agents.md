@@ -63,7 +63,6 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 | `messages.py` | Message storage, `build_message_doc()`, edit/delete log embeds sent to the logs channel |
 | `modlog.py` | Moderation log event handlers - member join/leave/ban, channel/role/emoji changes, nickname and timeout updates |
 | `starboard.py` | Starboard reaction processing (`handle_star_add`, `handle_star_remove`), embed builder (`build_embeds`), post sync logic |
-| `families.py` | Guild family grouping runtime model and helpers |
 | `logo.py` | Logo generation and SVG-to-PNG rendering via `resvg` |
 | `migrations.py` | Schema migration table |
 | `util.py` | Shared helpers - `theme_color()`, `format_message_link()`, `break_at_newline()`, permission checks |
@@ -101,7 +100,7 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `time.py` | `/time` | In-universe time controls - advance, pause, resume, dilate |
 | `wiki.py` | `/wiki` | Wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | Year check, search, and link commands |
-| `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family set`, `family upload`, `family remove`) |
+| `trees.py` | `/trees` | family tree editor link, show, share, and unshare commands |
 | `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress |
 | `remind.py` | `/remind` | In-universe date reminders - add, list, cancel; fires when haracalnde date arrives |
 
