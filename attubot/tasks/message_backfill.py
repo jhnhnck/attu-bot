@@ -237,6 +237,9 @@ class MessageBackfillTask(BaseTask):
                 updated = await sb_repo.get(starred_doc.message_id)
                 if updated:
                     await _sync_starboard_post(guild_id, updated, guild_config)
+            except discord.NotFound:
+                await sb_repo.mark_source_deleted(starred_doc.message_id)
+                logger.info(f'backfill: marked starred doc {starred_doc.message_id} as stale (original message deleted)')
             except Exception as err:
                 logger.warn(f'backfill: failed to reconcile pending starred doc {starred_doc.message_id}: {err}')
 

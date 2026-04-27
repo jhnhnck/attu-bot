@@ -782,9 +782,16 @@ class StarboardRepository:
         docs = await cursor.to_list(length=None)
         return [StarredMessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
+    async def mark_source_deleted(self, message_id: int) -> None:
+        """mark a starred doc's source message as deleted so backfill skips it"""
+        await self.db[self.COLLECTION].update_one(
+            {'message_id': message_id},
+            {'$set': {'source_deleted': True}},
+        )
+
     async def get_all_pending(self, guild_id: int) -> list[StarredMessageDocument]:
         """return starred docs that have not yet been posted to the starboard channel"""
-        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id, 'starboard_message_id': None})
+        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id, 'starboard_message_id': None, 'source_deleted': {'$ne': True}})
         docs = await cursor.to_list(length=None)
         return [StarredMessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
@@ -838,41 +845,6 @@ class ReloadSignalRepository:
             doc.pop('_id', None)
             results.append(ReloadSignalDocument(**doc))
         return results
-
-
-class FamilyRepository:
-    """Repository for registered FamilyEcho family trees"""
-
-    COLLECTION = 'families'
-
-    def __init__(self, db: AsyncDatabase):
-        self.db = db
-
-    async def init_indexes(self):
-        """Create required indexes"""
-        await self.db[self.COLLECTION].create_index([('guild_id', ASCENDING), ('name', ASCENDING)], unique=True)
-
-    async def upsert(self, doc: FamilyDocument) -> None:
-        """Save or update a family record keyed by (guild_id, name)"""
-        await self.db[self.COLLECTION].update_one(
-            {'guild_id': doc.guild_id, 'name': doc.name},
-            {'$set': doc.model_dump()},
-            upsert=True,
-        )
-
-    async def get(self, guild_id: int, name: str) -> FamilyDocument | None:
-        """Fetch a family by guild and normalized name"""
-        doc = await self.db[self.COLLECTION].find_one({'guild_id': guild_id, 'name': name})
-        if doc:
-            doc.pop('_id', None)
-            return FamilyDocument(**doc)
-        return None
-
-    async def list_all(self, guild_id: int) -> list[FamilyDocument]:
-        """List all registered families for a guild"""
-        cursor = self.db[self.COLLECTION].find({'guild_id': guild_id})
-        docs = await cursor.to_list(length=None)
-        return [FamilyDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
 
 class ChatConfigRepository:
