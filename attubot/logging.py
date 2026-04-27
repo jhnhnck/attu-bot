@@ -123,10 +123,33 @@ class PycordBridgeHandler:
         if record.levelno >= self.level:
             self.emit(record)
 
+    @staticmethod
+    def _resolve_bucket(msg: str) -> str:
+        """resolve the pycord rate-limit bucket into a readable route path.
+
+        bucket format is ``channel_id:guild_id:/route/{template}``; the major
+        params are real values but the path keeps template placeholders.
+        substitute the known major params and drop any remaining placeholders.
+        """
+        import re
+
+        m = re.search(r'"([^"]*?):([^"]*?):(\/[^"]*?)"', msg)
+        if m is None:
+            return msg
+        channel_id, guild_id, path = m.group(1), m.group(2), m.group(3)
+        if channel_id != 'None':
+            path = path.replace('{channel_id}', channel_id)
+        if guild_id != 'None':
+            path = path.replace('{guild_id}', guild_id)
+        # drop remaining unresolved placeholders (e.g. {message_id})
+        path = re.sub(r'/\{[^}]+\}', '', path)
+        return msg[: m.start()] + f'"{path}"' + msg[m.end() :]
+
     def emit(self, record) -> None:
         import logging as _logging
 
         msg = self.format(record)
+        msg = self._resolve_bucket(msg)
         if record.levelno >= _logging.WARNING:
             self._target.warn(msg)
         elif record.levelno >= _logging.DEBUG:

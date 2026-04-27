@@ -49,6 +49,12 @@ def has_announcements_role(ctx: Context) -> bool:
 
 
 def webhook_logging(scope: Logger) -> Callable:
+    """Catch exceptions and forward them to the error webhook.
+
+    Intentionally does not re-raise; the scheduler's own handler is not needed
+    when the webhook already captures the error.
+    """
+
     def decorator(func: Callable) -> Callable:
         async def wrapper(*args, **kwargs) -> Any:
             try:
