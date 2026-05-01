@@ -81,7 +81,3 @@ hmac_secret = "CHANGE_ME"
 dev_base_url = "http://attu-tree-dev:8000"
 prod_base_url = "http://attu-tree:8000"
 
-# discord role name -> server role mapping
-# roles not in this table are silently dropped by the server; the server recognises "admin" and "user"
-[trees.role_mapping]
-"Family Tree Admin" = "admin"

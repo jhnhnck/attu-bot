@@ -70,15 +70,22 @@ async def _api_call(method: str, url: str, body: dict | None = None) -> httpx.Re
         return await client.request(method, url, json=body, headers=headers)
 
 
-def _extract_roles(user_id: int) -> list[str]:
-    """fetch the user's roles from the primary guild and map through config.trees.role_mapping"""
+def _extract_roles(user_id: int) -> list[str] | None:
+    """check primary guild membership and build trees role list; returns None if not a member"""
     guild = bot.get_guild(config.primary_guild)
     if guild is None:
-        return []
+        return None
     member = guild.get_member(user_id)
     if member is None:
-        return []
-    return [config.trees.role_mapping[r.name] for r in member.roles if r.name in config.trees.role_mapping]
+        return None
+    guild_roles = config.guild(config.primary_guild).roles
+    member_role_ids = {r.id for r in member.roles}
+    roles = []
+    if guild_roles.trees_admin_role and guild_roles.trees_admin_role in member_role_ids:
+        roles.append('admin')
+    if guild_roles.trees_user_role and guild_roles.trees_user_role in member_role_ids:
+        roles.append('user')
+    return roles
 
 
 async def _fetch_view_url(tree_id: str, actor_discord_id: str) -> str | None:
@@ -166,12 +173,20 @@ trees_group = SlashCommandGroup('trees', description='Family tree editor command
 async def trees_link(ctx: ApplicationContext, code: str):
     await ctx.defer(ephemeral=True)
 
+    roles = _extract_roles(ctx.author.id)
+    if roles is None:
+        await ctx.respond("you're not in the server. how are you even doing this.", ephemeral=True)
+        return
+    if not roles:
+        await ctx.respond('you must write your island first!', ephemeral=True)
+        return
+
     base_url = _route_for(code)
     payload = {
         'code': code,
         'discord_id': str(ctx.author.id),
         'discord_username': ctx.author.global_name or ctx.author.name,
-        'roles': _extract_roles(ctx.author.id),
+        'roles': roles,
     }
 
     try:

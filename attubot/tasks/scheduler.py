@@ -112,8 +112,9 @@ class TaskScheduler:
             return
 
         if wake_event is not None:
+            if wake_event.is_set():
+                return
             try:
-                wake_event.clear()
                 await asyncio.wait_for(wake_event.wait(), timeout=delay)
             except TimeoutError:
                 pass  # normal expiry; scheduled time arrived

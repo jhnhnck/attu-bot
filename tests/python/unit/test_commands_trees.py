@@ -23,12 +23,24 @@ _DEV_URL = 'http://attu-tree-dev:8000'
 _PROD_URL = 'http://attu-tree:8000'
 
 
+_ADMIN_ROLE_ID = 111111111
+_USER_ROLE_ID = 222222222
+
+
 def _make_trees_config(**overrides):
     defaults = {
         'hmac_secret': _HMAC_SECRET,
         'dev_base_url': _DEV_URL,
         'prod_base_url': _PROD_URL,
-        'role_mapping': {'Family Tree Admin': 'admin'},
+    }
+    defaults.update(overrides)
+    return SimpleNamespace(**defaults)
+
+
+def _make_guild_roles(**overrides):
+    defaults = {
+        'trees_admin_role': _ADMIN_ROLE_ID,
+        'trees_user_role': _USER_ROLE_ID,
     }
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
@@ -66,7 +78,7 @@ class TestComingSoonGate:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -169,20 +181,27 @@ class TestExtractRoles:
     def setup_method(self):
         config.trees = _make_trees_config()
         config.primary_guild = 1234567890
+        config.guild = MagicMock(return_value=SimpleNamespace(roles=_make_guild_roles()))
 
-    def test_member_with_mapped_role(self):
-        admin_role = MagicMock()
-        admin_role.name = 'Family Tree Admin'
-
+    def _make_member(self, *role_ids):
+        roles = []
+        for rid in role_ids:
+            r = MagicMock()
+            r.id = rid
+            roles.append(r)
         member = MagicMock()
-        member.roles = [admin_role]
+        member.roles = roles
+        return member
 
+    def _make_bot(self, member):
         guild = MagicMock()
         guild.get_member = MagicMock(return_value=member)
-
         mock_bot = MagicMock()
         mock_bot.get_guild = MagicMock(return_value=guild)
+        return mock_bot
 
+    def test_admin_role_match(self):
+        mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID))
         with patch('attubot.commands.trees.config', config), patch('attubot.commands.trees.bot', mock_bot):
             from attubot.commands.trees import _extract_roles
 
@@ -190,19 +209,36 @@ class TestExtractRoles:
 
         assert result == ['admin']
 
-    def test_member_with_no_mapped_roles(self):
-        other_role = MagicMock()
-        other_role.name = 'Some Other Role'
+    def test_user_role_match(self):
+        mock_bot = self._make_bot(self._make_member(_USER_ROLE_ID))
+        with patch('attubot.commands.trees.config', config), patch('attubot.commands.trees.bot', mock_bot):
+            from attubot.commands.trees import _extract_roles
 
-        member = MagicMock()
-        member.roles = [other_role]
+            result = _extract_roles(test_user)
 
-        guild = MagicMock()
-        guild.get_member = MagicMock(return_value=member)
+        assert result == ['user']
 
-        mock_bot = MagicMock()
-        mock_bot.get_guild = MagicMock(return_value=guild)
+    def test_both_roles_match(self):
+        mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID, _USER_ROLE_ID))
+        with patch('attubot.commands.trees.config', config), patch('attubot.commands.trees.bot', mock_bot):
+            from attubot.commands.trees import _extract_roles
 
+            result = _extract_roles(test_user)
+
+        assert result == ['admin', 'user']
+
+    def test_neither_role_match(self):
+        mock_bot = self._make_bot(self._make_member(999999999))
+        with patch('attubot.commands.trees.config', config), patch('attubot.commands.trees.bot', mock_bot):
+            from attubot.commands.trees import _extract_roles
+
+            result = _extract_roles(test_user)
+
+        assert result == []
+
+    def test_roles_unconfigured(self):
+        config.guild = MagicMock(return_value=SimpleNamespace(roles=_make_guild_roles(trees_admin_role=0, trees_user_role=0)))
+        mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID, _USER_ROLE_ID))
         with patch('attubot.commands.trees.config', config), patch('attubot.commands.trees.bot', mock_bot):
             from attubot.commands.trees import _extract_roles
 
@@ -213,7 +249,6 @@ class TestExtractRoles:
     def test_member_not_in_primary_guild(self):
         guild = MagicMock()
         guild.get_member = MagicMock(return_value=None)
-
         mock_bot = MagicMock()
         mock_bot.get_guild = MagicMock(return_value=guild)
 
@@ -222,7 +257,7 @@ class TestExtractRoles:
 
             result = _extract_roles(test_user)
 
-        assert result == []
+        assert result is None
 
     def test_guild_unavailable(self):
         mock_bot = MagicMock()
@@ -233,7 +268,7 @@ class TestExtractRoles:
 
             result = _extract_roles(test_user)
 
-        assert result == []
+        assert result is None
 
 
 # --- TestTreesLink ---
@@ -252,7 +287,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -270,7 +305,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -286,7 +321,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -301,7 +336,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -315,7 +350,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(side_effect=httpx.TimeoutException('timeout'))),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -329,7 +364,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -344,7 +379,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -364,7 +399,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
             patch('attubot.commands.trees.logger', mock_logger),
         ):
             from attubot.commands.trees import trees_link
@@ -387,7 +422,7 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', side_effect=capture_call),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
@@ -407,13 +442,41 @@ class TestTreesLink:
         with (
             patch('attubot.commands.trees.config', config),
             patch('attubot.commands.trees._api_call', side_effect=capture_call),
-            patch('attubot.commands.trees._extract_roles', return_value=[]),
+            patch('attubot.commands.trees._extract_roles', return_value=['user']),
         ):
             from attubot.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
         assert captured_url[0].startswith(_PROD_URL)
+
+    async def test_not_in_primary_guild(self, mock_ctx_factory):
+        ctx = mock_ctx_factory(user_id=test_user)
+
+        with (
+            patch('attubot.commands.trees.config', config),
+            patch('attubot.commands.trees._extract_roles', return_value=None),
+        ):
+            from attubot.commands.trees import trees_link
+
+            await trees_link(ctx, code='AB-123456')
+
+        assert any('how are you even doing this' in str(r['args']) for r in ctx._responses)
+        assert any(r['kwargs'].get('ephemeral') for r in ctx._responses)
+
+    async def test_no_authorized_role(self, mock_ctx_factory):
+        ctx = mock_ctx_factory(user_id=test_user)
+
+        with (
+            patch('attubot.commands.trees.config', config),
+            patch('attubot.commands.trees._extract_roles', return_value=[]),
+        ):
+            from attubot.commands.trees import trees_link
+
+            await trees_link(ctx, code='AB-123456')
+
+        assert any('write your island' in str(r['args']) for r in ctx._responses)
+        assert any(r['kwargs'].get('ephemeral') for r in ctx._responses)
 
 
 # --- TestTreesShow ---

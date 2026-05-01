@@ -145,6 +145,8 @@ class GuildEpoch(BaseModel):
 class GuildRoles(BaseModel):
     announcements: int = 0  # notification role for year changes
     bot_color: int = 0  # role whose color tracks the bot theme color
+    trees_admin_role: int = 0  # role ID → "admin" in the trees service
+    trees_user_role: int = 0  # role ID → "user" in the trees service
 
 
 class GuildUsers(BaseModel):
@@ -185,7 +187,6 @@ class TreesConfig(BaseModel):
     hmac_secret: str
     dev_base_url: str
     prod_base_url: str
-    role_mapping: dict[str, str] = {}
 
 
 class GuildStarboard(BaseModel):

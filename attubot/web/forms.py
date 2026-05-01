@@ -60,6 +60,8 @@ class GuildRolesForm(BaseModel):
 
     announcements: int = Field(default=0, ge=0)
     bot_color: int = Field(default=0, ge=0)
+    trees_admin_role: int = Field(default=0, ge=0)
+    trees_user_role: int = Field(default=0, ge=0)
 
 
 class GuildUsersForm(BaseModel):
