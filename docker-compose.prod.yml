@@ -141,4 +141,6 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: doom-bot_postgres_data
   qdrant_data:
