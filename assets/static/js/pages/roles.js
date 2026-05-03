@@ -19,6 +19,8 @@ export async function initRolesPage(guildId) {
         populateRoleSelects(roles);
         populateField('announcements', config.roles.announcements);
         populateField('bot_color', config.roles.bot_color);
+        populateField('trees_admin_role', config.roles.trees_admin_role);
+        populateField('trees_user_role', config.roles.trees_user_role);
     } catch (err) {
         console.error('Failed to load roles config:', err);
     } finally {
@@ -30,6 +32,8 @@ export async function initRolesPage(guildId) {
         save: async (data) => {
             data.announcements = parseInt(data.announcements, 10) || 0;
             data.bot_color = parseInt(data.bot_color, 10) || 0;
+            data.trees_admin_role = parseInt(data.trees_admin_role, 10) || 0;
+            data.trees_user_role = parseInt(data.trees_user_role, 10) || 0;
             return api.patchRoles(guildId, data);
         },
     });
