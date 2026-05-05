@@ -95,6 +95,10 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ## completed tasks
 
+### scheduling / signals
+
+- 🔴 `4 May 2026` fix(signals): web reload signals dropped in prod and reminder task firing inconsistently; ingestor was inheriting all bot tasks via module-import side effects in `attubot/tasks/__init__.py`, racing the bot for the `reload_signals` collection on every poll. moved registration into a `register_bot_tasks()` function called from `client/events.py`, and split signals per consumer with a `target` field so the bot and ingestor each consume only their own queue. schema bumped to 2.5.5 with `migration_target_signals` to drop the legacy index and purge untargeted docs.
+
 ### egg related
 
 - 🔴 eggs leaderboard for most complete hatched set and most hatched total
@@ -332,5 +336,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 4 May 2026
-total_completed: 70
+total_completed: 71
 ```

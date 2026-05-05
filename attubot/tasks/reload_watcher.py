@@ -28,10 +28,19 @@ def _get_repo() -> ReloadSignalRepository:
 
 
 class ReloadWatcherTask(BaseTask):
-    """Polls MongoDB for reload signals and applies them."""
+    """Polls MongoDB for reload signals and applies them.
 
-    name: str = 'ReloadWatcher'
+    each consumer process (bot, ingestor) instantiates this task with its own
+    `target` so it only consumes signals addressed to it. without per-target
+    filtering both processes raced on `find_one_and_delete` and dropped signals.
+    """
+
     interval = timedelta(seconds=5)
+
+    def __init__(self, target: str = 'bot') -> None:
+        super().__init__()
+        self.target = target
+        self.name = f'ReloadWatcher[{target}]'
 
     async def on_start(self) -> None:
         await config.wait_for_load()
@@ -42,7 +51,7 @@ class ReloadWatcherTask(BaseTask):
         repo = _get_repo()
 
         try:
-            signals = await repo.consume_all()
+            signals = await repo.consume_all(self.target)
         except Exception as e:
             logger.error(f'error fetching reload signals: {e}')
             return
@@ -50,7 +59,7 @@ class ReloadWatcherTask(BaseTask):
         if not signals:
             return
 
-        logger.info(f'processing [{len(signals)}] reload signal(s) from web')
+        logger.info(f'processing [{len(signals)}] reload signal(s) for target={self.target}')
 
         for signal in signals:
             try:
@@ -85,5 +94,5 @@ class ReloadWatcherTask(BaseTask):
                 logger.error(f'error processing reload signal {signal.signal_type}: {e}')
 
 
-# singleton for registration
-reload_watcher_task = ReloadWatcherTask()
+# singleton for registration in the bot process
+reload_watcher_task = ReloadWatcherTask(target='bot')

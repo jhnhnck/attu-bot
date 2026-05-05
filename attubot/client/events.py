@@ -135,8 +135,9 @@ async def _do_ready_init():
 
     # start task scheduler
     try:
-        from attubot.tasks import scheduler
+        from attubot.tasks import register_bot_tasks, scheduler
 
+        register_bot_tasks(scheduler)
         await scheduler.start_all()
     except Exception as err:
         logger.fatal('exception caught starting task scheduler; exiting', err)

@@ -80,16 +80,21 @@ with `run_immediately = False`, the task sleeps one interval first, then calls `
 
 ### Registering a task
 
-All tasks are instantiated as module-level singletons and registered in `attubot/tasks/__init__.py`:
+bot tasks are instantiated as module-level singletons and added to the bot's scheduler via `register_bot_tasks()` in `attubot/tasks/__init__.py`:
 
 ```python
 from attubot.tasks.my_feature import MyFeatureTask
 
 my_feature_task = MyFeatureTask()
-scheduler.register(my_feature_task)
+
+def register_bot_tasks(s):
+    ...
+    s.register(my_feature_task)
 ```
 
-`scheduler.start_all()` is called by `start_bot_loop()` in `attubot/client/__init__.py` once the bot is ready.
+the bot calls `register_bot_tasks(scheduler)` from `attubot/client/events.py` right before `scheduler.start_all()` on `on_ready`. registration is intentionally not done at module-import time; the ingestor process imports the same package and would otherwise inherit (and start) every bot task, racing with the bot for shared db state like reload signals.
+
+the ingestor registers its own task set explicitly in `attubot/ingestor/__init__.py` and does not call `register_bot_tasks()`.
 
 ---
 
@@ -158,7 +163,7 @@ Command files (`attubot/commands/`) can import `scheduler` at the top of the mod
 3. Implement `run()` (required); implement `on_start()` if you need to wait on config or the bot being ready
 4. Implement `next_run()` if `interval is None`
 5. Add a module-level singleton: `my_feature_task = MyFeatureTask()`
-6. In `attubot/tasks/__init__.py`, import the singleton and call `scheduler.register(my_feature_task)`
+6. In `attubot/tasks/__init__.py`, import the singleton and add `s.register(my_feature_task)` inside `register_bot_tasks()`
 7. Add a row to the tasks table in `notes/agents.md`
 
 ## How to Fire a One-Shot Job from a Command

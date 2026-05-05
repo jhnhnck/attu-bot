@@ -65,6 +65,10 @@ class TaskScheduler:
         """Register a recurring task (BaseTask subclass)."""
         self._registered_tasks.append(task)
 
+    def registered_tasks(self) -> list[BaseTask]:
+        """Return the currently registered task instances (for idempotence checks)."""
+        return list(self._registered_tasks)
+
     async def start_all(self) -> None:
         """Start all registered recurring tasks."""
         if self._running:

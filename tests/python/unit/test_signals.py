@@ -86,15 +86,22 @@ class TestReloadSignalRepository:
         await signal_repo.send('guild', test_guild)
         signal_repo.db[signal_repo.COLLECTION].update_one.assert_called_once()
         call_args = signal_repo.db[signal_repo.COLLECTION].update_one.call_args
-        assert call_args[0][0] == {'signal_type': 'guild', 'guild_id': test_guild}
+        assert call_args[0][0] == {'target': 'bot', 'signal_type': 'guild', 'guild_id': test_guild}
         assert call_args[1]['upsert'] is True
 
     async def test_send_upserts_theme(self, signal_repo):
         signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
         await signal_repo.send('theme')
         call_args = signal_repo.db[signal_repo.COLLECTION].update_one.call_args
-        assert call_args[0][0] == {'signal_type': 'theme', 'guild_id': None}
+        assert call_args[0][0] == {'target': 'bot', 'signal_type': 'theme', 'guild_id': None}
         assert call_args[1]['upsert'] is True
+
+    async def test_send_to_ingestor_target(self, signal_repo):
+        signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
+        await signal_repo.send('chat', target='ingestor')
+        call_args = signal_repo.db[signal_repo.COLLECTION].update_one.call_args
+        assert call_args[0][0] == {'target': 'ingestor', 'signal_type': 'chat', 'guild_id': None}
+        assert call_args[0][1]['$set']['target'] == 'ingestor'
 
     async def test_send_sets_timestamp(self, signal_repo):
         signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
@@ -109,7 +116,12 @@ class TestReloadSignalRepository:
         signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(return_value=None)
         result = await signal_repo.consume_all()
         assert result == []
-        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once()
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once_with({'target': 'bot'})
+
+    async def test_consume_all_filters_by_target(self, signal_repo):
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(return_value=None)
+        await signal_repo.consume_all(target='ingestor')
+        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once_with({'target': 'ingestor'})
 
     async def test_consume_all_returns_signals(self, signal_repo):
         fake_id = 'fake_oid_1'
@@ -161,19 +173,27 @@ class TestSendSignalHelper:
         from attubot.signals import send_signal
 
         await send_signal('guild', test_guild)
-        mock_signal_repo.send.assert_called_once_with('guild', test_guild)
+        mock_signal_repo.send.assert_called_once_with('guild', test_guild, target='bot')
 
     async def test_sends_theme_signal(self, mock_signal_repo):
         from attubot.signals import send_signal
 
         await send_signal('theme')
-        mock_signal_repo.send.assert_called_once_with('theme', None)
+        mock_signal_repo.send.assert_called_once_with('theme', None, target='bot')
 
     async def test_sends_system_signal(self, mock_signal_repo):
         from attubot.signals import send_signal
 
         await send_signal('system')
-        mock_signal_repo.send.assert_called_once_with('system', None)
+        mock_signal_repo.send.assert_called_once_with('system', None, target='bot')
+
+    async def test_chat_signal_fans_out_to_bot_and_ingestor(self, mock_signal_repo):
+        from attubot.signals import send_signal
+
+        await send_signal('chat')
+        targets = {call.kwargs.get('target') for call in mock_signal_repo.send.call_args_list}
+        assert targets == {'bot', 'ingestor'}
+        assert mock_signal_repo.send.call_count == 2
 
     async def test_swallows_exception(self, mock_signal_repo):
         from attubot.signals import send_signal
@@ -205,11 +225,11 @@ def mock_cfg():
         yield cfg
 
 
-def make_watcher():
+def make_watcher(target: str = 'bot'):
     """Instantiate ReloadWatcherTask without starting the task loop."""
     from attubot.tasks.reload_watcher import ReloadWatcherTask
 
-    return ReloadWatcherTask.__new__(ReloadWatcherTask)
+    return ReloadWatcherTask(target=target)
 
 
 class TestReloadWatcher:

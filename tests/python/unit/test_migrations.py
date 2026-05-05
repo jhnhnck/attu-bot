@@ -264,3 +264,64 @@ class TestMigrationSeedUiEmojis:
 
         # db should never be touched
         mock_core_db.get_db.assert_not_called()
+
+
+# ============================================================
+# migration_target_signals (2.5.4 → 2.5.5)
+# ============================================================
+
+
+class TestMigrationTargetSignals:
+    """unit: migration_target_signals drops legacy index and purges untargeted signals"""
+
+    @pytest.fixture
+    def mock_db(self):
+        result = MagicMock()
+        result.deleted_count = 3
+
+        collection = MagicMock()
+        collection.drop_index = AsyncMock()
+        collection.delete_many = AsyncMock(return_value=result)
+        collection.update_one = AsyncMock()  # for the version bump in the wrapper
+
+        db = MagicMock()
+        db.global_config = collection
+        db.__getitem__ = MagicMock(return_value=collection)
+        return db, collection
+
+    async def test_drops_legacy_index_and_purges_untargeted(self, mock_db):
+        db_obj, collection = mock_db
+        with patch('attubot.client.core.db') as mock_core_db:
+            mock_core_db.get_db.return_value = db_obj
+
+            from attubot.client.migrations import migration_target_signals
+
+            await migration_target_signals('2.5.4')
+
+        collection.drop_index.assert_awaited_once_with('signal_type_1_guild_id_1')
+        collection.delete_many.assert_awaited_once_with({'target': {'$exists': False}})
+
+    async def test_swallows_missing_legacy_index(self, mock_db):
+        """drop_index raising OperationFailure (index already gone) is suppressed; purge still runs"""
+        from pymongo.errors import OperationFailure
+
+        db_obj, collection = mock_db
+        collection.drop_index = AsyncMock(side_effect=OperationFailure('index not found'))
+
+        with patch('attubot.client.core.db') as mock_core_db:
+            mock_core_db.get_db.return_value = db_obj
+
+            from attubot.client.migrations import migration_target_signals
+
+            await migration_target_signals('2.5.4')
+
+        collection.delete_many.assert_awaited_once_with({'target': {'$exists': False}})
+
+    async def test_skipped_when_version_past(self):
+        """wrapper bails when db version != old version"""
+        with patch('attubot.client.core.db') as mock_core_db:
+            from attubot.client.migrations import migration_target_signals
+
+            await migration_target_signals('2.5.5')
+
+        mock_core_db.get_db.assert_not_called()

@@ -908,3 +908,18 @@ class TestReloadSignalRepository:
         signals = await repo.consume_all()
         assert signals[0].signal_type == 'system'
         assert signals[0].guild_id is None
+
+    async def test_target_isolates_consumers(self, db):
+        """signals addressed to different targets do not steal each other's docs"""
+        repo = ReloadSignalRepository(db)
+        await repo.init_indexes()
+        await repo.send('chat', target='bot')
+        await repo.send('chat', target='ingestor')
+
+        bot_signals = await repo.consume_all(target='bot')
+        ingestor_signals = await repo.consume_all(target='ingestor')
+
+        assert len(bot_signals) == 1
+        assert bot_signals[0].target == 'bot'
+        assert len(ingestor_signals) == 1
+        assert ingestor_signals[0].target == 'ingestor'

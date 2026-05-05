@@ -604,3 +604,31 @@ async def migration_seed_ui_emojis():
         logger.error('migration 2.5.4 failed; restoring global_config from snapshot')
         await _restore_collection(database, 'global_config', backup)
         raise
+
+
+# Version 2.5.5
+@migration(old='2.5.4', new='2.5.5')
+async def migration_target_signals():
+    """Add target field to reload signals; drop legacy index and purge untargeted docs.
+
+    the (signal_type, guild_id) index is replaced by (target, signal_type, guild_id) so
+    bot and ingestor consumers can each drain only their own queue. legacy untargeted
+    signals are purged here; init_indexes() builds the new index on the next startup.
+    """
+    import contextlib
+
+    from pymongo.errors import OperationFailure
+
+    from attubot.client.core import db
+    from attubot.database.repositories import ReloadSignalRepository
+
+    logger.info('running migration to 2.5.5: targeting reload signals')
+
+    database = db.get_db()
+    collection = database[ReloadSignalRepository.COLLECTION]
+
+    with contextlib.suppress(OperationFailure):
+        await collection.drop_index('signal_type_1_guild_id_1')
+
+    result = await collection.delete_many({'target': {'$exists': False}})
+    logger.info(f'migration 2.5.5: removed {result.deleted_count} legacy untargeted reload signals')

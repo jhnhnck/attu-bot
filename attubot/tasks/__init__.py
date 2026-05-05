@@ -22,17 +22,31 @@ from attubot.tasks.scheduler import TaskScheduler, scheduler
 
 logger = get_logger(__name__)
 
-# register all tasks
-scheduler.register(chat_init_task)
-scheduler.register(nova_year_task)
-scheduler.register(logo_update_task)
-scheduler.register(error_hook_task)
-scheduler.register(reload_watcher_task)
-scheduler.register(db_backup_task)
-scheduler.register(message_backfill_task)
-scheduler.register(egg_cleanup_task)
-scheduler.register(presence_update_task)
-scheduler.register(reminder_task)
+
+def register_bot_tasks(s: TaskScheduler) -> None:
+    """register all bot-side recurring tasks on the given scheduler.
+
+    called once from the bot startup path; not called by the ingestor (which has
+    its own task set). registering at module-import time would duplicate every
+    bot task into the ingestor process, since both processes share this package.
+    idempotent: tasks already registered are skipped.
+    """
+    bot_tasks = (
+        chat_init_task,
+        nova_year_task,
+        logo_update_task,
+        error_hook_task,
+        reload_watcher_task,
+        db_backup_task,
+        message_backfill_task,
+        egg_cleanup_task,
+        presence_update_task,
+        reminder_task,
+    )
+    registered = set(s.registered_tasks())
+    for task in bot_tasks:
+        if task not in registered:
+            s.register(task)
 
 
 __all__ = [
@@ -57,6 +71,7 @@ __all__ = [
     'message_backfill_task',
     'nova_year_task',
     'presence_update_task',
+    'register_bot_tasks',
     'reload_watcher_task',
     'reminder_task',
     'scheduler',

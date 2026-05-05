@@ -798,10 +798,12 @@ class StarboardRepository:
 
 
 class ReloadSignalRepository:
-    """Repository for cross-process config reload signals
+    """Repository for cross-process config reload signals.
 
-    the web process writes signals here; the bot process polls and consumes them.
-    documents are upserted by (signal_type, guild_id) so rapid saves coalesce.
+    the web process writes signals; consumers (bot, ingestor) each poll and consume
+    only documents addressed to their own `target`. documents are upserted by
+    (target, signal_type, guild_id) so rapid saves coalesce per target without one
+    consumer stealing another's signal.
     """
 
     COLLECTION = 'reload_signals'
@@ -811,36 +813,36 @@ class ReloadSignalRepository:
 
     async def init_indexes(self):
         # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead.
-        # if an older unique index exists under the same auto-generated name, drop it first to avoid IndexKeySpecsConflict (code 86).
+        # the legacy (signal_type, guild_id) index is dropped by the 2.5.5 migration; recover from a leftover conflict (code 86) just in case.
         from pymongo.errors import OperationFailure
 
         try:
             await self.db[self.COLLECTION].create_index(
-                [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
+                [('target', ASCENDING), ('signal_type', ASCENDING), ('guild_id', ASCENDING)],
             )
         except OperationFailure as e:
             if e.code == 86:
-                await self.db[self.COLLECTION].drop_index('signal_type_1_guild_id_1')
+                await self.db[self.COLLECTION].drop_index('target_1_signal_type_1_guild_id_1')
                 await self.db[self.COLLECTION].create_index(
-                    [('signal_type', ASCENDING), ('guild_id', ASCENDING)],
+                    [('target', ASCENDING), ('signal_type', ASCENDING), ('guild_id', ASCENDING)],
                 )
             else:
                 raise
 
-    async def send(self, signal_type: str, guild_id: int | None = None):
-        """Upsert a reload signal - idempotent for the same (type, guild) pair"""
-        doc = ReloadSignalDocument.make(signal_type, guild_id).model_dump()  # type: ignore[arg-type]
+    async def send(self, signal_type: str, guild_id: int | None = None, target: str = 'bot'):
+        """Upsert a reload signal addressed to a single consumer (target)."""
+        doc = ReloadSignalDocument.make(signal_type, guild_id, target).model_dump()  # type: ignore[arg-type]
         await self.db[self.COLLECTION].update_one(
-            {'signal_type': signal_type, 'guild_id': guild_id},
+            {'target': target, 'signal_type': signal_type, 'guild_id': guild_id},
             {'$set': doc},
             upsert=True,
         )
 
-    async def consume_all(self) -> list[ReloadSignalDocument]:
-        """Fetch and delete all pending signals one at a time (find_one_and_delete avoids $in on _id which has FerretDB compat issues)"""
+    async def consume_all(self, target: str = 'bot') -> list[ReloadSignalDocument]:
+        """Fetch and delete all pending signals for the given target (find_one_and_delete avoids $in on _id which has FerretDB compat issues)"""
         results = []
         while True:
-            doc = await self.db[self.COLLECTION].find_one_and_delete({})
+            doc = await self.db[self.COLLECTION].find_one_and_delete({'target': target})
             if doc is None:
                 break
             doc.pop('_id', None)

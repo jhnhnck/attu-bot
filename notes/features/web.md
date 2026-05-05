@@ -107,15 +107,17 @@ from attubot.signals import send_signal
 await send_signal('guild', guild_id)  # or 'theme', 'system', 'chat'
 ```
 
-- `send_signal()` upserts to the `reload_signals` collection; errors are caught and logged, never re-raised
-- Upserts are idempotent - rapid saves of the same (type, guild_id) coalesce into one pending signal
+- `send_signal()` upserts one document per consumer (`target`) into the `reload_signals` collection; errors are caught and logged, never re-raised
+- Upserts are idempotent per target - rapid saves of the same (target, type, guild_id) coalesce into one pending signal
+- Each signal type has a fan-out list in `attubot/signals.py:_signal_targets`. `'guild'`, `'theme'`, `'system'` go to `'bot'` only; `'chat'` fans out to both `'bot'` and `'ingestor'` since both processes use the chat runtime config
 
-**Consuming signals** (bot side): `ReloadWatcherTask` in `attubot/tasks/reload_watcher.py` polls every 5 seconds with `repo.consume_all()`, which atomically deletes and returns all pending signals. Each type maps to a config reload method.
+**Consuming signals** (consumer side): `ReloadWatcherTask` in `attubot/tasks/reload_watcher.py` is instantiated with a `target` string ('bot' in the bot process, 'ingestor' in the ingestor) and polls every 5 seconds via `repo.consume_all(target=self.target)`, which atomically deletes and returns only signals addressed to that consumer. without per-target filtering both processes raced on `find_one_and_delete` and silently dropped each other's signals.
 
 **Adding a new config type that the bot needs to react to**:
 1. Emit `await send_signal('yourtype')` after the web save
 2. Add `'yourtype'` to the `Literal` in `ReloadSignalDocument` in `database/models.py`
-3. Handle it in `reload_watcher.py`
+3. Add `'yourtype'` to the fan-out map in `attubot/signals.py:_signal_targets` (list every consumer that needs to reload)
+4. Handle it in `reload_watcher.py`
 
 ---
 

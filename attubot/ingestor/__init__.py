@@ -28,7 +28,7 @@ async def _run():
     await config.on_load()
 
     logger.info('starting ingestor task scheduler')
-    scheduler.register(ReloadWatcherTask())
+    scheduler.register(ReloadWatcherTask(target='ingestor'))
     scheduler.register(WikiIngestTask())
     scheduler.register(DiscordIngestTask())
     await scheduler.start_all()
