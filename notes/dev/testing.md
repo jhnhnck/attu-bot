@@ -53,15 +53,7 @@ docker compose run --build --rm --quiet-build tests scripts/run_tests.py
 
 ## Mock compensation
 
-When a test mocks a framework mechanism, it must compensate by testing what the mock hides at another level. The alternative is an invisible gap where real failures only surface in prod.
-
-Two standing compensations in this codebase:
-
-**Extension loading** - `test_start_bot_loop.py` mocks `bot.load_extension()` to verify call orchestration. The compensating test (`TestExtensionImports.test_extension_imports_cleanly`) does a real `importlib.import_module()` for every entry in `_EXTENSIONS`. Decorators evaluate at import time, so any attribute error or missing import raises immediately. Rule: whenever a module is added to or removed from `_EXTENSIONS`, confirm this test passes before merging.
-
-**Command auth gates** - command tests call functions directly and never execute `@commands.check` decorators. The compensating tests live in `test_util.py` and exercise the predicate functions (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`) directly with real config state. Rule: whenever a new predicate is added to `util.py` or applied to a command, add corresponding true/false tests in `test_util.py`.
-
-The general rule: if you mock a framework mechanism, write down what behavior that mock hides, then cover it at another level.
+The mock compensation rule, the three standing cases (extension loading, permission checks, migrations), and the general principle now live in the `mock-compensation` skill (`.claude/skills/mock-compensation/SKILL.md`). The skill is canonical; update it rather than this file.
 
 ## Next improvements
 

@@ -56,7 +56,7 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 | `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil`; `/ping` is registered here directly as an intentional exception to the extension pattern (lightweight core health check) |
 | `core.py` | Module-level singletons: `bot` (Discord Bot), `config` (NovaConfig), `db` (MongoStorage) |
 | `events.py` | Bot event handlers (`on_ready`, `on_message`, `on_member_join`, `on_application_command_error`, `before_invoke`); `_shutdown()` helper |
-| `embeds.py` | `make_embed()` - standard embed builder with auto-theme color and timestamp; see `notes/embed_usage.md` |
+| `embeds.py` | `make_embed()` - standard embed builder with auto-theme color and timestamp; see the `pycord` skill (`embeds` section) |
 | `markers.py` | `YearMarker` runtime model + bot extension setup |
 | `years.py` | `Year` runtime model + bot extension setup |
 | `calendar.py` | Pure calendar math - `get_year_status()`, `get_year_span()`, `get_next_year()` |
@@ -287,10 +287,7 @@ docker compose run --build --rm --quiet-build tests
 - All tests run with `TZ=UTC`; uses **freezegun** for deterministic calendar calculations
 - Fixture table and test constants: see [`notes/dev/testing.md`](notes/dev/testing.md)
 
-**mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. two standing cases:
-- `bot.load_extension()` is mocked in `test_start_bot_loop.py`; compensated by `TestExtensionImports.test_extension_imports_cleanly` doing real `importlib.import_module()` for each extension. Whenever you add a file under `attubot/commands/`, verify this test still passes.
-- command tests call functions directly, bypassing `@commands.check`. compensated by predicate tests in `test_util.py`. add/update tests there when adding predicates.
-- when adding a new migration to `client/migrations.py`, add a test for its rollback path before merging.
+**mock compensation rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides. canonical reference and standing cases (extension loading, permission checks, migrations) are in the `mock-compensation` skill.
 
 ### linting
 ```bash
@@ -313,38 +310,7 @@ See [`notes/dev/dev_setup.md`](notes/dev/dev_setup.md) for the full dev worktree
 
 ## feature completion checklist
 
-work through every applicable item before considering a feature done.
-
-### tests
-- write or update unit tests for all new logic (`tests/python/unit/`)
-- write component tests if new repository methods or DB operations are added (`tests/python/component/`)
-- if a new command file is added under `attubot/commands/`, verify `TestExtensionImports.test_extension_imports_cleanly` still passes (mock compensation rule)
-- if new `@commands.check` predicates are added, add/update predicate tests in `test_util.py`
-- if a new migration is added to `client/migrations.py`, add a rollback path test before merging
-- if a new config field is added, add a roundtrip test (see "adding a new config field")
-- run the full test suite: `docker compose run --build --rm --quiet-pull tests`
-
-### documentation
-- update the relevant feature spec in `notes/features/` if behavior or storage changed
-- if the feature is new and complex, stable, and referenceable, propose a new note file following `notes/.meta.md` guidance (common types: feature.md, library_usage.md, domain_concept.md)
-- update the reference notes table in this file if a new note file is created
-- update `notes/to-do.md` to reflect completed work
-
-### configuration (if adding config fields)
-- follow the full tier-2 or tier-3 checklist in "configuration system" above
-- tier-3 fields: cover all six steps (`models.py`, `config.py` model, `load_guild()`, `forms.py`, template, `app.js` `populateField`)
-- if the field gates an extension: handle the `False → True` transition in the activating task and in `reload_watcher.py`
-
-### web interface (if adding web-facing config or new pages/endpoints)
-- follow the "adding a new config field" or "adding a new page/endpoint" guide in `notes/features/web.md`
-- all mutations: add audit logging via `web_app.audit_logger.log_change()`
-- all mutations: send a reload signal via `send_signal()` after save
-- new API endpoints must follow the standard shape: `{'error': '...'}` on failure, `{'success': True, 'message': '...'}` on success
-
-### linting
-- `ruff check .` — fix all issues; `noqa` suppressions require a reason
-- `ruff format --check .` — format must be clean
-- `npm run lint` — run if any JS was modified
+the canonical end-of-task checklist (tests, documentation, configuration plumbing, web interface, linting) is the `feature-completion` skill. the skill auto-loads on wrap-up signals (`pytest`, `ruff check`, "ready to commit", drafting a `git commit` message) and is canonical - if it diverges from this file, the skill wins and this section gets updated to match.
 
 ---
 
@@ -367,13 +333,9 @@ work through every applicable item before considering a feature done.
 
 Notes in `notes/` with relevant implementation details:
 
-**`notes/style/`** - conventions and usage patterns
-- [`generic_style_guide.md`](notes/style/generic_style_guide.md) - writing principles, punctuation rules, inline tags, and change/status note formats for notes and to-do entries
-- [`commit_style.md`](notes/style/commit_style.md) - commit message format, types, and tone
-- [`comment_style.md`](notes/style/comment_style.md) - comment formatting conventions (case, punctuation, section dividers, TODO tags)
-- [`message_style.md`](notes/style/message_style.md) - log message and Discord response style (tone, capitalization, error format, custom emojis)
-- [`embed_usage.md`](notes/style/embed_usage.md) - discord embed construction and field usage
-- [`button_usage.md`](notes/style/button_usage.md) - pycord `discord.ui.View` buttons (styles, rows, disabling, timeouts, persistent views)
+**`notes/style/`** - deeper api references; project-specific style rules now live in skills (see below)
+- [`embed_usage.md`](notes/style/embed_usage.md) - `discord.Embed` deep api reference (chainable setters, accessors, dict roundtrip, fields you can't set); project rules in the `pycord` skill
+- [`button_usage.md`](notes/style/button_usage.md) - `discord.ui` deep api reference (decorator vs `add_item`, button styles, action rows, persistent views, modals/selects); project patterns in the `pycord` skill
 
 **`notes/features/`** - feature specs and system docs
 - [`eggs.md`](notes/features/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
@@ -386,12 +348,29 @@ Notes in `notes/` with relevant implementation details:
 - [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions
 
 **`notes/dev/`** - development guides
-- [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions, mock compensation
+- [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions (mock compensation rule moved to its skill)
 - [`dev_setup.md`](notes/dev/dev_setup.md) - dev worktree setup, running tests, deploying to prod
 
 **`notes/`**
 - [`to-do.md`](notes/to-do.md) - active project to-do list, test coverage table, and completed task history
 - [`.meta.md`](.meta.md) - guide for recreating this agents.md and notes/ system in another repository
+
+## skills
+
+prescriptive, auto-loaded reference cards live in `.claude/skills/`. each loads when its trigger condition matches the current task; treat each as canonical for the rule it codifies.
+
+| skill | covers | triggers on |
+|---|---|---|
+| `commit-style` | commit format, types, scope, what belongs in one commit | drafting commit messages; `git commit` / `git status` / `git diff` |
+| `comment-style` | python comment case/punctuation, section dividers, todo tags, noqa reasons | any python edit |
+| `message-style` | log tone, discord response voice, error format (`Failed:`), custom emojis, ephemeral rule | edits in `commands/` / `client/` / `tasks/` / `web/`; `logger.*`; `ctx.respond` / `interaction.response` |
+| `feature-completion` | end-of-task checklist (tests, docs, config plumbing, web, lint) | wrap-up signals; `pytest`, `ruff`, drafting a commit |
+| `mock-compensation` | the mock compensation rule and three standing cases | edits in `tests/python/`; new files in `commands/`; new predicates; new migrations |
+| `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `attubot/commands/` / `attubot/client/`; imports of `discord.*` |
+| `pydantic` | pydantic v2 idioms, document/runtime split, six-step tier-3 plumbing checklist | `database/models.py`, `config.py`, `web/forms.py`; `pydantic` imports |
+| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `attubot/wiki/`; `ingestor/pipelines/wiki.py`; `commands/wiki.py` |
+| `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `attubot/database/`; `migrations.py`; `scripts/ferret_init.sh` |
+
 ---
 
 ## file & directory layout
