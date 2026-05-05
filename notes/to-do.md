@@ -159,6 +159,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - 🔴 `3 April 2026` add a `once` run option to `BaseTask`
 - 🔴 `11 April 2026` remove meaningless `GIT_CHANGED` line-count from dockerfile version string (always 0 on tagged deploys)
 - 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
+- 🔴 `4 May 2026` deploy.py --deploy with no bump arg: resume mode that just restarts containers and pushes when trunk is already at the new tag; bump step also git-adds uv.lock now
 
 ### testing
 
@@ -336,5 +337,5 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 
 ```yaml
 last_updated: 4 May 2026
-total_completed: 71
+total_completed: 72
 ```

@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from deploy import abort, check_container_health, compute_new_version, parse_version
+from deploy import abort, check_container_health, compute_new_version, deploy_only_run, parse_version
 
 
 def _proc(returncode: int = 0, stdout: str = '', stderr: str = '') -> subprocess.CompletedProcess:
@@ -218,3 +218,146 @@ class TestAbort:
             abort('something went wrong')
         captured = capsys.readouterr()
         assert 'something went wrong' in captured.err
+
+
+# ---------------------------------------------------------------------------
+# deploy_only_run
+# ---------------------------------------------------------------------------
+
+
+class TestDeployOnlyRun:
+    """resume-deploy path: trunk is already at the new tag; just restart + push (with rollback on failure)"""
+
+    def _patches(self, *, dirty: str = '', tests_raise: Exception | None = None, restart_raise: Exception | None = None, health: list[str] | None = None):
+        """build the stack of patches the deploy_only_run path needs"""
+        health = health or []
+
+        def fake_git(args, cwd=None):
+            if args[:2] == ['status', '--porcelain']:
+                return dirty
+            if args[:2] == ['rev-parse', 'HEAD']:
+                return 'abc123'
+            if args[:2] == ['describe', '--tags']:
+                return '78.2.0'
+            if args[:2] == ['push', 'origin']:
+                return ''
+            return ''
+
+        def fake_run_cmd(*_a, **_kw):
+            if tests_raise is not None:
+                raise tests_raise
+            return ''
+
+        # only the bare ['docker', 'compose', 'up', ...] subprocess.run calls go through this mock; tests path goes through run_cmd above
+        def fake_subprocess_run(cmd, *_a, **kw):
+            if cmd[:3] == ['docker', 'compose', 'up'] and restart_raise is not None and not kw.get('check', False) is False:
+                # only the initial restart raises, not the rollback rebuild (which uses check=False)
+                raise restart_raise
+            return subprocess.CompletedProcess(args=cmd, returncode=0)
+
+        return [
+            patch('deploy.git_cmd', side_effect=fake_git),
+            patch('deploy.run_cmd', side_effect=fake_run_cmd),
+            patch('deploy.subprocess.run', side_effect=fake_subprocess_run),
+            patch('deploy.time.sleep'),
+            patch('deploy.check_container_health', return_value=health),
+        ]
+
+    def _enter(self, patches):
+        return [p.__enter__() for p in patches]
+
+    def _exit(self, patches):
+        for p in patches:
+            p.__exit__(None, None, None)
+
+    def test_happy_path_pushes_trunk(self):
+        patches = self._patches()
+        mocks = self._enter(patches)
+        try:
+            git_mock, run_cmd_mock, subprocess_mock, sleep_mock, health_mock = mocks
+            deploy_only_run(skip_tests=False, dry_run=False)
+
+            # tests ran, containers restarted, health checked, push happened
+            assert run_cmd_mock.called
+            restart_calls = [c for c in subprocess_mock.call_args_list if c[0][0][:3] == ['docker', 'compose', 'up']]
+            assert len(restart_calls) == 1
+            sleep_mock.assert_called_once_with(60)
+            health_mock.assert_called_once()
+            push_calls = [c for c in git_mock.call_args_list if c[0][0][:2] == ['push', 'origin']]
+            assert len(push_calls) == 1
+        finally:
+            self._exit(patches)
+
+    def test_dirty_trunk_aborts_before_any_action(self):
+        patches = self._patches(dirty=' M attubot/foo.py\n')
+        mocks = self._enter(patches)
+        try:
+            _, run_cmd_mock, subprocess_mock, sleep_mock, _ = mocks
+            with pytest.raises(SystemExit) as exc:
+                deploy_only_run()
+            assert exc.value.code == 1
+            run_cmd_mock.assert_not_called()
+            sleep_mock.assert_not_called()
+            subprocess_mock.assert_not_called()
+        finally:
+            self._exit(patches)
+
+    def test_skip_tests_omits_test_run(self):
+        patches = self._patches()
+        mocks = self._enter(patches)
+        try:
+            _, run_cmd_mock, _, _, _ = mocks
+            deploy_only_run(skip_tests=True, dry_run=False)
+            run_cmd_mock.assert_not_called()
+        finally:
+            self._exit(patches)
+
+    def test_unhealthy_containers_trigger_rollback(self):
+        patches = self._patches(health=['bot: state=exited'])
+        mocks = self._enter(patches)
+        try:
+            _, _, subprocess_mock, _, _ = mocks
+            with pytest.raises(SystemExit) as exc:
+                deploy_only_run(skip_tests=True, dry_run=False)
+            assert exc.value.code == 1
+
+            # rollback ran: git reset --hard + docker compose up
+            reset_calls = [c for c in subprocess_mock.call_args_list if c[0][0][:3] == ['git', 'reset', '--hard']]
+            rebuild_calls = [c for c in subprocess_mock.call_args_list if c[0][0][:3] == ['docker', 'compose', 'up']]
+            assert len(reset_calls) == 1
+            assert reset_calls[0][0][0] == ['git', 'reset', '--hard', 'abc123']
+            # one initial restart + one rollback rebuild
+            assert len(rebuild_calls) == 2
+        finally:
+            self._exit(patches)
+
+    def test_dry_run_skips_subprocess_and_push(self):
+        patches = self._patches()
+        mocks = self._enter(patches)
+        try:
+            git_mock, _, subprocess_mock, sleep_mock, health_mock = mocks
+            deploy_only_run(skip_tests=True, dry_run=True)
+            subprocess_mock.assert_not_called()
+            sleep_mock.assert_not_called()
+            health_mock.assert_not_called()
+            push_calls = [c for c in git_mock.call_args_list if c[0][0][:2] == ['push', 'origin']]
+            assert push_calls == []
+        finally:
+            self._exit(patches)
+
+
+# ---------------------------------------------------------------------------
+# pyproject lock file in bump commit
+# ---------------------------------------------------------------------------
+
+
+class TestUvLockInBumpCommit:
+    """the bump commit step git-adds uv.lock alongside __init__.py and pyproject.toml so lockfile updates ride along"""
+
+    def test_uv_lock_in_git_add_call(self):
+        import deploy as _deploy
+
+        source = Path(_deploy.__file__).read_text()
+        # locate the commit-and-tag step and confirm uv.lock is included in the git add invocation
+        match = re.search(r"git_cmd\(\['add',\s*str\(version_file\),\s*str\(pyproject_file\),\s*str\(lock_file\)\]\)", source)
+        assert match is not None, 'expected git add to include uv.lock alongside version_file and pyproject_file'

@@ -216,9 +216,72 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     print(colored('  note: dev branch still points to the pre-revert state; adjust manually if needed', 'cyan'))
 
 
+def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
+    """resume a deploy: trunk is already at the new tag from a prior bump run; restart containers and push."""
+    total = 2  # trunk check + restart
+    if not skip_tests:
+        total += 1  # trunk tests
+    n = 0
+
+    n += 1
+    header(n, total, 'checking trunk working directory')
+    trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
+    trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
+    if trunk_dirty:
+        abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+    saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
+    print(colored('  trunk is clean', 'green'))
+
+    try:
+        if not skip_tests:
+            n += 1
+            header(n, total, 'running tests in trunk')
+            run_cmd(
+                ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
+                cwd=prod_dir,
+                capture=False,
+                dry_run=dry_run,
+            )
+            print(colored('  tests passed', 'green'))
+
+        n += 1
+        header(n, total, 'restarting containers')
+        deploy_tag = git_cmd(['describe', '--tags', '--abbrev=0'], cwd=prod_dir)
+        if not dry_run:
+            subprocess.run(
+                ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607
+                check=True,
+                cwd=prod_dir,
+            )
+            print(colored('  waiting 60s for containers to stabilize', 'cyan'))
+            time.sleep(60)
+            problems = check_container_health(prod_dir)
+            if problems:
+                raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
+            print(colored('  all containers healthy', 'green'))
+            git_cmd(['push', 'origin', 'trunk', deploy_tag], cwd=prod_dir)
+            print(colored('  pushed trunk to remote', 'green'))
+        else:
+            print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
+
+    except (RuntimeError, subprocess.CalledProcessError) as exc:
+        print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
+        if not dry_run:
+            print(colored('rolling back trunk to previous state', 'yellow'), file=sys.stderr)
+            trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
+            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
+            if trunk_reset.returncode != 0 or rebuild.returncode != 0:
+                print(colored('warning: rollback may have failed; check trunk manually', 'red'), file=sys.stderr)
+            else:
+                print(colored('rollback complete: trunk reset, containers rebuilt', 'yellow'), file=sys.stderr)
+        sys.exit(1)
+
+    print(colored(f'\ndeployed {deploy_tag} successfully', 'light_green'))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='bump version, tag, and optionally deploy attubot')
-    parser.add_argument('bump', nargs='?', default='minor', choices=['minor', 'patch'], help='version bump type (default: minor)')
+    parser.add_argument('bump', nargs='?', default=None, choices=['minor', 'patch'], help='version bump type (default: minor)')
     parser.add_argument('--no-tests', action='store_true', help='skip all test runs')
     parser.add_argument('--dry-run', action='store_true', help='print steps without making changes')
     parser.add_argument('--deploy', action='store_true', help='rebuild containers and push to remote after tagging and merging trunk')
@@ -232,6 +295,17 @@ if __name__ == '__main__':
     if args.revert:
         try:
             revert_to_tag(args.revert, dry_run=dry_run)
+        except KeyboardInterrupt:
+            print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
+            sys.exit(130)
+        sys.exit(0)
+
+    deploy_only: bool = do_deploy and args.bump is None
+    bump: str = args.bump or 'minor'
+
+    if deploy_only:
+        try:
+            deploy_only_run(skip_tests=skip_tests, dry_run=dry_run)
         except KeyboardInterrupt:
             print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
             sys.exit(130)
@@ -326,7 +400,7 @@ if __name__ == '__main__':
         header(n, total, 'bumping version')
         content = version_file.read_text()
         current_ver, old_assignment = parse_version(content)
-        new_ver, new_tag = compute_new_version(current_ver, args.bump)
+        new_ver, new_tag = compute_new_version(current_ver, bump)
         print(colored(f'  {current_ver} -> {new_ver}  (tag: {new_tag})', 'cyan'))
 
         pyproject_file = dev_dir / 'pyproject.toml'
@@ -343,7 +417,8 @@ if __name__ == '__main__':
         header(n, total, 'committing and tagging')
         if not dry_run:
             try:
-                git_cmd(['add', str(version_file), str(pyproject_file)])
+                lock_file = dev_dir / 'uv.lock'
+                git_cmd(['add', str(version_file), str(pyproject_file), str(lock_file)])
                 git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
                 committed = True
                 git_cmd(['tag', new_tag])
