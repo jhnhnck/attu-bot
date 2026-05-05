@@ -29,12 +29,8 @@ export async function initRolesPage(guildId) {
 
     initSaveManager({
         formId: 'roles-form',
-        save: async (data) => {
-            data.announcements = parseInt(data.announcements, 10) || 0;
-            data.bot_color = parseInt(data.bot_color, 10) || 0;
-            data.trees_admin_role = parseInt(data.trees_admin_role, 10) || 0;
-            data.trees_user_role = parseInt(data.trees_user_role, 10) || 0;
-            return api.patchRoles(guildId, data);
-        },
+        // role IDs are 19-digit Discord snowflakes; parseInt would round them
+        // past Number.MAX_SAFE_INTEGER. send strings - pydantic int accepts them.
+        save: async (data) => api.patchRoles(guildId, data),
     });
 }

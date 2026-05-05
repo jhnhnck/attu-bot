@@ -52,7 +52,12 @@ async def web_app():
             paused=False,
             rollover_minutes=1020,
         ),
-        roles=GuildRoles(announcements=999999),
+        roles=GuildRoles(
+            announcements=999999,
+            bot_color=888888,
+            trees_admin_role=777777,
+            trees_user_role=666666,
+        ),
         users=GuildUsers(markers=[111, 222, 333]),
     )
 
@@ -225,6 +230,9 @@ class TestGuildAPI:
         assert data['epoch']['length'] == 14
         assert data['epoch']['rollover_time'] == '17:00'
         assert data['roles']['announcements'] == '999999'
+        assert data['roles']['bot_color'] == '888888'
+        assert data['roles']['trees_admin_role'] == '777777'
+        assert data['roles']['trees_user_role'] == '666666'
         assert data['users']['markers'] == ['111', '222', '333']
 
     @pytest.mark.asyncio
@@ -450,6 +458,136 @@ class TestGuildAPI:
             data = await response.get_json()
             assert data['success'] is True
             mock_invalidate.assert_called_once_with(test_guild)
+
+
+# ========== Per-Section PATCH Tests ==========
+
+
+class TestPatchRolesAPI:
+    """round-trip coverage for PATCH /api/guilds/<id>/roles.
+
+    a previous bug zeroed trees_admin_role / trees_user_role on every save
+    because the GET response and SSR helper omitted those fields, so the
+    page sent 0 back. these tests pin every field of GuildRoles to its own
+    value so any future omission is caught immediately.
+    """
+
+    @pytest.mark.asyncio
+    async def test_patch_all_role_fields_round_trip(self, client):
+        """all four role fields persist through PATCH and reappear on GET."""
+        from attubot.web.app import config
+
+        payload = {
+            'announcements': 1000001,
+            'bot_color': 1000002,
+            'trees_admin_role': 1000003,
+            'trees_user_role': 1000004,
+        }
+
+        response = await client.patch(f'/api/guilds/{test_guild}/roles', json=payload)
+        assert response.status_code == 200
+        data = await response.get_json()
+        assert data['success'] is True
+
+        guild = config.guilds[test_guild]
+        assert guild.roles.announcements == 1000001
+        assert guild.roles.bot_color == 1000002
+        assert guild.roles.trees_admin_role == 1000003
+        assert guild.roles.trees_user_role == 1000004
+
+        get_response = await client.get(f'/api/guilds/{test_guild}')
+        assert get_response.status_code == 200
+        get_data = await get_response.get_json()
+        assert get_data['roles']['announcements'] == '1000001'
+        assert get_data['roles']['bot_color'] == '1000002'
+        assert get_data['roles']['trees_admin_role'] == '1000003'
+        assert get_data['roles']['trees_user_role'] == '1000004'
+
+    @pytest.mark.asyncio
+    async def test_patch_omitted_field_defaults_to_zero(self, client):
+        """omitting a field zeros it - this is the wipe behavior the bug exploited."""
+        from attubot.web.app import config
+
+        payload = {'announcements': 222222}
+
+        response = await client.patch(f'/api/guilds/{test_guild}/roles', json=payload)
+        assert response.status_code == 200
+
+        guild = config.guilds[test_guild]
+        assert guild.roles.announcements == 222222
+        assert guild.roles.bot_color == 0
+        assert guild.roles.trees_admin_role == 0
+        assert guild.roles.trees_user_role == 0
+
+    @pytest.mark.asyncio
+    async def test_patch_unauthorized_guild(self, client):
+        response = await client.patch('/api/guilds/999999/roles', json={'announcements': 1})
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_patch_no_body(self, client):
+        response = await client.patch(f'/api/guilds/{test_guild}/roles')
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_patch_negative_id_rejected(self, client):
+        response = await client.patch(
+            f'/api/guilds/{test_guild}/roles',
+            json={'trees_admin_role': -1},
+        )
+        assert response.status_code == 400
+
+
+# ========== SSR Helper Tests ==========
+
+
+class TestGuildConfigDataSSR:
+    """direct coverage for get_guild_config_data (the SSR builder).
+
+    the previous trees-roles bug lived here: the helper emitted only two of
+    the four GuildRoles fields. asserting on every field guards the same gap
+    for future additions.
+    """
+
+    @pytest.mark.asyncio
+    async def test_ssr_emits_all_role_fields(self, web_app):  # noqa: ARG002 - fixture configures module-level config
+        from attubot.web.helpers import get_guild_config_data
+
+        with (
+            patch('attubot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
+            patch('attubot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
+            patch('attubot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
+        ):
+            ssr = await get_guild_config_data(test_guild)
+
+        assert ssr['config']['roles'] == {
+            'announcements': '999999',
+            'bot_color': '888888',
+            'trees_admin_role': '777777',
+            'trees_user_role': '666666',
+        }
+
+    @pytest.mark.asyncio
+    async def test_ssr_zeros_render_as_string_zero(self, web_app):  # noqa: ARG002 - fixture configures module-level config
+        """unset role IDs serialize to '0' so the dropdown lands on Not Set."""
+        from attubot.web.app import config
+        from attubot.web.helpers import get_guild_config_data
+
+        config.guilds[test_guild_2].roles = GuildRoles()
+
+        with (
+            patch('attubot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
+            patch('attubot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
+            patch('attubot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
+        ):
+            ssr = await get_guild_config_data(test_guild_2)
+
+        assert ssr['config']['roles'] == {
+            'announcements': '0',
+            'bot_color': '0',
+            'trees_admin_role': '0',
+            'trees_user_role': '0',
+        }
 
 
 # ========== Theme API Tests ==========

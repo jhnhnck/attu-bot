@@ -156,3 +156,37 @@ class TestBigIntSupport:
         data = await response.get_json()
         for guild in data['guilds']:
             assert isinstance(guild['id'], str)
+
+    @pytest.mark.asyncio
+    async def test_patch_roles_preserves_snowflake_precision(self, client):
+        """role IDs are snowflakes past JS safe-int range; PATCH must preserve every digit.
+
+        prod bug: roles.js used to parseInt() each role ID before sending. that
+        coerced 19-digit snowflakes through JS Number, rounding the trailing
+        digits, and the wrong ID got persisted - dropdown then couldn't match
+        any real <option> on reload, and the bot's role check missed too. this
+        test pins the round-trip at the api layer so the bug stays fixed even
+        if the browser-side formatting moves around.
+        """
+        from attubot.web.app import config
+
+        payload = {
+            'announcements': str(large_id),
+            'bot_color': str(large_id + 1),
+            'trees_admin_role': str(large_id + 2),
+            'trees_user_role': str(large_id + 3),
+        }
+
+        response = await client.patch(f'/api/guilds/{test_guild}/roles', json=payload)
+        assert response.status_code == 200
+
+        guild = config.guilds[test_guild]
+        assert guild.roles.announcements == large_id
+        assert guild.roles.bot_color == large_id + 1
+        assert guild.roles.trees_admin_role == large_id + 2
+        assert guild.roles.trees_user_role == large_id + 3
+
+        get_response = await client.get(f'/api/guilds/{test_guild}')
+        get_data = await get_response.get_json()
+        assert get_data['roles']['trees_admin_role'] == str(large_id + 2)
+        assert get_data['roles']['trees_user_role'] == str(large_id + 3)

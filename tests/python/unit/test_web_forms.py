@@ -167,19 +167,31 @@ class TestGuildEpochForm:
 
 class TestGuildRolesForm:
     def test_valid_roles(self):
-        """Test valid roles configuration"""
-        form = GuildRolesForm(announcements=123456789)
+        """all four role fields accept positive snowflake IDs."""
+        form = GuildRolesForm(
+            announcements=123456789,
+            bot_color=234567890,
+            trees_admin_role=345678901,
+            trees_user_role=456789012,
+        )
         assert form.announcements == 123456789
+        assert form.bot_color == 234567890
+        assert form.trees_admin_role == 345678901
+        assert form.trees_user_role == 456789012
 
     def test_default_values(self):
-        """Test default role values"""
+        """unset role IDs default to 0 so the page renders Not Set."""
         form = GuildRolesForm()
         assert form.announcements == 0
+        assert form.bot_color == 0
+        assert form.trees_admin_role == 0
+        assert form.trees_user_role == 0
 
-    def test_negative_role_id_rejected(self):
-        """Test that negative role IDs are rejected"""
+    @pytest.mark.parametrize('field', ['announcements', 'bot_color', 'trees_admin_role', 'trees_user_role'])
+    def test_negative_role_id_rejected(self, field):
+        """negative IDs are rejected on every role field."""
         with pytest.raises(ValidationError):
-            GuildRolesForm(announcements=-1)
+            GuildRolesForm(**{field: -1})
 
 
 # ========== GuildUsersForm Tests ==========
