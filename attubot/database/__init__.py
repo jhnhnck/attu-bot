@@ -14,6 +14,7 @@ from attubot.database.models import (
     ChatSourceDocument,
     EggDocument,
     EggUserDocument,
+    FamilyDocument,
     GuildConfigDocument,
     MessageDocument,
     ReloadSignalDocument,
@@ -32,6 +33,7 @@ from attubot.database.repositories import (
     ConfigRepository,
     EggRepository,
     EggUserRepository,
+    FamilyRepository,
     MessageRepository,
     ReloadSignalRepository,
     ReminderRepository,
@@ -61,8 +63,9 @@ async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0)
         logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
 
 
-def _wire_repos(*, config, marker_repo, year_repo, signal_repo, message_repo, starboard_repo, egg_repo, egg_user_repo, wiki_view_repo, chat_config_repo, reminder_repo) -> None:
+def _wire_repos(*, config, family_repo, marker_repo, year_repo, signal_repo, message_repo, starboard_repo, egg_repo, egg_user_repo, wiki_view_repo, chat_config_repo, reminder_repo) -> None:
     """wire repository singletons into their respective modules after db init"""
+    import attubot.client.families as _families
     import attubot.client.markers as _markers
     import attubot.client.messages as _messages
     import attubot.client.starboard as _starboard
@@ -72,6 +75,7 @@ def _wire_repos(*, config, marker_repo, year_repo, signal_repo, message_repo, st
     import attubot.signals as _signals
     import attubot.tasks.reminder as _reminder
 
+    _families._family_repo = family_repo
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
     _signals._repo = signal_repo
@@ -117,6 +121,9 @@ async def init_database(url: str, name: str):
     starboard_repo = StarboardRepository(database)
     await _try_init_indexes(starboard_repo, 'starboard')
 
+    family_repo = FamilyRepository(database)
+    await _try_init_indexes(family_repo, 'family')
+
     chat_config_repo = ChatConfigRepository(database)
     # ChatConfigRepository uses global_config collection; no dedicated index needed
     logger.debug('chat config repo ready')
@@ -141,6 +148,7 @@ async def init_database(url: str, name: str):
 
     _wire_repos(
         config=config,
+        family_repo=family_repo,
         marker_repo=marker_repo,
         year_repo=year_repo,
         signal_repo=signal_repo,
@@ -168,6 +176,8 @@ __all__ = [
     'EggRepository',
     'EggUserDocument',
     'EggUserRepository',
+    'FamilyDocument',
+    'FamilyRepository',
     'GuildConfigDocument',
     'MessageDocument',
     'MessageRepository',

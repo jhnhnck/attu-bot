@@ -116,6 +116,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 ### family trees
 
 - 🔴 `26 April 2026` replace /link family trees with /trees — hmac-signed native tree editor integration; link/show/share/unshare commands with role mapping; bumped config_version to 2.5.4
+- 🔴 `4 May 2026` restore /link family commands (list, view, set, upload) alongside /trees; familyecho client and FamilyDocument/FamilyRepository back; both command groups coexist
 
 ### reminders
 
@@ -330,6 +331,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 12 April 2026
-total_completed: 69
+last_updated: 4 May 2026
+total_completed: 70
 ```

@@ -156,6 +156,21 @@ class StarredMessageDocument(BaseModel):
     source_deleted: bool = False  # true when the original discord message no longer exists (404)
 
 
+class FamilyDocument(BaseModel):
+    """MongoDB document for a registered FamilyEcho family tree"""
+
+    model_config = ConfigDict(extra='ignore')
+
+    guild_id: int
+    name: str  # normalized key (lowercase, stripped)
+    display_name: str  # original-case display name
+    message_id: int | None = None  # discord message id from parsed message_link
+    channel_id: int | None = None  # channel of the original message
+    file_content: str  # full FamilyScript file text
+    set_by: int  # user id who registered it
+    set_at: int  # unix timestamp
+
+
 class ReloadSignalDocument(BaseModel):
     """MongoDB document for cross-process config reload signals
 
