@@ -479,6 +479,8 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             'roles': {
                 'announcements': str(guild.roles.announcements) if guild.roles.announcements else '0',
                 'bot_color': str(guild.roles.bot_color) if guild.roles.bot_color else '0',
+                'trees_admin_role': str(guild.roles.trees_admin_role) if guild.roles.trees_admin_role else '0',
+                'trees_user_role': str(guild.roles.trees_user_role) if guild.roles.trees_user_role else '0',
             },
             'users': {
                 'markers': [str(user) for user in guild.users.markers],
