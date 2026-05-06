@@ -8,3 +8,12 @@ Read `notes/agents.md` before starting any task. It contains the full architectu
 1. do not perform any interactions with Discord without asking.
 1. do not create commits without being explicitly asked to.
 1. all noqa comments must include a valid reason.
+
+## must report
+
+report immediately and stop; do not diverge down less optimal paths.
+
+1. a tool or app is missing, misconfigured, or malfunctioning.
+1. an unrelated bug surfaces during the current task.
+1. a file appears moved or deleted unexpectedly.
+1. a build error occurs.
