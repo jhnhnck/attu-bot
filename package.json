@@ -1,26 +1,22 @@
 {
-  "name": "doom-bot",
-  "version": "1.0.0",
+  "name": "attu-bot-workspace",
+  "version": "0.0.0",
   "type": "module",
-  "description": "DoomBot was designed for the Attu Project to assist with essential timekeeping features and various other utilities",
-  "main": "index.js",
-  "directories": {
-    "test": "tests"
-  },
+  "private": true,
+  "description": "AttuBot pnpm + uv workspace root.",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jhnhnck/attu-bot.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/jhnhnck/attu-bot/issues"
@@ -28,6 +24,8 @@
   "homepage": "https://github.com/jhnhnck/attu-bot#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "jsdom": "^28.1.0",

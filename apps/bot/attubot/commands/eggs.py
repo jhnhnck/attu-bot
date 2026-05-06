@@ -107,7 +107,7 @@ class _EggSelectMenu(discord.ui.Select):
         self.guild_id = guild_id
         page = all_options[offset : offset + _give_page_size]
         if len(all_options) > offset + _give_page_size:
-            page = page + [discord.SelectOption(label='more...', value=f'more:{offset + _give_page_size}')]
+            page = [*page, discord.SelectOption(label='more...', value=f'more:{offset + _give_page_size}')]
         super().__init__(placeholder='pick an egg to give', options=page, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
@@ -227,7 +227,7 @@ async def eggs_view(ctx: ApplicationContext):
 @eggs_group.command(name='give', description='Give one of your eggs to another user')
 @discord.commands.option(name='user', required=True, description='who to give the egg to', input_type=discord.Member)
 @discord.commands.option(name='filter', required=False, description='show only hatched or unhatched eggs (omit for all)', choices=_give_filter_choices)
-async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str | None = None):
+async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str | None = None):  # noqa: A002 - pycord maps slash option name to parameter name; user-facing option must stay `filter`
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:

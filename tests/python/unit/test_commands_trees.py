@@ -356,7 +356,7 @@ class TestTreesLink:
 
             await trees_link(ctx, code='AB-123456')
 
-        assert any("isn't reachable" in str(r['args']) for r in ctx._responses)
+        assert any("can't reach" in str(r['args']) for r in ctx._responses)
 
     async def test_connect_error(self, mock_ctx_factory):
         ctx = mock_ctx_factory(user_id=test_user)
@@ -370,7 +370,7 @@ class TestTreesLink:
 
             await trees_link(ctx, code='AB-123456')
 
-        assert any("isn't reachable" in str(r['args']) for r in ctx._responses)
+        assert any("can't reach" in str(r['args']) for r in ctx._responses)
 
     async def test_401_hmac_failure(self, mock_ctx_factory):
         ctx = mock_ctx_factory(user_id=test_user)
@@ -385,7 +385,7 @@ class TestTreesLink:
 
             await trees_link(ctx, code='AB-123456')
 
-        assert any('went wrong' in str(r['args']) for r in ctx._responses)
+        assert any('keys' in str(r['args']) for r in ctx._responses)
 
     async def test_5xx_logs_and_notifies(self, mock_ctx_factory):
         ctx = mock_ctx_factory(user_id=test_user)
@@ -408,7 +408,7 @@ class TestTreesLink:
 
         assert mock_logger.error.called
         assert mock_logger.send_to_webhook.called
-        assert any('notified' in str(r['args']) for r in ctx._responses)
+        assert any('proper authorities' in str(r['args']) for r in ctx._responses)
 
     async def test_dev_url_used_for_x_code(self, mock_ctx_factory):
         ctx = mock_ctx_factory(user_id=test_user)
@@ -548,7 +548,7 @@ class TestTreesShow:
 
             await trees_show(ctx)
 
-        assert any("isn't reachable" in str(r['args']) for r in ctx._responses)
+        assert any("can't reach" in str(r['args']) for r in ctx._responses)
 
 
 # --- TestTreesShare ---
@@ -641,7 +641,7 @@ class TestTreesShare:
 
             await trees_share(ctx, tree='uuid-1', user=target, role='editor')
 
-        assert any("isn't reachable" in str(r['args']) for r in ctx._responses)
+        assert any("can't reach" in str(r['args']) for r in ctx._responses)
 
 
 # --- TestTreesUnshare ---

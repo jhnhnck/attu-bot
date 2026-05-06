@@ -4,18 +4,16 @@
 *.sample.*
 **/__pycache__/
 **/*.wip.py
+apps/bot/assets/attu-bot.toml
+apps/bot/assets/doombot-seed/
 assets/
-assets/attu-bot.toml
-!assets/static/
-!assets/templates/
-!assets/prompts/
-!assets/hatch.toml
 backups/
 config/
+node_modules/
 notes/
 wip/
 
-# allow package files for test runner
+# allow workspace metadata for test runner
 !package.json
-!package-lock.json
+!pnpm-lock.yaml
 !pyproject.toml

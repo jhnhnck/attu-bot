@@ -17,6 +17,7 @@ import httpx
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from attubot import bot, config
+from attubot.client.embeds import ui_emoji
 from attubot.client.util import is_bot_owner
 from attubot.logging import get_logger
 
@@ -151,9 +152,9 @@ class _TreeSelectMenu(discord.ui.Select):
                 view.add_item(discord.ui.Button(label='open tree', style=discord.ButtonStyle.link, url=url))
                 await interaction.edit_original_response(content=f'**{tree_name}**', view=view)
             else:
-                await interaction.edit_original_response(content='could not generate a view link right now.')
+                await interaction.edit_original_response(content=f"couldn't get a view link right now {ui_emoji('rockball_player')}")
         except Exception:
-            await interaction.edit_original_response(content="the family tree service isn't reachable right now.")
+            await interaction.edit_original_response(content=f"can't reach the trees right now {ui_emoji('rockball_player')}")
 
 
 class TreesShowView(discord.ui.View):
@@ -192,11 +193,11 @@ async def trees_link(ctx: ApplicationContext, code: str):
     try:
         resp = await _api_call('POST', f'{base_url}/api/bot/auth/link', payload)
     except (httpx.TimeoutException, httpx.ConnectError):
-        await ctx.respond("the family tree service isn't reachable right now. try again in a moment.", ephemeral=True)
+        await ctx.respond(f"can't reach the trees right now. try again in a moment? {ui_emoji('rockball_player')}", ephemeral=True)
         return
     except Exception as e:
         logger.error(f'trees_link: unexpected http error: {e}')
-        await ctx.respond('something went wrong on our end.', ephemeral=True)
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}', ephemeral=True)
         return
 
     if resp.status_code == 200:
@@ -212,11 +213,11 @@ async def trees_link(ctx: ApplicationContext, code: str):
             await ctx.respond("i don't recognize that code. double-check it in the editor.", ephemeral=True)
     elif resp.status_code == 401:
         logger.alert('trees_link: hmac rejected by server (401); check DISCORD_BOT_HMAC_SECRET')
-        await ctx.respond('something went wrong on our end.', ephemeral=True)
+        await ctx.respond(f"the bot's keys aren't lining up; this is on us, not you {ui_emoji('rockball_player')}", ephemeral=True)
     else:
         logger.error(f'trees_link: unexpected status {resp.status_code}')
         await logger.send_to_webhook(Exception(f'trees_link: unexpected status {resp.status_code} from {base_url}'))
-        await ctx.respond('something went wrong on our end. an admin has been notified.', ephemeral=True)
+        await ctx.respond(f'the trees returned something weird; the proper authorities have been pinged {ui_emoji("rockball_player")}', ephemeral=True)
 
 
 @trees_group.command(name='show', description='List your family trees')
@@ -227,11 +228,11 @@ async def trees_show(ctx: ApplicationContext):
     try:
         resp = await _api_call('GET', f'{config.trees.prod_base_url}/api/bot/users/{ctx.author.id}/trees')
     except (httpx.TimeoutException, httpx.ConnectError):
-        await ctx.respond("the family tree service isn't reachable right now. try again in a moment.")
+        await ctx.respond(f"can't reach the trees right now. try again in a moment? {ui_emoji('rockball_player')}")
         return
     except Exception as e:
         logger.error(f'trees_show: unexpected http error: {e}')
-        await ctx.respond('something went wrong on our end.')
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}')
         return
 
     if resp.status_code == 404:
@@ -240,12 +241,12 @@ async def trees_show(ctx: ApplicationContext):
 
     if resp.status_code != 200:
         logger.error(f'trees_show: unexpected status {resp.status_code}')
-        await ctx.respond('something went wrong on our end.')
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}')
         return
 
     trees = resp.json().get('trees', [])
     if not trees:
-        await ctx.respond('no trees yet. open the editor to create one.')
+        await ctx.respond(f'no trees yet! open the editor to plant one {ui_emoji("rockball_player")}')
         return
 
     await ctx.respond('select a tree to view:', view=TreesShowView(trees))
@@ -269,11 +270,11 @@ async def trees_share(ctx: ApplicationContext, tree: str, user: discord.Member, 
     try:
         resp = await _api_call('POST', f'{config.trees.prod_base_url}/api/bot/trees/{tree}/grants', payload)
     except (httpx.TimeoutException, httpx.ConnectError):
-        await ctx.respond("the family tree service isn't reachable right now. try again in a moment.")
+        await ctx.respond(f"can't reach the trees right now. try again in a moment? {ui_emoji('rockball_player')}")
         return
     except Exception as e:
         logger.error(f'trees_share: unexpected http error: {e}')
-        await ctx.respond('something went wrong on our end.')
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}')
         return
 
     if resp.status_code == 200:
@@ -294,7 +295,7 @@ async def trees_share(ctx: ApplicationContext, tree: str, user: discord.Member, 
         await ctx.respond('invalid role; must be viewer or editor.', ephemeral=True)
     else:
         logger.error(f'trees_share: unexpected status {resp.status_code}')
-        await ctx.respond('something went wrong on our end.', ephemeral=True)
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}', ephemeral=True)
 
 
 @trees_group.command(name='unshare', description="Revoke a user's access to one of your trees")
@@ -313,11 +314,11 @@ async def trees_unshare(ctx: ApplicationContext, tree: str, user: discord.Member
     try:
         resp = await _api_call('DELETE', f'{config.trees.prod_base_url}/api/bot/trees/{tree}/grants', payload)
     except (httpx.TimeoutException, httpx.ConnectError):
-        await ctx.respond("the family tree service isn't reachable right now. try again in a moment.", ephemeral=True)
+        await ctx.respond(f"can't reach the trees right now. try again in a moment? {ui_emoji('rockball_player')}", ephemeral=True)
         return
     except Exception as e:
         logger.error(f'trees_unshare: unexpected http error: {e}')
-        await ctx.respond('something went wrong on our end.', ephemeral=True)
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}', ephemeral=True)
         return
 
     target_display = user.global_name or user.name
@@ -329,7 +330,7 @@ async def trees_unshare(ctx: ApplicationContext, tree: str, user: discord.Member
         await ctx.respond("that tree doesn't exist anymore.", ephemeral=True)
     else:
         logger.error(f'trees_unshare: unexpected status {resp.status_code}')
-        await ctx.respond('something went wrong on our end.', ephemeral=True)
+        await ctx.respond(f'the trees are having a moment. try again in a sec? {ui_emoji("rockball_player")}', ephemeral=True)
 
 
 # --- Extension Def ---

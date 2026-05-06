@@ -191,7 +191,7 @@ async def run_hatch_animation(message: discord.Message | discord.PartialMessage,
     await message.edit(content=result)
 
     # update presence to reflect the newly hatched egg (debounced)
-    global _last_presence_update
+    global _last_presence_update  # noqa: PLW0603 - module-level debounce timer shared with periodic presence task
     now = time.monotonic()
     if now - _last_presence_update >= _PRESENCE_DEBOUNCE_SECONDS:
         _last_presence_update = now

@@ -11,11 +11,10 @@ leaderboard embed construction, random message display, and recheck target resol
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
-import pytest
 
 from attubot.commands.stars import _build_recheck_response, _leaderboard_embed, _resolve_recheck_target, _show_random_message
-from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
-from tests.conftest import test_channel, test_guild, test_user
+from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
+from tests.conftest import test_guild
 
 
 # --- constants ---
@@ -340,6 +339,7 @@ class TestLeaderboardEmbed:
         assert isinstance(embed, discord.Embed)
         assert embed.title == 'Most Stars Received'
         desc = embed.description
+        assert desc is not None
         assert '**1.** <@111> - **50** stars received' in desc
         assert '**2.** <@222> - **30** stars received' in desc
         assert '**3.** <@333> - **10** stars received' in desc
@@ -441,7 +441,7 @@ class TestResolveRecheckTarget:
         result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 5001, discord_msg)
 
         assert result is not None
-        ch, mid, msg, force = result
+        ch, mid, _msg, force = result
         assert ch == sb_channel
         assert mid == 5001
         assert force is True

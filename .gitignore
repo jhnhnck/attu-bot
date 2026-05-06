@@ -29,6 +29,7 @@ package-lock.json
 
 # config files
 attu-bot.toml
+apps/bot/assets/attu-bot.toml
 
 # wip files
 *.wip.py
@@ -46,9 +47,16 @@ attu-bot.toml
 docker-compose.yml
 
 # assets
-assets/doombot-seed/
+apps/bot/assets/doombot-seed/
 assets/models/
 
 # notes
 notes/plans/
 notes/reports/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

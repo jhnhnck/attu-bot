@@ -33,6 +33,46 @@ test_channel = 5555555555
 
 
 @pytest.fixture(autouse=True)
+def _block_network_for_unit_tests(request):
+    """Block real TCP/UDP connect() in unit tests.
+
+    Why: unit tests must not touch the network. If a mock patch silently misses
+    its target (e.g. patches a re-export shim instead of the original symbol),
+    a real client can be constructed and its background tasks then hammer real
+    services. We hit this with pymongo's AsyncMongoClient — patching the wrong
+    import path leaked live monitor tasks pointed at production MongoDB.
+    """
+    if 'unit' not in request.keywords:
+        yield
+        return
+
+    import socket
+
+    real_connect = socket.socket.connect
+    real_connect_ex = socket.socket.connect_ex
+
+    inet_families = (socket.AF_INET, socket.AF_INET6)
+
+    def _blocked_connect(self, address, *args, **kwargs):
+        if self.family in inet_families:
+            raise RuntimeError(f'unit test attempted real network connection to {address!r}. a mock patch is likely targeting the wrong import path - patch the symbol where it is *used*, not where it is re-exported.')
+        return real_connect(self, address, *args, **kwargs)
+
+    def _blocked_connect_ex(self, address, *args, **kwargs):
+        if self.family in inet_families:
+            raise RuntimeError(f'unit test attempted real network connect_ex to {address!r}')
+        return real_connect_ex(self, address, *args, **kwargs)
+
+    socket.socket.connect = _blocked_connect
+    socket.socket.connect_ex = _blocked_connect_ex
+    try:
+        yield
+    finally:
+        socket.socket.connect = real_connect
+        socket.socket.connect_ex = real_connect_ex
+
+
+@pytest.fixture(autouse=True)
 def restore_config_state():
     """Restore the config singleton state after each test.
 
@@ -379,7 +419,7 @@ def make_year_doc():
 
 def _read_db_config() -> tuple[str, str]:
     """read database url and name from the toml config, falling back to localhost defaults."""
-    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './assets/attu-bot.toml'))
+    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './apps/bot/assets/attu-bot.toml'))
     if config_path.exists():
         with config_path.open() as f:
             raw = tomlkit.load(f)

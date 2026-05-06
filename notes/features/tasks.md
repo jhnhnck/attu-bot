@@ -72,8 +72,8 @@ class ChatInitTask(BaseTask):
     run_once: bool = True
 
     async def on_start(self) -> None: ...  # await dependencies
-    async def run(self) -> None: ...        # called once, then task exits
-    async def on_stop(self) -> None: ...   # cleanup
+    async def run(self) -> None: ...  # called once, then task exits
+    async def on_stop(self) -> None: ...  # cleanup
 ```
 
 with `run_immediately = False`, the task sleeps one interval first, then calls `run()` once and stops.
@@ -86,6 +86,7 @@ bot tasks are instantiated as module-level singletons and added to the bot's sch
 from attubot.tasks.my_feature import MyFeatureTask
 
 my_feature_task = MyFeatureTask()
+
 
 def register_bot_tasks(s):
     ...

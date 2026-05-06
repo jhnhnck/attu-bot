@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     if args.coverage:
         print()
-        subprocess.run(['coverage', 'report'], check=False)  # noqa: S603, S607
+        subprocess.run(['coverage', 'report'], check=False)  # noqa: S607
 
     # --- summary ---
     print()

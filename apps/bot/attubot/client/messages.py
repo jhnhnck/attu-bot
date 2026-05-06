@@ -428,7 +428,7 @@ async def _get_message_delete_actor(guild: discord.Guild, author_id: int, channe
     return None
 
 
-async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912 - multiple early-exit guard branches for bot/starboard filtering
+async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, PLR0915 - multiple early-exit guard branches for bot/starboard filtering plus inline embed assembly
     """Post a message-deleted embed to the guild's logs channel."""
     if payload.guild_id is None:
         return

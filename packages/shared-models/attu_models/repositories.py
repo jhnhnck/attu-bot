@@ -11,7 +11,9 @@ from typing import TYPE_CHECKING
 from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
-from attubot.database.models import (
+from attubot.logging import get_logger
+
+from .documents import (
     ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
@@ -29,7 +31,6 @@ from attubot.database.models import (
     YearDocument,
     YearMarkerDocument,
 )
-from attubot.logging import get_logger
 
 
 if TYPE_CHECKING:

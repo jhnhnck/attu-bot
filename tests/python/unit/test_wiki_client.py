@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import httpx
 
@@ -83,7 +83,7 @@ class TestAuthenticate:
     async def test_propagates_login_error(self):
         """if auth.login() raises, authenticate() propagates the exception."""
         wiki = WikiClient(endpoint)
-        wiki.auth.login = AsyncMock(side_effect=httpx.HTTPStatusError('forbidden', request=None, response=None))
+        wiki.auth.login = AsyncMock(side_effect=httpx.HTTPStatusError('forbidden', request=None, response=None))  # type: ignore[arg-type]  # httpx tolerates None request/response in synthetic test errors
 
         with __import__('pytest').raises(httpx.HTTPStatusError):
             await wiki.authenticate('user', 'key')

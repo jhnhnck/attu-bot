@@ -3,42 +3,45 @@ AttuBot - Database Package
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
+
+Documents, repositories, and MongoStorage live in the `attu_models` workspace
+package; this module re-exports them so the existing `from attubot.database
+import ...` sites keep working unchanged. `init_database()` and the bot-only
+repo wiring stay here - the bot is the index-creation leader.
 """
 
 import asyncio
 
-from attubot.database.connection import MongoStorage
-from attubot.database.models import (
+from attu_models import (
     ChatCharacterDocument,
+    ChatCharacterRepository,
     ChatConfigDocument,
+    ChatConfigRepository,
     ChatSourceDocument,
+    ChatSourceRepository,
+    ConfigRepository,
     EggDocument,
+    EggRepository,
     EggUserDocument,
+    EggUserRepository,
     FamilyDocument,
+    FamilyRepository,
     GuildConfigDocument,
     MessageDocument,
+    MessageRepository,
+    MongoStorage,
     ReloadSignalDocument,
+    ReloadSignalRepository,
     ReminderDocument,
+    ReminderRepository,
+    StarboardRepository,
     StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
     WikiViewDocument,
+    WikiViewRepository,
     YearDocument,
     YearMarkerDocument,
-)
-from attubot.database.repositories import (
-    ChatCharacterRepository,
-    ChatConfigRepository,
-    ChatSourceRepository,
-    ConfigRepository,
-    EggRepository,
-    EggUserRepository,
-    FamilyRepository,
-    MessageRepository,
-    ReloadSignalRepository,
-    ReminderRepository,
-    StarboardRepository,
-    WikiViewRepository,
     YearMarkerRepository,
     YearRepository,
 )

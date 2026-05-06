@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 from attubot.client.core import config
 from attubot.logging import get_logger
@@ -13,10 +13,14 @@ from attubot.logging import get_logger
 
 logger = get_logger(__name__)
 
+# decorated migrations always take the current db version string; the original
+# `async def step():` body is invoked by the wrapper after the version match.
+MigrationFunc = Callable[[str], Awaitable[None]]
+
 # load-stage migrations run during config.on_load() before bot is connected
-load_migration_table: list[Callable] = []
+load_migration_table: list[MigrationFunc] = []
 # ready-stage migrations run during config.on_ready() after bot cache is populated
-ready_migration_table: list[Callable] = []
+ready_migration_table: list[MigrationFunc] = []
 
 
 class MigrationError(Exception):
@@ -63,9 +67,9 @@ async def _restore_collection(db, name: str, backup: list[dict]):
 # --- Decorator ---
 
 
-def migration(old: str, new: str, stage: str = 'load') -> Callable:
-    def decorator_migration(func: Callable) -> Callable:
-        async def wrapper(version: str):
+def migration(old: str, new: str, stage: str = 'load') -> Callable[[Callable[[], Awaitable[None]]], MigrationFunc]:
+    def decorator_migration(func: Callable[[], Awaitable[None]]) -> MigrationFunc:
+        async def wrapper(version: str) -> None:
             # Bail out if we're past this patch
             if version != old:
                 logger.debug(f'patch for {new} already applied')

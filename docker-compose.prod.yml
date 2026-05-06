@@ -7,16 +7,17 @@ services:
   core:
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: doombox
-    command: python -u attu-bot.py
+    command: python -u apps/bot/attu-bot.py
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
     logging:
       driver: journald
     restart: always
     user: doom:doom
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml
       - /srv/backups/attu-bot:/home/doom/backups
     depends_on:
       ferret:
@@ -28,13 +29,14 @@ services:
       retries: 20
       start_period: 30s
 
-  web:
+  legacy-web:
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: doombox
-    command: python -u attu-bot.py web
+    command: python -u apps/bot/attu-bot.py web
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
     logging:
       driver: journald
     ports:
@@ -42,7 +44,7 @@ services:
     restart: always
     user: doom:doom
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml
     depends_on:
       ferret:
         condition: service_started
@@ -86,10 +88,11 @@ services:
   ingestor:
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: doombox
-    command: python -u attu-bot.py ingestor
+    command: python -u apps/bot/attu-bot.py ingestor
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
     env_file:
       - .env
     logging:
@@ -97,7 +100,7 @@ services:
     restart: unless-stopped
     user: doom:doom
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml
     depends_on:
       ferret:
         condition: service_started
@@ -123,17 +126,18 @@ services:
     profiles: [tests]
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: tester
     restart: no
     container_name: attu-tests
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
       TEST_MODE: "1"
       DEBUG: "1"
     env_file:
       - .env
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml:ro
     user: doom:doom
     depends_on:
       ferret:

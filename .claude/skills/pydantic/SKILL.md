@@ -39,6 +39,7 @@ flag any of the left column on sight; rewrite to the right.
 ```python
 from pydantic import BaseModel, ConfigDict
 
+
 class GuildConfigDocument(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='ignore')
     ...
@@ -66,6 +67,7 @@ other options worth knowing (not currently used here): `frozen=True`, `populate_
 ```python
 from pydantic import BaseModel, field_validator
 
+
 class EggDocument(BaseModel):
     collected_at: int
     hatches_at: int
@@ -88,6 +90,7 @@ two distinct shapes; do not mix them up.
 
 ```python
 from pydantic import BaseModel, model_validator
+
 
 class GuildEpoch(BaseModel):
     time: int = 0
@@ -132,6 +135,7 @@ footguns:
 
 ```python
 from pydantic import Field
+
 
 class GuildEpochForm(BaseModel):
     length: int = Field(default=14, ge=1, le=365)
@@ -211,11 +215,11 @@ try:
     if not form_data:
         return jsonify({'error': 'No data provided'}), 400
 
-    validated = GuildEpochForm(**form_data)        # raises ValidationError on bad input
+    validated = GuildEpochForm(**form_data)  # raises ValidationError on bad input
     old_section = guild.epoch.model_dump()
     guild.epoch = GuildEpoch(**validated.model_dump())
     await guild.save()
-    await send_signal('guild', guild_id)           # cross-process reload signal
+    await send_signal('guild', guild_id)  # cross-process reload signal
 
     new_section = guild.epoch.model_dump()
     changes = compare_configs(old_section, new_section, prefix='epoch')

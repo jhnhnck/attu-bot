@@ -226,7 +226,7 @@ class TestMigrationSeedUiEmojis:
 
         with (
             patch('attubot.client.core.db') as mock_core_db,
-            pytest.raises(Exception, match='Migration to 2.5.4 failed'),
+            pytest.raises(Exception, match=r'Migration to 2\.5\.4 failed'),
         ):
             mock_core_db.get_db.return_value = mock_db
 

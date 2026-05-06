@@ -250,7 +250,7 @@ class TestDeployOnlyRun:
 
         # only the bare ['docker', 'compose', 'up', ...] subprocess.run calls go through this mock; tests path goes through run_cmd above
         def fake_subprocess_run(cmd, *_a, **kw):
-            if cmd[:3] == ['docker', 'compose', 'up'] and restart_raise is not None and not kw.get('check', False) is False:
+            if cmd[:3] == ['docker', 'compose', 'up'] and restart_raise is not None and kw.get('check', False) is not False:
                 # only the initial restart raises, not the rollback rebuild (which uses check=False)
                 raise restart_raise
             return subprocess.CompletedProcess(args=cmd, returncode=0)
@@ -264,11 +264,11 @@ class TestDeployOnlyRun:
         ]
 
     def _enter(self, patches):
-        return [p.__enter__() for p in patches]
+        return [p.start() for p in patches]
 
     def _exit(self, patches):
         for p in patches:
-            p.__exit__(None, None, None)
+            p.stop()
 
     def test_happy_path_pushes_trunk(self):
         patches = self._patches()

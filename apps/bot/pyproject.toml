@@ -1,0 +1,29 @@
+[project]
+name = "attubot"
+version = "78.1.5"
+requires-python = "==3.13.*"
+dependencies = [
+    "aiohttp",
+    "anthropic",
+    "anyio>=4.12.0",
+    "attu-models",
+    "httpx",
+    "hypercorn>=0.16.0",
+    "mwparserfromhell",
+    "py-cord[speed]<3",
+    "pydantic",
+    "pymongo>=4.6.0",
+    "qdrant-client",
+    "quart-rate-limiter>=0.9.0",
+    "quart>=0.19.0",
+    "sentence-transformers",
+    "termcolor",
+    "tomlkit",
+    "webauthn>=2.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+attu-models = { workspace = true }

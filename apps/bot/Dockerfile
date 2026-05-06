@@ -12,8 +12,8 @@ COPY . .
 RUN set -eux; \
     GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"; \
     BUILD_TIME="$(date '+%a %b %d %H:%M:%S %Z %Y')"; \
-    sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}'|" attubot/__init__.py; \
-    sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" attubot/__init__.py;
+    sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}'|" apps/bot/attubot/__init__.py; \
+    sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" apps/bot/attubot/__init__.py;
 
 # doom-bot container base - system deps, application code, and Python packages
 FROM ghcr.io/astral-sh/uv:python3.13-trixie AS doombox
@@ -22,6 +22,9 @@ ENV FORCE_COLOR=1
 ARG DOOM_HOME="/home/doom"
 ENV VIRTUAL_ENV="$DOOM_HOME/.venv"
 ENV PATH="$DOOM_HOME/.venv/bin:$PATH"
+# attubot lives at apps/bot/attubot, attu_models at packages/shared-models/attu_models;
+# both are workspace virtual packages (uv does not install them), so PYTHONPATH carries the import roots.
+ENV PYTHONPATH="$DOOM_HOME/apps/bot:$DOOM_HOME/packages/shared-models"
 
 # setup runtime
 RUN mkdir -p $DOOM_HOME/
@@ -50,23 +53,28 @@ COPY --from=builder /usr/local/cargo/bin/resvg /usr/local/bin/resvg
 
 USER doom
 
-# project manifest and lockfile
+# workspace manifests and lockfile (need every member's pyproject for uv sync to resolve)
 COPY --chown=doom:doom ./pyproject.toml ./uv.lock $DOOM_HOME/
+COPY --chown=doom:doom ./apps/bot/pyproject.toml $DOOM_HOME/apps/bot/pyproject.toml
+COPY --chown=doom:doom ./apps/server/pyproject.toml $DOOM_HOME/apps/server/pyproject.toml
+COPY --chown=doom:doom ./packages/shared-models/pyproject.toml $DOOM_HOME/packages/shared-models/pyproject.toml
 
 # install all service dependencies
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
     uv venv && uv sync --no-install-project --no-dev --quiet;
 
 # include docs/license with code
-COPY --chown=doom:doom ./LICENSE ./README.md ./attu-bot.py $DOOM_HOME/
-COPY --chown=doom:doom ./attubot $DOOM_HOME/attubot
-COPY --chown=doom:doom ./assets/templates $DOOM_HOME/assets/templates
-COPY --chown=doom:doom ./assets/static $DOOM_HOME/assets/static
-COPY --chown=doom:doom ./assets/prompts $DOOM_HOME/assets/prompts
-COPY --chown=doom:doom ./assets/hatch.toml $DOOM_HOME/assets/hatch.toml
+COPY --chown=doom:doom ./LICENSE ./README.md $DOOM_HOME/
+COPY --chown=doom:doom ./apps/bot/attu-bot.py $DOOM_HOME/apps/bot/attu-bot.py
+COPY --chown=doom:doom ./apps/bot/attubot $DOOM_HOME/apps/bot/attubot
+COPY --chown=doom:doom ./apps/bot/legacy_web $DOOM_HOME/apps/bot/legacy_web
+COPY --chown=doom:doom ./apps/bot/assets/prompts $DOOM_HOME/apps/bot/assets/prompts
+COPY --chown=doom:doom ./apps/bot/assets/hatch.toml $DOOM_HOME/apps/bot/assets/hatch.toml
+COPY --chown=doom:doom ./apps/bot/assets/static $DOOM_HOME/apps/bot/assets/static
+COPY --chown=doom:doom ./packages/shared-models/attu_models $DOOM_HOME/packages/shared-models/attu_models
 
 # stamp version and build time into __init__.py from git-info stage
-COPY --from=git-info --chown=doom:doom /src/attubot/__init__.py $DOOM_HOME/attubot/__init__.py
+COPY --from=git-info --chown=doom:doom /src/apps/bot/attubot/__init__.py $DOOM_HOME/apps/bot/attubot/__init__.py
 
 # --- for running tests inside docker ---
 FROM doombox AS tester

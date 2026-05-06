@@ -1,7 +1,7 @@
 ---
-# dev environment: ephemeral ferretdb seeded from assets/doombot-seed on each start.
+# dev environment: ephemeral ferretdb seeded from apps/bot/assets/doombot-seed on each start.
 # usage (tests): docker compose -f docker-compose.dev.yml run --build --rm tests
-# usage (web):   docker compose -f docker-compose.dev.yml up --build web
+# usage (web):   docker compose -f docker-compose.dev.yml up --build legacy-web
 name: doom-bot-dev
 
 services:
@@ -32,6 +32,7 @@ services:
   ferret-init:
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: tester
     restart: no
     env_file:
@@ -40,25 +41,26 @@ services:
       ferret:
         condition: service_started
     volumes:
-      - ./assets:/tmp/seeds:ro
+      - ./apps/bot/assets:/tmp/seeds:ro
       - ./scripts/ferret_init.sh:/ferret_init.sh:ro
     command: bash /ferret_init.sh
 
-  web:
+  legacy-web:
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: doombox
-    container_name: attu-dev-web
-    command: python -u attu-bot.py web
+    container_name: attu-dev-legacy-web
+    command: python -u apps/bot/attu-bot.py web
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
       DEBUG: "1"
     ports:
       - "127.0.1.8:8080:5000"
     restart: no
     user: doom:doom
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml:ro
     depends_on:
       ferret-init:
         condition: service_completed_successfully
@@ -73,19 +75,19 @@ services:
     profiles: [tests]
     build:
       context: .
+      dockerfile: apps/bot/Dockerfile
       target: tester
     restart: no
     container_name: attu-dev-tests
     environment:
-      ATTU_CONFIG_FILE: /home/doom/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
       TEST_MODE: "1"
       DEBUG: "1"
     env_file:
       - .env
     volumes:
-      - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
+      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml:ro
     user: doom:doom
     depends_on:
       ferret:
         condition: service_started
-

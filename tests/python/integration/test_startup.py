@@ -16,7 +16,10 @@ import pytest
 import pytest_asyncio
 
 
-pytestmark = pytest.mark.integration
+# full _do_ready_init() / web before_serving against real mongo: db handshake,
+# guild load, and quart app boot can plausibly exceed the 10s default on a
+# cold container. 30s leaves headroom while still catching a true hang.
+pytestmark = [pytest.mark.integration, pytest.mark.timeout(30)]
 
 
 # --- helpers ---

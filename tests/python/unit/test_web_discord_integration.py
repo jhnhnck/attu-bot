@@ -6,7 +6,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import time
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
@@ -116,9 +115,9 @@ def _clear_module_cache():
     _cache.clear()
 
 
-def _make_text_channel(*, id, name, position=0, category_id=None):
+def _make_text_channel(*, id_, name, position=0, category_id=None):
     ch = MagicMock(spec=discord.TextChannel)
-    ch.id = id
+    ch.id = id_
     ch.name = name
     ch.position = position
     ch.category_id = category_id
@@ -127,9 +126,9 @@ def _make_text_channel(*, id, name, position=0, category_id=None):
     return ch
 
 
-def _make_voice_channel(*, id, name, position=0, category_id=None):
+def _make_voice_channel(*, id_, name, position=0, category_id=None):
     ch = MagicMock(spec=discord.VoiceChannel)
-    ch.id = id
+    ch.id = id_
     ch.name = name
     ch.position = position
     ch.category_id = category_id
@@ -138,9 +137,9 @@ def _make_voice_channel(*, id, name, position=0, category_id=None):
     return ch
 
 
-def _make_thread(*, id, name, parent_id, thread_type='public_thread'):
+def _make_thread(*, id_, name, parent_id, thread_type='public_thread'):
     t = MagicMock(spec=discord.Thread)
-    t.id = id
+    t.id = id_
     t.name = name
     t.parent_id = parent_id
     t.type = MagicMock()
@@ -148,9 +147,9 @@ def _make_thread(*, id, name, parent_id, thread_type='public_thread'):
     return t
 
 
-def _make_role(*, id, name, position, color_value=0, managed=False, is_default=False):
+def _make_role(*, id_, name, position, color_value=0, managed=False, is_default=False):
     r = MagicMock()
-    r.id = id
+    r.id = id_
     r.name = name
     r.position = position
     r.color = MagicMock()
@@ -160,9 +159,9 @@ def _make_role(*, id, name, position, color_value=0, managed=False, is_default=F
     return r
 
 
-def _make_user(*, id, name, global_name='TestUser', avatar_url='https://cdn.example.com/avatar.png'):
+def _make_user(*, id_, name, global_name='TestUser', avatar_url='https://cdn.example.com/avatar.png'):
     u = MagicMock()
-    u.id = id
+    u.id = id_
     u.name = name
     u.global_name = global_name
     u.avatar = True  # truthy so avatar_url branch is taken
@@ -171,9 +170,9 @@ def _make_user(*, id, name, global_name='TestUser', avatar_url='https://cdn.exam
     return u
 
 
-def _make_guild(*, id, name, icon_url='https://cdn.example.com/icon.png'):
+def _make_guild(*, id_, name, icon_url='https://cdn.example.com/icon.png'):
     g = MagicMock()
-    g.id = id
+    g.id = id_
     g.name = name
     g.icon = MagicMock()
     g.icon.url = icon_url
@@ -189,9 +188,9 @@ class TestGetGuildChannels:
     """unit: get_guild_channels fetches and formats channels via pycord"""
 
     async def test_returns_channels_and_threads(self):
-        text_ch = _make_text_channel(id=100, name='general', position=0)
-        voice_ch = _make_voice_channel(id=200, name='voice-chat', position=1)
-        thread = _make_thread(id=300, name='discussion', parent_id=100)
+        text_ch = _make_text_channel(id_=100, name='general', position=0)
+        voice_ch = _make_voice_channel(id_=200, name='voice-chat', position=1)
+        thread = _make_thread(id_=300, name='discussion', parent_id=100)
 
         mock_guild = AsyncMock()
         mock_guild.fetch_channels = AsyncMock(return_value=[text_ch, voice_ch])
@@ -220,7 +219,7 @@ class TestGetGuildChannels:
         assert result is None
 
     async def test_uses_cache_on_second_call(self):
-        text_ch = _make_text_channel(id=100, name='general', position=0)
+        text_ch = _make_text_channel(id_=100, name='general', position=0)
 
         mock_guild = AsyncMock()
         mock_guild.fetch_channels = AsyncMock(return_value=[text_ch])
@@ -245,9 +244,9 @@ class TestGetGuildRoles:
     """unit: get_guild_roles fetches and formats roles via pycord"""
 
     async def test_returns_roles_sorted_by_position_descending(self):
-        role_admin = _make_role(id=10, name='Admin', position=3, color_value=0xFF0000)
-        role_mod = _make_role(id=20, name='Mod', position=2)
-        role_default = _make_role(id=30, name='@everyone', position=0, is_default=True)
+        role_admin = _make_role(id_=10, name='Admin', position=3, color_value=0xFF0000)
+        role_mod = _make_role(id_=20, name='Mod', position=2)
+        role_default = _make_role(id_=30, name='@everyone', position=0, is_default=True)
 
         mock_guild = AsyncMock()
         mock_guild.fetch_roles = AsyncMock(return_value=[role_admin, role_mod, role_default])
@@ -280,7 +279,7 @@ class TestGetUserInfo:
     """unit: get_user_info fetches and formats user data via pycord"""
 
     async def test_user_found(self):
-        mock_user = _make_user(id=42, name='johndoe', global_name='John Doe')
+        mock_user = _make_user(id_=42, name='johndoe', global_name='John Doe')
 
         with patch('attubot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_user = AsyncMock(return_value=mock_user)
@@ -300,7 +299,7 @@ class TestGetUserInfo:
         assert result is None
 
     async def test_user_without_avatar(self):
-        mock_user = _make_user(id=42, name='noavatar')
+        mock_user = _make_user(id_=42, name='noavatar')
         mock_user.avatar = None  # no custom avatar
 
         with patch('attubot.web.discord_integration.bot') as mock_bot:
@@ -320,7 +319,7 @@ class TestGetGuildInfo:
     """unit: get_guild_info fetches and formats guild data via pycord"""
 
     async def test_guild_found(self):
-        mock_guild = _make_guild(id=999, name='Test Server')
+        mock_guild = _make_guild(id_=999, name='Test Server')
 
         with patch('attubot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
@@ -339,7 +338,7 @@ class TestGetGuildInfo:
         assert result is None
 
     async def test_guild_without_icon(self):
-        mock_guild = _make_guild(id=999, name='No Icon')
+        mock_guild = _make_guild(id_=999, name='No Icon')
         mock_guild.icon = None
 
         with patch('attubot.web.discord_integration.bot') as mock_bot:

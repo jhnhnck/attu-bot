@@ -31,7 +31,7 @@ except ImportError:
 # worktree roots
 dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
-version_file = dev_dir / 'attubot' / '__init__.py'
+version_file = dev_dir / 'apps' / 'bot' / 'attubot' / '__init__.py'
 
 # epoch snapshot — paste the output of /fix epoch here when the epoch changes
 _epoch_toml = """\
@@ -80,7 +80,7 @@ def parse_version(content: str) -> tuple[str, str]:
     """extract __version__ value and its full assignment string from file contents."""
     m = re.search(r"__version__ = '([^']+)'", content)
     if not m:
-        abort('could not find __version__ in attubot/__init__.py')
+        abort('could not find __version__ in apps/bot/attubot/__init__.py')
     return m.group(1), m.group(0)
 
 
@@ -403,7 +403,7 @@ if __name__ == '__main__':
         new_ver, new_tag = compute_new_version(current_ver, bump)
         print(colored(f'  {current_ver} -> {new_ver}  (tag: {new_tag})', 'cyan'))
 
-        pyproject_file = dev_dir / 'pyproject.toml'
+        pyproject_file = dev_dir / 'apps' / 'bot' / 'pyproject.toml'
         if not dry_run:
             updated = content.replace(old_assignment, f"__version__ = '{new_ver}'", 1)
             version_file.write_text(updated)

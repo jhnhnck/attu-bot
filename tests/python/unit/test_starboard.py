@@ -440,7 +440,7 @@ async def test_handle_star_remove_bot_initiated_ignored(make_starboard_guild, mo
     """bot-initiated removals (self-star, duplicate cleanup) must not decrement the original message's reactions"""
     from attubot.client.starboard import _pending_bot_removals, handle_star_remove
 
-    sb_repo, msg_repo = mock_sb_and_msg_repos
+    sb_repo, _msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
     # simulate the bot registering a pending removal (as _remove_reaction_from_discord does)
@@ -459,7 +459,7 @@ async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboar
     """user manually removing their reaction from the starboard post should decrement the original"""
     from attubot.client.starboard import handle_star_remove
 
-    sb_repo, msg_repo = mock_sb_and_msg_repos
+    sb_repo, _msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
 
     # starboard post links back to original message

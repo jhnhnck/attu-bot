@@ -6,7 +6,7 @@
 set -e
 
 SRC="${1:-}"
-DEST="assets/doombot-seed"
+DEST="apps/bot/assets/doombot-seed"
 
 if [[ -z "$SRC" ]]; then
     echo "usage: bash scripts/create_dev_seed.sh <backup.tar.bz2>"

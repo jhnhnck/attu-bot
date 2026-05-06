@@ -20,5 +20,5 @@ if [ -d /tmp/seeds/doombot-seed ]; then
         /tmp/seeds/doombot-seed
     echo "seed restore complete"
 else
-    echo "no seed found at assets/doombot-seed - starting with empty db"
+    echo "no seed found at apps/bot/assets/doombot-seed - starting with empty db"
 fi

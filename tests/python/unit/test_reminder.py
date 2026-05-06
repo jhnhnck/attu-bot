@@ -530,7 +530,7 @@ class TestReminderTaskNextRun:
             result = await task.next_run()
 
         assert result is not None
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         expected = datetime(2024, 6, 1, 12, 30).astimezone()
         assert abs((result - expected).total_seconds()) < 5
@@ -539,7 +539,7 @@ class TestReminderTaskNextRun:
     @freeze_time('2024-06-01 12:00:00')
     async def test_earliest_fire_time(self, guild):
         """returns the earliest fire time across all pending reminders."""
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         from attubot.tasks.reminder import ReminderTask
 

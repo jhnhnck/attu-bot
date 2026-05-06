@@ -12,11 +12,11 @@ source: [pycord v2.7 - `discord.Embed`](https://docs.pycord.dev/en/v2.7.0/api/da
 import discord
 
 embed = discord.Embed(
-    title='embed title',           # max 256 chars
-    description='embed body',      # max 4096 chars
-    url='https://example.com',     # makes title a hyperlink
-    color=discord.Color.blurple(), # or int: 0x5865F2
-    timestamp=datetime.now(UTC),   # adds a timestamp to the footer row
+    title='embed title',  # max 256 chars
+    description='embed body',  # max 4096 chars
+    url='https://example.com',  # makes title a hyperlink
+    color=discord.Color.blurple(),  # or int: 0x5865F2
+    timestamp=datetime.now(UTC),  # adds a timestamp to the footer row
 )
 ```
 
@@ -58,7 +58,7 @@ remove helpers: `embed.remove_author()`, `embed.remove_footer()`, `embed.remove_
 embed.add_field(name='label', value='content', inline=True)
 embed.insert_field_at(0, name='prepend', value='...', inline=False)
 embed.set_field_at(1, name='updated', value='new content', inline=True)
-embed.remove_field(0)   # silently ignored if index out of range
+embed.remove_field(0)  # silently ignored if index out of range
 embed.clear_fields()
 ```
 
@@ -66,6 +66,7 @@ embed.clear_fields()
 
 ```python
 from discord import EmbedField
+
 embed.append_field(EmbedField(name='key', value='val', inline=False))
 ```
 
@@ -103,8 +104,8 @@ these are filled in by discord and are ignored if you provide them:
 ## sending
 
 ```python
-await ctx.respond(embed=embed)                      # single
-await ctx.respond(embeds=[embed_a, embed_b])        # up to 10
+await ctx.respond(embed=embed)  # single
+await ctx.respond(embeds=[embed_a, embed_b])  # up to 10
 await ctx.respond(content='intro text:', embed=embed)
 ```
 
@@ -113,7 +114,7 @@ await ctx.respond(content='intro text:', embed=embed)
 ## dict roundtrip
 
 ```python
-data = embed.to_dict()             # -> dict[str, ...]
+data = embed.to_dict()  # -> dict[str, ...]
 embed2 = discord.Embed.from_dict(data)
 ```
 

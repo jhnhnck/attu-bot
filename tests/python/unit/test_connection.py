@@ -44,7 +44,7 @@ class TestConnectHappyPath:
         mock_client.__getitem__ = MagicMock(return_value=mock_db)
 
         storage = MongoStorage()
-        with patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client):
+        with patch('attu_models.connection.AsyncMongoClient', return_value=mock_client):
             result = await storage.connect('mongodb://localhost:27017', 'testdb')
 
         assert result is mock_db
@@ -54,7 +54,7 @@ class TestConnectHappyPath:
         mock_client = _make_mock_client()
 
         storage = MongoStorage()
-        with patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client):
+        with patch('attu_models.connection.AsyncMongoClient', return_value=mock_client):
             await storage.connect('mongodb://host:1234', 'mydb')
 
         assert storage.mongo_url == 'mongodb://host:1234'
@@ -64,7 +64,7 @@ class TestConnectHappyPath:
         mock_client = _make_mock_client()
 
         storage = MongoStorage()
-        with patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client) as mock_cls:
+        with patch('attu_models.connection.AsyncMongoClient', return_value=mock_client) as mock_cls:
             await storage.connect('mongodb://localhost:27017', 'testdb', timeout=5000, socket_timeout=10000)
 
         mock_cls.assert_called_once_with(
@@ -101,8 +101,8 @@ class TestConnectRetry:
 
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', side_effect=client_factory),
-            patch('attubot.database.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
+            patch('attu_models.connection.AsyncMongoClient', side_effect=client_factory),
+            patch('attu_models.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
         ):
             result = await storage.connect('mongodb://localhost:27017', 'testdb')
 
@@ -124,8 +124,8 @@ class TestConnectRetry:
 
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', side_effect=client_factory),
-            patch('attubot.database.connection.asyncio.sleep', new_callable=AsyncMock),
+            patch('attu_models.connection.AsyncMongoClient', side_effect=client_factory),
+            patch('attu_models.connection.asyncio.sleep', new_callable=AsyncMock),
         ):
             await storage.connect('mongodb://localhost:27017', 'testdb')
 
@@ -148,8 +148,8 @@ class TestConnectConfigurationError:
 
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client),
-            patch('attubot.database.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
+            patch('attu_models.connection.AsyncMongoClient', return_value=mock_client),
+            patch('attu_models.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
             pytest.raises(ConfigurationError, match='bad url'),
         ):
             await storage.connect('mongodb://bad-url', 'testdb')
@@ -161,7 +161,7 @@ class TestConnectConfigurationError:
         """ConfigurationError raised during client construction also propagates"""
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', side_effect=ConfigurationError('invalid scheme')),
+            patch('attu_models.connection.AsyncMongoClient', side_effect=ConfigurationError('invalid scheme')),
             pytest.raises(ConfigurationError, match='invalid scheme'),
         ):
             await storage.connect('not-a-url', 'testdb')
@@ -180,8 +180,8 @@ class TestConnectExhaustsRetries:
 
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client),
-            patch('attubot.database.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
+            patch('attu_models.connection.AsyncMongoClient', return_value=mock_client),
+            patch('attu_models.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
             pytest.raises(RuntimeError, match='MongoDB connection failed'),
         ):
             await storage.connect('mongodb://localhost:27017', 'testdb')
@@ -195,8 +195,8 @@ class TestConnectExhaustsRetries:
 
         storage = MongoStorage()
         with (
-            patch('attubot.database.connection.AsyncMongoClient', return_value=mock_client),
-            patch('attubot.database.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
+            patch('attu_models.connection.AsyncMongoClient', return_value=mock_client),
+            patch('attu_models.connection.asyncio.sleep', new_callable=AsyncMock) as mock_sleep,
             pytest.raises(RuntimeError, match='MongoDB connection failed'),
         ):
             await storage.connect('mongodb://localhost:27017', 'testdb')

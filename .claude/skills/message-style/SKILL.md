@@ -39,10 +39,10 @@ logger.fatal('incompatible config version')
 
 **anti-patterns** - do not write any of these:
 ```python
-logger.info('Successfully loaded extension.')          # capitalized, period, formal
-logger.info('Loaded extension successfully!')          # exclamation, "successfully"
-logger.error('An error occurred while updating year.') # vague, capitalized, period
-logger.info('Updating year %s' % year)                 # %s instead of f-string
+logger.info('Successfully loaded extension.')  # capitalized, period, formal
+logger.info('Loaded extension successfully!')  # exclamation, "successfully"
+logger.error('An error occurred while updating year.')  # vague, capitalized, period
+logger.info('Updating year %s' % year)  # %s instead of f-string
 ```
 
 ## discord response messages

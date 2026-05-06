@@ -29,6 +29,7 @@ from attubot.client.util import is_authorized_guild
 
 group = SlashCommandGroup('marker', description='...')
 
+
 @group.command(name='save', description='...')
 @discord.commands.option(name='year', required=True, input_type=int, min_value=1)
 @commands.check(is_authorized_guild)
@@ -69,6 +70,7 @@ defined in `attubot/client/core.py`; do not re-instantiate. import the singleton
 
 ```python
 from attubot.client.core import bot
+
 # or
 from attubot import bot
 ```
@@ -81,10 +83,10 @@ intents enabled in this repo: `default()` plus `message_content`, `members`, `em
 
 ```python
 group = SlashCommandGroup(
-    'name',                                    # required
+    'name',  # required
     description='...',
     default_member_permissions=Permissions.all(),  # discord-side perm gate
-    guild_ids=[123, 456],                      # optional; omit for global
+    guild_ids=[123, 456],  # optional; omit for global
 )
 
 sub = group.create_subgroup('leaderboard', 'description')  # nested group; one level deep max

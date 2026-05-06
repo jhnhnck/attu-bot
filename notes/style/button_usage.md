@@ -46,6 +46,7 @@ prefer `add_item(discord.ui.Button(...))` with `btn.callback = self._cb` over th
 @discord.ui.button(label='Button 1', row=0, style=discord.ButtonStyle.primary)
 async def first(self, button, interaction): ...
 
+
 @discord.ui.button(label='Button 2', row=1, style=discord.ButtonStyle.primary)
 async def second(self, button, interaction): ...
 ```
@@ -61,11 +62,13 @@ omit `row=` and pycord auto-assigns based on declaration order.
 @discord.ui.button(label='disabled', disabled=True, style=...)
 async def cb(self, button, interaction): ...
 
+
 # disable one on press
 async def cb(self, button, interaction):
     button.disabled = True
     button.label = 'no more presses'
     await interaction.response.edit_message(view=self)
+
 
 # disable all (on press or in on_timeout)
 async def cb(self, button, interaction):
@@ -80,11 +83,11 @@ async def cb(self, button, interaction):
 ```python
 class MyView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=30)         # seconds
+        super().__init__(timeout=30)  # seconds
 
     async def on_timeout(self):
         self.disable_all_items()
-        with contextlib.suppress(Exception): # message may have been deleted
+        with contextlib.suppress(Exception):  # message may have been deleted
             await self.message.edit(view=self)
 ```
 

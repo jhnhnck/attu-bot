@@ -222,10 +222,13 @@ def create_app() -> Quart:
     """Application factory for Quart app"""
 
     _ensure_config()
-    assets_dir = Path(config.paths.assets).resolve()
-    app = _build_quart_app(assets_dir)
+    # legacy quart templates and static live alongside this module under apps/bot/legacy_web/.
+    # decoupled from config.paths.assets (which now points at apps/bot/assets/) so the bot's
+    # runtime assets don't carry the dying jinja+bootstrap surface.
+    legacy_assets_dir = Path(__file__).resolve().parent.parent.parent / 'legacy_web'
+    app = _build_quart_app(legacy_assets_dir)
 
-    _register_startup(app, assets_dir)
+    _register_startup(app, legacy_assets_dir)
     _register_template_hooks(app)
     _register_rate_limits_and_routes(app)
     _configure_app(app)

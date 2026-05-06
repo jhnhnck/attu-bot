@@ -6,6 +6,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 """
 
 import asyncio
+import contextlib
 import time
 from collections.abc import Coroutine
 from datetime import datetime
@@ -118,10 +119,9 @@ class TaskScheduler:
         if wake_event is not None:
             if wake_event.is_set():
                 return
-            try:
+            # normal expiry means the scheduled time arrived
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(wake_event.wait(), timeout=delay)
-            except TimeoutError:
-                pass  # normal expiry; scheduled time arrived
         else:
             await asyncio.sleep(delay)
 

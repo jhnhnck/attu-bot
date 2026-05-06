@@ -7,7 +7,7 @@ export default [
 
     {
         // Files to lint
-        files: ['assets/static/js/**/*.js', 'attubot/web/static/js/**/*.js'],
+        files: ['apps/bot/legacy_web/static/js/**/*.js'],
 
         languageOptions: {
             ecmaVersion: 2024,
@@ -73,14 +73,10 @@ export default [
     {
         // ES module JS files (modules, pages, components, and main entry points)
         files: [
-            'assets/static/js/modules/**/*.js',
-            'assets/static/js/pages/**/*.js',
-            'assets/static/js/components/**/*.js',
-            'assets/static/js/main.js',
-            'attubot/web/static/js/modules/**/*.js',
-            'attubot/web/static/js/pages/**/*.js',
-            'attubot/web/static/js/components/**/*.js',
-            'attubot/web/static/js/main.js',
+            'apps/bot/legacy_web/static/js/modules/**/*.js',
+            'apps/bot/legacy_web/static/js/pages/**/*.js',
+            'apps/bot/legacy_web/static/js/components/**/*.js',
+            'apps/bot/legacy_web/static/js/main.js',
         ],
 
         languageOptions: {

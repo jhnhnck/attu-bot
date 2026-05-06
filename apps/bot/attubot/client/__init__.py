@@ -56,7 +56,7 @@ def _setup_discord_logging():
     import logging as _logging
 
     discord_http_logger = _logging.getLogger('discord.http')
-    discord_http_logger.addHandler(PycordBridgeHandler(get_logger('discord.http')))
+    discord_http_logger.addHandler(PycordBridgeHandler(get_logger('discord.http')))  # type: ignore[arg-type]  # PycordBridgeHandler duck-types Handler without inheriting
     discord_http_logger.setLevel(_logging.DEBUG)
 
 

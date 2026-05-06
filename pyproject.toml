@@ -1,28 +1,21 @@
 [project]
-name = "attubot"
-version = "78.1.5"
+name = "attu-bot-workspace"
+version = "0"
 requires-python = "==3.13.*"
 dependencies = [
-    "aiohttp",
-    "anthropic",
-    "anyio>=4.12.0",
-    "httpx",
-    "hypercorn>=0.16.0",
-    "mwparserfromhell",
-    "py-cord[speed]<3",
-    "pydantic",
-    "pymongo>=4.6.0",
-    "qdrant-client",
-    "quart-rate-limiter>=0.9.0",
-    "quart>=0.19.0",
-    "sentence-transformers",
-    "termcolor",
-    "tomlkit",
-    "webauthn>=2.0.0",
+    "attubot",
+    "attu-models",
 ]
 
 [tool.uv]
 package = false
+
+[tool.uv.workspace]
+members = ["apps/bot", "apps/server", "packages/shared-models"]
+
+[tool.uv.sources]
+attubot = { workspace = true }
+attu-models = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -30,6 +23,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
+    "pytest-timeout",
     "respx",
     "freezegun",
     "ruff",
@@ -45,10 +39,6 @@ preview = true
 
 [tool.ruff.lint]
 select = [
-  # "E4",
-  # "E7",
-  # "E9",
-  # pycodestyle
   "E",
   "F",
   "Q",
@@ -65,38 +55,35 @@ select = [
   "RUF",
 ]
 
-# select = ["ALL"]
 ignore = [
-  # preview rules we explicitly don't want enabled yet
-  "E111",    # indentation not multiple of 4 (conflicts with formatter)
-  "E114",    # indentation not multiple of 4 (comment)
-  "E117",    # over-indented
-  "E303",    # too many blank lines (stricter in preview)
-  "PLC1901", # compare-to-empty-string
-  "PLC2701", # import private name
-  "PLR0904", # too many public methods
-  "PLR0914", # too many locals
-  "PLR0917", # too many positional arguments
-  "PLR1702", # too many nested blocks
-  "PLR6104", # non-augmented assignment
-  "PLR6201", # literal membership
-  "PLR6301", # no self use
-  "PLW1514", # unspecified encoding
-  "RUF029",  # unused async
-  "RUF052",  # used dummy variable
-  "RUF067",  # non-empty __init__ module
-  "RUF069",  # float equality comparison
-  "S404",    # suspicious subprocess import
-  # existing ignores
-  "E501",    # line-length violations
-  "PLC0415", # imports at top of file
-  "PLR0913", # too many arguments
-  "PLE1205", # logging builtin
-  "PLR2004", # magic values
-  "RUF012",  # ClassVar decorators
-  "S311",    # random not for crypto
-  "UP037",   # forward typedefs
-  "COM812",  # conflicts with formatter
+  "E111",
+  "E114",
+  "E117",
+  "E303",
+  "PLC1901",
+  "PLC2701",
+  "PLR0904",
+  "PLR0914",
+  "PLR0917",
+  "PLR1702",
+  "PLR6104",
+  "PLR6201",
+  "PLR6301",
+  "PLW1514",
+  "RUF029",
+  "RUF052",
+  "RUF067",
+  "RUF069",
+  "S404",
+  "E501",
+  "PLC0415",
+  "PLR0913",
+  "PLE1205",
+  "PLR2004",
+  "RUF012",
+  "S311",
+  "UP037",
+  "COM812",
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -109,8 +96,8 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
-# Let ruff format control blank lines after imports to avoid formatter/isort conflicts.
 lines-after-imports = 2
+known-first-party = ["attubot", "attu_models"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -118,7 +105,7 @@ convention = "google"
 [tool.basedpyright]
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
-extraPaths = ["scripts"]
+extraPaths = ["scripts", "apps/bot", "packages/shared-models"]
 reportOptionalOperand = false
 reportOptionalMemberAccess = false
 reportOptionalSubscript = false
@@ -129,16 +116,22 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
-  "S101", # assert is expected in tests
-  "S106", # hardcoded test secrets are fine in tests
-  "E402", # TZ must be set before imports in some test files
+  "S101",
+  "S106",
+  "E402",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
-pythonpath = ["scripts"]
+pythonpath = ["scripts", "apps/bot", "packages/shared-models"]
 addopts = "-v"
 asyncio_mode = "auto"
+# 10 seconds is generous for unit tests and tight enough to catch runaways.
+# tests that legitimately need longer must opt in with @pytest.mark.timeout(N)
+# and a comment explaining why. thread method dumps tracebacks on timeout,
+# which is what we want for diagnosing the runaway.
+timeout = 10
+timeout_method = "thread"
 markers = [
     "unit: isolated unit tests; no external services",
     "component: tests against real MongoDB; requires a running mongod",
@@ -146,7 +139,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["attubot"]
+source = ["apps/bot/attubot", "packages/shared-models/attu_models"]
 branch = true
 omit = ["wip/*", "*.wip.py"]
 

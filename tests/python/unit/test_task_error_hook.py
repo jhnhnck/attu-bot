@@ -149,7 +149,7 @@ class TestRunWebhookMissing:
         new_hook.url = 'https://discord.com/api/webhooks/new-hook'
         channel.create_webhook = AsyncMock(return_value=new_hook)
 
-        with patch('attubot.tasks.error_hook.config', mock_cfg), patch('attubot.tasks.error_hook.bot', mock_bot), patch('attubot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG') as mock_png, patch('attubot.tasks.error_hook.logger') as mock_logger:
+        with patch('attubot.tasks.error_hook.config', mock_cfg), patch('attubot.tasks.error_hook.bot', mock_bot), patch('attubot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('attubot.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 

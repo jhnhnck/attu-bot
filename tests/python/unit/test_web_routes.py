@@ -550,7 +550,7 @@ class TestGuildConfigDataSSR:
     """
 
     @pytest.mark.asyncio
-    async def test_ssr_emits_all_role_fields(self, web_app):  # noqa: ARG002 - fixture configures module-level config
+    async def test_ssr_emits_all_role_fields(self, web_app):
         from attubot.web.helpers import get_guild_config_data
 
         with (
@@ -568,7 +568,7 @@ class TestGuildConfigDataSSR:
         }
 
     @pytest.mark.asyncio
-    async def test_ssr_zeros_render_as_string_zero(self, web_app):  # noqa: ARG002 - fixture configures module-level config
+    async def test_ssr_zeros_render_as_string_zero(self, web_app):
         """unset role IDs serialize to '0' so the dropdown lands on Not Set."""
         from attubot.web.app import config
         from attubot.web.helpers import get_guild_config_data

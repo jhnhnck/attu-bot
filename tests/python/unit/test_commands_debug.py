@@ -15,7 +15,7 @@ os.environ['TZ'] = 'UTC'
 _time.tzset()
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
@@ -70,7 +70,7 @@ class TestEmbedSummary:
         from attubot.commands.debug import _embed_summary
 
         embed = discord.Embed(title='Only Title')
-        name, value = _embed_summary(embed, 5)
+        _name, value = _embed_summary(embed, 5)
 
         assert '**Only Title**' in value
         assert 'field(s)' not in value
@@ -86,7 +86,7 @@ class TestMessageDump:
         msg.id = 111222333
         msg.content = content
         msg.pinned = False
-        msg.created_at = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+        msg.created_at = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
         msg.edited_at = None
         msg.jump_url = 'https://discord.com/channels/1/2/3'
 
@@ -154,7 +154,7 @@ class TestMessageDump:
         from attubot.commands.debug import _message_dump
 
         msg = self._make_message(embed_count=2, attachment_count=1, reaction_count=1, sticker_count=1)
-        msg.edited_at = datetime(2024, 6, 15, 13, 0, 0, tzinfo=timezone.utc)
+        msg.edited_at = datetime(2024, 6, 15, 13, 0, 0, tzinfo=UTC)
 
         result = _message_dump(msg, channel_id=222, guild_id=333)
 
@@ -384,7 +384,7 @@ class TestDebugMessage:
         mock_msg = MagicMock(spec=discord.Message)
         mock_msg.id = 444555666
         mock_msg.content = 'test content'
-        mock_msg.created_at = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+        mock_msg.created_at = datetime(2024, 6, 15, 12, 0, 0, tzinfo=UTC)
         mock_msg.edited_at = None
         mock_msg.pinned = False
         mock_msg.jump_url = 'https://discord.com/channels/111/222/444555666'
@@ -459,7 +459,7 @@ class TestDebugMessage:
         ctx.bot.get_guild = MagicMock(side_effect=AttributeError('guild not found'))
 
         link = 'https://discord.com/channels/111/222/444555666'
-        with patch('attubot.commands.debug.logger') as mock_logger:
+        with patch('attubot.commands.debug.logger'):
             await debug_message(ctx, link=link)
 
         ctx.respond.assert_called_once()
@@ -479,7 +479,7 @@ class TestDebugDumpConfig:
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
         mock_config_dict = {'database': {'url': 'mongodb://localhost'}}
-        with patch('attubot.commands.debug.config.to_dict', return_value=mock_config_dict), patch('attubot.commands.debug.logger') as mock_logger:
+        with patch('attubot.commands.debug.config.to_dict', return_value=mock_config_dict), patch('attubot.commands.debug.logger'):
             await debug_dump_config(ctx)
 
         ctx.respond.assert_called_once()
@@ -503,7 +503,7 @@ class TestDebugDumpStarboard:
         starboard_msg.id = 100
         starboard_msg.author = MagicMock()
         starboard_msg.author.id = _STARBOARD_BOT_ID
-        starboard_msg.created_at = datetime(2024, 3, 1, tzinfo=timezone.utc)
+        starboard_msg.created_at = datetime(2024, 3, 1, tzinfo=UTC)
         starboard_msg.content = 'star content'
         starboard_msg.embeds = []
         starboard_msg.attachments = []
@@ -586,7 +586,7 @@ class TestDebugProgressBar:
         mock_sent_msg.edit = AsyncMock()
         ctx.channel.send = AsyncMock(return_value=mock_sent_msg)
 
-        with patch('attubot.eggs.emojis.render_progress_bar', return_value='[====]') as mock_bar, patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch('attubot.eggs.emojis.render_progress_bar', return_value='[====]'), patch('asyncio.sleep', new_callable=AsyncMock):
             await debug_progress_bar(ctx)
 
         # initial send + 9 edits (steps 2-10)
