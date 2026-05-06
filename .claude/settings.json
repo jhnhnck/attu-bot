@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /srv/services/doom-bot-dev/.claude/hooks/pre-tool-pyenv.sh"
+            "command": "bash /srv/services/doom-bot-dev/.claude/hooks/pre-tool-venv.sh"
           }
         ]
       }

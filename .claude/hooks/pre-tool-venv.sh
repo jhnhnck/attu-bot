@@ -13,7 +13,8 @@ fi
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$HOOK_DIR")")"
 UV_INIT="source $PROJECT_ROOT/.venv/bin/activate"
-MODIFIED="$UV_INIT && $COMMAND"
+PYTHONPATH_INIT="export PYTHONPATH=\"$PROJECT_ROOT/apps/bot:$PROJECT_ROOT/packages/shared-models\""
+MODIFIED="$UV_INIT && $PYTHONPATH_INIT && $COMMAND"
 
 echo "$INPUT" | jq --arg cmd "$MODIFIED" '{
   hookSpecificOutput: {
