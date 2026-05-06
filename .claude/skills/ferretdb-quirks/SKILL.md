@@ -1,6 +1,6 @@
 ---
 name: ferretdb-quirks
-description: footgun-catcher for AttuBot's FerretDB v2 + DocumentDB Postgres backend. trigger when editing files under attubot/database/, attubot/client/migrations.py, scripts/ferret_init.sh, or scripts/create_dev_seed.sh; when a file uses pymongo aggregation pipelines, indexes, sessions, or transactions; when answering questions about index creation, $lookup, multi-document transactions, change streams, mongodump, or "why does this mongo query not work in our db."
+description: footgun-catcher for AttuBot's FerretDB v2 + DocumentDB Postgres backend. trigger when editing files under doom_bot/database/, doom_bot/client/migrations.py, scripts/ferret_init.sh, or scripts/create_dev_seed.sh; when a file uses pymongo aggregation pipelines, indexes, sessions, or transactions; when answering questions about index creation, $lookup, multi-document transactions, change streams, mongodump, or "why does this mongo query not work in our db."
 ---
 
 # ferretdb quirks
@@ -31,7 +31,7 @@ the repo does not currently use transactions; do not introduce them. if a multi-
 
 `collection.watch()` will fail. tracking issue [#175](https://github.com/FerretDB/FerretDB/issues/175) is still open.
 
-the repo's cross-process notification path is `attubot/signals.py` + `ReloadSignalRepository` + `ReloadWatcherTask` polling - that is not legacy code waiting to be replaced by change streams; it is the way it has to work here. do not propose `watch()` as a "modernization."
+the repo's cross-process notification path is `doom_bot/signals.py` + `ReloadSignalRepository` + `ReloadWatcherTask` polling - that is not legacy code waiting to be replaced by change streams; it is the way it has to work here. do not propose `watch()` as a "modernization."
 
 ### 3. `bulk_write` is not implemented
 
@@ -43,7 +43,7 @@ the repo's cross-process notification path is `attubot/signals.py` + `ReloadSign
 
 postgres takes `ACCESS EXCLUSIVE` on the table for a non-concurrent `CREATE UNIQUE INDEX`, blocking all reads and writes for the duration of the index build. on collections with many millions of rows (`messages`, `signals` historically) this can lock the table for hours.
 
-documentdb's `createIndexes` wrapper does not expose `CREATE INDEX CONCURRENTLY`; `unique=True` always takes the exclusive lock. the repo deliberately avoids `unique=True` on these collections and deduplicates via `update_one(filter, ..., upsert=True)` instead. see the in-code comments at `attubot/database/repositories.py:329` (messages) and `attubot/database/repositories.py:815` (reload_signals).
+documentdb's `createIndexes` wrapper does not expose `CREATE INDEX CONCURRENTLY`; `unique=True` always takes the exclusive lock. the repo deliberately avoids `unique=True` on these collections and deduplicates via `update_one(filter, ..., upsert=True)` instead. see the in-code comments at `doom_bot/database/repositories.py:329` (messages) and `doom_bot/database/repositories.py:815` (reload_signals).
 
 rule: never add `unique=True` to a collection that already has substantial production data without first checking row count and discussing the rollout. small or freshly-created collections are fine.
 
@@ -94,7 +94,7 @@ per the user's working notes, BSON mongodump from the prior real-mongo era resto
 
 ## connection-string and pymongo client options
 
-`attubot/database/connection.py` sets only standard timeout knobs (`serverSelectionTimeoutMS`, `connectTimeoutMS`, `socketTimeoutMS`, `maxIdleTimeMS`). all pass through the wire protocol unchanged.
+`doom_bot/database/connection.py` sets only standard timeout knobs (`serverSelectionTimeoutMS`, `connectTimeoutMS`, `socketTimeoutMS`, `maxIdleTimeMS`). all pass through the wire protocol unchanged.
 
 - `retryWrites=true` (pymongo default): safe; ferretdb individual writes are idempotent at the session level even though sessions cannot wrap a transaction.
 - `directConnection`: no replica set in this deployment; leave unset.

@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.database.models import FamilyDocument
+from doom_bot.database.models import FamilyDocument
 from tests.conftest import test_guild, test_user
 
 
@@ -40,7 +40,7 @@ def _patch_guild():
     """patch config.guild to return a minimal guild config"""
     mock_guild_config = MagicMock()
     mock_guild_config.id = test_guild
-    return patch('attubot.commands.link.config.guild', return_value=mock_guild_config)
+    return patch('doom_bot.commands.link.config.guild', return_value=mock_guild_config)
 
 
 # --- /link family list ---
@@ -50,9 +50,9 @@ class TestFamilyList:
     @pytest.mark.asyncio
     async def test_empty_list_message(self, mock_ctx):
         """empty family list responds with helpful message"""
-        from attubot.commands.link import family_list
+        from doom_bot.commands.link import family_list
 
-        with _patch_guild(), patch('attubot.commands.link.list_families', new_callable=AsyncMock, return_value=[]):
+        with _patch_guild(), patch('doom_bot.commands.link.list_families', new_callable=AsyncMock, return_value=[]):
             await family_list(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -62,7 +62,7 @@ class TestFamilyList:
     @pytest.mark.asyncio
     async def test_populated_list_sorted(self, mock_ctx):
         """family list shows entries sorted alphabetically by name"""
-        from attubot.commands.link import family_list
+        from doom_bot.commands.link import family_list
 
         families = [
             _make_family_doc(name='zephyr', display_name='Zephyr'),
@@ -70,7 +70,7 @@ class TestFamilyList:
             _make_family_doc(name='maple', display_name='Maple'),
         ]
 
-        with _patch_guild(), patch('attubot.commands.link.list_families', new_callable=AsyncMock, return_value=families):
+        with _patch_guild(), patch('doom_bot.commands.link.list_families', new_callable=AsyncMock, return_value=families):
             await family_list(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -90,9 +90,9 @@ class TestFamilyView:
     @pytest.mark.asyncio
     async def test_not_found_ephemeral(self, mock_ctx):
         """viewing a nonexistent family sends an ephemeral error"""
-        from attubot.commands.link import family_view
+        from doom_bot.commands.link import family_view
 
-        with _patch_guild(), patch('attubot.commands.link.get_family', new_callable=AsyncMock, return_value=None):
+        with _patch_guild(), patch('doom_bot.commands.link.get_family', new_callable=AsyncMock, return_value=None):
             await family_view(mock_ctx, name='nope')
 
         mock_ctx.respond.assert_called_once()
@@ -103,15 +103,15 @@ class TestFamilyView:
     @pytest.mark.asyncio
     async def test_success_shows_link(self, mock_ctx):
         """successful view shows the viewer url"""
-        from attubot.commands.link import family_view
+        from doom_bot.commands.link import family_view
 
         doc = _make_family_doc()
         viewer_url = 'https://www.familyecho.com/view/abc123'
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.get_family', new_callable=AsyncMock, return_value=doc),
-            patch('attubot.commands.link.get_viewer_url', new_callable=AsyncMock, return_value=viewer_url),
+            patch('doom_bot.commands.link.get_family', new_callable=AsyncMock, return_value=doc),
+            patch('doom_bot.commands.link.get_viewer_url', new_callable=AsyncMock, return_value=viewer_url),
         ):
             await family_view(mock_ctx, name='stark')
 
@@ -123,14 +123,14 @@ class TestFamilyView:
     @pytest.mark.asyncio
     async def test_api_failure_ephemeral(self, mock_ctx):
         """api failure sends an ephemeral error"""
-        from attubot.commands.link import family_view
+        from doom_bot.commands.link import family_view
 
         doc = _make_family_doc()
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.get_family', new_callable=AsyncMock, return_value=doc),
-            patch('attubot.commands.link.get_viewer_url', new_callable=AsyncMock, side_effect=Exception('network error')),
+            patch('doom_bot.commands.link.get_family', new_callable=AsyncMock, return_value=doc),
+            patch('doom_bot.commands.link.get_viewer_url', new_callable=AsyncMock, side_effect=Exception('network error')),
         ):
             await family_view(mock_ctx, name='stark')
 
@@ -148,7 +148,7 @@ class TestFamilySet:
     @pytest.mark.asyncio
     async def test_invalid_link_ephemeral(self, mock_ctx):
         """non-discord link sends an ephemeral error"""
-        from attubot.commands.link import family_set
+        from doom_bot.commands.link import family_set
 
         with _patch_guild():
             await family_set(mock_ctx, name='test', message_link='https://example.com/not-a-link')
@@ -161,7 +161,7 @@ class TestFamilySet:
     @pytest.mark.asyncio
     async def test_no_attachment_ephemeral(self, mock_ctx):
         """message with no .txt/.ged attachment sends an ephemeral error"""
-        from attubot.commands.link import family_set
+        from doom_bot.commands.link import family_set
 
         # mock fetching a message that has no relevant attachments
         mock_msg = MagicMock()
@@ -172,7 +172,7 @@ class TestFamilySet:
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.bot') as mock_bot,
+            patch('doom_bot.commands.link.bot') as mock_bot,
         ):
             mock_bot.get_channel = MagicMock(return_value=mock_channel)
             await family_set(mock_ctx, name='test', message_link='https://discord.com/channels/111/222/333')
@@ -185,7 +185,7 @@ class TestFamilySet:
     @pytest.mark.asyncio
     async def test_success_saves_and_responds(self, mock_ctx):
         """valid link with valid attachment saves the family and responds"""
-        from attubot.commands.link import family_set
+        from doom_bot.commands.link import family_set
 
         mock_attachment = MagicMock()
         mock_attachment.filename = 'family.txt'
@@ -199,9 +199,9 @@ class TestFamilySet:
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.bot') as mock_bot,
-            patch('attubot.commands.link.is_family_file', return_value=True),
-            patch('attubot.commands.link.save_family', new_callable=AsyncMock) as mock_save,
+            patch('doom_bot.commands.link.bot') as mock_bot,
+            patch('doom_bot.commands.link.is_family_file', return_value=True),
+            patch('doom_bot.commands.link.save_family', new_callable=AsyncMock) as mock_save,
         ):
             mock_bot.get_channel = MagicMock(return_value=mock_channel)
             await family_set(mock_ctx, name='Stark', message_link='https://discord.com/channels/111/222/333')
@@ -224,14 +224,14 @@ class TestFamilyUpload:
     @pytest.mark.asyncio
     async def test_invalid_file_ephemeral(self, mock_ctx):
         """uploading a non-family file sends an ephemeral error"""
-        from attubot.commands.link import family_upload
+        from doom_bot.commands.link import family_upload
 
         mock_file = MagicMock()
         mock_file.read = AsyncMock(return_value=b'this is not a family file')
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.is_family_file', return_value=False),
+            patch('doom_bot.commands.link.is_family_file', return_value=False),
         ):
             await family_upload(mock_ctx, name='test', file=mock_file)
 
@@ -243,7 +243,7 @@ class TestFamilyUpload:
     @pytest.mark.asyncio
     async def test_success_saves_and_responds(self, mock_ctx):
         """valid upload saves the family and responds with success"""
-        from attubot.commands.link import family_upload
+        from doom_bot.commands.link import family_upload
 
         content = '# family\n#\n# FamilyScript downloaded by test'
         mock_file = MagicMock()
@@ -251,8 +251,8 @@ class TestFamilyUpload:
 
         with (
             _patch_guild(),
-            patch('attubot.commands.link.is_family_file', return_value=True),
-            patch('attubot.commands.link.save_family', new_callable=AsyncMock) as mock_save,
+            patch('doom_bot.commands.link.is_family_file', return_value=True),
+            patch('doom_bot.commands.link.save_family', new_callable=AsyncMock) as mock_save,
         ):
             await family_upload(mock_ctx, name='Maple', file=mock_file)
 

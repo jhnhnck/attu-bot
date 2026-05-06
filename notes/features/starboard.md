@@ -80,7 +80,7 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 
 ---
 
-## Key Functions (`attubot/client/starboard.py`)
+## Key Functions (`apps/bot/doom_bot/client/starboard.py`)
 
 | Function | Purpose |
 |---|---|
@@ -154,5 +154,5 @@ only announces at exactly those counts - no announcement at 4, 6, etc. errors du
 ## metadata
 
 ```yaml
-last_updated: 12 April 2026
+last_updated: 6 May 2026
 ```

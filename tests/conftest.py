@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 
 
-# Set timezone before any attubot imports (NovaConfig reads TZ in __init__)
+# Set timezone before any doom_bot imports (NovaConfig reads TZ in __init__)
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -23,8 +23,8 @@ import pytest
 import pytest_asyncio
 import tomlkit
 
-from attubot import config
-from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from doom_bot import config
+from doom_bot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
 test_guild = 1234567890
@@ -95,7 +95,7 @@ def restore_config_state():
 
     # ensure tests always have a valid theme with default emoji IDs
     if config.theme is None:
-        from attubot.config import BotTheme
+        from doom_bot.config import BotTheme
 
         config.theme = BotTheme(
             ui_emojis={
@@ -129,8 +129,8 @@ def restore_config_state():
 
     # clear repo/db handles that may be bound to a different event loop
     config.config_repo = None
-    from attubot import db
-    from attubot.client import starboard as _starboard_module
+    from doom_bot import db
+    from doom_bot.client import starboard as _starboard_module
 
     db.client = None
     db.db = None
@@ -303,7 +303,7 @@ def mock_db():
 
     Example:
         def test_something(mock_db):
-            with patch('attubot.db.get_db', return_value=mock_db):
+            with patch('doom_bot.db.get_db', return_value=mock_db):
                 # Your test code
                 pass
     """
@@ -324,7 +324,7 @@ def mock_db_and_repos():
     """
     mock_database = MagicMock()
 
-    with patch('attubot.db.get_db', return_value=mock_database), patch('attubot.client.years._year_repo', None), patch('attubot.client.markers._marker_repo', None):
+    with patch('doom_bot.db.get_db', return_value=mock_database), patch('doom_bot.client.years._year_repo', None), patch('doom_bot.client.markers._marker_repo', None):
         yield mock_database
 
 
@@ -343,7 +343,7 @@ def mock_year_repo():
             assert result is not None
     """
     repo = AsyncMock()
-    with patch('attubot.client.years._get_repo', return_value=repo):
+    with patch('doom_bot.client.years._get_repo', return_value=repo):
         yield repo
 
 
@@ -361,7 +361,7 @@ def mock_marker_repo():
             assert result is not None
     """
     repo = AsyncMock()
-    with patch('attubot.client.markers._get_repo', return_value=repo):
+    with patch('doom_bot.client.markers._get_repo', return_value=repo):
         yield repo
 
 
@@ -382,7 +382,7 @@ def mock_all_repos():
     year_repo = AsyncMock()
     marker_repo = AsyncMock()
 
-    with patch('attubot.client.years._get_repo', return_value=year_repo), patch('attubot.client.markers._get_repo', return_value=marker_repo):
+    with patch('doom_bot.client.years._get_repo', return_value=year_repo), patch('doom_bot.client.markers._get_repo', return_value=marker_repo):
         yield {'year': year_repo, 'marker': marker_repo}
 
 
@@ -400,7 +400,7 @@ def make_year_doc():
     """
 
     def _make(guild=test_guild, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
-        from attubot.database.models import YearDocument
+        from doom_bot.database.models import YearDocument
 
         return YearDocument(
             guild=guild,
@@ -419,7 +419,7 @@ def make_year_doc():
 
 def _read_db_config() -> tuple[str, str]:
     """read database url and name from the toml config, falling back to localhost defaults."""
-    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './apps/bot/assets/attu-bot.toml'))
+    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml'))
     if config_path.exists():
         with config_path.open() as f:
             raw = tomlkit.load(f)
@@ -478,7 +478,7 @@ def make_year():
     """
 
     def _make(guild=test_guild, year=1, start_time=1704067200, end_time=1705276800, duration=14, notes=''):
-        from attubot.client.years import Year
+        from doom_bot.client.years import Year
 
         return Year(
             guild=guild,

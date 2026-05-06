@@ -12,8 +12,8 @@ import time
 
 import pytest
 
-from attubot.database.models import ReminderDocument
-from attubot.database.repositories import ReminderRepository
+from doom_bot.database.models import ReminderDocument
+from doom_bot.database.repositories import ReminderRepository
 
 
 pytestmark = pytest.mark.component

@@ -3,8 +3,15 @@
 > **status (2026-05-06): currently disabled.** The ingestor, `/ask` command, and admin
 > page were extracted into `apps/chat/` and turned off. `apps/chat/compose.yml`
 > still defines the qdrant/llama-server/ingestor services for revival via
-> `include:`. Mongo collections and shared-models classes are intact. The design
-> below reflects the architecture as it will resume when chat is revived.
+> `include:`. Mongo collections and shared-models classes are intact.
+>
+> the design below was written when chat lived inside the bot package. translate
+> paths as you read: `doom_bot/ingestor/` → `apps/chat/attu_chat/ingestor/`,
+> `doom_bot/commands/chat.py` → `apps/chat/attu_chat/commands/ask.py`,
+> `doom_bot/database/models.py` (`ChatConfigDocument`, `ChatSourceDocument`,
+> `ChatCharacterDocument`) → `packages/shared-models/attu_models/documents.py`,
+> `doom-bot.py ingestor` → `apps/chat/attu-chat.py ingestor`. shared-models docs
+> and repos remain at `packages/shared-models/attu_models/`.
 
 ## Key Design Decisions
 
@@ -24,7 +31,7 @@ A summary of every significant decision made during the design process, with rat
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Wiki ingestion method | `attubot/wiki/` package (`WikiClient`) + mwparserfromhell | Reuses existing wiki client and `[auth.wiki]` config; avoids duplicating API/auth logic |
+| Wiki ingestion method | `doom_bot/wiki/` package (`WikiClient`) + mwparserfromhell | Reuses existing wiki client and `[auth.wiki]` config; avoids duplicating API/auth logic |
 | Wiki search replacement | Qdrant vector search | MediaWiki's built-in search is inadequate; vector search solves this completely |
 | Wiki as source of truth | Yes - boosted in retrieval | Wiki is curated authoritative content; Discord is informal and noisy |
 | Discord channels | `chat_channels` dict in `ChatConfigDocument` | Explicit per-channel config with type, name, and description; supports shitpost exclusion, forum thread handling, and channel-level Qdrant weighting |
@@ -61,9 +68,9 @@ A summary of every significant decision made during the design process, with rat
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Ingestor separation | Dedicated container (`attubot.ingestor` mode) | Keeps bot clean; ingestor can be restarted/scaled independently |
-| Ingestor code location | `attubot/ingestor/` sub-package | Consistent with `attubot.web`; shares config system, logging, DB repos, task scheduler, and Quart for the internal API |
-| Ingestor internal API | Quart (same dep as web) | Already a dependency; no new packages; same `register_routes` / `jsonify` / `before_request` patterns as `attubot/web/` |
+| Ingestor separation | Dedicated container (`doom_bot.ingestor` mode) | Keeps bot clean; ingestor can be restarted/scaled independently |
+| Ingestor code location | `doom_bot/ingestor/` sub-package | Consistent with `doom_bot.web`; shares config system, logging, DB repos, task scheduler, and Quart for the internal API |
+| Ingestor internal API | Quart (same dep as web) | Already a dependency; no new packages; same `register_routes` / `jsonify` / `before_request` patterns as `doom_bot/web/` |
 | Ingest timing | Realtime buffer (5-min Discord), hourly (wiki), on-demand (docs/images) | Balances freshness against CPU load on the server |
 | Scheduler | `BaseTask` / `TaskScheduler` (existing) | Already used throughout the bot; no advantage to adding APScheduler as a second scheduler |
 | Fact deletion | Hard delete from Qdrant by point ID + flag in MongoDB chat_sources | Clean and permanent; correction documents get messy over time |
@@ -91,7 +98,7 @@ A summary of every significant decision made during the design process, with rat
 |  |                  |   |                  |   |                   |    |
 |  |  pycord bot    --+---+> shared volume   |   |  vector store     |    |
 |  |  quart web ui    |   |    for assets    |   |  collections:     |    |
-|  |  new: chat cog   |   |  attubot.ingestor|   |  - wiki           |    |
+|  |  new: chat cog   |   |  doom_bot.ingestor|   |  - wiki           |    |
 |  |                  |   |  pipelines,      |   |  - discord        |    |
 |  +--------+---------+   |  tasks, api      |   |  - documents      |    |
 |           |             +--------+---------+   |  - images         |    |
@@ -135,14 +142,14 @@ A summary of every significant decision made during the design process, with rat
 
 ### Ingestor Container
 
-The ingestor runs as a third mode of `attu-bot.py` (`python attu-bot.py ingestor`), identical in structure to the `bot` and `web` modes. It lives in `attubot/ingestor/`, uses the same `NovaConfig` TOML config system, the same MongoDB repositories, the same logging, and the same `BaseTask` / `TaskScheduler`.
+The ingestor runs as a third mode of `doom-bot.py` (`python doom-bot.py ingestor`), identical in structure to the `bot` and `web` modes. It lives in `doom_bot/ingestor/`, uses the same `NovaConfig` TOML config system, the same MongoDB repositories, the same logging, and the same `BaseTask` / `TaskScheduler`.
 
 ```
-attubot/ingestor/
+doom_bot/ingestor/
   __init__.py          # start_ingestor() - creates TaskScheduler, registers tasks, runs API
   pipelines/
     discord.py         # window grouping, reply chain traversal, noise filtering
-    wiki.py            # uses get_wiki() from attubot/wiki/, mwparserfromhell section splitting
+    wiki.py            # uses get_wiki() from doom_bot/wiki/, mwparserfromhell section splitting
     documents.py       # PDF (pymupdf) and docx (python-docx) extraction
     images.py          # Claude Haiku vision captioning
   embedder.py          # all-MiniLM-L6-v2, chunk -> Qdrant upsert
@@ -166,7 +173,7 @@ attubot/ingestor/
 
 ### Configuration
 
-**TOML `[chat]` section** (`ChatConfig` model in `attubot/config.py`, loaded at `on_init`):
+**TOML `[chat]` section** (`ChatConfig` model in `doom_bot/config.py`, loaded at `on_init`):
 
 ```toml
 [chat]
@@ -182,7 +189,7 @@ embedding_model = "all-MiniLM-L6-v2"  # override for testing with a smaller/stub
 prompts_dir = "assets/prompts"       # override for testing with fixture prompt files
 ```
 
-MediaWiki access uses the existing `[auth.wiki]` config section (`WikiAuth`: key, page, user, endpoint) and the `attubot/wiki/` package (`get_wiki()` singleton). The wiki pipeline in `attubot/ingestor/pipelines/wiki.py` calls `get_wiki()` directly - no separate MediaWiki URL or credentials needed in `[chat]`.
+MediaWiki access uses the existing `[auth.wiki]` config section (`WikiAuth`: key, page, user, endpoint) and the `doom_bot/wiki/` package (`get_wiki()` singleton). The wiki pipeline in `doom_bot/ingestor/pipelines/wiki.py` calls `get_wiki()` directly - no separate MediaWiki URL or credentials needed in `[chat]`.
 
 **MongoDB `ChatConfigDocument`** (runtime-tunable, loaded at `on_load`, exposed as `config.chat_runtime`, reloaded via `'chat'` signal):
 
@@ -272,21 +279,21 @@ A helper `_load_prompt(name: str) -> str` reads from `config.chat.prompts_dir / 
 
 | File | Used by | Purpose | Variables |
 |---|---|---|---|
-| `assets/prompts/chat-system-prompt.md` | `attubot/commands/chat.py` | Main `/ask` system prompt. Design doc: `notes/attu-chat-system-prompt.md` | `{current_date_pc}`, `{character_roster}` - injected per call |
-| `assets/prompts/discord-summarization-prompt.md` | `attubot/ingestor/summarizer.py` | Claude Haiku prompt for Discord window summarization | `{channel}`, `{channel_type}`, `{authors}`, `{date_range_pc}`, `{character_roster}`, `{messages}` - injected per window |
-| `assets/prompts/image-caption-prompt.md` | `attubot/ingestor/summarizer.py` | Claude Haiku vision prompt for image captioning | `{context}` - filename or surrounding message, injected per image |
-| `assets/prompts/character-extraction-prompt.md` | `attubot/ingestor/summarizer.py` | Claude Haiku extraction of character introductions from conversational RP | `{character_roster}`, `{messages}` - injected per window; only called for `character_log_channel_id` |
+| `assets/prompts/chat-system-prompt.md` | `doom_bot/commands/chat.py` | Main `/ask` system prompt. Design doc: `notes/attu-chat-system-prompt.md` | `{current_date_pc}`, `{character_roster}` - injected per call |
+| `assets/prompts/discord-summarization-prompt.md` | `doom_bot/ingestor/summarizer.py` | Claude Haiku prompt for Discord window summarization | `{channel}`, `{channel_type}`, `{authors}`, `{date_range_pc}`, `{character_roster}`, `{messages}` - injected per window |
+| `assets/prompts/image-caption-prompt.md` | `doom_bot/ingestor/summarizer.py` | Claude Haiku vision prompt for image captioning | `{context}` - filename or surrounding message, injected per image |
+| `assets/prompts/character-extraction-prompt.md` | `doom_bot/ingestor/summarizer.py` | Claude Haiku extraction of character introductions from conversational RP | `{character_roster}`, `{messages}` - injected per window; only called for `character_log_channel_id` |
 
 #### Current Date Injection
 
-`async def haracalnde_date(timestamp: int, guild: int | None = None) -> str` is a pure function in `attubot/client/calendar.py` that converts a unix timestamp to a formatted Haracalnde date string (e.g., `"15-3 5 PC"`). It uses the same epoch math as `get_year_status()`.
+`async def haracalnde_date(timestamp: int, guild: int | None = None) -> str` is a pure function in `doom_bot/client/calendar.py` that converts a unix timestamp to a formatted Haracalnde date string (e.g., `"15-3 5 PC"`). It uses the same epoch math as `get_year_status()`.
 
 The Q&A handler substitutes `{current_date_pc}` immediately before the LLM call:
 
 > **Phase 1:** `{character_roster}` is substituted as an empty string — `ChatCharacterDocument` records don't exist until the Discord pipeline lands in Phase 2. The roster assembly below applies from Phase 2 onward.
 
 ```python
-from attubot.calendar import haracalnde_date
+from doom_bot.calendar import haracalnde_date
 import time
 
 system_prompt = _cached_system_prompt.format(
@@ -357,7 +364,7 @@ MongoDB messages (chat_channels with ingest: True, last N hours)
 #### Wiki Pages
 
 ```
-WikiClient (get_wiki() from attubot/wiki/) -> pages API + recent changes polling
+WikiClient (get_wiki() from doom_bot/wiki/) -> pages API + recent changes polling
   |
   +- 1. Fetch wikitext via WikiClient (permitted namespaces only, per wiki_namespaces config)
   |
@@ -442,7 +449,7 @@ A single `chat_sources` collection in MongoDB tracks everything that has been in
 }
 ```
 
-Bot-side access uses `ChatSourceRepository` (in `attubot/database/repositories.py`) backed by `ChatSourceDocument` (in `attubot/database/models.py`). Every chunk in Qdrant carries a `source_id` in its payload that maps back to this record.
+Bot-side access uses `ChatSourceRepository` (in `doom_bot/database/repositories.py`) backed by `ChatSourceDocument` (in `doom_bot/database/models.py`). Every chunk in Qdrant carries a `source_id` in its payload that maps back to this record.
 
 ---
 
@@ -513,7 +520,7 @@ Shorthand commands:
 
 ### Bot Changes
 
-New `attubot/commands/chat.py` extension following the same pattern as all other command modules (pycord `SlashCommandGroup`, `setup(bot)` function).
+New `doom_bot/commands/chat.py` extension following the same pattern as all other command modules (pycord `SlashCommandGroup`, `setup(bot)` function).
 
 ```
 /ask <query>                      - main chat query; authorized guilds only (owner-only during testing)
@@ -547,7 +554,7 @@ services:
     build:
       context: .
       target: doombox              # same Dockerfile target as core and web
-    command: python -u attu-bot.py ingestor
+    command: python -u doom-bot.py ingestor
     volumes:
       - ./assets/attu-bot.toml:/home/doom/assets/attu-bot.toml:ro
       # prompt files are baked into the image via Dockerfile COPY; no shared volume needed
@@ -623,12 +630,12 @@ volumes:
 
 ### New Files & Modified Files
 
-#### New (`attubot/` package)
-- `attubot/commands/chat.py` - `/ask` slash command
-- `attubot/ingestor/__init__.py` - `start_ingestor()` entrypoint
-- `attubot/ingestor/pipelines/discord.py`, `wiki.py`, `documents.py`, `images.py`
-- `attubot/ingestor/embedder.py`, `vector_store.py`, `reranker.py`, `llm.py`, `summarizer.py`, `registry.py`, `api.py`
-- `attubot/ingestor/tasks.py` - `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask`
+#### New (`doom_bot/` package)
+- `doom_bot/commands/chat.py` - `/ask` slash command
+- `doom_bot/ingestor/__init__.py` - `start_ingestor()` entrypoint
+- `doom_bot/ingestor/pipelines/discord.py`, `wiki.py`, `documents.py`, `images.py`
+- `doom_bot/ingestor/embedder.py`, `vector_store.py`, `reranker.py`, `llm.py`, `summarizer.py`, `registry.py`, `api.py`
+- `doom_bot/ingestor/tasks.py` - `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask`
 
 #### New (prompt templates)
 - `assets/prompts/chat-system-prompt.md` - main `/ask` system prompt (derived from `notes/attu-chat-system-prompt.md`)
@@ -637,19 +644,19 @@ volumes:
 - `assets/prompts/character-extraction-prompt.md` - Claude Haiku character introduction extraction (character_log_channel_id only)
 
 #### Modified
-- `attu-bot.py` - add `ingestor` dispatch mode alongside `bot` and `web`
-- `attubot/config.py` - add `ChatConfig` (TOML `[chat]` section) + load `ChatConfigDocument` from MongoDB; expose as `config.chat_runtime`
-- `attubot/database/models.py` - add `ChatSourceDocument`, `ChatConfigDocument`, `ChatChannelConfig`, `ChatCharacterDocument`; extend `ReloadSignalDocument` Literal with `'chat'`
-- `attubot/database/repositories.py` - add `ChatSourceRepository`, `ChatConfigRepository`, `ChatCharacterRepository`
-- `attubot/tasks/reload_watcher.py` - handle `'chat'` signal (reload `config.chat_runtime`)
-- `attubot/commands/fix.py` - add `fix_chat` subgroup (`fix_group.create_subgroup('chat', ...)`) with `/fix chat forget` and `/fix ingest document`
-- `attubot/commands/debug.py` - add `debug_chat` subgroup with `/debug chat status`
-- `attubot/client/calendar.py` - add `haracalnde_date(timestamp: int, guild: int | None = None) -> str`
+- `doom-bot.py` - add `ingestor` dispatch mode alongside `bot` and `web`
+- `doom_bot/config.py` - add `ChatConfig` (TOML `[chat]` section) + load `ChatConfigDocument` from MongoDB; expose as `config.chat_runtime`
+- `doom_bot/database/models.py` - add `ChatSourceDocument`, `ChatConfigDocument`, `ChatChannelConfig`, `ChatCharacterDocument`; extend `ReloadSignalDocument` Literal with `'chat'`
+- `doom_bot/database/repositories.py` - add `ChatSourceRepository`, `ChatConfigRepository`, `ChatCharacterRepository`
+- `doom_bot/tasks/reload_watcher.py` - handle `'chat'` signal (reload `config.chat_runtime`)
+- `doom_bot/commands/fix.py` - add `fix_chat` subgroup (`fix_group.create_subgroup('chat', ...)`) with `/fix chat forget` and `/fix ingest document`
+- `doom_bot/commands/debug.py` - add `debug_chat` subgroup with `/debug chat status`
+- `doom_bot/client/calendar.py` - add `haracalnde_date(timestamp: int, guild: int | None = None) -> str`
 - `docker-compose.yml` - add `qdrant`, `ingestor`, `llama-server`; add assets volume to `core`
 - `config/attu-bot.sample.toml` - add `[chat]` section example
 
 #### Optional
-- `attubot/commands/wiki.py` - wire `/wiki lookup` to Qdrant in addition to MediaWiki search
+- `doom_bot/commands/wiki.py` - wire `/wiki lookup` to Qdrant in addition to MediaWiki search
 
 ---
 
@@ -795,7 +802,7 @@ def make_message_doc():
 @pytest.fixture
 def mock_chat_source_repo():
     repo = AsyncMock()
-    with patch('attubot.ingestor.registry._get_repo', return_value=repo):
+    with patch('doom_bot.ingestor.registry._get_repo', return_value=repo):
         yield repo
 
 
@@ -804,7 +811,7 @@ def mock_embedder():
     embedder = MagicMock()
     embedder.embed.return_value = [0.0] * 384  # all-MiniLM-L6-v2 dim
     embedder.embed_batch.return_value = [[0.0] * 384]
-    with patch('attubot.ingestor.embedder._get_embedder', return_value=embedder):
+    with patch('doom_bot.ingestor.embedder._get_embedder', return_value=embedder):
         yield embedder
 
 
@@ -812,7 +819,7 @@ def mock_embedder():
 def mock_vector_store():
     store = AsyncMock()
     store.search.return_value = []  # override per-test as needed
-    with patch('attubot.ingestor.vector_store._get_vector_store', return_value=store):
+    with patch('doom_bot.ingestor.vector_store._get_vector_store', return_value=store):
         yield store
 
 
@@ -820,7 +827,7 @@ def mock_vector_store():
 def mock_summarizer():
     summarizer = AsyncMock()
     summarizer.summarize.return_value = 'mock summary'
-    with patch('attubot.ingestor.summarizer._get_summarizer', return_value=summarizer):
+    with patch('doom_bot.ingestor.summarizer._get_summarizer', return_value=summarizer):
         yield summarizer
 ```
 
@@ -851,8 +858,8 @@ def mock_summarizer():
 
 #### Phase 1 - Foundation
 - Deploy Qdrant container
-- Build `attubot/ingestor/` scaffold with wiki pipeline only
-- Add `/ask` command to `attubot/commands/chat.py` querying wiki collection
+- Build `doom_bot/ingestor/` scaffold with wiki pipeline only
+- Add `/ask` command to `doom_bot/commands/chat.py` querying wiki collection
 - Validate retrieval quality before proceeding
 
 #### Phase 2 - Discord Integration

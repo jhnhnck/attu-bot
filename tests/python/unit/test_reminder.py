@@ -20,9 +20,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from freezegun import freeze_time
 
-from attubot.client.calendar import AttuYearSpan
-from attubot.database.models import ReminderDocument
-from attubot.tasks.reminder import compute_fire_time, format_attu_date
+from doom_bot.client.calendar import AttuYearSpan
+from doom_bot.database.models import ReminderDocument
+from doom_bot.tasks.reminder import compute_fire_time, format_attu_date
 from tests.conftest import test_channel, test_guild, test_user
 
 
@@ -77,7 +77,7 @@ class TestComputeFireTime:
         """Year-only reminder fires at the start_time of the year span."""
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
             r = _make_reminder(attu_year=5, attu_month=None)
             result = await compute_fire_time(r)
 
@@ -90,7 +90,7 @@ class TestComputeFireTime:
         # 14-day year: span_seconds = 1209600
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
             # month 3 (no day) → haracalnde_pos = (3-1)*30 + (1-1) = 60
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=None)
             result = await compute_fire_time(r)
@@ -104,7 +104,7 @@ class TestComputeFireTime:
         """Full date reminder fires at the correct interpolated position."""
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
             # 15-3 → haracalnde_pos = (3-1)*30 + (15-1) = 74
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=15)
             result = await compute_fire_time(r)
@@ -133,7 +133,7 @@ class TestComputeFireTime:
         """Invalid span (start/end = 0) → returns None."""
         span = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
             r = _make_reminder(attu_year=5)
             result = await compute_fire_time(r)
 
@@ -147,7 +147,7 @@ class TestRemindAddValidation:
     @pytest.mark.asyncio
     async def test_day_without_month_rejected(self, mock_ctx, guild):
         """Day without month should be rejected."""
-        from attubot.commands.remind import remind_add
+        from doom_bot.commands.remind import remind_add
 
         await remind_add(mock_ctx, year=5, month=None, day=15)
 
@@ -159,7 +159,7 @@ class TestRemindAddValidation:
     @pytest.mark.asyncio
     async def test_paused_guild_rejected(self, mock_ctx, make_guild):
         """Reminders should be rejected when time is paused."""
-        from attubot.commands.remind import remind_add
+        from doom_bot.commands.remind import remind_add
 
         make_guild(paused=True)
         await remind_add(mock_ctx, year=5)
@@ -173,12 +173,12 @@ class TestRemindAddValidation:
     @freeze_time('2024-02-01 12:00:00')
     async def test_past_date_rejected(self, mock_ctx, guild):
         """Reminders for past dates should be rejected."""
-        from attubot.commands.remind import remind_add
+        from doom_bot.commands.remind import remind_add
 
         # year 1 starts at epoch (2024-01-01) which is in the past
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
             await remind_add(mock_ctx, year=1)
 
         mock_ctx.respond.assert_called_once()
@@ -190,7 +190,7 @@ class TestRemindAddValidation:
     @freeze_time('2024-01-02 12:00:00')
     async def test_future_date_accepted(self, mock_ctx, guild):
         """Valid future date should insert and respond with confirmation."""
-        from attubot.commands.remind import remind_add
+        from doom_bot.commands.remind import remind_add
 
         # year 5 is well in the future
         span = AttuYearSpan(start_time=1708000000, end_time=1709209600, duration=14)
@@ -200,7 +200,7 @@ class TestRemindAddValidation:
         mock_interaction_msg.id = 1111111111
         mock_ctx.interaction.original_response = AsyncMock(return_value=mock_interaction_msg)
 
-        with patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span), patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span), patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             await remind_add(mock_ctx, year=5, note='test note')
 
         # should have inserted a reminder
@@ -220,7 +220,7 @@ class TestRemindAddValidation:
     @freeze_time('2024-01-02 12:00:00')
     async def test_future_date_wakes_reminder_task(self, mock_ctx, guild):
         """Successful insert should call request_wake() on the reminder task."""
-        from attubot.commands.remind import remind_add
+        from doom_bot.commands.remind import remind_add
 
         span = AttuYearSpan(start_time=1708000000, end_time=1709209600, duration=14)
 
@@ -230,9 +230,9 @@ class TestRemindAddValidation:
         mock_ctx.interaction.original_response = AsyncMock(return_value=mock_interaction_msg)
 
         with (
-            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span),
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.commands.remind.reminder_task') as mock_task,
+            patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span),
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.commands.remind.reminder_task') as mock_task,
         ):
             await remind_add(mock_ctx, year=5)
 
@@ -246,14 +246,14 @@ class TestRemindCancelValidation:
     @pytest.mark.asyncio
     async def test_cancel_other_users_reminder_rejected(self, mock_ctx, guild):
         """Cannot cancel another user's reminder."""
-        from attubot.commands.remind import remind_cancel
+        from doom_bot.commands.remind import remind_cancel
 
         other_user_reminder = _make_reminder(user_id=1111111111)
         mock_repo = AsyncMock()
         mock_repo.get.return_value = other_user_reminder
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=other_user_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
@@ -263,13 +263,13 @@ class TestRemindCancelValidation:
     @pytest.mark.asyncio
     async def test_cancel_nonexistent_reminder_rejected(self, mock_ctx, guild):
         """Cancelling a nonexistent reminder should fail."""
-        from attubot.commands.remind import remind_cancel
+        from doom_bot.commands.remind import remind_cancel
 
         mock_repo = AsyncMock()
         mock_repo.get.return_value = None
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id='nonexistent')
 
         args = mock_ctx._responses[0]
@@ -279,14 +279,14 @@ class TestRemindCancelValidation:
     @pytest.mark.asyncio
     async def test_cancel_fired_reminder_rejected(self, mock_ctx, guild):
         """Cannot cancel an already-fired reminder."""
-        from attubot.commands.remind import remind_cancel
+        from doom_bot.commands.remind import remind_cancel
 
         fired_reminder = _make_reminder(user_id=test_user, fired=True, fired_at=1700000000)
         mock_repo = AsyncMock()
         mock_repo.get.return_value = fired_reminder
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=fired_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
@@ -296,14 +296,14 @@ class TestRemindCancelValidation:
     @pytest.mark.asyncio
     async def test_cancel_own_reminder_succeeds(self, mock_ctx, guild):
         """Owner can cancel their own reminder."""
-        from attubot.commands.remind import remind_cancel
+        from doom_bot.commands.remind import remind_cancel
 
         reminder = _make_reminder(user_id=test_user)
         mock_repo = AsyncMock()
         mock_repo.get.return_value = reminder
         mock_repo.delete.return_value = True
 
-        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=reminder.reminder_id)
 
         mock_repo.delete.assert_called_once_with(reminder.reminder_id)
@@ -318,7 +318,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_happy_path_sends_to_original_channel(self, guild):
         """delivers the reminder embed to the original channel with a user mention."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, attu_month=3, attu_day=15, note='do the thing')
 
@@ -326,7 +326,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -341,7 +341,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_fallback_to_meta_chat(self, make_guild):
         """falls back to meta_chat when the original channel is not found."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         cfg = make_guild()
         meta_channel_id = 7777777777
@@ -359,7 +359,7 @@ class TestDeliverReminder:
 
         mock_guild.get_channel_or_thread = MagicMock(side_effect=_get_channel)
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -368,11 +368,11 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_guild_not_found(self):
         """logs warning and returns when guild is not found."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder()
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = None
             # should not raise
             await _deliver_reminder(reminder)
@@ -380,7 +380,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_no_channel_at_all(self, make_guild):
         """logs warning when neither original channel nor meta_chat is found."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         cfg = make_guild()
         cfg.channels.meta_chat = 0  # no meta chat configured
@@ -390,7 +390,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=None)
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             # should not raise
             await _deliver_reminder(reminder)
@@ -398,7 +398,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_includes_message_link(self, guild):
         """includes a jump url in the embed when the reminder has a message_id."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, message_id=1234567890)
 
@@ -406,7 +406,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -416,7 +416,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_no_note_no_message_id(self, guild):
         """embed has no note line and no jump url when both are absent."""
-        from attubot.tasks.reminder import _deliver_reminder
+        from doom_bot.tasks.reminder import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, note='', message_id=0)
 
@@ -424,7 +424,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('attubot.tasks.reminder.bot') as mock_bot:
+        with patch('doom_bot.tasks.reminder.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -444,7 +444,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_fires_overdue_reminders(self, guild):
         """run() fires reminders whose fire time is in the past and marks them fired."""
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -456,9 +456,9 @@ class TestReminderTaskRun:
         past_span = AttuYearSpan(start_time=1000000, end_time=1200000, duration=14)
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=past_span),
-            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=past_span),
+            patch('doom_bot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -469,7 +469,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_skips_future_reminders(self, guild):
         """run() does not fire reminders whose fire time is in the future."""
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -481,9 +481,9 @@ class TestReminderTaskRun:
         future_span = AttuYearSpan(start_time=9999999999, end_time=9999999999 + 1209600, duration=14)
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=future_span),
-            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=future_span),
+            patch('doom_bot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -493,7 +493,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_skips_when_fire_time_none(self, guild):
         """run() skips reminders whose fire time cannot be computed (paused guild, etc.)."""
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -502,9 +502,9 @@ class TestReminderTaskRun:
         mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
-            patch('attubot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
+            patch('doom_bot.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -520,13 +520,13 @@ class TestReminderTaskNextRun:
     @freeze_time('2024-06-01 12:00:00')
     async def test_no_pending_reminders(self, guild):
         """returns ~30 minutes from now when there are no unfired reminders."""
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
         mock_repo = AsyncMock()
         mock_repo.list_all_unfired = AsyncMock(return_value=[])
 
-        with patch('attubot.tasks.reminder._reminder_repo', mock_repo):
+        with patch('doom_bot.tasks.reminder._reminder_repo', mock_repo):
             result = await task.next_run()
 
         assert result is not None
@@ -541,7 +541,7 @@ class TestReminderTaskNextRun:
         """returns the earliest fire time across all pending reminders."""
         from datetime import datetime
 
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -561,8 +561,8 @@ class TestReminderTaskNextRun:
             return fire_r2
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.compute_fire_time', side_effect=mock_compute),
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.compute_fire_time', side_effect=mock_compute),
         ):
             result = await task.next_run()
 
@@ -575,7 +575,7 @@ class TestReminderTaskNextRun:
         """returns now when a reminder is already overdue."""
         from datetime import datetime
 
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -586,8 +586,8 @@ class TestReminderTaskNextRun:
         overdue_time = datetime(2024, 1, 1, 0, 0).astimezone()
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=overdue_time),
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=overdue_time),
         ):
             result = await task.next_run()
 
@@ -601,7 +601,7 @@ class TestReminderTaskNextRun:
         """returns ~30 minutes from now when all reminders belong to paused/unauthorized guilds."""
         from datetime import datetime
 
-        from attubot.tasks.reminder import ReminderTask
+        from doom_bot.tasks.reminder import ReminderTask
 
         task = ReminderTask()
 
@@ -610,8 +610,8 @@ class TestReminderTaskNextRun:
         mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
 
         with (
-            patch('attubot.tasks.reminder._reminder_repo', mock_repo),
-            patch('attubot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
+            patch('doom_bot.tasks.reminder._reminder_repo', mock_repo),
+            patch('doom_bot.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
         ):
             result = await task.next_run()
 

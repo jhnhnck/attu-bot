@@ -4,7 +4,7 @@ version = "0.0.0"
 requires-python = "==3.13.*"
 # attu-chat is dormant. it ships as a workspace member so revival is a one-line
 # include from the root compose; no service builds this image yet.
-# cross-app imports against attubot.* are intentional while chat is offline; when
+# cross-app imports against doom_bot.* are intentional while chat is offline; when
 # revived, BaseTask/get_logger/etc should be re-homed in a packages/ module.
 dependencies = [
     "aiohttp",

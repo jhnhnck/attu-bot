@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from attubot.commands.stars import _build_recheck_response, _leaderboard_embed, _resolve_recheck_target, _show_random_message
-from attubot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
+from doom_bot.commands.stars import _build_recheck_response, _leaderboard_embed, _resolve_recheck_target, _show_random_message
+from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
 from tests.conftest import test_guild
 
 
@@ -215,11 +215,11 @@ class TestShowRandomMessage:
         mock_msg_repo.upsert = AsyncMock()
 
         with (
-            patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('attubot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('attubot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]),
-            patch('attubot.client.starboard.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
-            patch('attubot.client.starboard.dominant_color', return_value=0x5865F2),
+            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('doom_bot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]),
+            patch('doom_bot.client.starboard.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
+            patch('doom_bot.client.starboard.dominant_color', return_value=0x5865F2),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -232,7 +232,7 @@ class TestShowRandomMessage:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             await _show_random_message(ctx, min_total=2)
 
         assert len(ctx._responses) == 1
@@ -245,7 +245,7 @@ class TestShowRandomMessage:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             await _show_random_message(ctx, min_total=1, max_total=1)
 
         assert 'exactly 1 star' in ctx._responses[0]['args'][0]
@@ -254,7 +254,7 @@ class TestShowRandomMessage:
         """responds ephemeral when the starboard repo is not initialized."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('attubot.commands.stars._get_sb_repo', side_effect=RuntimeError('no repo')):
+        with patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('no repo')):
             await _show_random_message(ctx, min_total=2)
 
         assert 'not initialized' in ctx._responses[0]['args'][0]
@@ -267,8 +267,8 @@ class TestShowRandomMessage:
         mock_sb_repo.get_random = AsyncMock(return_value=_sb_doc())
 
         with (
-            patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('attubot.commands.stars.config.guild', side_effect=Exception('not found')),
+            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('doom_bot.commands.stars.config.guild', side_effect=Exception('not found')),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -286,8 +286,8 @@ class TestShowRandomMessage:
         mock_msg_repo.get = AsyncMock(return_value=None)
 
         with (
-            patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('attubot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -303,8 +303,8 @@ class TestStarsLost:
         """stars lost passes min_total=1, max_total=1 to _show_random_message."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('attubot.commands.stars._show_random_message', new_callable=AsyncMock) as mock_show:
-            from attubot.commands.stars import stars_lost
+        with patch('doom_bot.commands.stars._show_random_message', new_callable=AsyncMock) as mock_show:
+            from doom_bot.commands.stars import stars_lost
 
             await stars_lost(ctx)
 
@@ -397,10 +397,10 @@ class TestResolveRecheckTarget:
         mock_msg_repo.upsert = AsyncMock()
 
         with (
-            patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('attubot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('attubot.bot') as mock_bot,
-            patch('attubot.client.messages.build_message_doc', new_callable=AsyncMock, return_value=_msg_doc(7001)),
+            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('doom_bot.bot') as mock_bot,
+            patch('doom_bot.client.messages.build_message_doc', new_callable=AsyncMock, return_value=_msg_doc(7001)),
         ):
             mock_bot.get_channel.return_value = orig_channel
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
@@ -423,7 +423,7 @@ class TestResolveRecheckTarget:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=None)
 
-        with patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
 
         assert result is None
@@ -462,8 +462,8 @@ class TestResolveRecheckTarget:
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=sb_doc)
 
         with (
-            patch('attubot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('attubot.bot') as mock_bot,
+            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('doom_bot.bot') as mock_bot,
         ):
             mock_bot.get_channel.return_value = None
             mock_bot.fetch_channel = AsyncMock(side_effect=Exception('channel not found'))

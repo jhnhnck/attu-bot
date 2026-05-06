@@ -20,10 +20,10 @@ from attu_chat.ingestor.query_expander import _get_query_expander
 from attu_chat.ingestor.reranker import _get_reranker
 from attu_chat.ingestor.vector_store import _get_vector_store
 from attu_models import ChatCharacterDocument
-from attubot.client.calendar import haracalnde_date
-from attubot.client.core import config
-from attubot.client.util import is_authorized_guild, is_bot_owner
-from attubot.logging import get_logger
+from doom_bot.client.calendar import haracalnde_date
+from doom_bot.client.core import config
+from doom_bot.client.util import is_authorized_guild, is_bot_owner
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -41,7 +41,7 @@ def _get_char_repo():
     global _char_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _char_repo is None:
         from attu_models import ChatCharacterRepository
-        from attubot import db
+        from doom_bot import db
 
         _char_repo = ChatCharacterRepository(db.get_db())
     return _char_repo

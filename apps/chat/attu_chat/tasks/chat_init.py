@@ -7,9 +7,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import datetime, timedelta
 
-from attubot.client.core import config
-from attubot.logging import get_logger
-from attubot.tasks.base import BaseTask
+from doom_bot.client.core import config
+from doom_bot.logging import get_logger
+from doom_bot.tasks.base import BaseTask
 
 
 logger = get_logger(__name__)

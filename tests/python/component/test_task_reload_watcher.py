@@ -12,8 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
-from attubot import config
-from attubot.database.repositories import ConfigRepository, ReloadSignalRepository
+from doom_bot import config
+from doom_bot.database.repositories import ConfigRepository, ReloadSignalRepository
 
 
 pytestmark = pytest.mark.component
@@ -22,7 +22,7 @@ test_guild = 1234567890
 
 
 def _make_task():
-    from attubot.tasks.reload_watcher import ReloadWatcherTask
+    from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
     return ReloadWatcherTask()
 
@@ -47,7 +47,7 @@ class TestReloadWatcherSignalConsumption:
 
             await signal_repo.send('guild', test_guild)
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             assert config.guilds[test_guild].epoch.year == 5
@@ -69,7 +69,7 @@ class TestReloadWatcherSignalConsumption:
             await config_repo.save_guild(config.guilds[test_guild])
             await signal_repo.send('guild', test_guild)
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             remaining = await signal_repo.consume_all()
@@ -79,7 +79,7 @@ class TestReloadWatcherSignalConsumption:
 
     async def test_theme_signal_reloads_theme_from_db(self, component_db):
         """a theme signal causes config.theme to reflect the saved theme doc"""
-        from attubot.config import BotTheme
+        from doom_bot.config import BotTheme
 
         config_repo = ConfigRepository(component_db)
         await config_repo.init_indexes()
@@ -97,7 +97,7 @@ class TestReloadWatcherSignalConsumption:
 
             await signal_repo.send('theme')
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             assert config.theme is not None
@@ -109,7 +109,7 @@ class TestReloadWatcherSignalConsumption:
 
     async def test_system_signal_reloads_error_hook_from_db(self, component_db):
         """a system signal causes config.error_hook to reflect the saved system doc"""
-        from attubot.database.models import SystemConfigDocument
+        from doom_bot.database.models import SystemConfigDocument
 
         config_repo = ConfigRepository(component_db)
         await config_repo.init_indexes()
@@ -132,7 +132,7 @@ class TestReloadWatcherSignalConsumption:
 
             await signal_repo.send('system')
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             assert config.error_hook == 'https://discord.com/api/webhooks/test/new-hook'
@@ -142,8 +142,8 @@ class TestReloadWatcherSignalConsumption:
 
     async def test_multiple_signals_all_processed_in_one_run(self, component_db, make_guild):
         """guild, theme, and system signals in the same run are all applied"""
-        from attubot.config import BotTheme
-        from attubot.database.models import SystemConfigDocument
+        from doom_bot.config import BotTheme
+        from doom_bot.database.models import SystemConfigDocument
 
         config_repo = ConfigRepository(component_db)
         await config_repo.init_indexes()
@@ -172,7 +172,7 @@ class TestReloadWatcherSignalConsumption:
             await signal_repo.send('theme')
             await signal_repo.send('system')
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             assert config.guilds[test_guild].epoch.year == 7
@@ -191,7 +191,7 @@ class TestReloadWatcherSignalConsumption:
 
         original_guilds = dict(config.guilds)
 
-        with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+        with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
             await _make_task().run()
 
         assert dict(config.guilds) == original_guilds
@@ -216,7 +216,7 @@ class TestReloadWatcherSignalConsumption:
             await signal_repo.send('guild', test_guild)
             await signal_repo.send('guild', test_guild)
 
-            with patch('attubot.tasks.reload_watcher._repo', signal_repo):
+            with patch('doom_bot.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
             # effect should still apply

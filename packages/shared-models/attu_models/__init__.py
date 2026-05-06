@@ -4,7 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Document and repository classes carved out from `attubot.database` so the future
+Document and repository classes carved out from `doom_bot.database` so the future
 fastapi server can read and write the same collections without depending on
 pycord. The bot remains the index-creation leader; nothing in this package calls
 init_indexes() at import time.

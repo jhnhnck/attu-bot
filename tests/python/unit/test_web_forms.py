@@ -4,13 +4,13 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Tests for Pydantic form validation models in attubot/web/forms.py
+Tests for Pydantic form validation models in doom_bot/web/forms.py
 """
 
 import pytest
 from pydantic import ValidationError
 
-from attubot.web.forms import (
+from doom_bot.web.forms import (
     GuildChannelsForm,
     GuildConfigForm,
     GuildEpochForm,

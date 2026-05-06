@@ -2,8 +2,8 @@
 name = "attu-models"
 version = "0.0.0"
 requires-python = "==3.13.*"
-# attubot.logging is used as an ambient import (the workspace venv installs both packages);
-# not declared here to avoid a circular workspace dep against attubot.
+# doom_bot.logging is used as an ambient import (the workspace venv installs both packages);
+# not declared here to avoid a circular workspace dep against doom_bot.
 dependencies = [
     "pydantic",
     "pymongo>=4.6.0",

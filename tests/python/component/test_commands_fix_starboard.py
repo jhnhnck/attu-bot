@@ -14,8 +14,8 @@ import discord
 import pytest
 import pytest_asyncio
 
-from attubot.database.models import StarredMessageDocument
-from attubot.database.repositories import StarboardRepository
+from doom_bot.database.models import StarredMessageDocument
+from doom_bot.database.repositories import StarboardRepository
 
 
 pytestmark = pytest.mark.component
@@ -52,7 +52,7 @@ async def fix_sb_repos(component_db, make_guild):
     cfg.starboard.channel_id = sb_channel
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
-    import attubot.client.starboard as _starboard
+    import doom_bot.client.starboard as _starboard
 
     _starboard._starboard_repo = sb_repo
 
@@ -72,7 +72,7 @@ class TestFixStarboardPurge:
 
         message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
 
-        from attubot.commands.fix import fix_starboard_purge
+        from doom_bot.commands.fix import fix_starboard_purge
 
         await fix_starboard_purge(ctx, message_link=message_link)
 
@@ -94,9 +94,9 @@ class TestFixStarboardPurge:
 
         message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
 
-        from attubot.commands.fix import fix_starboard_purge
+        from doom_bot.commands.fix import fix_starboard_purge
 
-        with patch('attubot.commands.fix.bot.get_channel', return_value=fake_channel):
+        with patch('doom_bot.commands.fix.bot.get_channel', return_value=fake_channel):
             await fix_starboard_purge(ctx, message_link=message_link)
 
         fake_msg.delete.assert_called_once()
@@ -118,9 +118,9 @@ class TestFixStarboardPurge:
 
         message_link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
 
-        from attubot.commands.fix import fix_starboard_purge
+        from doom_bot.commands.fix import fix_starboard_purge
 
-        with patch('attubot.commands.fix.bot.get_channel', return_value=fake_channel):
+        with patch('doom_bot.commands.fix.bot.get_channel', return_value=fake_channel):
             await fix_starboard_purge(ctx, message_link=message_link)
 
         # doc still deleted despite discord.NotFound

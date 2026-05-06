@@ -16,9 +16,9 @@ from attu_chat.ingestor.embedder import _get_embedder
 from attu_chat.ingestor.registry import get_source, upsert_source
 from attu_chat.ingestor.vector_store import _get_vector_store
 from attu_models import ChatSourceDocument
-from attubot.client.core import config
-from attubot.logging import get_logger
-from attubot.wiki import get_wiki
+from doom_bot.client.core import config
+from doom_bot.logging import get_logger
+from doom_bot.wiki import get_wiki
 
 
 logger = get_logger(__name__)

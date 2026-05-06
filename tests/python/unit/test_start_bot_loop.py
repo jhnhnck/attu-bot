@@ -4,7 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Fast, offline tests for the pre-network startup pipeline in attubot/__init__.py.
+Fast, offline tests for the pre-network startup pipeline in doom_bot/__init__.py.
 No real Discord connection, no MongoDB, no filesystem access needed.
 """
 
@@ -13,7 +13,7 @@ from unittest.mock import call, patch
 
 import pytest
 
-import attubot
+import doom_bot
 
 
 # --- helpers ---
@@ -30,12 +30,12 @@ def _patch_all_startup(
       [mock_on_init, mock_which, mock_load_handlers, mock_add_cmd, mock_load_ext, mock_run]
     """
     return (
-        patch.object(attubot.config, 'on_init'),
+        patch.object(doom_bot.config, 'on_init'),
         patch('shutil.which', return_value=which_return, side_effect=which_side_effect),
-        patch('attubot.client._load_event_handlers'),
-        patch.object(attubot.bot, 'add_application_command'),
-        patch.object(attubot.bot, 'load_extension', side_effect=load_ext_side_effect),
-        patch.object(attubot.bot, 'run'),
+        patch('doom_bot.client._load_event_handlers'),
+        patch.object(doom_bot.bot, 'add_application_command'),
+        patch.object(doom_bot.bot, 'load_extension', side_effect=load_ext_side_effect),
+        patch.object(doom_bot.bot, 'run'),
     )
 
 
@@ -51,12 +51,12 @@ class TestSetupDiscordLogging:
         """a PycordBridgeHandler is added to the discord.http stdlib logger"""
         import logging as _logging
 
-        from attubot.logging import PycordBridgeHandler
+        from doom_bot.logging import PycordBridgeHandler
 
         discord_http_logger = _logging.getLogger('discord.http')
         initial_count = len(discord_http_logger.handlers)
 
-        attubot._setup_discord_logging()
+        doom_bot._setup_discord_logging()
 
         new_handlers = discord_http_logger.handlers[initial_count:]
         assert any(isinstance(h, PycordBridgeHandler) for h in new_handlers)
@@ -73,17 +73,37 @@ class TestSetupDiscordLogging:
         discord_http_logger = _logging.getLogger('discord.http')
         original_level = discord_http_logger.level
 
-        attubot._setup_discord_logging()
+        doom_bot._setup_discord_logging()
 
         assert discord_http_logger.level == _logging.DEBUG
 
         # cleanup
         discord_http_logger.setLevel(original_level)
-        from attubot.logging import PycordBridgeHandler
+        from doom_bot.logging import PycordBridgeHandler
 
         for h in list(discord_http_logger.handlers):
             if isinstance(h, PycordBridgeHandler):
                 discord_http_logger.removeHandler(h)
+
+    def test_root_logger_has_dual_stream_handlers(self):
+        """structlog config installs one stdout (< WARNING) and one stderr (>= WARNING) handler on root.
+
+        compensates for PycordBridgeHandler no longer routing records itself; the real stdout/stderr
+        split now lives on the root logger via doom_bot.logging._configure().
+        """
+        import logging as _logging
+        import sys
+
+        import doom_bot.logging  # noqa: F401 - imported for side effect of _configure()
+
+        root = _logging.getLogger()
+        owned = [h for h in root.handlers if getattr(h, '_doom_bot_owned', False)]
+
+        assert len(owned) >= 2, f'expected at least 2 doom_bot-owned handlers, got {len(owned)}'
+
+        streams = {h.stream for h in owned if isinstance(h, _logging.StreamHandler)}
+        assert sys.stdout in streams
+        assert sys.stderr in streams
 
 
 class TestStartBotLoopPipeline:
@@ -92,14 +112,14 @@ class TestStartBotLoopPipeline:
     def test_happy_path_all_steps_called(self):
         """all six startup steps fire on a clean run"""
         with (
-            patch.object(attubot.config, 'on_init') as mock_init,
+            patch.object(doom_bot.config, 'on_init') as mock_init,
             patch('shutil.which', return_value='/usr/bin/resvg'),
-            patch('attubot.client._load_event_handlers') as mock_handlers,
-            patch.object(attubot.bot, 'add_application_command') as mock_add,
-            patch.object(attubot.bot, 'load_extension'),
-            patch.object(attubot.bot, 'run') as mock_run,
+            patch('doom_bot.client._load_event_handlers') as mock_handlers,
+            patch.object(doom_bot.bot, 'add_application_command') as mock_add,
+            patch.object(doom_bot.bot, 'load_extension'),
+            patch.object(doom_bot.bot, 'run') as mock_run,
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
             mock_init.assert_called_once()
             mock_handlers.assert_called_once()
@@ -111,14 +131,14 @@ class TestStartBotLoopPipeline:
         call_order = []
 
         with (
-            patch.object(attubot.config, 'on_init', side_effect=lambda: call_order.append('on_init')),
+            patch.object(doom_bot.config, 'on_init', side_effect=lambda: call_order.append('on_init')),
             patch('shutil.which', side_effect=lambda _: call_order.append('which') or '/usr/bin/resvg'),
-            patch('attubot.client._load_event_handlers'),
-            patch.object(attubot.bot, 'add_application_command'),
-            patch.object(attubot.bot, 'load_extension'),
-            patch.object(attubot.bot, 'run'),
+            patch('doom_bot.client._load_event_handlers'),
+            patch.object(doom_bot.bot, 'add_application_command'),
+            patch.object(doom_bot.bot, 'load_extension'),
+            patch.object(doom_bot.bot, 'run'),
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         assert call_order.index('on_init') < call_order.index('which')
 
@@ -127,14 +147,14 @@ class TestStartBotLoopPipeline:
         call_order = []
 
         with (
-            patch.object(attubot.config, 'on_init'),
+            patch.object(doom_bot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot.client._load_event_handlers', side_effect=lambda: call_order.append('events')),
-            patch.object(attubot.bot, 'add_application_command'),
-            patch.object(attubot.bot, 'load_extension', side_effect=lambda _: call_order.append('ext')),
-            patch.object(attubot.bot, 'run'),
+            patch('doom_bot.client._load_event_handlers', side_effect=lambda: call_order.append('events')),
+            patch.object(doom_bot.bot, 'add_application_command'),
+            patch.object(doom_bot.bot, 'load_extension', side_effect=lambda _: call_order.append('ext')),
+            patch.object(doom_bot.bot, 'run'),
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         assert call_order[0] == 'events'
         assert all(v == 'ext' for v in call_order[1:])
@@ -142,17 +162,17 @@ class TestStartBotLoopPipeline:
     def test_bot_run_called_with_token(self):
         """bot.run() receives config.bot_token"""
         run_value = secrets.token_hex(16)
-        attubot.config.bot_token = run_value
+        doom_bot.config.bot_token = run_value
 
         with (
-            patch.object(attubot.config, 'on_init'),
+            patch.object(doom_bot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot.client._load_event_handlers'),
-            patch.object(attubot.bot, 'add_application_command'),
-            patch.object(attubot.bot, 'load_extension'),
-            patch.object(attubot.bot, 'run') as mock_run,
+            patch('doom_bot.client._load_event_handlers'),
+            patch.object(doom_bot.bot, 'add_application_command'),
+            patch.object(doom_bot.bot, 'load_extension'),
+            patch.object(doom_bot.bot, 'run') as mock_run,
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         mock_run.assert_called_once_with(run_value)
 
@@ -167,39 +187,39 @@ class TestCheckDeps:
 
     def test_passes_when_both_deps_present(self):
         with patch('shutil.which', return_value='/usr/bin/resvg'):
-            attubot._check_deps()  # should not raise
+            doom_bot._check_deps()  # should not raise
 
     def test_raises_when_resvg_missing(self):
         def fake_which(cmd):
             return None if cmd == 'resvg' else f'/usr/bin/{cmd}'
 
         with patch('shutil.which', side_effect=fake_which), pytest.raises(Exception, match='missing dependency: resvg'):
-            attubot._check_deps()
+            doom_bot._check_deps()
 
     def test_raises_when_mongodump_missing(self):
         def fake_which(cmd):
             return None if cmd == 'mongodump' else f'/usr/bin/{cmd}'
 
         with patch('shutil.which', side_effect=fake_which), pytest.raises(Exception, match='missing dependency: mongodump'):
-            attubot._check_deps()
+            doom_bot._check_deps()
 
     def test_both_checked(self):
         """both resvg and mongodump are checked"""
         checked = []
         with patch('shutil.which', side_effect=lambda cmd: checked.append(cmd) or f'/usr/{cmd}'):
-            attubot._check_deps()
+            doom_bot._check_deps()
         assert 'resvg' in checked
         assert 'mongodump' in checked
 
     def test_dep_check_raises_before_bot_run(self):
         """if a dep is missing, bot.run is never called"""
         with (
-            patch.object(attubot.config, 'on_init'),
+            patch.object(doom_bot.config, 'on_init'),
             patch('shutil.which', return_value=None),
-            patch.object(attubot.bot, 'run') as mock_run,
+            patch.object(doom_bot.bot, 'run') as mock_run,
             pytest.raises(Exception),
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         mock_run.assert_not_called()
 
@@ -214,24 +234,24 @@ class TestLoadExtensions:
 
     def test_all_extensions_loaded_in_order(self):
         """all extensions are loaded in the declared order"""
-        with patch.object(attubot.bot, 'load_extension') as mock_load:
-            attubot._load_extensions()
+        with patch.object(doom_bot.bot, 'load_extension') as mock_load:
+            doom_bot._load_extensions()
 
         assert mock_load.call_count == 12
         mock_load.assert_has_calls(
             [
-                call('attubot.commands.debug'),
-                call('attubot.commands.eggs'),
-                call('attubot.commands.fix'),
-                call('attubot.commands.link'),
-                call('attubot.commands.marker'),
-                call('attubot.commands.query'),
-                call('attubot.commands.remind'),
-                call('attubot.commands.stars'),
-                call('attubot.commands.time'),
-                call('attubot.commands.trees'),
-                call('attubot.commands.wiki'),
-                call('attubot.commands.year'),
+                call('doom_bot.commands.debug'),
+                call('doom_bot.commands.eggs'),
+                call('doom_bot.commands.fix'),
+                call('doom_bot.commands.link'),
+                call('doom_bot.commands.marker'),
+                call('doom_bot.commands.query'),
+                call('doom_bot.commands.remind'),
+                call('doom_bot.commands.stars'),
+                call('doom_bot.commands.time'),
+                call('doom_bot.commands.trees'),
+                call('doom_bot.commands.wiki'),
+                call('doom_bot.commands.year'),
             ],
             any_order=False,
         )
@@ -239,23 +259,23 @@ class TestLoadExtensions:
     def test_extension_load_failure_raises(self):
         """a failed extension load propagates the exception from _load_extensions"""
         with (
-            patch.object(attubot.bot, 'load_extension', side_effect=Exception('bad ext')),
+            patch.object(doom_bot.bot, 'load_extension', side_effect=Exception('bad ext')),
             pytest.raises(Exception, match='bad ext'),
         ):
-            attubot._load_extensions()
+            doom_bot._load_extensions()
 
     def test_start_bot_loop_extension_failure_calls_sys_exit_1(self):
         """start_bot_loop catches extension failure and calls sys.exit(1)"""
         with (
-            patch.object(attubot.config, 'on_init'),
+            patch.object(doom_bot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot.client._load_event_handlers'),
-            patch.object(attubot.bot, 'add_application_command'),
-            patch.object(attubot.bot, 'load_extension', side_effect=Exception('bad ext')),
-            patch.object(attubot.bot, 'run'),
+            patch('doom_bot.client._load_event_handlers'),
+            patch.object(doom_bot.bot, 'add_application_command'),
+            patch.object(doom_bot.bot, 'load_extension', side_effect=Exception('bad ext')),
+            patch.object(doom_bot.bot, 'run'),
             patch('sys.exit') as mock_exit,
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         mock_exit.assert_called_once_with(1)
 
@@ -265,32 +285,32 @@ class TestLoadExtensions:
 
         def fake_load(ext):
             load_calls.append(ext)
-            if ext == 'attubot.commands.fix':
+            if ext == 'doom_bot.commands.fix':
                 raise Exception('injected failure')
 
         with (
-            patch.object(attubot.bot, 'load_extension', side_effect=fake_load),
+            patch.object(doom_bot.bot, 'load_extension', side_effect=fake_load),
             pytest.raises(Exception),
         ):
-            attubot._load_extensions()
+            doom_bot._load_extensions()
 
         # debug loaded fine, fix failed - nothing after
-        assert 'attubot.commands.debug' in load_calls
-        assert 'attubot.commands.fix' in load_calls
-        assert 'attubot.commands.marker' not in load_calls
+        assert 'doom_bot.commands.debug' in load_calls
+        assert 'doom_bot.commands.fix' in load_calls
+        assert 'doom_bot.commands.marker' not in load_calls
 
     def test_bot_run_not_called_when_extension_fails(self):
         """if extensions fail, bot.run is never reached from start_bot_loop"""
         with (
-            patch.object(attubot.config, 'on_init'),
+            patch.object(doom_bot.config, 'on_init'),
             patch('shutil.which', return_value='/usr/bin/cmd'),
-            patch('attubot.client._load_event_handlers'),
-            patch.object(attubot.bot, 'add_application_command'),
-            patch.object(attubot.bot, 'load_extension', side_effect=Exception('load error')),
-            patch.object(attubot.bot, 'run') as mock_run,
+            patch('doom_bot.client._load_event_handlers'),
+            patch.object(doom_bot.bot, 'add_application_command'),
+            patch.object(doom_bot.bot, 'load_extension', side_effect=Exception('load error')),
+            patch.object(doom_bot.bot, 'run') as mock_run,
             patch('sys.exit'),
         ):
-            attubot.start_bot_loop()
+            doom_bot.start_bot_loop()
 
         mock_run.assert_not_called()
 
@@ -304,19 +324,19 @@ class TestRegisterCoreCommands:
     """unit: _register_core_commands() adds the ping command"""
 
     def test_adds_one_command(self):
-        with patch.object(attubot.bot, 'add_application_command') as mock_add:
-            attubot._register_core_commands()
+        with patch.object(doom_bot.bot, 'add_application_command') as mock_add:
+            doom_bot._register_core_commands()
 
         mock_add.assert_called_once()
 
     def test_adds_ping_command(self):
         """the registered command is the module-level command_ping"""
-        with patch.object(attubot.bot, 'add_application_command') as mock_add:
-            attubot._register_core_commands()
+        with patch.object(doom_bot.bot, 'add_application_command') as mock_add:
+            doom_bot._register_core_commands()
 
-        # the argument passed should be the same object as attubot.command_ping
+        # the argument passed should be the same object as doom_bot.command_ping
         args, _ = mock_add.call_args
-        assert args[0] is attubot.command_ping
+        assert args[0] is doom_bot.command_ping
 
 
 # ============================================================
@@ -336,8 +356,8 @@ class TestEventHandlerModules:
     @pytest.mark.parametrize(
         'module',
         [
-            'attubot.client.events',
-            'attubot.client.modlog',
+            'doom_bot.client.events',
+            'doom_bot.client.modlog',
         ],
     )
     def test_event_handler_module_imports_cleanly(self, module):
@@ -355,7 +375,7 @@ class TestExtensionImports:
     missing import, or module-level crash raises here immediately.
     """
 
-    @pytest.mark.parametrize('ext', attubot.extensions_list)
+    @pytest.mark.parametrize('ext', doom_bot.extensions_list)
     def test_extension_imports_cleanly(self, ext):
         import importlib
 
@@ -367,26 +387,26 @@ class TestExtensionsList:
 
     def test_expected_extensions_present(self):
         expected = {
-            'attubot.commands.debug',
-            'attubot.commands.eggs',
-            'attubot.commands.fix',
-            'attubot.commands.link',
-            'attubot.commands.marker',
-            'attubot.commands.query',
-            'attubot.commands.remind',
-            'attubot.commands.stars',
-            'attubot.commands.time',
-            'attubot.commands.trees',
-            'attubot.commands.wiki',
-            'attubot.commands.year',
+            'doom_bot.commands.debug',
+            'doom_bot.commands.eggs',
+            'doom_bot.commands.fix',
+            'doom_bot.commands.link',
+            'doom_bot.commands.marker',
+            'doom_bot.commands.query',
+            'doom_bot.commands.remind',
+            'doom_bot.commands.stars',
+            'doom_bot.commands.time',
+            'doom_bot.commands.trees',
+            'doom_bot.commands.wiki',
+            'doom_bot.commands.year',
         }
-        assert set(attubot.extensions_list) == expected
+        assert set(doom_bot.extensions_list) == expected
 
     def test_no_duplicates(self):
-        assert len(attubot.extensions_list) == len(set(attubot.extensions_list))
+        assert len(doom_bot.extensions_list) == len(set(doom_bot.extensions_list))
 
     def test_count_is_twelve(self):
-        assert len(attubot.extensions_list) == 12
+        assert len(doom_bot.extensions_list) == 12
 
 
 # ============================================================
@@ -400,20 +420,20 @@ class TestSingletonCreation:
     def test_bot_is_discord_bot(self):
         import discord
 
-        assert isinstance(attubot.bot, discord.Bot)
+        assert isinstance(doom_bot.bot, discord.Bot)
 
     def test_config_is_nova_config(self):
-        from attubot.config import NovaConfig
+        from doom_bot.config import NovaConfig
 
-        assert isinstance(attubot.config, NovaConfig)
+        assert isinstance(doom_bot.config, NovaConfig)
 
     def test_db_is_mongo_storage(self):
-        from attubot.database.connection import MongoStorage
+        from doom_bot.database.connection import MongoStorage
 
-        assert isinstance(attubot.db, MongoStorage)
+        assert isinstance(doom_bot.db, MongoStorage)
 
     def test_command_ping_exists(self):
-        assert attubot.command_ping is not None
+        assert doom_bot.command_ping is not None
 
     def test_extensions_list_is_not_empty(self):
-        assert len(attubot.extensions_list) > 0
+        assert len(doom_bot.extensions_list) > 0

@@ -19,9 +19,9 @@ from attu_models import (
     MessageDocument,
     MessageRepository,
 )
-from attubot.client.calendar import haracalnde_date
-from attubot.client.core import config
-from attubot.logging import get_logger
+from doom_bot.client.calendar import haracalnde_date
+from doom_bot.client.core import config
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -35,7 +35,7 @@ _char_repo: 'ChatCharacterRepository | None' = None
 def _get_msg_repo() -> 'MessageRepository':
     global _msg_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _msg_repo is None:
-        from attubot import db
+        from doom_bot import db
 
         _msg_repo = MessageRepository(db.get_db())
     return _msg_repo
@@ -44,7 +44,7 @@ def _get_msg_repo() -> 'MessageRepository':
 def _get_char_repo() -> 'ChatCharacterRepository':
     global _char_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _char_repo is None:
-        from attubot import db
+        from doom_bot import db
 
         _char_repo = ChatCharacterRepository(db.get_db())
     return _char_repo

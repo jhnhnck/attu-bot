@@ -8,7 +8,7 @@ Guidance for AI coding agents working in this repository.
 
 **AttuBot** (repo name: `doom-bot`) is a Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related utilities. It is written in **Python 3.13** and ships as a Docker container.
 
-There are two runnable modes, both launched from `attu-bot.py`:
+There are two runnable modes, both launched from `apps/bot/doom-bot.py`:
 
 - `bot` - the Discord bot (pycord)
 - `web` - a Quart-based admin web interface
@@ -39,18 +39,20 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 
 ## architecture
 
-### entry point
-- `attu-bot.py` - CLI dispatcher; selects `bot` or `web` mode via `sys.argv[1]`
+the bot package, its assets, and the legacy web templates/static all live under `apps/bot/`. mongo document and repository classes are factored out into the workspace package `packages/shared-models/attu_models/`; `doom_bot.database` re-exports them so existing import sites keep working. paths in the per-package tables below are relative to each section header.
 
-### package: `attubot/`
+### entry point
+- `apps/bot/doom-bot.py` - CLI dispatcher; selects `bot` or `web` mode via `sys.argv[1]`
+
+### package: `apps/bot/doom_bot/`
 | File | Role |
 |---|---|
-| `__init__.py` | Module metadata constants (`__version__`, `__build_time__`, etc.); re-exports `bot`, `config`, `db`, and startup functions from `attubot.client` |
+| `__init__.py` | Module metadata constants (`__version__`, `__build_time__`, etc.); re-exports `bot`, `config`, `db`, and startup functions from `doom_bot.client` |
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); Pydantic models for all config sections |
 | `signals.py` | Cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
 | `logging.py` | Custom `Logger` class (termcolor-based); use `get_logger(__name__)` everywhere |
 
-### package: `attubot/client/`
+### package: `apps/bot/doom_bot/client/`
 | File | Role |
 |---|---|
 | `__init__.py` | Startup pipeline - `start_bot_loop()`, `_check_deps()`, `_load_event_handlers()`, `_register_core_commands()`, `_load_extensions()`; auto-discovers `extensions_list` via `pkgutil`; `/ping` is registered here directly as an intentional exception to the extension pattern (lightweight core health check) |
@@ -68,15 +70,26 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 | `migrations.py` | Schema migration table |
 | `util.py` | Shared helpers - `theme_color()`, `format_message_link()`, `break_at_newline()`, permission checks |
 
-### package: `attubot/database/`
+### package: `apps/bot/doom_bot/database/`
+bot-side init wiring; the actual document/repository/storage source lives in `packages/shared-models/attu_models/` and is re-exported from this package so existing `from doom_bot.database import ...` sites keep working.
+
 | File | Role |
 |---|---|
-| `__init__.py` | `init_database()` - connects storage and seeds all module-level repo singletons |
-| `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
-| `models.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, etc. |
-| `repositories.py` | All async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository` |
+| `__init__.py` | `init_database()` - connects storage and seeds all module-level repo singletons; bot is the index-creation leader |
+| `connection.py` | shim re-exporting `attu_models.connection` (`MongoStorage`, `AsyncMongoClient`, error classes) |
+| `models.py` | shim re-exporting all document classes from `attu_models.documents` |
+| `repositories.py` | shim re-exporting all repository classes from `attu_models.repositories` |
 
-### package: `attubot/eggs/`
+### package: `packages/shared-models/attu_models/`
+canonical source of every mongo document, repository, and the `MongoStorage` singleton. import-only; never calls `init_indexes()` on import. used by both the bot and the dormant `apps/chat/`; designed so a future fastapi server can read and write the same collections without depending on pycord.
+
+| File | Role |
+|---|---|
+| `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
+| `documents.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, `ChatConfigDocument`, etc. |
+| `repositories.py` | async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository`, chat repos, etc. |
+
+### package: `apps/bot/doom_bot/eggs/`
 Egg collection mini-game.
 
 | File | Role |
@@ -85,9 +98,9 @@ Egg collection mini-game.
 | `emojis.py` | SVG→PNG rendering and Discord custom emoji upload (`ensure_egg_emojis`) |
 | `hatching.py` | core game logic - `hatch_date()`, `collect_egg()`, `hatch_egg()`, `run_hatch_animation()`, `ensure_eggs_ready()` |
 
-Slash commands live in `attubot/commands/eggs.py`. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
+Slash commands live in `apps/bot/doom_bot/commands/eggs.py`. See [`notes/features/eggs.md`](notes/features/eggs.md) for behavior rules, storage schema, and setup instructions.
 
-### package: `attubot/commands/`
+### package: `apps/bot/doom_bot/commands/`
 Each file is a pycord extension (`setup(bot)` function) that registers a `SlashCommandGroup`.
 
 | File | Slash Group | Purpose |
@@ -107,19 +120,19 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 
 ### package: `apps/chat/` (dormant)
 the LLM/RAG ingestor, `/ask` slash command, chat web admin, and chat config schema were extracted from the bot in 78.x. the package still ships in the workspace but is not loaded:
-- `apps/chat/attu_chat/ingestor/` - DiscordIngestTask, WikiIngestTask, embedder, reranker, llm client, vector store, summarizer, query expander, pipelines (was `attubot/ingestor/`)
-- `apps/chat/attu_chat/commands/ask.py` - `/ask` slash command (was `attubot/commands/chat.py`)
+- `apps/chat/attu_chat/ingestor/` - DiscordIngestTask, WikiIngestTask, embedder, reranker, llm client, vector store, summarizer, query expander, pipelines (was `doom_bot/ingestor/`)
+- `apps/chat/attu_chat/commands/ask.py` - `/ask` slash command (was `doom_bot/commands/chat.py`)
 - `apps/chat/attu_chat/tasks/chat_init.py` - one-shot startup loader for chat subsystems
 - `apps/chat/attu_chat/web/{routes,forms}.py` - `/chat` admin page and `/api/chat` endpoints, mounted via `register_chat_routes(app)`
 - `apps/chat/attu_chat/config.py` - `[chat]` TOML schema
 - `apps/chat/assets/prompts/` - chat-system, discord-summarization, character-extraction, query-expansion prompts
 - `apps/chat/legacy_web/` - chat_config.html and pages/chat-config.js
 - `apps/chat/compose.yml` - dormant `ingestor`, `qdrant`, `llama-server` services; root compose adds `include:` to revive
-- `apps/chat/attu-chat.py ingestor` - process entrypoint (was `attu-bot.py ingestor`)
+- `apps/chat/attu-chat.py ingestor` - process entrypoint (was `doom-bot.py ingestor`)
 
 mongo collections `chat_sources`, `chat_characters`, and the `global_config` doc with `config_type='chat'` remain in place as orphan data. the document and repository classes (`ChatConfigDocument`, `ChatSourceDocument`, `ChatCharacterDocument`, `ChatConfigRepository`, `ChatSourceRepository`, `ChatCharacterRepository`) stay in `packages/shared-models/attu_models/` so revival doesn't need a migration. the `[chat]` block in `assets/attu-bot.toml` stays dormant - the bot's config loader no longer reads it. revival = bot registers the slash command + root compose `include: [apps/chat/compose.yml]`.
 
-### package: `attubot/tasks/`
+### package: `apps/bot/doom_bot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
 
 | File | Role |
@@ -136,7 +149,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads on a configurable interval |
 | `reminder.py` | `ReminderTask` - dynamic scheduling; delivers in-universe date reminders when haracalnde dates arrive |
 
-### package: `attubot/wiki/`
+### package: `apps/bot/doom_bot/wiki/`
 | File | Role |
 |---|---|
 | `__init__.py` | `get_wiki()` singleton accessor; `setup(bot)` extension entry point |
@@ -147,22 +160,22 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `admin.py` | `AdminApi` - user block with retry logic |
 | `models.py` | Pydantic models - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail` |
 
-### package: `attubot/web/`
-Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger.
+### package: `apps/bot/doom_bot/web/`
+Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger. templates and static assets it serves live in `apps/bot/legacy_web/{templates,static}/` (the names reflect the in-progress migration to `apps/server/`).
 
 ---
 
 ## configuration system (three tiers)
 
 1. **`.env`** - only `ATTU_CONFIG_FILE`
-2. **`assets/attu-bot.toml`** - secrets and static config (tokens, DB URL, wiki credentials, WebAuthn, authorized guilds). Copy from `config/attu-bot.sample.toml`.
+2. **`apps/bot/assets/attu-bot.toml`** - secrets and static config (tokens, DB URL, wiki credentials, WebAuthn, authorized guilds). Copy from `config/attu-bot.sample.toml`.
 3. **MongoDB** - runtime guild-level settings (epoch, channels, roles, users, theme)
 
 `NovaConfig` loads in three stages - code that touches the DB or bot must wait for the appropriate stage (`on_init` / `on_load` / `on_ready`). Use the provided `wait_for_*` async methods if you need to gate on a stage.
 
 ### versioning
 
-two independent version constants live in `attubot/__init__.py`:
+two independent version constants live in `apps/bot/doom_bot/__init__.py`:
 
 - **`__schema__`** - db migration version; bumped for every migration in `client/migrations.py`. compared against the version stored in MongoDB (`global_config.system.version`) to decide whether to run migrations.
 - **`__config_version__`** - minimum compatible TOML config file version; bumped only when the TOML file format changes (new sections, renamed keys, etc.). the TOML's `config_version` field is checked with `>=` against this value on startup.
@@ -173,7 +186,7 @@ db-only migrations bump `__schema__` only. TOML format changes bump both and upd
 
 Pick the right tier first. Static secrets and startup values belong in the TOML; operator-adjustable per-guild values belong in MongoDB; nothing new belongs in `.env`.
 
-**Tier 2 - TOML (`assets/attu-bot.toml`)**
+**Tier 2 - TOML (`apps/bot/assets/attu-bot.toml`)**
 - Add the field to the relevant Pydantic model in `config.py`
 - Add it with a sensible placeholder value to `config/attu-bot.sample.toml`
 
@@ -181,12 +194,12 @@ Pick the right tier first. Static secrets and startup values belong in the TOML;
 
 missing any of these steps causes the field to silently use its default in production regardless of what is in the database.
 
-- `database/models.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB
-- `config.py` (`GuildConfig`) - add to the runtime model with the same default
-- `config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; missing this causes the field to silently use its default in production
-- `web/forms.py` (`GuildConfigForm`) - add the field so saves from the web UI don't silently drop it
-- `assets/templates/guild_config.html` - add the form control
-- `assets/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
+- `packages/shared-models/attu_models/documents.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB. the bot reaches it via the `doom_bot.database.models` shim, so existing import sites stay valid
+- `apps/bot/doom_bot/config.py` (`GuildConfig`) - add to the runtime model with the same default
+- `apps/bot/doom_bot/config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; missing this causes the field to silently use its default in production
+- `apps/bot/doom_bot/web/forms.py` (`GuildConfigForm`) - add the field so saves from the web UI don't silently drop it
+- `apps/bot/legacy_web/templates/guild_config.html` - add the form control
+- `apps/bot/legacy_web/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
 - **roundtrip test** - save a document with the field set to a non-default value, reload via `load_guild()`, assert the value survives; this directly catches the hydration failure mode
 
 **if the field gates an extension**
@@ -211,24 +224,22 @@ missing any of these steps causes the field to silently use its default in produ
 - **Forward type references**: keep as strings (`'ClassName'`) - `UP037` is ignored
 - `wip/` and `*.wip.py` files are excluded from linting/type checking
 
-### file header (required on every python file)
+### file header (required on every new source file)
+SPDX license tag plus, for python only, a structured-breadcrumb module docstring:
 ```python
-"""
-AttuBot - <Short Description>
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""<dotted module path> | <short lowercase description>."""
 ```
+JS/TS and shell get the SPDX comment alone (shell after the shebang). See `.claude/skills/file-header/SKILL.md` for the full convention; that skill is canonical when this section drifts.
 
 ### logging
-always use the custom logger - never the stdlib `logging` module directly:
+always use the project logger - never the stdlib `logging` module directly:
 ```python
-from attubot.logging import get_logger
+from doom_bot.logging import get_logger
 
 logger = get_logger(__name__)
 ```
-levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set.
+levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `trace`/`debug`/`alert` are no-ops unless `DEBUG` env var is set. structlog sits underneath, but the public api (method names, f-string call style, `send_to_webhook`) is unchanged. info/debug/trace go to stdout; warn/error/fatal/alert go to stderr.
 
 ### pydantic
 - All MongoDB documents extend `pydantic.BaseModel` and live in `models.py`
@@ -311,7 +322,7 @@ the canonical end-of-task checklist (tests, documentation, configuration plumbin
 
 - **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. migrations are also skipped.
 - **`DEBUG` env var**: enables `trace`/`debug`/`alert` log levels.
-- **config singleton**: `bot`, `config`, and `db` singletons are defined in `attubot/client/core.py` and re-exported from `attubot`. extensions can import them from either path.
+- **config singleton**: `bot`, `config`, and `db` singletons are defined in `apps/bot/doom_bot/client/core.py` and re-exported from `doom_bot`. extensions can import them from either path.
 - **guild authorization**: always check `guild_id in config.authorized_guilds` before acting. `config.guild(id)` raises `UnauthorizedGuild` for unknown guilds.
 - **snowflake precision**: Discord IDs exceed JavaScript's safe integer range - serialize them as strings in any JSON API response.
 - **rollover time storage**: stored as `rollover_minutes` (int, minutes since midnight) in MongoDB; the legacy string format (`"17:00"`) is handled by a `model_validator` in `GuildEpoch`.
@@ -359,30 +370,51 @@ prescriptive, auto-loaded reference cards live in `.claude/skills/`. each loads 
 | `message-style` | log tone, discord response voice, error format (`Failed:`), custom emojis, ephemeral rule | edits in `commands/` / `client/` / `tasks/` / `web/`; `logger.*`; `ctx.respond` / `interaction.response` |
 | `feature-completion` | end-of-task checklist (tests, docs, config plumbing, web, lint) | wrap-up signals; `pytest`, `ruff`, drafting a commit |
 | `mock-compensation` | the mock compensation rule and three standing cases | edits in `tests/python/`; new files in `commands/`; new predicates; new migrations |
-| `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `attubot/commands/` / `attubot/client/`; imports of `discord.*` |
-| `pydantic` | pydantic v2 idioms, document/runtime split, six-step tier-3 plumbing checklist | `database/models.py`, `config.py`, `web/forms.py`; `pydantic` imports |
-| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `attubot/wiki/`; `commands/wiki.py` (chat ingestor wiki pipeline currently dormant under `apps/chat/`) |
-| `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `attubot/database/`; `migrations.py`; `scripts/ferret_init.sh` |
+| `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `apps/bot/doom_bot/commands/` / `apps/bot/doom_bot/client/`; imports of `discord.*` |
+| `pydantic` | pydantic v2 idioms, document/runtime split, six-step tier-3 plumbing checklist | `packages/shared-models/attu_models/documents.py`, `apps/bot/doom_bot/config.py`, `apps/bot/doom_bot/web/forms.py`; `pydantic` imports |
+| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `apps/bot/doom_bot/wiki/`; `apps/bot/doom_bot/commands/wiki.py` (chat ingestor wiki pipeline currently dormant under `apps/chat/`) |
+| `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `apps/bot/doom_bot/database/`, `packages/shared-models/attu_models/`; `apps/bot/doom_bot/client/migrations.py`; `scripts/ferret_init.sh` |
 
 ---
 
 ## file & directory layout
 
+uv + pnpm workspace; member packages live under `apps/` and `packages/`.
+
 ```
-attu-bot.py              # entrypoint
-attubot/                 # main package
-  client/                # discord-specific runtime (singletons, events, features)
-  commands/              # slash command extensions (one group per file)
-  database/              # mongodb connection, models, and repositories
-  tasks/                 # background task scheduler and task implementations
-  web/                   # Quart web app
-  wiki/                  # mediawiki api client
-assets/                  # runtime assets (TOML config, templates, static)
-config/                  # sample/reference config files (not used at runtime)
-tests/                   # pytest + vitest test suites
-scripts/                 # utility scripts (backup, migration, test runner)
-notes/                   # project notes (not code); subdirs: style/, features/, dev/
-wip/                     # work-in-progress scratch space (excluded from lint)
+apps/
+  bot/                       # discord bot + admin web
+    doom-bot.py              # entrypoint - selects bot or web mode
+    doom_bot/                # main package
+      client/                # discord-specific runtime (singletons, events, features)
+      commands/              # slash command extensions (one group per file)
+      database/              # init_database() + shims re-exporting attu_models
+      eggs/                  # egg game core logic
+      tasks/                 # background task scheduler and task implementations
+      web/                   # Quart web app (routes, forms, auth, audit)
+      wiki/                  # mediawiki api client
+    assets/                  # TOML config, hatch.toml, static/emoji, doombot-seed
+    legacy_web/              # templates/ and static/ served by doom_bot.web (transitional name)
+    Dockerfile
+    pyproject.toml
+  chat/                      # extracted llm/rag stack; dormant (see notes/features/attu_chat.md)
+    attu_chat/               # ingestor, /ask command, chat web admin, chat config
+    assets/prompts/          # chat-system, summarization, character-extraction prompts
+    legacy_web/              # chat_config.html and pages/chat-config.js
+    compose.yml              # dormant qdrant / llama-server / ingestor services
+    Dockerfile
+    pyproject.toml
+  server/                    # planned fastapi root for the web redesign (placeholder)
+    pyproject.toml
+packages/
+  shared-models/
+    attu_models/             # canonical mongo documents, repositories, MongoStorage
+    pyproject.toml
+config/                      # sample/reference config files (not used at runtime)
+scripts/                     # utility scripts (backup, migration, test runner)
+tests/                       # pytest + vitest test suites
+notes/                       # project notes (not code); subdirs: style/, features/, dev/, plans/, reports/
+wip/                         # work-in-progress scratch space (excluded from lint)
 ```
 
 # personality
@@ -401,5 +433,5 @@ wip/                     # work-in-progress scratch space (excluded from lint)
 ## metadata
 
 ```yaml
-last_updated: 3 April 2026 (sub-agents section added)
+last_updated: 6 May 2026 (workspace layout: apps/bot/, apps/chat/, packages/shared-models/)
 ```

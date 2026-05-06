@@ -4,7 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Integration tests for the web API routes in attubot/web/routes.py covering cases not present in test_web_routes.py
+Integration tests for the web API routes in doom_bot/web/routes.py covering cases not present in test_web_routes.py
 """
 
 import os
@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from doom_bot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
 test_guild = 1234567890
@@ -29,8 +29,8 @@ test_guild_2 = 9876543210
 @pytest_asyncio.fixture(scope='function')
 async def web_app():
     """Create a test Quart web app with mocked config"""
-    from attubot.web import app as web_app_module
-    from attubot.web.app import create_app
+    from doom_bot.web import app as web_app_module
+    from doom_bot.web.app import create_app
 
     # Create test guild configs
     guild1 = GuildConfig(
@@ -90,7 +90,7 @@ async def web_app():
 
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
-    from attubot.config import PathsConfig, WebConfig
+    from doom_bot.config import PathsConfig, WebConfig
 
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
@@ -116,7 +116,7 @@ class TestMissingGuildRoutes:
     @pytest.mark.asyncio
     async def test_get_guild_not_found(self, client):
         """Test GET /api/guilds/<id> when guild is authorized but not in config"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         # Simulate guild being in authorized_guilds but missing from config.guilds
         # (This shouldn't happen in normal operation but good to test handling)
@@ -130,7 +130,7 @@ class TestMissingGuildRoutes:
     @pytest.mark.asyncio
     async def test_save_guild_not_found(self, client):
         """Test POST /api/guilds/<id> when guild is authorized but not in config"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         with patch.dict(config.guilds, {}, clear=False):
             del config.guilds[test_guild]
@@ -142,7 +142,7 @@ class TestMissingGuildRoutes:
     @pytest.mark.asyncio
     async def test_guild_config_page_not_found(self, client):
         """Test guild config page redirects even when guild is missing (legacy redirect)"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         with patch.dict(config.guilds, {}, clear=False):
             del config.guilds[test_guild]
@@ -155,7 +155,7 @@ class TestMissingThemeRoutes:
     @pytest.mark.asyncio
     async def test_get_theme_not_found(self, client):
         """Test GET /api/theme when theme is missing from config"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         with patch.object(config, 'theme', None):
             response = await client.get('/api/theme')
@@ -186,7 +186,7 @@ class TestMissingAuditRoutes:
     @pytest.mark.asyncio
     async def test_audit_logs_error_handling(self, client):
         """Test GET /api/audit error handling"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit logger to raise exception
         mock_audit_logger = MagicMock()
@@ -201,7 +201,7 @@ class TestMissingAuditRoutes:
     @pytest.mark.asyncio
     async def test_audit_logs_timestamp_formatting(self, client):
         """Test timestamp formatting in audit logs"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         timestamp = 1704067200  # 2024-01-01 00:00:00 UTC
 

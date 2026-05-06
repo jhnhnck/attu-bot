@@ -41,7 +41,7 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 
 ### Admin
 
-- **/time**: controls passage of in-universe time (admin only; see [notes/timekeeping.md](notes/timekeeping.md))
+- **/time**: controls passage of in-universe time (admin only; see [notes/features/timekeeping.md](notes/features/timekeeping.md))
   - **/time advance**: manually advances to the next year, ignoring all checks
   - **/time pause**: pauses the passage of time
   - **/time resume**: resumes the passage of time
@@ -99,17 +99,19 @@ docker compose logs -f
 
 ### Local development
 
+uv + pnpm workspace; member packages live under `apps/` and `packages/`.
+
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-npm install
+uv venv && source .venv/bin/activate
+uv sync
+pnpm install
 cp config/attu-bot.sample.toml assets/attu-bot.toml
-python attu-bot.py bot   # or: python attu-bot.py web
+python apps/bot/doom-bot.py bot   # or: python apps/bot/doom-bot.py web
 ```
 
 ## Run Modes
 
-Both modes are launched from `attu-bot.py`:
+Both modes are launched from `apps/bot/doom-bot.py`:
 
 - `bot` - the Discord bot (pycord)
 - `web` - a Quart-based admin web interface

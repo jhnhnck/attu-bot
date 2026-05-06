@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from doom_bot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
 # Use a large integer that would lose precision in JS (MAX_SAFE_INTEGER is 9007199254740991)
@@ -31,8 +31,8 @@ test_guild = 1234567890
 @pytest_asyncio.fixture(scope='function')
 async def web_app():
     """Create a test Quart web app with mocked config"""
-    from attubot.web import app as web_app_module
-    from attubot.web.app import create_app
+    from doom_bot.web import app as web_app_module
+    from doom_bot.web.app import create_app
 
     # Create test guild configs
     guild1 = GuildConfig(
@@ -64,7 +64,7 @@ async def web_app():
 
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
-    from attubot.config import PathsConfig, WebConfig
+    from doom_bot.config import PathsConfig, WebConfig
 
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
@@ -102,7 +102,7 @@ class TestBigIntSupport:
     @pytest.mark.asyncio
     async def test_save_guild_accepts_strings_and_ints(self, client):
         """Test that backend accepts both strings and ints for IDs"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         # Case 1: Sending IDs as strings (like JS would for BigInts)
         payload_strings = {
@@ -168,7 +168,7 @@ class TestBigIntSupport:
         test pins the round-trip at the api layer so the bug stays fixed even
         if the browser-side formatting moves around.
         """
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'announcements': str(large_id),

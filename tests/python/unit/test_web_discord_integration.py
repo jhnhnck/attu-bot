@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 import pytest
 
-from attubot.web.discord_integration import (
+from doom_bot.web.discord_integration import (
     DiscordCache,
     _cache,
     get_guild_channels,
@@ -196,7 +196,7 @@ class TestGetGuildChannels:
         mock_guild.fetch_channels = AsyncMock(return_value=[text_ch, voice_ch])
         mock_guild.active_threads = AsyncMock(return_value=[thread])
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
             result = await get_guild_channels(999)
 
@@ -212,7 +212,7 @@ class TestGetGuildChannels:
         assert result[2]['parent_id'] == '100'
 
     async def test_guild_not_found_returns_none(self):
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
             result = await get_guild_channels(999)
 
@@ -225,7 +225,7 @@ class TestGetGuildChannels:
         mock_guild.fetch_channels = AsyncMock(return_value=[text_ch])
         mock_guild.active_threads = AsyncMock(return_value=[])
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
             first = await get_guild_channels(888)
             second = await get_guild_channels(888)
@@ -251,7 +251,7 @@ class TestGetGuildRoles:
         mock_guild = AsyncMock()
         mock_guild.fetch_roles = AsyncMock(return_value=[role_admin, role_mod, role_default])
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
             result = await get_guild_roles(999)
 
@@ -263,7 +263,7 @@ class TestGetGuildRoles:
         assert result[2]['is_default'] is True
 
     async def test_guild_not_found_returns_empty_list(self):
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
             result = await get_guild_roles(999)
 
@@ -281,7 +281,7 @@ class TestGetUserInfo:
     async def test_user_found(self):
         mock_user = _make_user(id_=42, name='johndoe', global_name='John Doe')
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_user = AsyncMock(return_value=mock_user)
             result = await get_user_info(42)
 
@@ -292,7 +292,7 @@ class TestGetUserInfo:
         assert result['avatar_url'] == 'https://cdn.example.com/avatar.png'
 
     async def test_user_not_found(self):
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_user = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
             result = await get_user_info(42)
 
@@ -302,7 +302,7 @@ class TestGetUserInfo:
         mock_user = _make_user(id_=42, name='noavatar')
         mock_user.avatar = None  # no custom avatar
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_user = AsyncMock(return_value=mock_user)
             result = await get_user_info(42)
 
@@ -321,7 +321,7 @@ class TestGetGuildInfo:
     async def test_guild_found(self):
         mock_guild = _make_guild(id_=999, name='Test Server')
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
             result = await get_guild_info(999)
 
@@ -331,7 +331,7 @@ class TestGetGuildInfo:
         assert result['icon_url'] == 'https://cdn.example.com/icon.png'
 
     async def test_guild_not_found(self):
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
             result = await get_guild_info(999)
 
@@ -341,7 +341,7 @@ class TestGetGuildInfo:
         mock_guild = _make_guild(id_=999, name='No Icon')
         mock_guild.icon = None
 
-        with patch('attubot.web.discord_integration.bot') as mock_bot:
+        with patch('doom_bot.web.discord_integration.bot') as mock_bot:
             mock_bot.fetch_guild = AsyncMock(return_value=mock_guild)
             result = await get_guild_info(999)
 

@@ -6,7 +6,7 @@ How the `TaskScheduler` and `BaseTask` system works, and how to use them.
 
 ## Overview
 
-`attubot/tasks/scheduler.py` exports a module-level singleton `scheduler` of type `TaskScheduler`. It manages two categories of work:
+`apps/bot/doom_bot/tasks/scheduler.py` exports a module-level singleton `scheduler` of type `TaskScheduler`. It manages two categories of work:
 
 | Category | API | How it runs |
 |---|---|---|
@@ -17,7 +17,7 @@ How the `TaskScheduler` and `BaseTask` system works, and how to use them.
 
 ## Recurring Tasks - BaseTask
 
-All recurring tasks extend `BaseTask` (`attubot/tasks/base.py`). Key class attributes:
+All recurring tasks extend `BaseTask` (`apps/bot/doom_bot/tasks/base.py`). Key class attributes:
 
 | Attribute | Type | Purpose |
 |---|---|---|
@@ -80,10 +80,10 @@ with `run_immediately = False`, the task sleeps one interval first, then calls `
 
 ### Registering a task
 
-bot tasks are instantiated as module-level singletons and added to the bot's scheduler via `register_bot_tasks()` in `attubot/tasks/__init__.py`:
+bot tasks are instantiated as module-level singletons and added to the bot's scheduler via `register_bot_tasks()` in `apps/bot/doom_bot/tasks/__init__.py`:
 
 ```python
-from attubot.tasks.my_feature import MyFeatureTask
+from doom_bot.tasks.my_feature import MyFeatureTask
 
 my_feature_task = MyFeatureTask()
 
@@ -93,9 +93,9 @@ def register_bot_tasks(s):
     s.register(my_feature_task)
 ```
 
-the bot calls `register_bot_tasks(scheduler)` from `attubot/client/events.py` right before `scheduler.start_all()` on `on_ready`. registration is intentionally not done at module-import time; the ingestor process imports the same package and would otherwise inherit (and start) every bot task, racing with the bot for shared db state like reload signals.
+the bot calls `register_bot_tasks(scheduler)` from `apps/bot/doom_bot/client/events.py` right before `scheduler.start_all()` on `on_ready`. registration is intentionally not done at module-import time; the ingestor process imports the same package and would otherwise inherit (and start) every bot task, racing with the bot for shared db state like reload signals.
 
-the ingestor registers its own task set explicitly in `attubot/ingestor/__init__.py` and does not call `register_bot_tasks()`.
+the ingestor used to register its own task set explicitly in `doom_bot/ingestor/__init__.py`; that module now lives at `apps/chat/attu_chat/ingestor/__init__.py` and is dormant. on revival, the same separation pattern applies (the ingestor never calls `register_bot_tasks()`).
 
 ---
 
@@ -147,29 +147,29 @@ Tasks that call `scheduler.add_job()` on themselves or other tasks must use loca
 ```python
 async def run(self) -> None:
     ...
-    from attubot.tasks.presence import presence_update_task
-    from attubot.tasks.scheduler import scheduler  # local import avoids circular dep
+    from doom_bot.tasks.presence import presence_update_task  # apps/bot/doom_bot/tasks/presence.py
+    from doom_bot.tasks.scheduler import scheduler  # local import avoids circular dep
 
     scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'immediate')
 ```
 
-Command files (`attubot/commands/`) can import `scheduler` at the top of the module without issue.
+Command files (`apps/bot/doom_bot/commands/`) can import `scheduler` at the top of the module without issue.
 
 ---
 
 ## How to Add a New Recurring Task
 
-1. Create `attubot/tasks/my_feature.py` with the standard file header
+1. Create `apps/bot/doom_bot/tasks/my_feature.py` with the standard file header
 2. Define a class extending `BaseTask`; set `name`, `interval` (or `None`), and optionally `run_immediately`
 3. Implement `run()` (required); implement `on_start()` if you need to wait on config or the bot being ready
 4. Implement `next_run()` if `interval is None`
 5. Add a module-level singleton: `my_feature_task = MyFeatureTask()`
-6. In `attubot/tasks/__init__.py`, import the singleton and add `s.register(my_feature_task)` inside `register_bot_tasks()`
+6. In `apps/bot/doom_bot/tasks/__init__.py`, import the singleton and add `s.register(my_feature_task)` inside `register_bot_tasks()`
 7. Add a row to the tasks table in `notes/agents.md`
 
 ## How to Fire a One-Shot Job from a Command
 
-1. Import `scheduler` at the top of the command module: `from attubot.tasks import scheduler`
+1. Import `scheduler` at the top of the command module: `from doom_bot.tasks import scheduler`
 2. Call `scheduler.add_job(my_coro(...), 'Job', 'operation_name')` after responding to the user
 3. If additional context is needed (channel, user, guild), add it as extra parts: `scheduler.add_job(coro, 'Job', 'fix_messages', f'#{channel.name}')`
 4. Use the `Job` kind for maintenance operations; use the task's `BaseTask.name` as kind for out-of-cycle task triggers
@@ -179,5 +179,5 @@ Command files (`attubot/commands/`) can import `scheduler` at the top of the mod
 ## metadata
 
 ```yaml
-last_updated: 13 April 2026
+last_updated: 6 May 2026
 ```

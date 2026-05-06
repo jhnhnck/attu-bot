@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot.client.markers import YearMarker
+from doom_bot.client.markers import YearMarker
 from tests.conftest import test_guild
 
 
@@ -46,8 +46,8 @@ def _patch_config_and_year_status(current_year=10, guild_cfg=None):
     if guild_cfg is None:
         guild_cfg = _guild_config(current_year=current_year)
     return (
-        patch('attubot.commands.marker.config.guild', return_value=guild_cfg),
-        patch('attubot.commands.marker.get_year_status', return_value=(0, current_year)),
+        patch('doom_bot.commands.marker.config.guild', return_value=guild_cfg),
+        patch('doom_bot.commands.marker.get_year_status', return_value=(0, current_year)),
     )
 
 
@@ -62,7 +62,7 @@ class TestMarkerSave:
     @pytest.mark.asyncio
     async def test_invalid_link_ephemeral(self, mock_ctx):
         """link without discord.com/channels sends ephemeral error"""
-        from attubot.commands.marker import marker_save
+        from doom_bot.commands.marker import marker_save
 
         await marker_save(mock_ctx, year=5, link='https://example.com/not-discord', force=False)
 
@@ -74,7 +74,7 @@ class TestMarkerSave:
     @pytest.mark.asyncio
     async def test_invalid_year_ephemeral(self, mock_ctx):
         """year >= current_year sends ephemeral error"""
-        from attubot.commands.marker import marker_save
+        from doom_bot.commands.marker import marker_save
 
         link = f'https://discord.com/channels/{test_guild}/{test_lore_channel}/{_snowflake_a}'
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
@@ -90,7 +90,7 @@ class TestMarkerSave:
     @pytest.mark.asyncio
     async def test_not_lore_channel_ephemeral(self, mock_ctx):
         """link pointing to a non-lore channel sends ephemeral error"""
-        from attubot.commands.marker import marker_save
+        from doom_bot.commands.marker import marker_save
 
         link = f'https://discord.com/channels/{test_guild}/{test_other_channel}/{_snowflake_a}'
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
@@ -106,7 +106,7 @@ class TestMarkerSave:
     @pytest.mark.asyncio
     async def test_time_diff_too_large_without_force(self, mock_ctx):
         """large time diff with force=False sends ephemeral error"""
-        from attubot.commands.marker import marker_save
+        from doom_bot.commands.marker import marker_save
 
         link = f'https://discord.com/channels/{test_guild}/{test_lore_channel}/{_snowflake_b}'
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
@@ -119,8 +119,8 @@ class TestMarkerSave:
         with (
             p_guild,
             p_year,
-            patch('attubot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=est_marker),
-            patch('attubot.commands.marker.snowflake_time', side_effect=[far_time, near_time]),
+            patch('doom_bot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=est_marker),
+            patch('doom_bot.commands.marker.snowflake_time', side_effect=[far_time, near_time]),
         ):
             await marker_save(mock_ctx, year=5, link=link, force=False)
 
@@ -132,7 +132,7 @@ class TestMarkerSave:
     @pytest.mark.asyncio
     async def test_success_with_force(self, mock_ctx):
         """large time diff with force=True saves successfully"""
-        from attubot.commands.marker import marker_save
+        from doom_bot.commands.marker import marker_save
 
         link = f'https://discord.com/channels/{test_guild}/{test_lore_channel}/{_snowflake_b}'
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
@@ -149,10 +149,10 @@ class TestMarkerSave:
         with (
             p_guild,
             p_year,
-            patch('attubot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=est_marker),
-            patch('attubot.commands.marker.snowflake_time', side_effect=[far_time, near_time]),
-            patch('attubot.commands.marker.YearMarker.get_or_create', new_callable=AsyncMock, return_value=(created_marker, True)),
-            patch('attubot.commands.marker.format_message_link', return_value='https://discord.com/channels/1/2/3'),
+            patch('doom_bot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=est_marker),
+            patch('doom_bot.commands.marker.snowflake_time', side_effect=[far_time, near_time]),
+            patch('doom_bot.commands.marker.YearMarker.get_or_create', new_callable=AsyncMock, return_value=(created_marker, True)),
+            patch('doom_bot.commands.marker.format_message_link', return_value='https://discord.com/channels/1/2/3'),
         ):
             await marker_save(mock_ctx, year=5, link=link, force=True)
 
@@ -170,7 +170,7 @@ class TestMarkerSet:
     @pytest.mark.asyncio
     async def test_invalid_year_ephemeral(self, mock_ctx):
         """year >= current_year sends ephemeral error"""
-        from attubot.commands.marker import marker_set
+        from doom_bot.commands.marker import marker_set
 
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
 
@@ -185,7 +185,7 @@ class TestMarkerSet:
     @pytest.mark.asyncio
     async def test_success_shows_time_adjustment(self, mock_ctx):
         """valid inputs show old and new timestamps in response"""
-        from attubot.commands.marker import marker_set
+        from doom_bot.commands.marker import marker_set
 
         p_guild, p_year = _patch_config_and_year_status(current_year=10)
         est_marker = MagicMock()
@@ -198,8 +198,8 @@ class TestMarkerSet:
         with (
             p_guild,
             p_year,
-            patch('attubot.commands.marker.YearMarker.get_any', new_callable=AsyncMock, return_value=est_marker),
-            patch('attubot.commands.marker.snowflake_time', side_effect=[old_time, new_time]),
+            patch('doom_bot.commands.marker.YearMarker.get_any', new_callable=AsyncMock, return_value=est_marker),
+            patch('doom_bot.commands.marker.snowflake_time', side_effect=[old_time, new_time]),
         ):
             await marker_set(mock_ctx, year=5, snowflake=_snowflake_b)
 
@@ -219,7 +219,7 @@ class TestMarkerClear:
     @pytest.mark.asyncio
     async def test_marker_not_found_ephemeral(self, mock_ctx):
         """clearing a nonexistent marker sends ephemeral error"""
-        from attubot.commands.marker import marker_clear
+        from doom_bot.commands.marker import marker_clear
 
         mock_channel = MagicMock()
         mock_channel.id = test_lore_channel
@@ -228,7 +228,7 @@ class TestMarkerClear:
         with (
             p_guild,
             p_year,
-            patch('attubot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=None),
+            patch('doom_bot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=None),
         ):
             await marker_clear(mock_ctx, year=5, channel=mock_channel)
 
@@ -240,7 +240,7 @@ class TestMarkerClear:
     @pytest.mark.asyncio
     async def test_success_clears_and_responds(self, mock_ctx):
         """clearing an existing marker deletes it and confirms"""
-        from attubot.commands.marker import marker_clear
+        from doom_bot.commands.marker import marker_clear
 
         mock_channel = MagicMock()
         mock_channel.id = test_lore_channel
@@ -252,7 +252,7 @@ class TestMarkerClear:
         with (
             p_guild,
             p_year,
-            patch('attubot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=marker),
+            patch('doom_bot.commands.marker.YearMarker.get', new_callable=AsyncMock, return_value=marker),
         ):
             await marker_clear(mock_ctx, year=5, channel=mock_channel)
 

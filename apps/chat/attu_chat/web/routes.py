@@ -14,10 +14,10 @@ from quart import Quart, jsonify, render_template, request
 
 from attu_chat.web.forms import ChatConfigForm
 from attu_models import ChatChannelConfig, ChatConfigDocument
-from attubot.logging import get_logger
-from attubot.signals import send_signal
-from attubot.web.app import config
-from attubot.web.audit import compare_configs, log_audit
+from doom_bot.logging import get_logger
+from doom_bot.signals import send_signal
+from doom_bot.web.app import config
+from doom_bot.web.audit import compare_configs, log_audit
 
 
 logger = get_logger(__name__)

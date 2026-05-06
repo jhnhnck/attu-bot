@@ -1,6 +1,6 @@
 ---
 name: mediawiki-api
-description: mediawiki action api + mwparserfromhell reference card for AttuBot's wiki layer. trigger when editing or creating files under attubot/wiki/, attubot/ingestor/pipelines/wiki.py, or attubot/commands/wiki.py; when any file imports mwparserfromhell or hits api.php / rest.php; when writing or reviewing wiki search, page fetch, page edit, login or csrf token flow, edit-conflict handling, recent-changes ingestion, allpages pagination, or section-split / wikitext-traversal logic.
+description: mediawiki action api + mwparserfromhell reference card for AttuBot's wiki layer. trigger when editing or creating files under doom_bot/wiki/, doom_bot/ingestor/pipelines/wiki.py, or doom_bot/commands/wiki.py; when any file imports mwparserfromhell or hits api.php / rest.php; when writing or reviewing wiki search, page fetch, page edit, login or csrf token flow, edit-conflict handling, recent-changes ingestion, allpages pagination, or section-split / wikitext-traversal logic.
 ---
 
 # mediawiki api reference
@@ -16,7 +16,7 @@ mwparserfromhell version follows the lockfile; the traversal model has been stab
 | **action api** | `/api.php` | sprawling, idiosyncratic, fully featured | auth, page reads, edits, allpages, recentchanges, siteinfo, admin (block) |
 | **rest api** | `/rest.php/v1/...` | small, modern, partial replacement | full-text and title search only; everything else is incomplete or absent |
 
-the rest api is **not** a drop-in replacement; it covers a curated subset (search, page get, page history) and is missing edits, login, and most query modules. on some wikis it is disabled outright. default to the action api unless a specific endpoint is known to exist on rest.php; on this wiki only `/rest.php/v1/search/page` and `/rest.php/v1/search/title` are in active use (see `attubot/wiki/search.py`).
+the rest api is **not** a drop-in replacement; it covers a curated subset (search, page get, page history) and is missing edits, login, and most query modules. on some wikis it is disabled outright. default to the action api unless a specific endpoint is known to exist on rest.php; on this wiki only `/rest.php/v1/search/page` and `/rest.php/v1/search/title` are in active use (see `doom_bot/wiki/search.py`).
 
 `WikiClient.__init__` already exposes both bases:
 
@@ -39,15 +39,15 @@ POST api.php  (form-encoded body with same keys)
 mandatory params on every read or write:
 
 - `format=json` - the only format this codebase parses; `xml` and `php` exist but are unused.
-- `formatversion=2` - **always pin this**. v1 and v2 response shapes differ enough to silently break the pydantic models in `attubot/wiki/models.py`. v1 returns `query.pages` as a dict keyed by page id; v2 returns it as a list. v1 omits missing fields entirely; v2 normalizes more keys. mixing versions across calls is the fastest way to introduce silent ingestion bugs.
+- `formatversion=2` - **always pin this**. v1 and v2 response shapes differ enough to silently break the pydantic models in `doom_bot/wiki/models.py`. v1 returns `query.pages` as a dict keyed by page id; v2 returns it as a list. v1 omits missing fields entirely; v2 normalizes more keys. mixing versions across calls is the fastest way to introduce silent ingestion bugs.
 
-`attubot/wiki/auth.py:23-30` (`get_csrf`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
+`doom_bot/wiki/auth.py:23-30` (`get_csrf`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
 
 ## auth flow (as actually implemented)
 
 this repo uses **bot passwords with `action=login`**, not `clientlogin`. credentials come from `Special:BotPasswords` and are stored in `assets/attu-bot.toml` as `[auth.wiki].user` / `.key` (e.g. `DoomBot@DoomBot`).
 
-implemented in `attubot/wiki/auth.py`; the dance is:
+implemented in `doom_bot/wiki/auth.py`; the dance is:
 
 1. **fetch login token**
    ```
@@ -78,7 +78,7 @@ implemented in `attubot/wiki/auth.py`; the dance is:
 
 footguns specific to this repo:
 
-- `WikiClient.authenticate(user, key)` is only called from `attubot/commands/wiki.py:269` (`/wiki block`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
+- `WikiClient.authenticate(user, key)` is only called from `doom_bot/commands/wiki.py:269` (`/wiki block`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
 - session cookies live on the shared `httpx.AsyncClient`. if you ever rebuild the client mid-process, you lose the session and silently drop to anon.
 - `clientlogin` (mw 1.27+) is the newer interactive flow with multi-step responses (captcha, 2fa). don't switch to it without a reason; bot passwords + `action=login` works fine on vanilla mw 1.44.
 
@@ -152,7 +152,7 @@ four parallel arrays of equal length; index `i` is one result. parse defensively
 
 ## editing pages
 
-implemented in `attubot/wiki/pages.py:41-58` (`PagesApi.edit`). minimum viable write:
+implemented in `doom_bot/wiki/pages.py:41-58` (`PagesApi.edit`). minimum viable write:
 
 ```
 POST api.php
@@ -210,7 +210,7 @@ other write-path errors worth handling explicitly:
 
 - **`maxlag=5`** on every read; cheap insurance. on a `maxlag` error (http 200 with `error.code='maxlag'`) sleep the `Retry-After` seconds (default 5) and retry once. don't busy-loop. not currently passed by this repo's read calls; safe to add.
 - writes ignore `maxlag` server-side but obey the per-user write throttle, surfaced as `code=ratelimited`.
-- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`attubot/wiki/admin.py:44-54`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
+- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`doom_bot/wiki/admin.py:44-54`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
 - for `assert=user` / `assert=bot` on write traffic: not currently used here. add it to a new write path if you want to fail loudly on session loss instead of silently writing as anon.
 
 ## mwparserfromhell traversal
@@ -219,7 +219,7 @@ import once; parse once per page; reuse the result. `mwparserfromhell.parse(text
 
 ### the section split this repo actually uses
 
-from `attubot/ingestor/pipelines/wiki.py:153-168`:
+from `doom_bot/ingestor/pipelines/wiki.py:153-168`:
 
 ```python
 parsed = mwparserfromhell.parse(wikitext)
@@ -303,11 +303,11 @@ key shapes:
 - mediawiki rest api: https://www.mediawiki.org/wiki/API:REST_API
 - mwparserfromhell docs: https://mwparserfromhell.readthedocs.io/
 - repo files (authoritative shapes):
-  - `attubot/wiki/client.py` - facade, base urls, user-agent
-  - `attubot/wiki/auth.py` - login + csrf flow
-  - `attubot/wiki/pages.py` - parse / revisions / extracts / allpages / recentchanges
-  - `attubot/wiki/search.py` - rest search variants + action siteinfo
-  - `attubot/wiki/admin.py` - block-with-retry pattern
-  - `attubot/wiki/models.py` - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail`
-  - `attubot/ingestor/pipelines/wiki.py` - section split, embedding, recent-changes loop
-  - `attubot/commands/wiki.py` - `/wiki random|lookup|block`, `WikiLinkView`, `WikiLookupView`
+  - `doom_bot/wiki/client.py` - facade, base urls, user-agent
+  - `doom_bot/wiki/auth.py` - login + csrf flow
+  - `doom_bot/wiki/pages.py` - parse / revisions / extracts / allpages / recentchanges
+  - `doom_bot/wiki/search.py` - rest search variants + action siteinfo
+  - `doom_bot/wiki/admin.py` - block-with-retry pattern
+  - `doom_bot/wiki/models.py` - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail`
+  - `doom_bot/ingestor/pipelines/wiki.py` - section split, embedding, recent-changes loop
+  - `doom_bot/commands/wiki.py` - `/wiki random|lookup|block`, `WikiLinkView`, `WikiLookupView`

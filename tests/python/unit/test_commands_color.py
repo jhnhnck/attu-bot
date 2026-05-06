@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from attubot import config
+from doom_bot import config
 
 
 # --- /color Command Tests ---
@@ -28,7 +28,7 @@ class TestColorCommand:
     @pytest.mark.asyncio
     async def test_color_returns_embed_with_hex(self, mock_ctx):
         """Test that /color responds with an embed whose description contains the hex color"""
-        from attubot.commands.debug import command_color
+        from doom_bot.commands.debug import command_color
 
         mock_theme = MagicMock()
         mock_theme.bot_color = '#1a2b3c'
@@ -45,7 +45,7 @@ class TestColorCommand:
     @pytest.mark.asyncio
     async def test_color_no_theme_ephemeral_error(self, mock_ctx):
         """Test that /color responds ephemerally with a failure message when no theme is set"""
-        from attubot.commands.debug import command_color
+        from doom_bot.commands.debug import command_color
 
         with patch.object(config, 'theme', None):
             await command_color(mock_ctx)

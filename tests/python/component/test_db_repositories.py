@@ -17,14 +17,14 @@ import pytest
 import pytest_asyncio
 import tomlkit
 
-from attubot.database.models import (
+from doom_bot.database.models import (
     MessageAuthor,
     MessageContent,
     MessageDocument,
     StarredMessageDocument,
     SystemConfigDocument,
 )
-from attubot.database.repositories import (
+from doom_bot.database.repositories import (
     ConfigRepository,
     MessageRepository,
     ReloadSignalRepository,
@@ -43,7 +43,7 @@ def _read_db_config() -> tuple[str, str]:
     falls back to unauthenticated localhost for convenience in local dev
     without a config file present.
     """
-    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './assets/attu-bot.toml'))
+    config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml'))
     if config_path.exists():
         with config_path.open() as f:
             raw = tomlkit.load(f)
@@ -102,7 +102,7 @@ async def db():
 
 def _make_guild_config(guild_id: int = 1111111111):
     """return a minimal GuildConfig-like object for repo tests"""
-    from attubot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+    from doom_bot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 
     return GuildConfig(
         id=guild_id,
@@ -198,7 +198,7 @@ class TestConfigRepositoryGuild:
 
 class TestConfigRepositoryTheme:
     async def test_theme_roundtrip(self, db):
-        from attubot.config import BotTheme
+        from doom_bot.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -210,7 +210,7 @@ class TestConfigRepositoryTheme:
         assert doc.bot_color == '#ff0000'
 
     async def test_theme_roundtrip_ui_emojis(self, db):
-        from attubot.config import BotTheme
+        from doom_bot.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -222,7 +222,7 @@ class TestConfigRepositoryTheme:
         assert doc.ui_emojis == emojis
 
     async def test_theme_upsert(self, db):
-        from attubot.config import BotTheme
+        from doom_bot.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()

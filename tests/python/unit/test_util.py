@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 
 import discord
 
-from attubot.client.util import has_announcements_role, is_authorized_guild, is_bot_owner
+from doom_bot.client.util import has_announcements_role, is_authorized_guild, is_bot_owner
 from tests.conftest import test_guild, test_user
 
 
@@ -32,14 +32,14 @@ class TestIsBotOwner:
     """unit: is_bot_owner predicate"""
 
     def test_returns_true_for_owner(self, mock_ctx_factory):
-        from attubot.client.core import config
+        from doom_bot.client.core import config
 
         config.owner_ids.add(test_user)
         ctx = mock_ctx_factory(user_id=test_user)
         assert is_bot_owner(ctx) is True
 
     def test_returns_false_for_non_owner(self, mock_ctx_factory):
-        from attubot.client.core import config
+        from doom_bot.client.core import config
 
         config.owner_ids.add(test_user)
         ctx = mock_ctx_factory(user_id=test_user + 1)
@@ -128,7 +128,7 @@ class TestShiftHue:
     """unit: shift_hue helper"""
 
     def test_shifts_color(self):
-        from attubot.client.util import shift_hue
+        from doom_bot.client.util import shift_hue
 
         result = shift_hue('#ff0000')
         assert result != '#ff0000'
@@ -136,7 +136,7 @@ class TestShiftHue:
         assert len(result) == 7
 
     def test_360_degree_shift_is_identity(self):
-        from attubot.client.util import shift_hue
+        from doom_bot.client.util import shift_hue
 
         # 360-degree shift is a no-op for hue; with round() the integer values are stable
         assert shift_hue('#ff0000', degrees=360.0) == '#ff0000'

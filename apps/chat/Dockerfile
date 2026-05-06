@@ -6,7 +6,7 @@ ENV FORCE_COLOR=1
 ARG DOOM_HOME="/home/doom"
 ENV VIRTUAL_ENV="$DOOM_HOME/.venv"
 ENV PATH="$DOOM_HOME/.venv/bin:$PATH"
-# attu_chat lives at apps/chat/attu_chat; cross-app imports against attubot.* (logging,
+# attu_chat lives at apps/chat/attu_chat; cross-app imports against doom_bot.* (logging,
 # tasks, client.core) need apps/bot on the path while chat reuses bot infra.
 ENV PYTHONPATH="$DOOM_HOME/apps/chat:$DOOM_HOME/apps/bot:$DOOM_HOME/packages/shared-models"
 
@@ -37,5 +37,5 @@ COPY --chown=doom:doom ./apps/chat/attu-chat.py $DOOM_HOME/apps/chat/attu-chat.p
 COPY --chown=doom:doom ./apps/chat/attu_chat $DOOM_HOME/apps/chat/attu_chat
 COPY --chown=doom:doom ./apps/chat/assets $DOOM_HOME/apps/chat/assets
 COPY --chown=doom:doom ./apps/chat/legacy_web $DOOM_HOME/apps/chat/legacy_web
-COPY --chown=doom:doom ./apps/bot/attubot $DOOM_HOME/apps/bot/attubot
+COPY --chown=doom:doom ./apps/bot/doom_bot $DOOM_HOME/apps/bot/doom_bot
 COPY --chown=doom:doom ./packages/shared-models/attu_models $DOOM_HOME/packages/shared-models/attu_models

@@ -8,7 +8,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import asyncio
 import signal
 
-from attubot.logging import get_logger
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -16,10 +16,10 @@ logger = get_logger(__name__)
 
 async def _run():
     from attu_chat.ingestor.tasks import DiscordIngestTask, WikiIngestTask
-    from attubot.client.core import config, db
-    from attubot.database import init_database
-    from attubot.tasks.reload_watcher import ReloadWatcherTask
-    from attubot.tasks.scheduler import scheduler
+    from doom_bot.client.core import config, db
+    from doom_bot.database import init_database
+    from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+    from doom_bot.tasks.scheduler import scheduler
 
     config.ingestor_mode = True
     config.on_init()

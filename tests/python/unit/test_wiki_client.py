@@ -9,11 +9,11 @@ from unittest.mock import AsyncMock
 
 import httpx
 
-from attubot.wiki.admin import AdminApi
-from attubot.wiki.auth import AuthApi
-from attubot.wiki.client import WikiClient
-from attubot.wiki.pages import PagesApi
-from attubot.wiki.search import SearchApi
+from doom_bot.wiki.admin import AdminApi
+from doom_bot.wiki.auth import AuthApi
+from doom_bot.wiki.client import WikiClient
+from doom_bot.wiki.pages import PagesApi
+from doom_bot.wiki.search import SearchApi
 
 
 endpoint = 'https://wiki.example.test'
@@ -33,7 +33,7 @@ class TestInit:
 
     def test_sets_user_agent_header(self):
         """the user-agent header includes the bot title, version, and httpx version."""
-        from attubot import __email__, __title__, __version__
+        from doom_bot import __email__, __title__, __version__
 
         wiki = WikiClient(endpoint)
         ua = wiki._http.headers['user-agent']

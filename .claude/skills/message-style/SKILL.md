@@ -1,6 +1,6 @@
 ---
 name: message-style
-description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `attubot/commands/`, `attubot/client/`, `attubot/tasks/`, or `attubot/web/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo.
+description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `doom_bot/commands/`, `doom_bot/client/`, `doom_bot/tasks/`, or `doom_bot/web/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo.
 ---
 
 # message-style

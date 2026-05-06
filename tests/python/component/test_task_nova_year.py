@@ -14,9 +14,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from freezegun import freeze_time
 
-from attubot import config
-from attubot.config import GuildChannels
-from attubot.database.repositories import YearRepository
+from doom_bot import config
+from doom_bot.config import GuildChannels
+from doom_bot.database.repositories import YearRepository
 
 
 pytestmark = pytest.mark.component
@@ -32,11 +32,11 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     """run _advance_year with real year_repo and minimal fake discord/wiki objects.
 
     returns (fake_wiki, fake_announce, lore_channels_map) after the call completes.
-    the caller is responsible for setting attubot.years._year_repo before calling this.
+    the caller is responsible for setting doom_bot.years._year_repo before calling this.
     """
-    import attubot.tasks.nova_year as nova_year_mod
-    from attubot.tasks.nova_year import NovaYearTask
-    from attubot.tasks.scheduler import scheduler as _scheduler
+    import doom_bot.tasks.nova_year as nova_year_mod
+    from doom_bot.tasks.nova_year import NovaYearTask
+    from doom_bot.tasks.scheduler import scheduler as _scheduler
 
     all_lore_ids = [lore_channel_1] + (extra_lore_ids or [])
     cfg.channels = GuildChannels(
@@ -77,8 +77,8 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     fake_wiki.pages.edit = AsyncMock()
 
     with (
-        patch('attubot.tasks.nova_year.bot') as mock_bot,
-        patch('attubot.tasks.nova_year.get_wiki', return_value=fake_wiki),
+        patch('doom_bot.tasks.nova_year.bot') as mock_bot,
+        patch('doom_bot.tasks.nova_year.get_wiki', return_value=fake_wiki),
         patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
         patch.object(_scheduler, 'add_job', side_effect=lambda coro, name: coro.close()),
         patch.object(nova_year_mod.logger, 'send_to_webhook', AsyncMock()),
@@ -97,7 +97,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -119,7 +119,7 @@ class TestAdvanceYear:
         # seed year 1 so finalize has something to update
         await year_repo.create(test_guild, year=1, start_time=1704067200)
 
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -138,7 +138,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -155,7 +155,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -173,10 +173,10 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
-        import attubot.client.years as _years
-        import attubot.tasks.nova_year as nova_year_mod
-        from attubot.tasks.nova_year import NovaYearTask
-        from attubot.tasks.scheduler import scheduler as _scheduler
+        import doom_bot.client.years as _years
+        import doom_bot.tasks.nova_year as nova_year_mod
+        from doom_bot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.scheduler import scheduler as _scheduler
 
         cfg.channels = GuildChannels(lore_channels=[lore_channel_1], year_vc=year_vc, announcements=announce_ch)
         fake_msg = MagicMock(jump_url='https://discord.com/channels/1/2/3')
@@ -209,8 +209,8 @@ class TestAdvanceYear:
         _years._year_repo = year_repo
         try:
             with (
-                patch('attubot.tasks.nova_year.bot') as mock_bot,
-                patch('attubot.tasks.nova_year.get_wiki', return_value=fake_wiki),
+                patch('doom_bot.tasks.nova_year.bot') as mock_bot,
+                patch('doom_bot.tasks.nova_year.get_wiki', return_value=fake_wiki),
                 patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
                 patch.object(_scheduler, 'add_job', side_effect=_capture),
                 patch.object(nova_year_mod.logger, 'send_to_webhook', AsyncMock()),
@@ -229,7 +229,7 @@ class TestAdvanceYear:
         await year_repo.init_indexes()
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -247,7 +247,7 @@ class TestRolloverGuildGuards:
     @freeze_time('2024-01-08 17:00:00')  # day 7 - not at the 14-day boundary
     async def test_skips_when_not_at_year_boundary(self, make_guild):
         """_rollover_guild returns early when elapsed days mod year length is not zero"""
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
@@ -259,7 +259,7 @@ class TestRolloverGuildGuards:
 
     async def test_skips_paused_guild(self, make_guild):
         """_rollover_guild returns early when epoch.paused is True"""
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         cfg = make_guild(guild_id=test_guild, paused=True)
 
@@ -272,7 +272,7 @@ class TestRolloverGuildGuards:
     @freeze_time('2024-01-15 17:00:00')  # day 14 - exactly at the 14-day boundary
     async def test_skips_when_year_already_in_db(self, component_db, make_guild):
         """_rollover_guild does nothing when the DB already has a year >= the computed current year"""
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
@@ -281,7 +281,7 @@ class TestRolloverGuildGuards:
         # year 2 already recorded - rollover already happened
         await year_repo.create(test_guild, year=2, start_time=1705276800)
 
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -296,7 +296,7 @@ class TestRolloverGuildGuards:
     @freeze_time('2024-01-15 17:00:00')  # at the boundary
     async def test_calls_advance_year_when_at_boundary_and_not_yet_advanced(self, component_db, make_guild):
         """_rollover_guild calls _advance_year when at the boundary and no year record exists yet"""
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         cfg = make_guild(guild_id=test_guild, time=1704067200, year=1, length=14)
 
@@ -304,7 +304,7 @@ class TestRolloverGuildGuards:
         await year_repo.init_indexes()
         # no year 2 record yet
 
-        import attubot.client.years as _years
+        import doom_bot.client.years as _years
 
         _years._year_repo = year_repo
         try:
@@ -322,7 +322,7 @@ class TestNextRun:
         """next_run returns ~30 minutes from now when valid_guilds is empty"""
         from datetime import datetime
 
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         original_guilds = dict(config.guilds)
         original_valid = list(config.valid_guilds)
@@ -344,7 +344,7 @@ class TestNextRun:
         """next_run returns ~30 minutes from now when every valid guild is paused"""
         from datetime import datetime
 
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         make_guild(guild_id=test_guild, paused=True)
         task = NovaYearTask()
@@ -358,7 +358,7 @@ class TestNextRun:
         """next_run returns the earliest upcoming rollover among all valid guilds"""
         from datetime import datetime
 
-        from attubot.tasks.nova_year import NovaYearTask
+        from doom_bot.tasks.nova_year import NovaYearTask
 
         guild_a = 1234567890
         guild_b = 9876543210

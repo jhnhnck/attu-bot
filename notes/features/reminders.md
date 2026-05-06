@@ -25,7 +25,7 @@ users can set reminders that fire when a specific haracalnde calendar date arriv
 
 ## fire time computation
 
-the haracalnde date is the source of truth. the real-world fire timestamp is computed dynamically by `compute_fire_time()` in `attubot/tasks/reminder.py`:
+the haracalnde date is the source of truth. the real-world fire timestamp is computed dynamically by `compute_fire_time()` in `apps/bot/doom_bot/tasks/reminder.py`:
 
 1. call `get_year_span(attu_year, guild_id)` to get the target year's `(start_time, end_time)`.
 2. if year-only: fire at `start_time`.
@@ -72,11 +72,11 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 
 | function | file | purpose |
 |---|---|---|
-| `compute_fire_time()` | `attubot/tasks/reminder.py` | convert a reminder's haracalnde date to a real-world datetime |
-| `format_attu_date()` | `attubot/tasks/reminder.py` | format a reminder's target date as a readable string |
-| `_deliver_reminder()` | `attubot/tasks/reminder.py` | send the notification message to the channel |
-| `ReminderTask.next_run()` | `attubot/tasks/reminder.py` | compute the earliest fire time across all pending reminders |
-| `ReminderTask.run()` | `attubot/tasks/reminder.py` | fire any overdue reminders |
+| `compute_fire_time()` | `apps/bot/doom_bot/tasks/reminder.py` | convert a reminder's haracalnde date to a real-world datetime |
+| `format_attu_date()` | `apps/bot/doom_bot/tasks/reminder.py` | format a reminder's target date as a readable string |
+| `_deliver_reminder()` | `apps/bot/doom_bot/tasks/reminder.py` | send the notification message to the channel |
+| `ReminderTask.next_run()` | `apps/bot/doom_bot/tasks/reminder.py` | compute the earliest fire time across all pending reminders |
+| `ReminderTask.run()` | `apps/bot/doom_bot/tasks/reminder.py` | fire any overdue reminders |
 
 ---
 
@@ -95,15 +95,15 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 
 | file | role |
 |---|---|
-| `attubot/tasks/reminder.py` | `ReminderTask`, `compute_fire_time()`, `_deliver_reminder()`, `format_attu_date()` |
-| `attubot/commands/remind.py` | `/remind add`, `/remind list`, `/remind cancel` slash commands |
-| `attubot/database/models.py` | `ReminderDocument` pydantic model |
-| `attubot/database/repositories.py` | `ReminderRepository` — CRUD + queries |
+| `apps/bot/doom_bot/tasks/reminder.py` | `ReminderTask`, `compute_fire_time()`, `_deliver_reminder()`, `format_attu_date()` |
+| `apps/bot/doom_bot/commands/remind.py` | `/remind add`, `/remind list`, `/remind cancel` slash commands |
+| `packages/shared-models/attu_models/documents.py` | `ReminderDocument` pydantic model (re-exported via `doom_bot.database.models`) |
+| `packages/shared-models/attu_models/repositories.py` | `ReminderRepository` — CRUD + queries (re-exported via `doom_bot.database.repositories`) |
 
 ---
 
 ## metadata
 
 ```yaml
-last_updated: 13 April 2026
+last_updated: 6 May 2026
 ```

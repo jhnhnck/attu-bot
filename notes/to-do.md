@@ -97,7 +97,7 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### scheduling / signals
 
-- 🔴 `4 May 2026` fix(signals): web reload signals dropped in prod and reminder task firing inconsistently; ingestor was inheriting all bot tasks via module-import side effects in `attubot/tasks/__init__.py`, racing the bot for the `reload_signals` collection on every poll. moved registration into a `register_bot_tasks()` function called from `client/events.py`, and split signals per consumer with a `target` field so the bot and ingestor each consume only their own queue. schema bumped to 2.5.5 with `migration_target_signals` to drop the legacy index and purge untargeted docs.
+- 🔴 `4 May 2026` fix(signals): web reload signals dropped in prod and reminder task firing inconsistently; ingestor was inheriting all bot tasks via module-import side effects in `doom_bot/tasks/__init__.py`, racing the bot for the `reload_signals` collection on every poll. moved registration into a `register_bot_tasks()` function called from `client/events.py`, and split signals per consumer with a `target` field so the bot and ingestor each consume only their own queue. schema bumped to 2.5.5 with `migration_target_signals` to drop the legacy index and purge untargeted docs.
 
 ### egg related
 
@@ -183,128 +183,128 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 |------:|-----:|-------:|-------:|------:|
 | 8951 | 2542 | 2192 | 244 | 69% |
 
-### attubot
+### doom_bot
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/__init__.py | 12 | 0 | 0 | 0 | 100% |
-| attubot/config.py | 462 | 143 | 86 | 23 | 65% |
-| attubot/logging.py | 73 | 22 | 8 | 0 | 63% |
-| attubot/signals.py | 16 | 1 | 2 | 1 | 89% |
+| doom_bot/__init__.py | 12 | 0 | 0 | 0 | 100% |
+| doom_bot/config.py | 462 | 143 | 86 | 23 | 65% |
+| doom_bot/logging.py | 73 | 22 | 8 | 0 | 63% |
+| doom_bot/signals.py | 16 | 1 | 2 | 1 | 89% |
 
-### attubot/client
-
-| Module | Statements | Miss | Branch | Branch Parts | Coverage |
-|--------|------:|-----:|-------:|-------:|------:|
-| attubot/client/__init__.py | 57 | 4 | 6 | 0 | 94% |
-| attubot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
-| attubot/client/core.py | 12 | 0 | 0 | 0 | 100% |
-| attubot/client/embeds.py | 27 | 1 | 16 | 1 | 95% |
-| attubot/client/events.py | 263 | 155 | 76 | 2 | 38% |
-| attubot/client/families.py | 36 | 0 | 8 | 0 | 100% |
-| attubot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
-| attubot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
-| attubot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
-| attubot/client/migrations.py | 291 | 193 | 58 | 1 | 30% |
-| attubot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
-| attubot/client/starboard.py | 580 | 168 | 226 | 44 | 69% |
-| attubot/client/util.py | 56 | 11 | 10 | 1 | 73% |
-| attubot/client/years.py | 74 | 0 | 16 | 0 | 100% |
-
-### attubot/commands
+### doom_bot/client
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
-| attubot/commands/debug.py | 215 | 31 | 38 | 4 | 86% |
-| attubot/commands/eggs.py | 246 | 12 | 72 | 5 | 95% |
-| attubot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
-| attubot/commands/link.py | 110 | 24 | 12 | 1 | 80% |
-| attubot/commands/marker.py | 82 | 9 | 16 | 2 | 89% |
-| attubot/commands/query.py | 33 | 2 | 8 | 0 | 95% |
-| attubot/commands/remind.py | 89 | 21 | 20 | 1 | 76% |
-| attubot/commands/stars.py | 202 | 27 | 38 | 3 | 88% |
-| attubot/commands/time.py | 43 | 2 | 4 | 0 | 96% |
-| attubot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
-| attubot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
+| doom_bot/client/__init__.py | 57 | 4 | 6 | 0 | 94% |
+| doom_bot/client/calendar.py | 129 | 13 | 40 | 5 | 87% |
+| doom_bot/client/core.py | 12 | 0 | 0 | 0 | 100% |
+| doom_bot/client/embeds.py | 27 | 1 | 16 | 1 | 95% |
+| doom_bot/client/events.py | 263 | 155 | 76 | 2 | 38% |
+| doom_bot/client/families.py | 36 | 0 | 8 | 0 | 100% |
+| doom_bot/client/logo.py | 18 | 2 | 2 | 1 | 85% |
+| doom_bot/client/markers.py | 148 | 39 | 46 | 6 | 68% |
+| doom_bot/client/messages.py | 329 | 30 | 120 | 5 | 92% |
+| doom_bot/client/migrations.py | 291 | 193 | 58 | 1 | 30% |
+| doom_bot/client/modlog.py | 325 | 62 | 142 | 40 | 77% |
+| doom_bot/client/starboard.py | 580 | 168 | 226 | 44 | 69% |
+| doom_bot/client/util.py | 56 | 11 | 10 | 1 | 73% |
+| doom_bot/client/years.py | 74 | 0 | 16 | 0 | 100% |
 
-### attubot/database
-
-| Module | Statements | Miss | Branch | Branch Parts | Coverage |
-|--------|------:|-----:|-------:|-------:|------:|
-| attubot/database/__init__.py | 72 | 4 | 0 | 0 | 94% |
-| attubot/database/connection.py | 53 | 0 | 10 | 0 | 100% |
-| attubot/database/models.py | 202 | 0 | 0 | 0 | 100% |
-| attubot/database/repositories.py | 599 | 149 | 102 | 10 | 72% |
-
-### attubot/eggs
+### doom_bot/commands
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/eggs/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/eggs/data.py | 4 | 4 | 0 | 0 | 0% |
-| attubot/eggs/emojis.py | 52 | 0 | 8 | 0 | 100% |
-| attubot/eggs/hatching.py | 155 | 6 | 50 | 5 | 94% |
+| doom_bot/commands/__init__.py | 0 | 0 | 0 | 0 | 100% |
+| doom_bot/commands/chat.py | 151 | 120 | 40 | 0 | 16% |
+| doom_bot/commands/debug.py | 215 | 31 | 38 | 4 | 86% |
+| doom_bot/commands/eggs.py | 246 | 12 | 72 | 5 | 95% |
+| doom_bot/commands/fix.py | 492 | 278 | 126 | 11 | 42% |
+| doom_bot/commands/link.py | 110 | 24 | 12 | 1 | 80% |
+| doom_bot/commands/marker.py | 82 | 9 | 16 | 2 | 89% |
+| doom_bot/commands/query.py | 33 | 2 | 8 | 0 | 95% |
+| doom_bot/commands/remind.py | 89 | 21 | 20 | 1 | 76% |
+| doom_bot/commands/stars.py | 202 | 27 | 38 | 3 | 88% |
+| doom_bot/commands/time.py | 43 | 2 | 4 | 0 | 96% |
+| doom_bot/commands/wiki.py | 152 | 42 | 30 | 4 | 69% |
+| doom_bot/commands/year.py | 89 | 8 | 34 | 4 | 90% |
 
-### attubot/ingestor
-
-| Module | Statements | Miss | Branch | Branch Parts | Coverage |
-|--------|------:|-----:|-------:|-------:|------:|
-| attubot/ingestor/__init__.py | 32 | 26 | 2 | 0 | 18% |
-| attubot/ingestor/embedder.py | 24 | 13 | 4 | 0 | 39% |
-| attubot/ingestor/llm.py | 48 | 34 | 18 | 0 | 21% |
-| attubot/ingestor/pipelines/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/ingestor/pipelines/discord.py | 194 | 194 | 76 | 0 | 0% |
-| attubot/ingestor/pipelines/wiki.py | 93 | 93 | 26 | 0 | 0% |
-| attubot/ingestor/query_expander.py | 22 | 11 | 2 | 0 | 46% |
-| attubot/ingestor/registry.py | 16 | 16 | 2 | 0 | 0% |
-| attubot/ingestor/reranker.py | 21 | 13 | 4 | 0 | 32% |
-| attubot/ingestor/summarizer.py | 50 | 50 | 8 | 0 | 0% |
-| attubot/ingestor/tasks.py | 34 | 34 | 4 | 0 | 0% |
-| attubot/ingestor/vector_store.py | 34 | 23 | 6 | 0 | 28% |
-
-### attubot/tasks
+### doom_bot/database
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
-| attubot/tasks/base.py | 13 | 3 | 0 | 0 | 77% |
-| attubot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
-| attubot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
-| attubot/tasks/egg_cleanup.py | 50 | 8 | 16 | 3 | 83% |
-| attubot/tasks/error_hook.py | 50 | 0 | 8 | 0 | 100% |
-| attubot/tasks/logo_update.py | 67 | 0 | 10 | 1 | 99% |
-| attubot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
-| attubot/tasks/nova_year.py | 123 | 49 | 40 | 1 | 57% |
-| attubot/tasks/presence.py | 28 | 0 | 2 | 0 | 100% |
-| attubot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
-| attubot/tasks/reminder.py | 106 | 7 | 40 | 2 | 94% |
-| attubot/tasks/scheduler.py | 113 | 19 | 36 | 6 | 82% |
+| doom_bot/database/__init__.py | 72 | 4 | 0 | 0 | 94% |
+| doom_bot/database/connection.py | 53 | 0 | 10 | 0 | 100% |
+| doom_bot/database/models.py | 202 | 0 | 0 | 0 | 100% |
+| doom_bot/database/repositories.py | 599 | 149 | 102 | 10 | 72% |
 
-### attubot/web
+### doom_bot/eggs
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/web/__init__.py | 0 | 0 | 0 | 0 | 100% |
-| attubot/web/app.py | 126 | 19 | 6 | 2 | 84% |
-| attubot/web/audit.py | 81 | 21 | 22 | 3 | 71% |
-| attubot/web/auth.py | 258 | 80 | 60 | 6 | 69% |
-| attubot/web/discord_integration.py | 105 | 4 | 26 | 5 | 93% |
-| attubot/web/forms.py | 202 | 26 | 68 | 6 | 82% |
-| attubot/web/routes.py | 556 | 91 | 134 | 21 | 83% |
+| doom_bot/eggs/__init__.py | 0 | 0 | 0 | 0 | 100% |
+| doom_bot/eggs/data.py | 4 | 4 | 0 | 0 | 0% |
+| doom_bot/eggs/emojis.py | 52 | 0 | 8 | 0 | 100% |
+| doom_bot/eggs/hatching.py | 155 | 6 | 50 | 5 | 94% |
 
-### attubot/wiki
+### doom_bot/ingestor
 
 | Module | Statements | Miss | Branch | Branch Parts | Coverage |
 |--------|------:|-----:|-------:|-------:|------:|
-| attubot/wiki/__init__.py | 15 | 5 | 2 | 0 | 59% |
-| attubot/wiki/admin.py | 23 | 0 | 2 | 0 | 100% |
-| attubot/wiki/auth.py | 19 | 0 | 0 | 0 | 100% |
-| attubot/wiki/client.py | 22 | 0 | 0 | 0 | 100% |
-| attubot/wiki/models.py | 29 | 0 | 2 | 0 | 100% |
-| attubot/wiki/pages.py | 70 | 53 | 12 | 0 | 21% |
-| attubot/wiki/search.py | 29 | 0 | 0 | 0 | 100% |
+| doom_bot/ingestor/__init__.py | 32 | 26 | 2 | 0 | 18% |
+| doom_bot/ingestor/embedder.py | 24 | 13 | 4 | 0 | 39% |
+| doom_bot/ingestor/llm.py | 48 | 34 | 18 | 0 | 21% |
+| doom_bot/ingestor/pipelines/__init__.py | 0 | 0 | 0 | 0 | 100% |
+| doom_bot/ingestor/pipelines/discord.py | 194 | 194 | 76 | 0 | 0% |
+| doom_bot/ingestor/pipelines/wiki.py | 93 | 93 | 26 | 0 | 0% |
+| doom_bot/ingestor/query_expander.py | 22 | 11 | 2 | 0 | 46% |
+| doom_bot/ingestor/registry.py | 16 | 16 | 2 | 0 | 0% |
+| doom_bot/ingestor/reranker.py | 21 | 13 | 4 | 0 | 32% |
+| doom_bot/ingestor/summarizer.py | 50 | 50 | 8 | 0 | 0% |
+| doom_bot/ingestor/tasks.py | 34 | 34 | 4 | 0 | 0% |
+| doom_bot/ingestor/vector_store.py | 34 | 23 | 6 | 0 | 28% |
+
+### doom_bot/tasks
+
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
+|--------|------:|-----:|-------:|-------:|------:|
+| doom_bot/tasks/__init__.py | 25 | 0 | 0 | 0 | 100% |
+| doom_bot/tasks/base.py | 13 | 3 | 0 | 0 | 77% |
+| doom_bot/tasks/chat_init.py | 31 | 18 | 0 | 0 | 42% |
+| doom_bot/tasks/db_backup.py | 73 | 0 | 20 | 0 | 100% |
+| doom_bot/tasks/egg_cleanup.py | 50 | 8 | 16 | 3 | 83% |
+| doom_bot/tasks/error_hook.py | 50 | 0 | 8 | 0 | 100% |
+| doom_bot/tasks/logo_update.py | 67 | 0 | 10 | 1 | 99% |
+| doom_bot/tasks/message_backfill.py | 167 | 46 | 48 | 6 | 72% |
+| doom_bot/tasks/nova_year.py | 123 | 49 | 40 | 1 | 57% |
+| doom_bot/tasks/presence.py | 28 | 0 | 2 | 0 | 100% |
+| doom_bot/tasks/reload_watcher.py | 53 | 3 | 16 | 2 | 93% |
+| doom_bot/tasks/reminder.py | 106 | 7 | 40 | 2 | 94% |
+| doom_bot/tasks/scheduler.py | 113 | 19 | 36 | 6 | 82% |
+
+### doom_bot/web
+
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
+|--------|------:|-----:|-------:|-------:|------:|
+| doom_bot/web/__init__.py | 0 | 0 | 0 | 0 | 100% |
+| doom_bot/web/app.py | 126 | 19 | 6 | 2 | 84% |
+| doom_bot/web/audit.py | 81 | 21 | 22 | 3 | 71% |
+| doom_bot/web/auth.py | 258 | 80 | 60 | 6 | 69% |
+| doom_bot/web/discord_integration.py | 105 | 4 | 26 | 5 | 93% |
+| doom_bot/web/forms.py | 202 | 26 | 68 | 6 | 82% |
+| doom_bot/web/routes.py | 556 | 91 | 134 | 21 | 83% |
+
+### doom_bot/wiki
+
+| Module | Statements | Miss | Branch | Branch Parts | Coverage |
+|--------|------:|-----:|-------:|-------:|------:|
+| doom_bot/wiki/__init__.py | 15 | 5 | 2 | 0 | 59% |
+| doom_bot/wiki/admin.py | 23 | 0 | 2 | 0 | 100% |
+| doom_bot/wiki/auth.py | 19 | 0 | 0 | 0 | 100% |
+| doom_bot/wiki/client.py | 22 | 0 | 0 | 0 | 100% |
+| doom_bot/wiki/models.py | 29 | 0 | 2 | 0 | 100% |
+| doom_bot/wiki/pages.py | 70 | 53 | 12 | 0 | 21% |
+| doom_bot/wiki/search.py | 29 | 0 | 0 | 0 | 100% |
 
 ---
 

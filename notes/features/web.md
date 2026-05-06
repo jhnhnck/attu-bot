@@ -6,7 +6,7 @@ Reference for the Quart-based admin dashboard - structure, auth, routes, and how
 
 ## Overview
 
-The web interface is a Quart (async Flask) app launched via `python attu-bot.py web`. It runs on port 5000, bound to localhost, behind a reverse proxy in production. Auth is WebAuthn passkeys only - no passwords.
+The web interface is a Quart (async Flask) app launched via `python apps/bot/doom-bot.py web` (the prod compose stack runs it as the `legacy-web` service). It runs on port 5000, bound to localhost, behind a reverse proxy in production. Auth is WebAuthn passkeys only - no passwords.
 
 ---
 
@@ -14,18 +14,18 @@ The web interface is a Quart (async Flask) app launched via `python attu-bot.py 
 
 | File | Role |
 |---|---|
-| `attubot/web/app.py` | `create_app()`, startup lifecycle (`before_serving`), security headers, CSP nonce |
-| `attubot/web/routes.py` | All page and API routes registered in `register_routes(app)` |
-| `attubot/web/auth.py` | WebAuthn registration and login routes registered in `register_auth_routes(app)` |
-| `attubot/web/forms.py` | Pydantic form models (`GuildConfigForm`, `ThemeConfigForm`, `SystemConfigForm`) |
-| `attubot/web/audit.py` | `AuditLogger` class, `compare_configs()`, `get_client_ip()` |
-| `attubot/web/discord_integration.py` | Cached Discord API calls (channels, roles, guild info) |
-| `assets/templates/` | Jinja2 templates; `base.html` is the layout shell |
-| `assets/templates/components/` | Reusable partials (e.g. `guild_nav.html`) |
-| `assets/static/js/modules/` | ES6 module library (api, forms, ui, discord, webauthn, etc.) |
-| `assets/static/js/pages/` | Per-page initialization scripts |
-| `assets/static/js/app.js` | Legacy global script (still used by guild config page) |
-| `assets/static/css/custom.css` | Custom styles (Bootstrap 5 from CDN) |
+| `apps/bot/doom_bot/web/app.py` | `create_app()`, startup lifecycle (`before_serving`), security headers, CSP nonce |
+| `apps/bot/doom_bot/web/routes.py` | All page and API routes registered in `register_routes(app)` |
+| `apps/bot/doom_bot/web/auth.py` | WebAuthn registration and login routes registered in `register_auth_routes(app)` |
+| `apps/bot/doom_bot/web/forms.py` | Pydantic form models (`GuildConfigForm`, `ThemeConfigForm`, `SystemConfigForm`) |
+| `apps/bot/doom_bot/web/audit.py` | `AuditLogger` class, `compare_configs()`, `get_client_ip()` |
+| `apps/bot/doom_bot/web/discord_integration.py` | Cached Discord API calls (channels, roles, guild info) |
+| `apps/bot/legacy_web/templates/` | Jinja2 templates; `base.html` is the layout shell |
+| `apps/bot/legacy_web/templates/components/` | Reusable partials (e.g. `guild_nav.html`) |
+| `apps/bot/legacy_web/static/js/modules/` | ES6 module library (api, forms, ui, discord, webauthn, etc.) |
+| `apps/bot/legacy_web/static/js/pages/` | Per-page initialization scripts |
+| `apps/bot/legacy_web/static/js/app.js` | Legacy global script (still used by guild config page) |
+| `apps/bot/legacy_web/static/css/custom.css` | Custom styles (Bootstrap 5 from CDN) |
 
 ---
 
@@ -101,7 +101,7 @@ Config saves in the web process must notify the bot process to reload. This uses
 
 **Sending a signal** (web side, in `routes.py`):
 ```python
-from attubot.signals import send_signal
+from doom_bot.signals import send_signal
 
 # after a successful db save:
 await send_signal('guild', guild_id)  # or 'theme', 'system', 'chat'
@@ -109,15 +109,15 @@ await send_signal('guild', guild_id)  # or 'theme', 'system', 'chat'
 
 - `send_signal()` upserts one document per consumer (`target`) into the `reload_signals` collection; errors are caught and logged, never re-raised
 - Upserts are idempotent per target - rapid saves of the same (target, type, guild_id) coalesce into one pending signal
-- Each signal type has a fan-out list in `attubot/signals.py:_signal_targets`. `'guild'`, `'theme'`, `'system'` go to `'bot'` only; `'chat'` fans out to both `'bot'` and `'ingestor'` since both processes use the chat runtime config
+- Each signal type has a fan-out list in `apps/bot/doom_bot/signals.py:_signal_targets`. `'guild'`, `'theme'`, `'system'` go to `'bot'` only; `'chat'` fans out to both `'bot'` and `'ingestor'` since both processes use the chat runtime config (the `'ingestor'` consumer is dormant while `apps/chat/` is offline)
 
-**Consuming signals** (consumer side): `ReloadWatcherTask` in `attubot/tasks/reload_watcher.py` is instantiated with a `target` string ('bot' in the bot process, 'ingestor' in the ingestor) and polls every 5 seconds via `repo.consume_all(target=self.target)`, which atomically deletes and returns only signals addressed to that consumer. without per-target filtering both processes raced on `find_one_and_delete` and silently dropped each other's signals.
+**Consuming signals** (consumer side): `ReloadWatcherTask` in `apps/bot/doom_bot/tasks/reload_watcher.py` is instantiated with a `target` string ('bot' in the bot process, 'ingestor' in the dormant ingestor) and polls every 5 seconds via `repo.consume_all(target=self.target)`, which atomically deletes and returns only signals addressed to that consumer. without per-target filtering both processes raced on `find_one_and_delete` and silently dropped each other's signals.
 
 **Adding a new config type that the bot needs to react to**:
 1. Emit `await send_signal('yourtype')` after the web save
-2. Add `'yourtype'` to the `Literal` in `ReloadSignalDocument` in `database/models.py`
-3. Add `'yourtype'` to the fan-out map in `attubot/signals.py:_signal_targets` (list every consumer that needs to reload)
-4. Handle it in `reload_watcher.py`
+2. Add `'yourtype'` to the `Literal` in `ReloadSignalDocument` in `packages/shared-models/attu_models/documents.py`
+3. Add `'yourtype'` to the fan-out map in `apps/bot/doom_bot/signals.py:_signal_targets` (list every consumer that needs to reload)
+4. Handle it in `apps/bot/doom_bot/tasks/reload_watcher.py`
 
 ---
 
@@ -126,8 +126,8 @@ await send_signal('guild', guild_id)  # or 'theme', 'system', 'chat'
 All config mutations must be logged. The `AuditLogger` singleton is available as `web_app.audit_logger` inside route handlers (imported from `app.py`).
 
 ```python
-from attubot.web.app import web_app
-from attubot.web.audit import compare_configs, get_client_ip
+from doom_bot.web.app import web_app
+from doom_bot.web.audit import compare_configs, get_client_ip
 
 # compare old and new config to build a list of changes:
 changes = compare_configs(old_config.model_dump(), new_config.model_dump())
@@ -148,7 +148,7 @@ Pydantic models in `forms.py` validate request JSON before any save. Return `400
 
 ```python
 from pydantic import ValidationError
-from attubot.web.forms import GuildConfigForm
+from doom_bot.web.forms import GuildConfigForm
 
 try:
     form = GuildConfigForm.model_validate(await request.get_json())
@@ -171,7 +171,7 @@ custom emoji IDs are centralized in `ThemeDocument.ui_emojis` (a `dict[str, int]
 | `crackerpeaty` | bot personality emoji |
 | `tieteran_wave` | greeting/farewell emoji |
 
-**helper:** `ui_emoji(name)` in `attubot/client/embeds.py` returns a formatted `<:name:id>` string, falling back to an empty string if the key is missing.
+**helper:** `ui_emoji(name)` in `apps/bot/doom_bot/client/embeds.py` returns a formatted `<:name:id>` string, falling back to an empty string if the key is missing.
 
 **web management:** the theme config page (`GET /theme`) includes a form section for editing emoji IDs. saved via `POST /api/theme` alongside other theme fields. changes are audit-logged and trigger a `send_signal('theme')` reload.
 
@@ -196,7 +196,7 @@ The cache is per-process; the web container has its own Discord connection separ
 
 ES6 modules, no transpilation. New pages follow this pattern:
 
-1. Create `assets/static/js/pages/<page>.js` - imports from `modules/` and calls init on `DOMContentLoaded`
+1. Create `apps/bot/legacy_web/static/js/pages/<page>.js` - imports from `modules/` and calls init on `DOMContentLoaded`
 2. Load it in the template:
    ```html
    <script type="module" src="{{ url_for('static', filename='js/pages/<page>.js') }}"></script>
@@ -222,9 +222,9 @@ The guild config page still uses the legacy `app.js` global script.
 
 ## Adding a New Page
 
-1. Create `assets/templates/<page>.html` extending `base.html`
+1. Create `apps/bot/legacy_web/templates/<page>.html` extending `base.html`
 2. Add a page route in `routes.py` that calls `render_template('<page>.html', ...)`
-3. Create `assets/static/js/pages/<page>.js` if client-side logic is needed
+3. Create `apps/bot/legacy_web/static/js/pages/<page>.js` if client-side logic is needed
 4. Add any required API endpoints (see pattern below)
 
 ## Adding a New API Endpoint
@@ -260,5 +260,5 @@ key changes: sidebar navigation replacing the guild picker dashboard and nested 
 ## metadata
 
 ```yaml
-last_updated: 12 April 2026
+last_updated: 6 May 2026
 ```

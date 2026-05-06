@@ -28,7 +28,7 @@ import pytest
 class TestEmbedSummary:
     def test_full_embed(self):
         """test _embed_summary with title, description, fields, and image"""
-        from attubot.commands.debug import _embed_summary
+        from doom_bot.commands.debug import _embed_summary
 
         embed = discord.Embed(title='Hello', description='World')
         embed.add_field(name='f1', value='v1')
@@ -45,7 +45,7 @@ class TestEmbedSummary:
 
     def test_empty_embed(self):
         """test _embed_summary with a completely empty embed returns *empty*"""
-        from attubot.commands.debug import _embed_summary
+        from doom_bot.commands.debug import _embed_summary
 
         embed = discord.Embed()
         name, value = _embed_summary(embed, 3)
@@ -55,7 +55,7 @@ class TestEmbedSummary:
 
     def test_long_description_truncated(self):
         """test _embed_summary truncates descriptions over 120 chars"""
-        from attubot.commands.debug import _embed_summary
+        from doom_bot.commands.debug import _embed_summary
 
         long_text = 'a' * 200
         embed = discord.Embed(description=long_text)
@@ -67,7 +67,7 @@ class TestEmbedSummary:
 
     def test_title_only(self):
         """test _embed_summary with just a title"""
-        from attubot.commands.debug import _embed_summary
+        from doom_bot.commands.debug import _embed_summary
 
         embed = discord.Embed(title='Only Title')
         _name, value = _embed_summary(embed, 5)
@@ -131,7 +131,7 @@ class TestMessageDump:
 
     def test_basic_serialization(self):
         """test _message_dump produces expected keys and values"""
-        from attubot.commands.debug import _message_dump
+        from doom_bot.commands.debug import _message_dump
 
         msg = self._make_message()
         result = _message_dump(msg, channel_id=222, guild_id=333)
@@ -151,7 +151,7 @@ class TestMessageDump:
 
     def test_with_all_sub_objects(self):
         """test _message_dump includes embeds, attachments, reactions, stickers"""
-        from attubot.commands.debug import _message_dump
+        from doom_bot.commands.debug import _message_dump
 
         msg = self._make_message(embed_count=2, attachment_count=1, reaction_count=1, sticker_count=1)
         msg.edited_at = datetime(2024, 6, 15, 13, 0, 0, tzinfo=UTC)
@@ -171,7 +171,7 @@ class TestMessageDump:
 
     def test_output_is_json_serializable(self):
         """test _message_dump output round-trips through json"""
-        from attubot.commands.debug import _message_dump
+        from doom_bot.commands.debug import _message_dump
 
         msg = self._make_message(embed_count=1, attachment_count=1, reaction_count=1, sticker_count=1)
         result = _message_dump(msg, channel_id=1, guild_id=2)
@@ -188,9 +188,9 @@ class TestDebugVersion:
     @pytest.mark.asyncio
     async def test_version_responds_with_embed(self, mock_ctx):
         """test /debug version responds with an embed containing version info"""
-        from attubot.commands.debug import debug_version
+        from doom_bot.commands.debug import debug_version
 
-        with patch('attubot.commands.debug.os_release', return_value={'ID': 'debian', 'VERSION_ID': '12'}), patch('attubot.commands.debug.__build_time__', 'Thu Aug 11 02:23:20 UTC 2022'):
+        with patch('doom_bot.commands.debug.os_release', return_value={'ID': 'debian', 'VERSION_ID': '12'}), patch('doom_bot.commands.debug.__build_time__', 'Thu Aug 11 02:23:20 UTC 2022'):
             await debug_version(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -212,11 +212,11 @@ class TestTestCommand:
     @pytest.mark.asyncio
     async def test_non_owner_gets_ephemeral_rejection(self, mock_ctx_factory):
         """test that /test returns ephemeral message for non-owners"""
-        from attubot.commands.debug import command_test
+        from doom_bot.commands.debug import command_test
 
         ctx = mock_ctx_factory(user_id=888)
 
-        with patch('attubot.commands.debug.config.is_owner', return_value=False):
+        with patch('doom_bot.commands.debug.config.is_owner', return_value=False):
             await command_test(ctx)
 
         ctx.respond.assert_called_once()
@@ -232,7 +232,7 @@ class TestDebugForceError:
     @pytest.mark.asyncio
     async def test_force_error_raises(self, mock_ctx_factory):
         """test that /debug force_error responds then raises an exception"""
-        from attubot.commands.debug import debug_force_error
+        from doom_bot.commands.debug import debug_force_error
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -252,13 +252,13 @@ class TestDebugScheduler:
     @pytest.mark.asyncio
     async def test_scheduler_lists_tasks(self, mock_ctx):
         """test /debug scheduler responds with an embed listing running tasks"""
-        from attubot.commands.debug import debug_scheduler
+        from doom_bot.commands.debug import debug_scheduler
 
         mock_sched = MagicMock()
         mock_sched.running_tasks = ['TaskLoop[NovaYearTask]', 'TaskLoop[PresenceUpdateTask]']
         mock_sched.count = 2
 
-        with patch('attubot.commands.debug.scheduler', mock_sched):
+        with patch('doom_bot.commands.debug.scheduler', mock_sched):
             await debug_scheduler(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -277,14 +277,14 @@ class TestDebugYearStats:
     @pytest.mark.asyncio
     async def test_year_stats_responds_with_embed(self, mock_ctx, make_guild):
         """test /debug year_stats responds with an embed containing year info"""
-        from attubot.client.calendar import AttuYearSpan
-        from attubot.commands.debug import debug_year_stats
+        from doom_bot.client.calendar import AttuYearSpan
+        from doom_bot.commands.debug import debug_year_stats
 
         make_guild()
 
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('attubot.commands.debug.get_year_status', return_value=(7, 2)), patch('attubot.commands.debug.get_year_span', new_callable=AsyncMock, return_value=mock_span):
+        with patch('doom_bot.commands.debug.get_year_status', return_value=(7, 2)), patch('doom_bot.commands.debug.get_year_span', new_callable=AsyncMock, return_value=mock_span):
             await debug_year_stats(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -306,13 +306,13 @@ class TestDebugMessageStats:
     @pytest.mark.asyncio
     async def test_message_stats_guild_total(self, mock_ctx_factory):
         """test /debug message_stats without channel shows guild total"""
-        from attubot.commands.debug import debug_message_stats
+        from doom_bot.commands.debug import debug_message_stats
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
         mock_repo = AsyncMock()
         mock_repo.count_for_guild = AsyncMock(return_value=12345)
 
-        with patch('attubot.client.messages._get_repo', return_value=mock_repo):
+        with patch('doom_bot.client.messages._get_repo', return_value=mock_repo):
             await debug_message_stats(ctx, channel=None)
 
         ctx.respond.assert_called_once()
@@ -323,7 +323,7 @@ class TestDebugMessageStats:
     @pytest.mark.asyncio
     async def test_message_stats_specific_channel(self, mock_ctx_factory):
         """test /debug message_stats with channel shows channel count"""
-        from attubot.commands.debug import debug_message_stats
+        from doom_bot.commands.debug import debug_message_stats
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
         mock_repo = AsyncMock()
@@ -332,7 +332,7 @@ class TestDebugMessageStats:
         mock_channel = MagicMock(spec=discord.TextChannel)
         mock_channel.id = 5555
 
-        with patch('attubot.client.messages._get_repo', return_value=mock_repo):
+        with patch('doom_bot.client.messages._get_repo', return_value=mock_repo):
             await debug_message_stats(ctx, channel=mock_channel)
 
         ctx.respond.assert_called_once()
@@ -342,11 +342,11 @@ class TestDebugMessageStats:
     @pytest.mark.asyncio
     async def test_message_stats_repo_not_initialized(self, mock_ctx_factory):
         """test /debug message_stats when repo is not yet initialized"""
-        from attubot.commands.debug import debug_message_stats
+        from doom_bot.commands.debug import debug_message_stats
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
-        with patch('attubot.client.messages._get_repo', side_effect=RuntimeError('message repo not initialized')):
+        with patch('doom_bot.client.messages._get_repo', side_effect=RuntimeError('message repo not initialized')):
             await debug_message_stats(ctx, channel=None)
 
         ctx.respond.assert_called_once()
@@ -362,7 +362,7 @@ class TestDebugMessage:
     @pytest.mark.asyncio
     async def test_invalid_url_rejected(self, mock_ctx_factory):
         """test /debug message with a non-discord url gets rejected"""
-        from attubot.commands.debug import debug_message
+        from doom_bot.commands.debug import debug_message
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -376,7 +376,7 @@ class TestDebugMessage:
     @pytest.mark.asyncio
     async def test_valid_url_message_found(self, mock_ctx_factory):
         """test /debug message with a valid url returns embed and json attachment"""
-        from attubot.commands.debug import debug_message
+        from doom_bot.commands.debug import debug_message
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -423,7 +423,7 @@ class TestDebugMessage:
     @pytest.mark.asyncio
     async def test_message_not_found(self, mock_ctx_factory):
         """test /debug message when the target message is not in channel history"""
-        from attubot.commands.debug import debug_message
+        from doom_bot.commands.debug import debug_message
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -451,7 +451,7 @@ class TestDebugMessage:
     @pytest.mark.asyncio
     async def test_message_exception_handled(self, mock_ctx_factory):
         """test /debug message handles exceptions gracefully"""
-        from attubot.commands.debug import debug_message
+        from doom_bot.commands.debug import debug_message
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -459,7 +459,7 @@ class TestDebugMessage:
         ctx.bot.get_guild = MagicMock(side_effect=AttributeError('guild not found'))
 
         link = 'https://discord.com/channels/111/222/444555666'
-        with patch('attubot.commands.debug.logger'):
+        with patch('doom_bot.commands.debug.logger'):
             await debug_message(ctx, link=link)
 
         ctx.respond.assert_called_once()
@@ -474,12 +474,12 @@ class TestDebugDumpConfig:
     @pytest.mark.asyncio
     async def test_dump_config_responds_done(self, mock_ctx_factory):
         """test /debug dump_config logs the config and responds with 'Done!'"""
-        from attubot.commands.debug import debug_dump_config
+        from doom_bot.commands.debug import debug_dump_config
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
         mock_config_dict = {'database': {'url': 'mongodb://localhost'}}
-        with patch('attubot.commands.debug.config.to_dict', return_value=mock_config_dict), patch('attubot.commands.debug.logger'):
+        with patch('doom_bot.commands.debug.config.to_dict', return_value=mock_config_dict), patch('doom_bot.commands.debug.logger'):
             await debug_dump_config(ctx)
 
         ctx.respond.assert_called_once()
@@ -494,7 +494,7 @@ class TestDebugDumpStarboard:
     @pytest.mark.asyncio
     async def test_dump_starboard_with_messages(self, mock_ctx_factory):
         """test /debug dump_starboard with messages from the starboard bot"""
-        from attubot.commands.debug import _STARBOARD_BOT_ID, debug_dump_starboard
+        from doom_bot.commands.debug import _STARBOARD_BOT_ID, debug_dump_starboard
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -534,7 +534,7 @@ class TestDebugDumpStarboard:
     @pytest.mark.asyncio
     async def test_dump_starboard_empty(self, mock_ctx_factory):
         """test /debug dump_starboard when no starboard bot messages found"""
-        from attubot.commands.debug import debug_dump_starboard
+        from doom_bot.commands.debug import debug_dump_starboard
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -557,7 +557,7 @@ class TestDebugDumpStarboard:
     @pytest.mark.asyncio
     async def test_dump_starboard_channel_not_found(self, mock_ctx_factory):
         """test /debug dump_starboard when the channel can't be found"""
-        from attubot.commands.debug import debug_dump_starboard
+        from doom_bot.commands.debug import debug_dump_starboard
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
         ctx.bot.get_channel = MagicMock(return_value=None)
@@ -578,7 +578,7 @@ class TestDebugProgressBar:
     @pytest.mark.asyncio
     async def test_progress_bar_renders_all_steps(self, mock_ctx_factory):
         """test /debug progress_bar posts initial message then edits through all steps"""
-        from attubot.commands.debug import debug_progress_bar
+        from doom_bot.commands.debug import debug_progress_bar
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
@@ -586,7 +586,7 @@ class TestDebugProgressBar:
         mock_sent_msg.edit = AsyncMock()
         ctx.channel.send = AsyncMock(return_value=mock_sent_msg)
 
-        with patch('attubot.eggs.emojis.render_progress_bar', return_value='[====]'), patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch('doom_bot.eggs.emojis.render_progress_bar', return_value='[====]'), patch('asyncio.sleep', new_callable=AsyncMock):
             await debug_progress_bar(ctx)
 
         # initial send + 9 edits (steps 2-10)

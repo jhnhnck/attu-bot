@@ -12,8 +12,8 @@ import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from attubot.tasks.base import BaseTask
-from attubot.tasks.scheduler import TaskScheduler
+from doom_bot.tasks.base import BaseTask
+from doom_bot.tasks.scheduler import TaskScheduler
 
 
 # ---- helpers ----
@@ -195,7 +195,7 @@ class TestAddJob:
             nonlocal ran
             ran = True
 
-        with patch('attubot.tasks.scheduler.logger'):
+        with patch('doom_bot.tasks.scheduler.logger'):
             scheduler.add_job(simple_coro(), 'TestJob')
             # let the event loop process the background task
             await asyncio.sleep(0)
@@ -210,7 +210,7 @@ class TestAddJob:
             raise RuntimeError('boom')
 
         with (
-            patch('attubot.tasks.scheduler.logger') as mock_logger,
+            patch('doom_bot.tasks.scheduler.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             scheduler.add_job(failing_coro(), 'FailJob')
@@ -225,7 +225,7 @@ class TestAddJob:
         async def noop():
             pass
 
-        with patch('attubot.tasks.scheduler.logger'):
+        with patch('doom_bot.tasks.scheduler.logger'):
             scheduler.add_job(noop(), 'Kind', 'a', 'b')
 
         # the task should be in _jobs with the formatted name
@@ -240,7 +240,7 @@ class TestAddJob:
         async def noop():
             pass
 
-        with patch('attubot.tasks.scheduler.logger'):
+        with patch('doom_bot.tasks.scheduler.logger'):
             scheduler.add_job(noop(), 'Ephemeral')
             assert len(scheduler._jobs) == 1
             # let the task complete and the done callback fire
@@ -290,7 +290,7 @@ class TestStartAll:
 
         with (
             patch('asyncio.sleep', new_callable=AsyncMock),
-            patch('attubot.tasks.scheduler.logger') as mock_logger,
+            patch('doom_bot.tasks.scheduler.logger') as mock_logger,
         ):
             await scheduler.start_all()
             await scheduler.start_all()
@@ -359,7 +359,7 @@ class TestDynamicScheduling:
 
         with (
             patch('asyncio.sleep', new_callable=AsyncMock),
-            patch('attubot.tasks.scheduler.logger'),
+            patch('doom_bot.tasks.scheduler.logger'),
         ):
             await scheduler._run_loop(task)
 
@@ -408,7 +408,7 @@ class TestErrorInRun:
 
         with (
             patch('asyncio.sleep', new_callable=AsyncMock),
-            patch('attubot.tasks.scheduler.logger') as mock_logger,
+            patch('doom_bot.tasks.scheduler.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await scheduler._run_loop(task)
@@ -433,7 +433,7 @@ class TestProperties:
             await blocker.wait()
 
         with (
-            patch('attubot.tasks.scheduler.logger'),
+            patch('doom_bot.tasks.scheduler.logger'),
             patch.object(TaskScheduler, '_run_loop', new_callable=AsyncMock),
         ):
             await scheduler.start_all()
@@ -463,7 +463,7 @@ class TestProperties:
             await blocker.wait()
 
         with (
-            patch('attubot.tasks.scheduler.logger'),
+            patch('doom_bot.tasks.scheduler.logger'),
             patch.object(TaskScheduler, '_run_loop', new_callable=AsyncMock),
         ):
             await scheduler.start_all()
@@ -569,7 +569,7 @@ class TestDynamicWake:
 
         trigger = asyncio.create_task(wake_after_brief_delay())
 
-        with patch('attubot.tasks.scheduler.logger'):
+        with patch('doom_bot.tasks.scheduler.logger'):
             await scheduler._run_loop(task)
 
         await trigger

@@ -13,9 +13,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from attubot import config
-from attubot.database.models import MessageAuthor, MessageContent, MessageDocument
-from attubot.database.repositories import MessageRepository
+from doom_bot import config
+from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument
+from doom_bot.database.repositories import MessageRepository
 
 
 pytestmark = pytest.mark.component
@@ -98,12 +98,12 @@ class TestBackfillChannel:
             _fake_msg(103, ch_readable),
         )
 
-        import attubot.client.messages as _messages
+        import doom_bot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
-            with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
-                from attubot.tasks.message_backfill import MessageBackfillTask
+            with patch('doom_bot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
+                from doom_bot.tasks.message_backfill import MessageBackfillTask
 
                 count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
@@ -128,12 +128,12 @@ class TestBackfillChannel:
         ch = _fake_channel(ch_readable)
         ch.history = _capturing_history(new_messages, history_calls)
 
-        import attubot.client.messages as _messages
+        import doom_bot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
-            with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
-                from attubot.tasks.message_backfill import MessageBackfillTask
+            with patch('doom_bot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
+                from doom_bot.tasks.message_backfill import MessageBackfillTask
 
                 count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
@@ -156,12 +156,12 @@ class TestBackfillChannel:
         ch = _fake_channel(ch_readable)
         ch.history = _capturing_history([_fake_msg(200, ch_readable)], history_calls)
 
-        import attubot.client.messages as _messages
+        import doom_bot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
-            with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
-                from attubot.tasks.message_backfill import MessageBackfillTask
+            with patch('doom_bot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))):
+                from doom_bot.tasks.message_backfill import MessageBackfillTask
 
                 await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
@@ -187,12 +187,12 @@ class TestBackfillChannel:
 
         ch.history = MagicMock(return_value=_forbidden_gen())
 
-        import attubot.client.messages as _messages
+        import doom_bot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
-            with patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock()):
-                from attubot.tasks.message_backfill import MessageBackfillTask
+            with patch('doom_bot.tasks.message_backfill.build_message_doc', new=AsyncMock()):
+                from doom_bot.tasks.message_backfill import MessageBackfillTask
 
                 count = await MessageBackfillTask()._backfill_channel(test_guild, ch)
 
@@ -218,17 +218,17 @@ class TestRunChannelFiltering:
         fake_guild.id = test_guild
         fake_guild.me = MagicMock()
 
-        import attubot.client.messages as _messages
+        import doom_bot.client.messages as _messages
 
         _messages._message_repo = msg_repo
         try:
             with (
-                patch('attubot.tasks.message_backfill.bot') as mock_bot,
-                patch('attubot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))),
-                patch('attubot.tasks.message_backfill.MessageBackfillTask._collect_channels', new=AsyncMock(return_value=[ch1, ch2])),
+                patch('doom_bot.tasks.message_backfill.bot') as mock_bot,
+                patch('doom_bot.tasks.message_backfill.build_message_doc', new=AsyncMock(side_effect=lambda m: _doc_for(m.id, m.channel.id))),
+                patch('doom_bot.tasks.message_backfill.MessageBackfillTask._collect_channels', new=AsyncMock(return_value=[ch1, ch2])),
             ):
                 mock_bot.get_guild.return_value = fake_guild
-                from attubot.tasks.message_backfill import MessageBackfillTask
+                from doom_bot.tasks.message_backfill import MessageBackfillTask
 
                 await MessageBackfillTask().run()
 
@@ -258,7 +258,7 @@ class TestRunChannelFiltering:
         fake_guild.channels = [logs_ch, readable_ch]
         fake_guild.active_threads = AsyncMock(return_value=[])
 
-        from attubot.tasks.message_backfill import MessageBackfillTask
+        from doom_bot.tasks.message_backfill import MessageBackfillTask
 
         channels = await MessageBackfillTask()._collect_channels(fake_guild, ch_logs, me)
         ids = [c.id for c in channels]
@@ -285,7 +285,7 @@ class TestRunChannelFiltering:
         fake_guild.channels = [readable_ch, unreadable_ch]
         fake_guild.active_threads = AsyncMock(return_value=[])
 
-        from attubot.tasks.message_backfill import MessageBackfillTask
+        from doom_bot.tasks.message_backfill import MessageBackfillTask
 
         channels = await MessageBackfillTask()._collect_channels(fake_guild, 0, me)
         ids = [c.id for c in channels]
@@ -317,7 +317,7 @@ class TestRunChannelFiltering:
         fake_guild.channels = []
         fake_guild.active_threads = AsyncMock(return_value=[fake_thread, logs_thread])
 
-        from attubot.tasks.message_backfill import MessageBackfillTask
+        from doom_bot.tasks.message_backfill import MessageBackfillTask
 
         channels = await MessageBackfillTask()._collect_channels(fake_guild, ch_logs, me)
         ids = [c.id for c in channels]
@@ -330,11 +330,11 @@ class TestRunChannelFiltering:
         make_guild(guild_id=test_guild)
 
         with (
-            patch('attubot.tasks.message_backfill.bot') as mock_bot,
-            patch('attubot.tasks.message_backfill.MessageBackfillTask._collect_channels', new=AsyncMock()) as mock_collect,
+            patch('doom_bot.tasks.message_backfill.bot') as mock_bot,
+            patch('doom_bot.tasks.message_backfill.MessageBackfillTask._collect_channels', new=AsyncMock()) as mock_collect,
         ):
             mock_bot.get_guild.return_value = None
-            from attubot.tasks.message_backfill import MessageBackfillTask
+            from doom_bot.tasks.message_backfill import MessageBackfillTask
 
             await MessageBackfillTask().run()
 

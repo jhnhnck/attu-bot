@@ -118,7 +118,7 @@ class MyView(discord.ui.View):
         await interaction.response.send_message('pressed', ephemeral=True)
 ```
 
-see `_restore_wiki_views` in `attubot/client/events.py` for the project's restoration pattern.
+see `_restore_wiki_views` in `apps/bot/doom_bot/client/events.py` for the project's restoration pattern.
 
 ---
 

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pymongo.errors import ConfigurationError, ConnectionFailure
 
-from attubot.database.connection import MongoStorage
+from doom_bot.database.connection import MongoStorage
 
 
 pytestmark = pytest.mark.unit

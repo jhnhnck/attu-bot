@@ -4,7 +4,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Integration tests for the web API routes in attubot/web/routes.py
+Integration tests for the web API routes in doom_bot/web/routes.py
 """
 
 import os
@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from doom_bot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
 test_guild = 1234567890
@@ -29,8 +29,8 @@ test_guild_2 = 9876543210
 @pytest_asyncio.fixture(scope='function')
 async def web_app():
     """Create a test Quart web app with mocked config"""
-    from attubot.web import app as web_app_module
-    from attubot.web.app import create_app
+    from doom_bot.web import app as web_app_module
+    from doom_bot.web.app import create_app
 
     # Create test guild configs
     guild1 = GuildConfig(
@@ -95,7 +95,7 @@ async def web_app():
 
     # Provide TOML-sourced config values and mark init as done so create_app()
     # skips on_init() (which would overwrite the manually-set test config).
-    from attubot.config import PathsConfig, WebConfig
+    from doom_bot.config import PathsConfig, WebConfig
 
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
@@ -226,7 +226,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_save_guild_config_valid(self, client):
         """Test POST /api/guilds/<id> saves valid configuration"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'channels': {
@@ -274,7 +274,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_save_guild_config_flat_format(self, client):
         """Test POST /api/guilds/<id> with flat form data"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'channels.activity': 654321,
@@ -370,7 +370,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_reset_guild_config(self, client):
         """Test POST /api/guilds/<id>/reset reloads from database"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         response = await client.post(f'/api/guilds/{test_guild}/reset')
         assert response.status_code == 200
@@ -384,7 +384,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_reset_guild_config_failure(self, client):
         """Test POST /api/guilds/<id>/reset handles failure"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         config.load_guild = AsyncMock(return_value=False)
 
@@ -402,7 +402,7 @@ class TestGuildAPI:
             {'id': '222', 'name': 'voice-channel', 'type': 'voice', 'position': 2},
         ]
 
-        with patch('attubot.web.routes.get_guild_channels', new=AsyncMock(return_value=mock_channels)):
+        with patch('doom_bot.web.routes.get_guild_channels', new=AsyncMock(return_value=mock_channels)):
             response = await client.get(f'/api/guilds/{test_guild}/channels')
             assert response.status_code == 200
 
@@ -418,7 +418,7 @@ class TestGuildAPI:
             {'id': '999', 'name': 'Admin', 'color': '0xff0000', 'position': 1},
         ]
 
-        with patch('attubot.web.routes.get_guild_roles', new=AsyncMock(return_value=mock_roles)):
+        with patch('doom_bot.web.routes.get_guild_roles', new=AsyncMock(return_value=mock_roles)):
             response = await client.get(f'/api/guilds/{test_guild}/roles')
             assert response.status_code == 200
 
@@ -430,7 +430,7 @@ class TestGuildAPI:
     @pytest.mark.asyncio
     async def test_refresh_discord_cache(self, client):
         """Test POST /api/guilds/<id>/refresh clears cache"""
-        with patch('attubot.web.routes.invalidate_guild_cache') as mock_invalidate:
+        with patch('doom_bot.web.routes.invalidate_guild_cache') as mock_invalidate:
             response = await client.post(f'/api/guilds/{test_guild}/refresh')
             assert response.status_code == 200
 
@@ -454,7 +454,7 @@ class TestPatchRolesAPI:
     @pytest.mark.asyncio
     async def test_patch_all_role_fields_round_trip(self, client):
         """all four role fields persist through PATCH and reappear on GET."""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'announcements': 1000001,
@@ -485,7 +485,7 @@ class TestPatchRolesAPI:
     @pytest.mark.asyncio
     async def test_patch_omitted_field_defaults_to_zero(self, client):
         """omitting a field zeros it - this is the wipe behavior the bug exploited."""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {'announcements': 222222}
 
@@ -530,12 +530,12 @@ class TestGuildConfigDataSSR:
 
     @pytest.mark.asyncio
     async def test_ssr_emits_all_role_fields(self, web_app):
-        from attubot.web.helpers import get_guild_config_data
+        from doom_bot.web.helpers import get_guild_config_data
 
         with (
-            patch('attubot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
-            patch('attubot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
-            patch('attubot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
         ):
             ssr = await get_guild_config_data(test_guild)
 
@@ -549,15 +549,15 @@ class TestGuildConfigDataSSR:
     @pytest.mark.asyncio
     async def test_ssr_zeros_render_as_string_zero(self, web_app):
         """unset role IDs serialize to '0' so the dropdown lands on Not Set."""
-        from attubot.web.app import config
-        from attubot.web.helpers import get_guild_config_data
+        from doom_bot.web.app import config
+        from doom_bot.web.helpers import get_guild_config_data
 
         config.guilds[test_guild_2].roles = GuildRoles()
 
         with (
-            patch('attubot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
-            patch('attubot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
-            patch('attubot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_guild_channels', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_guild_roles', new=AsyncMock(return_value=[])),
+            patch('doom_bot.web.discord_integration.get_users_info', new=AsyncMock(return_value=[])),
         ):
             ssr = await get_guild_config_data(test_guild_2)
 
@@ -588,7 +588,7 @@ class TestThemeAPI:
     @pytest.mark.asyncio
     async def test_save_theme_valid(self, client):
         """Test POST /api/theme saves valid theme"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'rotation': 90.0,
@@ -662,7 +662,7 @@ class TestSystemAPI:
     @pytest.mark.asyncio
     async def test_save_system_config_valid(self, client):
         """Test POST /api/system saves valid system config"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'primary_guild': test_guild_2,
@@ -726,7 +726,7 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_get_audit_logs_empty(self, client):
         """Test GET /api/audit returns empty list when no logs exist"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -746,7 +746,7 @@ class TestAuditLogAPI:
         """Test GET /api/audit returns audit logs"""
         import time
 
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger with sample data
         mock_audit_logger = MagicMock()
@@ -797,7 +797,7 @@ class TestAuditLogAPI:
         """Test GET /api/audit with config_type filter"""
         import time
 
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -832,7 +832,7 @@ class TestAuditLogAPI:
         """Test GET /api/audit with guild_id filter"""
         import time
 
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -864,7 +864,7 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_get_audit_logs_with_pagination(self, client):
         """Test GET /api/audit with limit and skip parameters"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -882,7 +882,7 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_get_audit_logs_no_logger(self, client):
         """Test GET /api/audit when audit_logger is not initialized"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Set audit_logger to None
         web_app_module.audit_logger = None
@@ -897,7 +897,7 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_audit_logging_on_guild_save(self, client):
         """Test that saving guild config creates audit log entry"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -929,7 +929,7 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_audit_logging_on_theme_save(self, client):
         """Test that saving theme config creates audit log entry"""
-        from attubot.web import app as web_app_module
+        from doom_bot.web import app as web_app_module
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -956,8 +956,8 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_audit_logging_on_system_save(self, client):
         """Test that saving system config creates audit log entry"""
-        from attubot.web import app as web_app_module
-        from attubot.web.app import config
+        from doom_bot.web import app as web_app_module
+        from doom_bot.web.app import config
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -992,8 +992,8 @@ class TestAuditLogAPI:
     @pytest.mark.asyncio
     async def test_audit_logging_on_failed_save(self, client):
         """Test that failed save attempts are also logged"""
-        from attubot.web import app as web_app_module
-        from attubot.web.app import config
+        from doom_bot.web import app as web_app_module
+        from doom_bot.web.app import config
 
         # Mock audit_logger
         mock_audit_logger = MagicMock()
@@ -1027,7 +1027,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_save_guild_database_error(self, client):
         """Test POST /api/guilds/<id> handles database errors"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'channels': {'activity': 123456},
@@ -1048,7 +1048,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_save_theme_database_error(self, client):
         """Test POST /api/theme handles database errors"""
-        from attubot.web.app import config
+        from doom_bot.web.app import config
 
         payload = {
             'rotation': 45.0,

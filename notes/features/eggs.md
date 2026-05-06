@@ -6,7 +6,7 @@ Reference for the egg collection mini-game - behavior rules, storage schema, key
 
 ## Overview
 
-An egg collection mini-game. Players can run `/egg` to collect eggs that hatch into random creatures over time. Slash commands are in `attubot/commands/eggs.py`.
+An egg collection mini-game. Players can run `/egg` to collect eggs that hatch into random creatures over time. Slash commands are in `apps/bot/doom_bot/commands/eggs.py`.
 
 ---
 
@@ -26,7 +26,7 @@ An egg collection mini-game. Players can run `/egg` to collect eggs that hatch i
 
 ## Hatch Day
 
-`hatch_date(year: int) -> date` in `attubot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library).
+`hatch_date(year: int) -> date` in `apps/bot/doom_bot/eggs/hatching.py` computes the annual hatch day using the Meeus/Jones/Butcher algorithm (pure Python, no library).
 
 Known hatch days: 2024 = March 31, 2025 = April 20, 2026 = April 5.
 
@@ -65,13 +65,13 @@ Index: `(guild_id, user_id)` unique.
 
 ## Bot Presence
 
-`PresenceUpdateTask` (`attubot/tasks/presence.py`) sets the bot's presence to "Watching X eggs hatch" where X is the total hatched egg count. It runs on a 30-minute fallback schedule and is triggered immediately via `scheduler.add_job()` after each egg finishes hatching (`run_hatch_animation()`).
+`PresenceUpdateTask` (`apps/bot/doom_bot/tasks/presence.py`) sets the bot's presence to "Watching X eggs hatch" where X is the total hatched egg count. It runs on a 30-minute fallback schedule and is triggered immediately via `scheduler.add_job()` after each egg finishes hatching (`run_hatch_animation()`).
 
 The task does nothing on non-hatch-day dates.
 
 ---
 
-## Key Functions (`attubot/eggs/hatching.py`)
+## Key Functions (`apps/bot/doom_bot/eggs/hatching.py`)
 
 | Function | Purpose |
 |---|---|
@@ -86,7 +86,7 @@ The task does nothing on non-hatch-day dates.
 
 ## Commands
 
-Slash commands are defined in `attubot/commands/eggs.py`.
+Slash commands are defined in `apps/bot/doom_bot/commands/eggs.py`.
 
 | Command | Purpose |
 |---|---|
@@ -116,20 +116,20 @@ Slash commands are defined in `attubot/commands/eggs.py`.
 3. On **Accept**: the original thread message is deleted from the giver's thread, the egg (or creature) is reposted in the recipient's thread (created if they don't have one), and the DB is updated with the new `user_id` and `message_id`.
 4. On **Decline** or timeout: the offer message is edited to say so; no DB changes occur.
 
-**Key functions (`attubot/eggs/hatching.py`):**
+**Key functions (`apps/bot/doom_bot/eggs/hatching.py`):**
 
 | Function | Purpose |
 |---|---|
 | `transfer_egg(guild_id, egg_id, from_user_id, to_user_id, to_username)` | core transfer: delete old message, repost in recipient thread, update DB |
 
-**Key views (`attubot/commands/eggs.py`):**
+**Key views (`apps/bot/doom_bot/commands/eggs.py`):**
 
 | Class | Purpose |
 |---|---|
 | `EggGiftOfferView` | public offer message with Accept/Decline buttons; 5-min timeout |
 | `EggSelectView` / `_EggSelectMenu` | ephemeral select menu showing deduplicated egg options |
 
-**New `EggRepository` methods (`attubot/database/repositories.py`):**
+**New `EggRepository` methods (`packages/shared-models/attu_models/repositories.py`):**
 
 | Method | Purpose |
 |---|---|
@@ -147,7 +147,7 @@ Slash commands are defined in `attubot/commands/eggs.py`.
 
 Pool sizes: common 27, uncommon 23, rare 20, legendary 12, mythical 3, total 85.
 
-**Progress bar rendering (`attubot/eggs/emojis.py`):**
+**Progress bar rendering (`apps/bot/doom_bot/eggs/emojis.py`):**
 
 | Function | Purpose |
 |---|---|
@@ -156,7 +156,7 @@ Pool sizes: common 27, uncommon 23, rare 20, legendary 12, mythical 3, total 85.
 
 Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_full`, `none_empty`, `right_full`, `right_empty`. Discord emoji names: `progress_{key}`.
 
-**`EggRepository` method (`attubot/database/repositories.py`):**
+**`EggRepository` method (`packages/shared-models/attu_models/repositories.py`):**
 
 | Method | Purpose |
 |---|---|
@@ -176,5 +176,5 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 ## metadata
 
 ```yaml
-last_updated: 12 April 2026
+last_updated: 6 May 2026
 ```

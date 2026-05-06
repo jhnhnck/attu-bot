@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 """
 
-from attubot.logging import get_logger
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)

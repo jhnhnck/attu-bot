@@ -5,7 +5,7 @@ Author(s): @jhnhnck <john@jhnhnck.com>
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
 Tests CSRF enforcement, challenge lifecycle, passkey CRUD, and last-passkey
-protection for routes registered by attubot/web/auth.py.
+protection for routes registered by doom_bot/web/auth.py.
 
 The Quart app is minimal: only auth routes + one POST /private route so we can
 verify the global CSRF guard in isolation.
@@ -93,7 +93,7 @@ async def auth_app():
     """minimal Quart app with only auth routes + a protected POST /private endpoint"""
     from quart_rate_limiter import RateLimiter
 
-    from attubot.web.auth import register_auth_routes
+    from doom_bot.web.auth import register_auth_routes
 
     app = Quart(__name__)
     app.config['TESTING'] = True
@@ -103,9 +103,9 @@ async def auth_app():
 
     # Patch config globals that auth.py reads lazily
     with (
-        patch('attubot.web.auth.get_rp_id', return_value='localhost'),
-        patch('attubot.web.auth.get_rp_name', return_value='TestBot'),
-        patch('attubot.web.auth.get_origin', return_value='http://localhost'),
+        patch('doom_bot.web.auth.get_rp_id', return_value='localhost'),
+        patch('doom_bot.web.auth.get_rp_name', return_value='TestBot'),
+        patch('doom_bot.web.auth.get_origin', return_value='http://localhost'),
     ):
         register_auth_routes(app)
 
@@ -144,7 +144,7 @@ class TestCsrfEnforcement:
     async def test_post_without_csrf_blocked(self, authed_client):
         """authenticated POST to protected endpoint without CSRF token returns 403"""
         db = _make_db(creds=[{'credential_id': 'abc', 'public_key': 'pk', 'sign_count': 0}])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await authed_client.post('/private')
         assert response.status_code == 403
         data = await response.get_json()
@@ -152,13 +152,13 @@ class TestCsrfEnforcement:
 
     async def test_post_with_wrong_csrf_blocked(self, authed_client):
         db = _make_db(creds=[{'credential_id': 'abc'}])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await authed_client.post('/private', headers={'X-CSRF-Token': 'wrong-token'})
         assert response.status_code == 403
 
     async def test_post_with_correct_header_csrf_passes(self, authed_client):
         db = _make_db(creds=[{'credential_id': 'abc'}])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await authed_client.post(
                 '/private',
                 headers={'X-CSRF-Token': 'test-csrf-token'},
@@ -168,7 +168,7 @@ class TestCsrfEnforcement:
     async def test_post_with_form_csrf_passes(self, authed_client):
         """form-submitted csrf_token field is also accepted"""
         db = _make_db(creds=[{'credential_id': 'abc'}])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await authed_client.post(
                 '/private',
                 form={'csrf_token': 'test-csrf-token'},
@@ -185,7 +185,7 @@ class TestCsrfEnforcement:
     async def test_unauthenticated_redirected_to_login(self, client):
         """unauthenticated request to protected page redirects to /auth/login"""
         db = _make_db(creds=[{'credential_id': 'abc'}])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await client.get('/')
         assert response.status_code == 302
         assert '/auth/login' in response.headers.get('Location', '')
@@ -193,7 +193,7 @@ class TestCsrfEnforcement:
     async def test_no_creds_redirected_to_setup(self, client):
         """if no credentials are registered, any request redirects to /auth/setup"""
         db = _make_db(creds=[])
-        with patch('attubot.db.get_db', return_value=db):
+        with patch('doom_bot.db.get_db', return_value=db):
             response = await client.get('/')
         assert response.status_code == 302
         assert '/auth/setup' in response.headers.get('Location', '')
@@ -213,10 +213,10 @@ class TestLoginChallengeLifecycle:
         fake_options.challenge = b'challenge-bytes'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
-            patch('attubot.web.auth.webauthn.generate_authentication_options', return_value=fake_options, create=True),
-            patch('attubot.web.auth.options_to_json', return_value='{"type":"options"}', create=True),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth.webauthn.generate_authentication_options', return_value=fake_options, create=True),
+            patch('doom_bot.web.auth.options_to_json', return_value='{"type":"options"}', create=True),
             patch('webauthn.helpers.options_to_json.options_to_json', return_value='{"type":"auth"}'),
         ):
             response = await client.post('/auth/login/begin')
@@ -228,8 +228,8 @@ class TestLoginChallengeLifecycle:
         db = _make_db(creds=[])
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/login/begin')
 
@@ -242,8 +242,8 @@ class TestLoginChallengeLifecycle:
         db = _make_db(creds=[{'credential_id': 'abc'}])
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/login/complete', json={'id': 'abc', 'rawId': 'abc'})
 
@@ -259,8 +259,8 @@ class TestLoginChallengeLifecycle:
             sess['webauthn_challenge'] = 'Y2hhbGxlbmdl'  # b64 for 'challenge'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/login/complete', json={'id': 'unknown-id', 'rawId': 'unknown-id'})
 
@@ -276,9 +276,9 @@ class TestLoginChallengeLifecycle:
             sess['webauthn_challenge'] = 'Y2hhbGxlbmdl'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
-            patch('attubot.web.auth.webauthn.verify_authentication_response', side_effect=Exception('bad signature'), create=True),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth.webauthn.verify_authentication_response', side_effect=Exception('bad signature'), create=True),
         ):
             response = await client.post('/auth/login/complete', json={'id': 'Y2Fh', 'rawId': 'Y2Fh'})
 
@@ -297,8 +297,8 @@ class TestLoginChallengeLifecycle:
             sess['webauthn_challenge'] = 'Y2hhbGxlbmdl'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/login/complete')  # no JSON body
 
@@ -318,9 +318,9 @@ class TestSetupFlow:
         fake_options.challenge = b'setup-challenge'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
-            patch('attubot.web.auth.webauthn.generate_registration_options', return_value=fake_options, create=True),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth.webauthn.generate_registration_options', return_value=fake_options, create=True),
             patch('webauthn.helpers.options_to_json.options_to_json', return_value='{}'),
         ):
             response = await client.post('/auth/setup/begin', json={'name': 'My Key'})
@@ -332,8 +332,8 @@ class TestSetupFlow:
         db = _make_db(creds=[{'credential_id': 'existing'}])
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/setup/begin')
 
@@ -345,8 +345,8 @@ class TestSetupFlow:
         db = _make_db(creds=[])
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.post('/auth/setup/complete', json={'id': 'abc'})
 
@@ -358,9 +358,9 @@ class TestSetupFlow:
             sess['webauthn_challenge'] = 'Y2hhbGxlbmdl'
 
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
-            patch('attubot.web.auth.webauthn.verify_registration_response', side_effect=Exception('bad attestation'), create=True),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth.webauthn.verify_registration_response', side_effect=Exception('bad attestation'), create=True),
         ):
             response = await client.post('/auth/setup/complete', json={'id': 'abc'})
 
@@ -374,14 +374,14 @@ class TestSetupFlow:
 
 class TestCredentialHelpers:
     async def test_count_credentials_empty(self):
-        from attubot.web.auth import count_credentials
+        from doom_bot.web.auth import count_credentials
 
         db = _make_db(creds=[])
         result = await count_credentials(db)
         assert result == 0
 
     async def test_count_credentials_with_creds(self):
-        from attubot.web.auth import count_credentials
+        from doom_bot.web.auth import count_credentials
 
         db = _make_db(
             creds=[
@@ -393,7 +393,7 @@ class TestCredentialHelpers:
         assert result == 2
 
     async def test_get_credential_by_id_found(self):
-        from attubot.web.auth import get_credential_by_id
+        from doom_bot.web.auth import get_credential_by_id
 
         db = _make_db(creds=[{'credential_id': 'myid', 'public_key': 'pk', 'sign_count': 5}])
         doc = await get_credential_by_id(db, 'myid')
@@ -401,14 +401,14 @@ class TestCredentialHelpers:
         assert doc['public_key'] == 'pk'
 
     async def test_get_credential_by_id_missing(self):
-        from attubot.web.auth import get_credential_by_id
+        from doom_bot.web.auth import get_credential_by_id
 
         db = _make_db(creds=[])
         doc = await get_credential_by_id(db, 'nonexistent')
         assert doc is None
 
     async def test_save_credential_inserts_document(self):
-        from attubot.web.auth import count_credentials, save_credential
+        from doom_bot.web.auth import count_credentials, save_credential
 
         db = _make_db(creds=[])
         await save_credential(db, 'newid', 'pk123', sign_count=0, name='My Key')
@@ -416,7 +416,7 @@ class TestCredentialHelpers:
         assert await count_credentials(db) == 1
 
     async def test_save_credential_stores_name(self):
-        from attubot.web.auth import get_credential_by_id, save_credential
+        from doom_bot.web.auth import get_credential_by_id, save_credential
 
         db = _make_db(creds=[])
         await save_credential(db, 'keyid', 'pk', sign_count=0, name='Work Passkey')
@@ -425,21 +425,21 @@ class TestCredentialHelpers:
         assert doc['name'] == 'Work Passkey'
 
     async def test_delete_credential_returns_true(self):
-        from attubot.web.auth import delete_credential
+        from doom_bot.web.auth import delete_credential
 
         db = _make_db(creds=[{'credential_id': 'todelete'}])
         result = await delete_credential(db, 'todelete')
         assert result is True
 
     async def test_delete_credential_missing_returns_false(self):
-        from attubot.web.auth import delete_credential
+        from doom_bot.web.auth import delete_credential
 
         db = _make_db(creds=[])
         result = await delete_credential(db, 'missing')
         assert result is False
 
     async def test_list_credentials(self):
-        from attubot.web.auth import list_credentials
+        from doom_bot.web.auth import list_credentials
 
         creds = [
             {'credential_id': 'a', 'name': 'Key A'},
@@ -462,7 +462,7 @@ class TestCredentialHelpers:
         assert len(result) == 2
 
     async def test_b64url_roundtrip(self):
-        from attubot.web.auth import b64url_decode, b64url_encode
+        from doom_bot.web.auth import b64url_decode, b64url_encode
 
         original = b'hello world test bytes'
         encoded = b64url_encode(original)
@@ -470,7 +470,7 @@ class TestCredentialHelpers:
         assert decoded == original
 
     async def test_b64url_decode_handles_missing_padding(self):
-        from attubot.web.auth import b64url_decode
+        from doom_bot.web.auth import b64url_decode
 
         # 'abc' without padding
         result = b64url_decode('YWJj')
@@ -486,8 +486,8 @@ class TestDeletePasskeyRoute:
     async def test_unauthenticated_returns_401(self, client):
         db = _make_db(creds=[{'credential_id': 'abc'}])
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await client.delete('/auth/passkeys/abc')
         assert response.status_code == 401
@@ -496,8 +496,8 @@ class TestDeletePasskeyRoute:
         """cannot delete when only one credential exists"""
         db = _make_db(creds=[{'credential_id': 'only-one'}])
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await authed_client.delete(
                 '/auth/passkeys/only-one',
@@ -515,8 +515,8 @@ class TestDeletePasskeyRoute:
             ]
         )
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await authed_client.delete(
                 '/auth/passkeys/does-not-exist',
@@ -534,8 +534,8 @@ class TestDeletePasskeyRoute:
             ]
         )
         with (
-            patch('attubot.web.auth._get_collection', return_value=db._collection),
-            patch('attubot.db.get_db', return_value=db),
+            patch('doom_bot.web.auth._get_collection', return_value=db._collection),
+            patch('doom_bot.db.get_db', return_value=db),
         ):
             response = await authed_client.delete(
                 '/auth/passkeys/delete-this',
@@ -554,13 +554,13 @@ class TestDeletePasskeyRoute:
 class TestSessionHelpers:
     async def test_is_authenticated_false_by_default(self, auth_app):
         async with auth_app.test_request_context('/'):
-            from attubot.web.auth import is_authenticated
+            from doom_bot.web.auth import is_authenticated
 
             assert is_authenticated() is False
 
     async def test_set_authenticated(self, auth_app):
         async with auth_app.test_request_context('/'):
-            from attubot.web.auth import is_authenticated, set_authenticated
+            from doom_bot.web.auth import is_authenticated, set_authenticated
 
             set_authenticated()
             assert is_authenticated() is True
@@ -569,7 +569,7 @@ class TestSessionHelpers:
         async with auth_app.test_request_context('/'):
             from quart import session
 
-            from attubot.web.auth import clear_session, set_authenticated
+            from doom_bot.web.auth import clear_session, set_authenticated
 
             set_authenticated()
             clear_session()
@@ -577,7 +577,7 @@ class TestSessionHelpers:
 
     async def test_get_csrf_token_creates_token(self, auth_app):
         async with auth_app.test_request_context('/'):
-            from attubot.web.auth import get_csrf_token
+            from doom_bot.web.auth import get_csrf_token
 
             token = get_csrf_token()
             assert isinstance(token, str)
@@ -585,7 +585,7 @@ class TestSessionHelpers:
 
     async def test_get_csrf_token_stable_per_session(self, auth_app):
         async with auth_app.test_request_context('/'):
-            from attubot.web.auth import get_csrf_token
+            from doom_bot.web.auth import get_csrf_token
 
             t1 = get_csrf_token()
             t2 = get_csrf_token()

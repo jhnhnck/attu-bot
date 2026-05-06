@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from attubot.commands.fix import fix_starboard_purge
+from doom_bot.commands.fix import fix_starboard_purge
 from tests.conftest import test_channel, test_guild
 
 
@@ -32,7 +32,7 @@ async def test_purge_repo_not_initialized(mock_ctx_factory):
     """purge responds ephemeral when the starboard repo is unavailable"""
     ctx = mock_ctx_factory()
 
-    with patch('attubot.commands.fix._get_sb_repo', side_effect=RuntimeError('no repo')):
+    with patch('doom_bot.commands.fix._get_sb_repo', side_effect=RuntimeError('no repo')):
         await fix_starboard_purge(ctx, message_link=f'https://discord.com/channels/{test_guild}/{test_channel}/{msg_id}')
 
     assert ctx._responses[0]['kwargs'].get('ephemeral') is True
@@ -48,7 +48,7 @@ async def test_purge_entry_not_found(mock_ctx_factory):
     mock_repo.get = AsyncMock(return_value=None)
     mock_repo.get_by_starboard_message = AsyncMock(return_value=None)
 
-    with patch('attubot.commands.fix._get_sb_repo', return_value=mock_repo):
+    with patch('doom_bot.commands.fix._get_sb_repo', return_value=mock_repo):
         await fix_starboard_purge(ctx, message_link=f'https://discord.com/channels/{test_guild}/{test_channel}/{msg_id}')
 
     assert ctx._responses[0]['kwargs'].get('ephemeral') is True

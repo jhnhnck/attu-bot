@@ -1,6 +1,6 @@
 ---
 name: comment-style
-description: AttuBot python comment conventions - case, punctuation, brevity, section dividers, todo tags, and noqa reasons. trigger when editing or creating any `.py` file under `attubot/`, `tests/python/`, or `scripts/`; when writing inline or block comments in python; when adding `# noqa`, `# TODO`, `# NOTE`, or `# FIXME` tags; when adding or reviewing module-level section dividers; when answering questions about python comment formatting in this repo.
+description: AttuBot python comment conventions - case, punctuation, brevity, section dividers, todo tags, and noqa reasons. trigger when editing or creating any `.py` file under `doom_bot/`, `tests/python/`, or `scripts/`; when writing inline or block comments in python; when adding `# noqa`, `# TODO`, `# NOTE`, or `# FIXME` tags; when adding or reviewing module-level section dividers; when answering questions about python comment formatting in this repo.
 ---
 
 # comment-style

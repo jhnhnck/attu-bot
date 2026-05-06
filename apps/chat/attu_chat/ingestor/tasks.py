@@ -7,10 +7,10 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from datetime import timedelta
 
-from attubot.client.core import config
-from attubot.client.util import webhook_logging
-from attubot.logging import get_logger
-from attubot.tasks.base import BaseTask
+from doom_bot.client.core import config
+from doom_bot.client.util import webhook_logging
+from doom_bot.logging import get_logger
+from doom_bot.tasks.base import BaseTask
 
 
 logger = get_logger(__name__)

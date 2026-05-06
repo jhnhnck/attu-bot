@@ -12,7 +12,7 @@ from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import ConfigurationError, ConnectionFailure
 
-from attubot.logging import get_logger
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)

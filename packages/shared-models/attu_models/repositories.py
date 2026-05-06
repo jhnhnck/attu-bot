@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
-from attubot.logging import get_logger
+from doom_bot.logging import get_logger
 
 from .documents import (
     ChatCharacterDocument,
@@ -34,7 +34,7 @@ from .documents import (
 
 
 if TYPE_CHECKING:
-    from attubot.config import BotTheme, GuildConfig
+    from doom_bot.config import BotTheme, GuildConfig
 
 logger = get_logger(__name__)
 

@@ -1,6 +1,6 @@
 ---
 name: pycord
-description: pycord (py-cord) v2.x reference card for AttuBot. trigger when editing or creating files under attubot/commands/ or attubot/client/, when any file imports discord, discord.ext.commands, discord.ui, or discord.commands, when writing slash commands, SlashCommandGroup, options, cogs, extensions, intents, views, buttons, modals, selects, or interaction handling, and when answering questions about pycord vs discord.py / nextcord differences.
+description: pycord (py-cord) v2.x reference card for AttuBot. trigger when editing or creating files under doom_bot/commands/ or doom_bot/client/, when any file imports discord, discord.ext.commands, discord.ui, or discord.commands, when writing slash commands, SlashCommandGroup, options, cogs, extensions, intents, views, buttons, modals, selects, or interaction handling, and when answering questions about pycord vs discord.py / nextcord differences.
 ---
 
 # pycord reference
@@ -18,14 +18,14 @@ pycord exposes two unrelated namespaces; conflating them is the most common mist
 | `from discord.ext import commands` | `@commands.check`, `@commands.cooldown`, `commands.Context`, `commands.Bot` (prefix-command bot; this repo uses `discord.Bot` instead). predicate-style decorators for slash commands live here. |
 | `from discord import commands` (a.k.a. `discord.commands`) | only `option`, `SlashCommandGroup`, `slash_command`, and the permission decorators (`default_permissions`, `guild_only`, `is_nsfw`). |
 
-**rule: `discord.commands.check` does not exist.** `@commands.check(predicate)` always comes from `discord.ext.commands`. predicates in this repo live in `attubot/client/util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`).
+**rule: `discord.commands.check` does not exist.** `@commands.check(predicate)` always comes from `discord.ext.commands`. predicates in this repo live in `doom_bot/client/util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`).
 
 ```python
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands  # for @commands.check
 
-from attubot.client.util import is_authorized_guild
+from doom_bot.client.util import is_authorized_guild
 
 group = SlashCommandGroup('marker', description='...')
 
@@ -39,7 +39,7 @@ async def marker_save(ctx: ApplicationContext, year: int):
 
 ## extension contract
 
-every file under `attubot/commands/` is an extension. the loader in `attubot/client/__init__.py` calls `bot.load_extension(name)` for each module discovered via `pkgutil.iter_modules(attubot.commands.__path__)`.
+every file under `doom_bot/commands/` is an extension. the loader in `doom_bot/client/__init__.py` calls `bot.load_extension(name)` for each module discovered via `pkgutil.iter_modules(doom_bot.commands.__path__)`.
 
 - `setup(bot: Bot)` is **synchronous**; not `async def`. pycord rejects coroutine setups.
 - one positional arg, the `Bot` instance.
@@ -57,22 +57,22 @@ def setup(bot: Bot):
 
 | method | when to use |
 |---|---|
-| `bot.load_extension('attubot.commands.foo')` | once at startup; called by the auto-loader. |
-| `bot.reload_extension('attubot.commands.foo')` | hot-reload after code or config change. on `False → True` transitions of an extension-gating config field, the activating task and `tasks/reload_watcher.py` both call this. |
-| `bot.unload_extension('attubot.commands.foo')` | on `True → False` transitions of an extension-gating config field. |
+| `bot.load_extension('doom_bot.commands.foo')` | once at startup; called by the auto-loader. |
+| `bot.reload_extension('doom_bot.commands.foo')` | hot-reload after code or config change. on `False → True` transitions of an extension-gating config field, the activating task and `tasks/reload_watcher.py` both call this. |
+| `bot.unload_extension('doom_bot.commands.foo')` | on `True → False` transitions of an extension-gating config field. |
 | `await bot.sync_commands()` | push command tree to discord; called once in `_do_ready_init()` and again after any reload that adds or removes commands. async; only valid after `on_ready`. |
 
 reloading **does not** push the new tree to discord on its own; pair `reload_extension` with `await bot.sync_commands()` if the command set changed.
 
 ## bot construction and intents
 
-defined in `attubot/client/core.py`; do not re-instantiate. import the singleton:
+defined in `doom_bot/client/core.py`; do not re-instantiate. import the singleton:
 
 ```python
-from attubot.client.core import bot
+from doom_bot.client.core import bot
 
 # or
-from attubot import bot
+from doom_bot import bot
 ```
 
 intents enabled in this repo: `default()` plus `message_content`, `members`, `emojis_and_stickers`, `moderation`. all four are privileged (except `emojis_and_stickers`) and must also be toggled in the discord developer portal. do not silently flip an intent off; check the portal first.
@@ -132,7 +132,7 @@ decorator order matters: `@group.command(...)` outermost, then `@discord.command
 
 ## error handling
 
-global handler is `on_application_command_error` in `attubot/client/events.py`. **extension commands should raise naturally**; do not wrap every command body in a try/except. the global handler dispatches on `CheckFailure`, `UnauthorizedGuild`, `MissingPermissions`, and a generic fallback that posts to the error webhook via `logger.send_to_webhook`.
+global handler is `on_application_command_error` in `doom_bot/client/events.py`. **extension commands should raise naturally**; do not wrap every command body in a try/except. the global handler dispatches on `CheckFailure`, `UnauthorizedGuild`, `MissingPermissions`, and a generic fallback that posts to the error webhook via `logger.send_to_webhook`.
 
 quoted from `notes/agents.md`:
 > `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
@@ -141,10 +141,10 @@ if you need command-local recovery (e.g. a 404 from an external api becomes a fr
 
 ## embeds
 
-prefer `make_embed(...)` from `attubot.client.embeds` over raw `discord.Embed(...)`. the wrapper auto-applies the guild theme color and a utc timestamp; bare `discord.Embed(...)` skips both and drifts from house style. drop down to raw `discord.Embed` only when you need something the wrapper does not expose (e.g. `set_image()`).
+prefer `make_embed(...)` from `doom_bot.client.embeds` over raw `discord.Embed(...)`. the wrapper auto-applies the guild theme color and a utc timestamp; bare `discord.Embed(...)` skips both and drifts from house style. drop down to raw `discord.Embed` only when you need something the wrapper does not expose (e.g. `set_image()`).
 
 ```python
-from attubot.client.embeds import make_embed
+from doom_bot.client.embeds import make_embed
 
 embed = make_embed(
     'Member Joined',

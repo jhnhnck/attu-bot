@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 
 from attu_models import ChatChannelConfig, MessageDocument
-from attubot.client.core import config
-from attubot.logging import get_logger
+from doom_bot.client.core import config
+from doom_bot.logging import get_logger
 
 
 logger = get_logger(__name__)

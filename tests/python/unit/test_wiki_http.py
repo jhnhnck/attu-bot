@@ -14,10 +14,10 @@ import httpx
 import pytest
 import respx
 
-from attubot.wiki.admin import AdminApi
-from attubot.wiki.auth import AuthApi
-from attubot.wiki.models import SearchResult, SiteInfo
-from attubot.wiki.search import SearchApi
+from doom_bot.wiki.admin import AdminApi
+from doom_bot.wiki.auth import AuthApi
+from doom_bot.wiki.models import SearchResult, SiteInfo
+from doom_bot.wiki.search import SearchApi
 
 
 pytestmark = pytest.mark.unit

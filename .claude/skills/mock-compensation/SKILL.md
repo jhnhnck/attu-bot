@@ -1,6 +1,6 @@
 ---
 name: mock-compensation
-description: AttuBot's mock compensation rule - when a test mocks a framework mechanism, it owes a real test elsewhere that exercises the mocked behavior. trigger when editing or creating files under tests/python/, when adding new files under attubot/commands/, when adding new predicates to attubot/client/util.py, or when adding new migrations to attubot/client/migrations.py.
+description: AttuBot's mock compensation rule - when a test mocks a framework mechanism, it owes a real test elsewhere that exercises the mocked behavior. trigger when editing or creating files under tests/python/, when adding new files under doom_bot/commands/, when adding new predicates to doom_bot/client/util.py, or when adding new migrations to doom_bot/client/migrations.py.
 ---
 
 # mock-compensation
@@ -15,21 +15,21 @@ silent test passage is the worst failure mode. a mock that hides a broken decora
 
 - **mocked in:** [`tests/python/unit/test_start_bot_loop.py`](tests/python/unit/test_start_bot_loop.py) — `bot.load_extension()` is mocked to verify call orchestration.
 - **what the mock hides:** import-time evaluation of every command module. decorators (`@discord.slash_command`, `@commands.check`, etc.) run at import; a missing import or attribute error never reaches the orchestration test.
-- **compensation:** `TestExtensionImports.test_extension_imports_cleanly` ([`tests/python/unit/test_start_bot_loop.py:350`](tests/python/unit/test_start_bot_loop.py#L350)) does a real `importlib.import_module()` for every entry in `attubot.extensions_list`.
-- **trigger:** any new file added under [`attubot/commands/`](attubot/commands/) — confirm the module is in `attubot.extensions_list` and that this test still passes before merging.
+- **compensation:** `TestExtensionImports.test_extension_imports_cleanly` ([`tests/python/unit/test_start_bot_loop.py:350`](tests/python/unit/test_start_bot_loop.py#L350)) does a real `importlib.import_module()` for every entry in `doom_bot.extensions_list`.
+- **trigger:** any new file added under [`doom_bot/commands/`](doom_bot/commands/) — confirm the module is in `doom_bot.extensions_list` and that this test still passes before merging.
 
 ### 2. permission checks
 
 - **bypassed in:** every command test under [`tests/python/unit/`](tests/python/unit/) calls command callbacks directly; `@commands.check(predicate)` decorators never run.
 - **what the mock hides:** the predicate functions themselves (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`). a broken predicate would still let every command test pass while gating prod traffic incorrectly.
 - **compensation:** predicate tests in [`tests/python/unit/test_util.py`](tests/python/unit/test_util.py) exercise each predicate against real config state (true and false cases).
-- **trigger:** any new predicate added to [`attubot/client/util.py`](attubot/client/util.py), or any existing predicate applied to a new command — add corresponding true/false tests in `test_util.py`.
+- **trigger:** any new predicate added to [`doom_bot/client/util.py`](doom_bot/client/util.py), or any existing predicate applied to a new command — add corresponding true/false tests in `test_util.py`.
 
 ### 3. migrations
 
 - **what the gap is:** migration code paths only run end-to-end on real db state during deploy; a broken migration shows up in prod.
-- **compensation:** for every new entry in [`attubot/client/migrations.py`](attubot/client/migrations.py), add a rollback path test in [`tests/python/unit/test_migrations.py`](tests/python/unit/test_migrations.py) before merging.
-- **trigger:** any new `@migration(...)` decorator added to `attubot/client/migrations.py`.
+- **compensation:** for every new entry in [`doom_bot/client/migrations.py`](doom_bot/client/migrations.py), add a rollback path test in [`tests/python/unit/test_migrations.py`](tests/python/unit/test_migrations.py) before merging.
+- **trigger:** any new `@migration(...)` decorator added to `doom_bot/client/migrations.py`.
 
 ## general principle
 

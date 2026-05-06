@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from attubot.database.models import ReloadSignalDocument
+from doom_bot.database.models import ReloadSignalDocument
 
 
 test_guild = 1234567890
@@ -63,7 +63,7 @@ class TestReloadSignalDocument:
 @pytest.fixture
 def signal_repo():
     """Create a ReloadSignalRepository with a mock async MongoDB collection."""
-    from attubot.database.repositories import ReloadSignalRepository
+    from doom_bot.database.repositories import ReloadSignalRepository
 
     mock_db = MagicMock()
     repo = ReloadSignalRepository(mock_db)
@@ -145,40 +145,40 @@ class TestReloadSignalRepository:
 
 @pytest.fixture
 def mock_signal_repo():
-    """Patch attubot.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
+    """Patch doom_bot.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
     repo = AsyncMock()
-    with patch('attubot.signals._get_repo', return_value=repo), patch('attubot.tasks.reload_watcher._get_repo', return_value=repo):
+    with patch('doom_bot.signals._get_repo', return_value=repo), patch('doom_bot.tasks.reload_watcher._get_repo', return_value=repo):
         yield repo
 
 
 class TestSendSignalHelper:
     async def test_sends_guild_signal(self, mock_signal_repo):
-        from attubot.signals import send_signal
+        from doom_bot.signals import send_signal
 
         await send_signal('guild', test_guild)
         mock_signal_repo.send.assert_called_once_with('guild', test_guild, target='bot')
 
     async def test_sends_theme_signal(self, mock_signal_repo):
-        from attubot.signals import send_signal
+        from doom_bot.signals import send_signal
 
         await send_signal('theme')
         mock_signal_repo.send.assert_called_once_with('theme', None, target='bot')
 
     async def test_sends_system_signal(self, mock_signal_repo):
-        from attubot.signals import send_signal
+        from doom_bot.signals import send_signal
 
         await send_signal('system')
         mock_signal_repo.send.assert_called_once_with('system', None, target='bot')
 
     async def test_swallows_exception(self, mock_signal_repo):
-        from attubot.signals import send_signal
+        from doom_bot.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=Exception('db gone'))
         # should not raise - errors are logged but never re-raised
         await send_signal('guild', test_guild)
 
     async def test_swallows_connection_error(self, mock_signal_repo):
-        from attubot.signals import send_signal
+        from doom_bot.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=ConnectionError('mongo down'))
         await send_signal('theme')
@@ -189,19 +189,19 @@ class TestSendSignalHelper:
 
 @pytest.fixture
 def mock_cfg():
-    """Patch attubot.tasks.reload_watcher.config with async load methods."""
+    """Patch doom_bot.tasks.reload_watcher.config with async load methods."""
     cfg = MagicMock()
     cfg.load_guild = AsyncMock()
     cfg.load_theme = AsyncMock()
     cfg.load_globals = AsyncMock()
     cfg.wait_for_load = AsyncMock()
-    with patch('attubot.tasks.reload_watcher.config', cfg):
+    with patch('doom_bot.tasks.reload_watcher.config', cfg):
         yield cfg
 
 
 def make_watcher(target: str = 'bot'):
     """Instantiate ReloadWatcherTask without starting the task loop."""
-    from attubot.tasks.reload_watcher import ReloadWatcherTask
+    from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
     return ReloadWatcherTask(target=target)
 
@@ -209,7 +209,7 @@ def make_watcher(target: str = 'bot'):
 class TestReloadWatcher:
     async def test_no_signals_is_noop(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(return_value=[])
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_not_called()
@@ -222,7 +222,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_called_once_with(test_guild)
@@ -233,7 +233,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1000),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
@@ -245,7 +245,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='system', guild_id=None, timestamp=1000),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_globals.assert_called_once()
@@ -257,7 +257,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=None, timestamp=1000),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_not_called()
@@ -269,7 +269,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=test_guild_2, timestamp=1001),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         assert mock_cfg.load_guild.call_count == 2
@@ -284,7 +284,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='system', guild_id=None, timestamp=1002),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_called_once_with(test_guild)
@@ -300,14 +300,14 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1001),
             ],
         )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
 
     async def test_repo_error_is_caught(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(side_effect=Exception('mongo connection lost'))
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
+        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
 
         # should not raise - error is logged and function returns
         await ReloadWatcherTask.run(make_watcher())
@@ -316,14 +316,14 @@ class TestReloadWatcher:
 
 # --- Web route signal emission ---
 
-from attubot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from doom_bot.config import BotTheme, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
 
 
 @pytest_asyncio.fixture(scope='function')
 async def web_app_with_signals():
     """Web app fixture that also patches send_signal for assertion."""
-    from attubot.web import app as web_app_module
-    from attubot.web.app import create_app
+    from doom_bot.web import app as web_app_module
+    from doom_bot.web.app import create_app
 
     guild = GuildConfig(
         id=test_guild,
@@ -347,7 +347,7 @@ async def web_app_with_signals():
     web_app_module.config.error_hook = 'https://discord.com/api/webhooks/123/abc'
     web_app_module.config.config_version = '2.2.0'
 
-    from attubot.config import PathsConfig, WebConfig
+    from doom_bot.config import PathsConfig, WebConfig
 
     web_app_module.config.web = WebConfig(secret_key='test-secret-key')
     web_app_module.config.paths = PathsConfig(assets='./assets')
@@ -372,7 +372,7 @@ class TestWebRoutesEmitSignals:
             'channels': {'activity': 999999},
             'epoch': {'year': 3},
         }
-        with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
+        with patch('doom_bot.web.routes.send_signal', new=AsyncMock()) as mock_send:
             response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 200
             mock_send.assert_called_once_with('guild', test_guild)
@@ -383,7 +383,7 @@ class TestWebRoutesEmitSignals:
             'rotation': 45.0,
             'bot_color': '#0000ff',
         }
-        with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
+        with patch('doom_bot.web.routes.send_signal', new=AsyncMock()) as mock_send:
             response = await signal_client.post('/api/theme', json=payload)
             assert response.status_code == 200
             mock_send.assert_called_once_with('theme')
@@ -396,7 +396,7 @@ class TestWebRoutesEmitSignals:
             'error_log_channel': 123456,
             'error_hook': 'https://discord.com/api/webhooks/123/abc',
         }
-        with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
+        with patch('doom_bot.web.routes.send_signal', new=AsyncMock()) as mock_send:
             response = await signal_client.post('/api/system', json=payload)
             assert response.status_code == 200
             mock_send.assert_called_once_with('system')
@@ -407,18 +407,18 @@ class TestWebRoutesEmitSignals:
         payload = {
             'epoch': {'year': -999, 'length': -1, 'time': 0, 'paused': False, 'rollover_minutes': 1020},
         }
-        with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
+        with patch('doom_bot.web.routes.send_signal', new=AsyncMock()) as mock_send:
             response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 400
             mock_send.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_guild_save_db_error_does_not_emit(self, signal_client):
-        from attubot.web.app import config as web_config
+        from doom_bot.web.app import config as web_config
 
         web_config.guilds[test_guild].save.side_effect = Exception('db gone')
         payload = {'channels': {'activity': 1}}
-        with patch('attubot.web.routes.send_signal', new=AsyncMock()) as mock_send:
+        with patch('doom_bot.web.routes.send_signal', new=AsyncMock()) as mock_send:
             response = await signal_client.post(f'/api/guilds/{test_guild}', json=payload)
             assert response.status_code == 500
             mock_send.assert_not_called()
