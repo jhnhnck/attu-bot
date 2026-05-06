@@ -1,16 +1,58 @@
-.env
-.ruff_cache/
-.venv**
-*.sample.*
+# secrets (mounted at runtime, never baked into image)
+.secrets/
+
+# python
 **/__pycache__/
+*.py[cod]
+.python-version
+
+# venvs
+.venv*
+venv/
+
+# test / coverage / lint
+.cache
+.coverage
+.coverage.*
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/
+
+# playwright
+blob-report/
+playwright-report/
+playwright/.auth/
+playwright/.cache/
+test-results/
+
+# editor
+.claude/
+.vscode/
+
+# wip
 **/*.wip.py
-apps/bot/assets/attu-bot.toml
-apps/bot/assets/doombot-seed/
-assets/
-backups/
+**/*.wip.md
+
+# databases
+*.db
+*.sql
+
+# samples / config / notes (kept in repo, omitted from image)
+*.sample.*
 config/
-node_modules/
 notes/
+
+# bot assets
+apps/bot/assets/doombot-seed/
+
+# disabled apps (manifest still needed for uv workspace sync)
+apps/chat/
+!apps/chat/pyproject.toml
+
+# misc
+backups/
+node_modules/
 wip/
 
 # allow workspace metadata for test runner

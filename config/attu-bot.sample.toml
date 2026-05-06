@@ -3,15 +3,18 @@ config_version = "2.5.4"
 [paths]
 # Path to the assets directory (templates, static files, favicon)
 # Can be relative (to working directory) or absolute
-assets = "./assets"
+assets = "apps/bot/assets"
 
 [database]
-# MongoDB connection settings
-# Include credentials when MongoDB authentication is enabled (L5).
-# Format: mongodb://USER:PASS@HOST:PORT
-# When running via docker-compose, HOST is the service name "mongo".
-# Credentials must match MONGO_ROOT_USER / MONGO_ROOT_PASS in .env.
-url = "mongodb://doom:CHANGE_ME@mongo:27017"
+# ferretdb (mongodb wire-protocol on postgres+documentdb) connection.
+# format: mongodb://USER:PASS@HOST:PORT/DBNAME?authSource=admin
+# host is the compose service name "ferret"; user/password match POSTGRES_USER
+# and POSTGRES_PASSWORD in .secrets/.env (paste the literal values here - this
+# toml is not env-substituted at load time).
+# authSource=admin is required: ferretdb stores users in the postgres role
+# table and authenticates them through the admin database.
+# the /doombot path is informational - the bot uses `name` below to pick the db.
+url = "mongodb://ferretdb:CHANGE_ME@ferret:27017/doombot?authSource=admin"
 name = "doombot"
 
 [auth.bot]

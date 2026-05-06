@@ -15,10 +15,12 @@ coverage.xml
 .python-version
 
 # environments
-.env
 .venv
 venv/
 .venv-*
+
+# secrets
+.secrets/
 
 # type checker / linter caches
 .ruff_cache/
@@ -29,7 +31,6 @@ package-lock.json
 
 # config files
 attu-bot.toml
-apps/bot/assets/attu-bot.toml
 
 # wip files
 *.wip.py
@@ -48,7 +49,6 @@ docker-compose.yml
 
 # assets
 apps/bot/assets/doombot-seed/
-assets/models/
 
 # notes
 notes/plans/

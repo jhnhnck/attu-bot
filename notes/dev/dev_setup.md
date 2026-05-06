@@ -2,7 +2,7 @@
 
 The dev worktree at `/srv/services/doom-bot-dev` is a git worktree on a local `dev` branch.
 Changes are never pushed directly from `dev` - only `trunk` is pushed to the remote.
-The dev compose stack (`docker-compose.dev.yml`) runs tests only - no live Discord connection.
+The dev compose stack (`docker-compose.dev.yml`) runs the legacy web service against an ephemeral ferretdb plus a `tests` profile - no live discord connection.
 
 ## One-time setup
 
@@ -12,13 +12,14 @@ git worktree add /srv/services/doom-bot-dev dev
 
 # 2. enter the worktree and copy secrets
 cd /srv/services/doom-bot-dev
-cp /srv/services/doom-bot/.env .env
-cp config/attu-bot.sample.toml assets/attu-bot.toml
+mkdir -p .secrets
+cp /srv/services/doom-bot/.secrets/.env .secrets/.env
+cp config/attu-bot.sample.toml .secrets/attu-bot.toml
 ```
 
-Edit `assets/attu-bot.toml` with at minimum:
-- `[database] url = "mongodb://doom:PASS@mongo:27017"` where `PASS` matches `MONGO_INITDB_ROOT_PASSWORD` in `.env`
-- `[auth.bot] token = "..."` - the prod token is fine; `TEST_MODE=1` means the bot never opens a Discord gateway connection during tests
+Edit `.secrets/attu-bot.toml` with at minimum:
+- `[database] url = "mongodb://<POSTGRES_USER>:<POSTGRES_PASSWORD>@ferret:27017/doombot?authSource=admin"` - paste the literal values from `.secrets/.env` (the toml is not env-substituted at load). `authSource=admin` is required because ferretdb authenticates through the postgres role table; the `/doombot` path is informational (the bot reads the db name from `database.name`).
+- `[auth.bot] token = "..."` - the prod token is fine; `TEST_MODE=1` means the bot never opens a discord gateway connection during tests
 
 ```bash
 # 3. (optional) seed the dev db from prod - see section below
@@ -30,11 +31,11 @@ bash scripts/create_dev_seed.sh
 
 ```bash
 cd /srv/services/doom-bot-dev
-docker compose -f docker-compose.dev.yml run --build --rm tests
+docker compose -f docker-compose.dev.yml --profile tests run --build --rm tests
 ```
 
-The mongo container starts fresh from the seed archive on every run (tmpfs data dir).
-If no seed file exists, mongo starts empty - tests create their own data and are unaffected.
+The ferret/postgres pair starts fresh on every run (postgres uses a tmpfs data dir) and `ferret-init` reseeds it from `apps/bot/assets/doombot-seed/`.
+If the seed dir is missing, the database starts empty - tests create their own data and are unaffected.
 
 ## local venv (optional, for ide support)
 
@@ -62,19 +63,36 @@ git pull
 docker compose up --build -d
 ```
 
-## Refreshing the seed from prod
+### one-time secret migration on prod
 
-Run from the prod directory any time you want dev to start from current prod state:
+The first deploy after the `.secrets/` move needs a manual file shuffle (the new compose looks under `.secrets/` but the existing files still live at the old paths):
 
 ```bash
 cd /srv/services/doom-bot
-bash scripts/create_dev_seed.sh
-# output: /srv/services/doom-bot-dev/assets/doombot-seed.archive
+mkdir -p .secrets
+mv .env .secrets/.env
+mv apps/bot/assets/attu-bot.toml .secrets/attu-bot.toml
+# then edit .secrets/attu-bot.toml and set:
+#   [paths]
+#   assets = "/home/doom/apps/bot/assets"
 ```
 
-The seed file is gitignored. Pass a custom path as the first argument if needed:
+The `paths.assets` edit is required — `hatch.toml` is now resolved through it, so a stale `./assets` value will fail at startup with `missing hatch.toml`.
+
+## Refreshing the seed from prod
+
+`create_dev_seed.sh` takes a `.tar.bz2` backup archive as its only argument and unpacks it into `apps/bot/assets/doombot-seed/`. run it from the prod directory whenever you want dev to start from a known prod backup:
+
 ```bash
-bash scripts/create_dev_seed.sh /some/other/path/seed.archive
+cd /srv/services/doom-bot
+bash scripts/create_dev_seed.sh /srv/backups/attu-bot/<timestamp>.tar.bz2
+# output: /srv/services/doom-bot-dev/apps/bot/assets/doombot-seed/
+```
+
+the seed dir is gitignored. between compressed backups you can also stage one manually:
+```bash
+rm -rf /srv/services/doom-bot-dev/apps/bot/assets/doombot-seed
+cp -r /srv/backups/attu-bot/<timestamp> /srv/services/doom-bot-dev/apps/bot/assets/doombot-seed
 ```
 
 ---
@@ -82,5 +100,5 @@ bash scripts/create_dev_seed.sh /some/other/path/seed.archive
 ## metadata
 
 ```yaml
-last_updated: 2026-04-03
+last_updated: 2026-05-06
 ```

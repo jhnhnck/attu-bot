@@ -9,7 +9,7 @@ services:
     image: ghcr.io/ferretdb/ferretdb:latest
     restart: no
     env_file:
-      - ./.env
+      - ./.secrets/.env
     environment:
       FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
@@ -20,7 +20,7 @@ services:
     image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
     restart: no
     env_file:
-      - ./.env
+      - ./.secrets/.env
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -36,7 +36,7 @@ services:
       target: tester
     restart: no
     env_file:
-      - ./.env
+      - ./.secrets/.env
     depends_on:
       ferret:
         condition: service_started
@@ -51,16 +51,16 @@ services:
       dockerfile: apps/bot/Dockerfile
       target: doombox
     container_name: attu-dev-legacy-web
-    command: python -u apps/bot/attu-bot.py web
+    command: python -u apps/bot/doom-bot.py web
     environment:
-      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/.secrets/attu-bot.toml
       DEBUG: "1"
     ports:
       - "127.0.1.8:8080:5000"
     restart: no
     user: doom:doom
     volumes:
-      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml:ro
+      - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml:ro
     depends_on:
       ferret-init:
         condition: service_completed_successfully
@@ -80,13 +80,13 @@ services:
     restart: no
     container_name: attu-dev-tests
     environment:
-      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
+      ATTU_CONFIG_FILE: /home/doom/.secrets/attu-bot.toml
       TEST_MODE: "1"
       DEBUG: "1"
     env_file:
-      - .env
+      - ./.secrets/.env
     volumes:
-      - ./apps/bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml:ro
+      - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml:ro
     user: doom:doom
     depends_on:
       ferret:

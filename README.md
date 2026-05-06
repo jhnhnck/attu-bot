@@ -83,16 +83,18 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 
 ### Configuration
 
-1. copy `config/sample.env` to `.env` and set `ATTU_CONFIG_FILE`
-2. copy `config/attu-bot.sample.toml` to `assets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.)
+1. copy `config/sample.env` to `.secrets/.env` and fill in postgres credentials
+2. copy `config/attu-bot.sample.toml` to `.secrets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.); the compose stack mounts both files into each container
 3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands or the web interface
 
 ### Docker (recommended)
 
 ```bash
 git clone https://github.com/jhnhnck/attu-bot.git && cd attu-bot
-cp config/attu-bot.sample.toml assets/attu-bot.toml
-vim assets/attu-bot.toml
+mkdir -p .secrets
+cp config/sample.env .secrets/.env
+cp config/attu-bot.sample.toml .secrets/attu-bot.toml
+vim .secrets/.env .secrets/attu-bot.toml
 docker compose up --build -d
 docker compose logs -f
 ```
@@ -105,7 +107,7 @@ uv + pnpm workspace; member packages live under `apps/` and `packages/`.
 uv venv && source .venv/bin/activate
 uv sync
 pnpm install
-cp config/attu-bot.sample.toml assets/attu-bot.toml
+cp config/attu-bot.sample.toml .secrets/attu-bot.toml
 python apps/bot/doom-bot.py bot   # or: python apps/bot/doom-bot.py web
 ```
 
