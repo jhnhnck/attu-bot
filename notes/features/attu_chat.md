@@ -1,5 +1,11 @@
 # Attu Bot - Chat/RAG Architecture Design
 
+> **status (2026-05-06): currently disabled.** The ingestor, `/ask` command, and admin
+> page were extracted into `apps/chat/` and turned off. `apps/chat/compose.yml`
+> still defines the qdrant/llama-server/ingestor services for revival via
+> `include:`. Mongo collections and shared-models classes are intact. The design
+> below reflects the architecture as it will resume when chat is revived.
+
 ## Key Design Decisions
 
 A summary of every significant decision made during the design process, with rationale.

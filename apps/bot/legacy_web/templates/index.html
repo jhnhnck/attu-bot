@@ -164,7 +164,7 @@
               {% for log in audit_logs %}
               <div class="list-group-item d-flex justify-content-between align-items-center py-2">
                 <div>
-                  {% set type_colors = {'guild': 'success', 'theme': 'warning', 'system': 'danger', 'chat': 'info'} %}
+                  {% set type_colors = {'guild': 'success', 'theme': 'warning', 'system': 'danger'} %}
                   <span class="badge bg-{{ type_colors.get(log.config_type, 'secondary') }} me-1">{{ log.config_type }}</span>
                   <span class="small">{{ log.action }}</span>
                 </div>

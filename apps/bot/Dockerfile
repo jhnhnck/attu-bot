@@ -4,9 +4,9 @@ RUN set -eux; \
     cargo install --version ^0.46 resvg --quiet;
 
 # git-info stage: stamps version and build time into __init__.py via sed
-FROM ghcr.io/astral-sh/uv:python3.13-trixie AS git-info
+FROM alpine:3.21 AS git-info
 ENV TZ="America/New_York"
-RUN apt-get update -qq && apt-get install -qq git
+RUN apk add --no-cache git tzdata
 WORKDIR /src
 COPY . .
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
     sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" apps/bot/attubot/__init__.py;
 
 # doom-bot container base - system deps, application code, and Python packages
-FROM ghcr.io/astral-sh/uv:python3.13-trixie AS doombox
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim AS doombox
 ENV TZ="America/New_York"
 ENV FORCE_COLOR=1
 ARG DOOM_HOME="/home/doom"
@@ -56,6 +56,7 @@ USER doom
 # workspace manifests and lockfile (need every member's pyproject for uv sync to resolve)
 COPY --chown=doom:doom ./pyproject.toml ./uv.lock $DOOM_HOME/
 COPY --chown=doom:doom ./apps/bot/pyproject.toml $DOOM_HOME/apps/bot/pyproject.toml
+COPY --chown=doom:doom ./apps/chat/pyproject.toml $DOOM_HOME/apps/chat/pyproject.toml
 COPY --chown=doom:doom ./apps/server/pyproject.toml $DOOM_HOME/apps/server/pyproject.toml
 COPY --chown=doom:doom ./packages/shared-models/pyproject.toml $DOOM_HOME/packages/shared-models/pyproject.toml
 
@@ -68,7 +69,6 @@ COPY --chown=doom:doom ./LICENSE ./README.md $DOOM_HOME/
 COPY --chown=doom:doom ./apps/bot/attu-bot.py $DOOM_HOME/apps/bot/attu-bot.py
 COPY --chown=doom:doom ./apps/bot/attubot $DOOM_HOME/apps/bot/attubot
 COPY --chown=doom:doom ./apps/bot/legacy_web $DOOM_HOME/apps/bot/legacy_web
-COPY --chown=doom:doom ./apps/bot/assets/prompts $DOOM_HOME/apps/bot/assets/prompts
 COPY --chown=doom:doom ./apps/bot/assets/hatch.toml $DOOM_HOME/apps/bot/assets/hatch.toml
 COPY --chown=doom:doom ./apps/bot/assets/static $DOOM_HOME/apps/bot/assets/static
 COPY --chown=doom:doom ./packages/shared-models/attu_models $DOOM_HOME/packages/shared-models/attu_models

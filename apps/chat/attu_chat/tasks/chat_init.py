@@ -28,12 +28,12 @@ class ChatInitTask(BaseTask):
     async def run(self) -> None:
         import asyncio
 
-        from attubot.commands.chat import _get_system_prompt
-        from attubot.ingestor.embedder import _get_embedder
-        from attubot.ingestor.llm import _get_llm
-        from attubot.ingestor.reranker import _get_reranker
-        from attubot.ingestor.summarizer import _get_summarizer
-        from attubot.ingestor.vector_store import _get_vector_store
+        from attu_chat.commands.ask import _get_system_prompt
+        from attu_chat.ingestor.embedder import _get_embedder
+        from attu_chat.ingestor.llm import _get_llm
+        from attu_chat.ingestor.reranker import _get_reranker
+        from attu_chat.ingestor.summarizer import _get_summarizer
+        from attu_chat.ingestor.vector_store import _get_vector_store
 
         logger.info('initializing chat subsystems')
         loop = asyncio.get_running_loop()

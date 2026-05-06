@@ -45,11 +45,6 @@ class TestReloadSignalDocument:
         assert doc.signal_type == 'system'
         assert doc.guild_id is None
 
-    def test_make_chat(self):
-        doc = ReloadSignalDocument.make('chat')
-        assert doc.signal_type == 'chat'
-        assert doc.guild_id is None
-
     def test_timestamp_is_current(self):
         before = int(time.time())
         doc = ReloadSignalDocument.make('theme')
@@ -96,13 +91,6 @@ class TestReloadSignalRepository:
         assert call_args[0][0] == {'target': 'bot', 'signal_type': 'theme', 'guild_id': None}
         assert call_args[1]['upsert'] is True
 
-    async def test_send_to_ingestor_target(self, signal_repo):
-        signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
-        await signal_repo.send('chat', target='ingestor')
-        call_args = signal_repo.db[signal_repo.COLLECTION].update_one.call_args
-        assert call_args[0][0] == {'target': 'ingestor', 'signal_type': 'chat', 'guild_id': None}
-        assert call_args[0][1]['$set']['target'] == 'ingestor'
-
     async def test_send_sets_timestamp(self, signal_repo):
         signal_repo.db[signal_repo.COLLECTION].update_one = AsyncMock()
         before = int(time.time())
@@ -117,11 +105,6 @@ class TestReloadSignalRepository:
         result = await signal_repo.consume_all()
         assert result == []
         signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once_with({'target': 'bot'})
-
-    async def test_consume_all_filters_by_target(self, signal_repo):
-        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete = AsyncMock(return_value=None)
-        await signal_repo.consume_all(target='ingestor')
-        signal_repo.db[signal_repo.COLLECTION].find_one_and_delete.assert_called_once_with({'target': 'ingestor'})
 
     async def test_consume_all_returns_signals(self, signal_repo):
         fake_id = 'fake_oid_1'
@@ -187,14 +170,6 @@ class TestSendSignalHelper:
         await send_signal('system')
         mock_signal_repo.send.assert_called_once_with('system', None, target='bot')
 
-    async def test_chat_signal_fans_out_to_bot_and_ingestor(self, mock_signal_repo):
-        from attubot.signals import send_signal
-
-        await send_signal('chat')
-        targets = {call.kwargs.get('target') for call in mock_signal_repo.send.call_args_list}
-        assert targets == {'bot', 'ingestor'}
-        assert mock_signal_repo.send.call_count == 2
-
     async def test_swallows_exception(self, mock_signal_repo):
         from attubot.signals import send_signal
 
@@ -219,7 +194,6 @@ def mock_cfg():
     cfg.load_guild = AsyncMock()
     cfg.load_theme = AsyncMock()
     cfg.load_globals = AsyncMock()
-    cfg.load_chat_runtime = AsyncMock()
     cfg.wait_for_load = AsyncMock()
     with patch('attubot.tasks.reload_watcher.config', cfg):
         yield cfg
@@ -330,18 +304,6 @@ class TestReloadWatcher:
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
-
-    async def test_chat_signal_reloads_chat_runtime(self, mock_signal_repo, mock_cfg):
-        mock_signal_repo.consume_all = AsyncMock(
-            return_value=[
-                ReloadSignalDocument(signal_type='chat', guild_id=None, timestamp=1000),
-            ],
-        )
-        from attubot.tasks.reload_watcher import ReloadWatcherTask
-
-        await ReloadWatcherTask.run(make_watcher())
-        mock_cfg.load_chat_runtime.assert_called_once()
-        mock_cfg.load_guild.assert_not_called()
 
     async def test_repo_error_is_caught(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(side_effect=Exception('mongo connection lost'))

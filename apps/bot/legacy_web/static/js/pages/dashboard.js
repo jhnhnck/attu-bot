@@ -145,7 +145,6 @@ function typeBadge(type) {
         case 'guild': return 'success';
         case 'theme': return 'warning';
         case 'system': return 'danger';
-        case 'chat': return 'info';
         default: return 'secondary';
     }
 }

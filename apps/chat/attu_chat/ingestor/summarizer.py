@@ -8,8 +8,8 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import json
 from pathlib import Path
 
+from attu_models import ChatChannelConfig, MessageDocument
 from attubot.client.core import config
-from attubot.database.models import ChatChannelConfig, MessageDocument
 from attubot.logging import get_logger
 
 

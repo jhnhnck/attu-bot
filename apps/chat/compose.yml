@@ -1,0 +1,53 @@
+---
+# dormant. lift of the chat services that used to live in docker-compose.prod.yml.
+# revive by adding `include: [apps/chat/compose.yml]` to the root compose stack;
+# parent stack supplies `ferret`, `postgres`, and the `.env` file.
+name: doom-bot-chat
+
+services:
+  ingestor:
+    build:
+      context: ../..
+      dockerfile: apps/chat/Dockerfile
+    command: python -u apps/chat/attu-chat.py ingestor
+    environment:
+      ATTU_CONFIG_FILE: /home/doom/apps/bot/assets/attu-bot.toml
+    env_file:
+      - ../../.env
+    logging:
+      driver: journald
+    restart: unless-stopped
+    user: doom:doom
+    volumes:
+      - ../bot/assets/attu-bot.toml:/home/doom/apps/bot/assets/attu-bot.toml
+    depends_on:
+      ferret:
+        condition: service_started
+      qdrant:
+        condition: service_started
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    env_file:
+      - ../../.env
+    volumes:
+      - ./assets/models:/models
+    command: >
+      -m /models/Qwen3.5-2B.Q4_K_M.gguf
+      --host 0.0.0.0
+      --port 8080
+      --ctx-size 4096
+      --threads 8
+      --api-key ${LLM_API_KEY}
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+    external: true
+    name: doom-bot_qdrant_data

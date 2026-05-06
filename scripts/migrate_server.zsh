@@ -119,9 +119,9 @@ fi
 
 # ─── [2/7] stop local services ───────────────────────────────────────────────
 print "\n==> [2/7] stopping local services..."
-run "${COMPOSE[@]}" stop core web ingestor   # dependents first
-run "${COMPOSE[@]}" stop ferret              # middleware
-run "${COMPOSE[@]}" stop postgres qdrant llama-server
+run "${COMPOSE[@]}" stop core legacy-web   # dependents first
+run "${COMPOSE[@]}" stop ferret            # middleware
+run "${COMPOSE[@]}" stop postgres
 
 # ─── [3/7] dump postgres_data ────────────────────────────────────────────────
 print "\n==> [3/7] dumping ${POSTGRES_VOLUME}..."

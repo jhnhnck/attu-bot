@@ -7,7 +7,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from attubot.logging import get_logger
 from attubot.tasks.base import BaseTask
-from attubot.tasks.chat_init import ChatInitTask, chat_init_task
 from attubot.tasks.db_backup import DatabaseBackupTask, db_backup_task
 from attubot.tasks.egg_cleanup import EggCleanupTask, egg_cleanup_task
 from attubot.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_hook_task
@@ -32,7 +31,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     idempotent: tasks already registered are skipped.
     """
     bot_tasks = (
-        chat_init_task,
         nova_year_task,
         logo_update_task,
         error_hook_task,
@@ -51,7 +49,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
 
 __all__ = [
     'BaseTask',
-    'ChatInitTask',
     'DatabaseBackupTask',
     'EggCleanupTask',
     'ErrorHookTask',
@@ -62,7 +59,6 @@ __all__ = [
     'ReloadWatcherTask',
     'ReminderTask',
     'TaskScheduler',
-    'chat_init_task',
     'db_backup_task',
     'egg_cleanup_task',
     'error_hook_refresh',

@@ -17,8 +17,7 @@ import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
 from attubot import __config_version__, __schema__
-from attubot.database.models import ChatConfigDocument
-from attubot.database.repositories import ChatConfigRepository, ConfigRepository
+from attubot.database.repositories import ConfigRepository
 from attubot.logging import get_logger
 
 
@@ -151,19 +150,6 @@ class GuildRoles(BaseModel):
 
 class GuildUsers(BaseModel):
     markers: list[int] = []  # user IDs authorized to create year markers
-
-
-class ChatConfig(BaseModel):
-    qdrant_url: str = 'http://qdrant:6333'
-    ingestor_api_url: str = 'http://ingestor:8001'
-    ingestor_token: str = ''
-    llm_primary_url: str = 'http://localhost:8080'
-    llm_fallback_url: str = 'http://llama-server:8080'
-    llm_api_key: str = ''
-    anthropic_api_key: str = ''
-    ask_cooldown_seconds: int = 30
-    embedding_model: str = 'all-MiniLM-L6-v2'
-    prompts_dir: str = 'assets/prompts'
 
 
 class HatchTuning(BaseModel):
@@ -313,19 +299,14 @@ class NovaConfig:
 
         # MongoDB repositories
         self.config_repo: ConfigRepository = None
-        self.chat_config_repo: ChatConfigRepository = None
 
         # Config sections loaded from TOML
         self.paths: PathsConfig = None
         self.database: DatabaseConfig = None
         self.web: WebConfig = None
         self.webauthn: WebAuthnConfig = None
-        self.chat: ChatConfig = None
         self.hatch: HatchConfig = None
         self.trees: TreesConfig = None
-
-        # Runtime config loaded from MongoDB
-        self.chat_runtime: ChatConfigDocument = None
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './assets/attu-bot.toml')).resolve()
@@ -410,12 +391,6 @@ class NovaConfig:
             raise ConfigLoadError('invalid backup configuration')
 
         try:
-            self.chat = ChatConfig(**self._raw.get('chat', {}))
-        except ValidationError as err:
-            logger.error(f'failed to validate chat configuration: {err!s}')
-            raise ConfigLoadError('invalid chat configuration')
-
-        try:
             hatch_path = self.path.parent / 'hatch.toml'
             if not hatch_path.exists():
                 logger.error('hatch.toml missing')
@@ -470,7 +445,6 @@ class NovaConfig:
 
         # Load other configurations
         await self.load_theme()
-        await self.load_chat_runtime()
 
         # Load guild configs in parallel
         async def _load_guild_safe(guild_id: int) -> tuple[int, bool]:
@@ -699,34 +673,6 @@ class NovaConfig:
 
             if prev_state is not None:
                 self.theme = prev_state
-
-            return False
-
-    async def load_chat_runtime(self) -> bool:
-        prev_state = self.chat_runtime
-
-        try:
-            logger.info(f'{"loading" if prev_state is None else "reloading"} chat runtime config')
-
-            doc = await self.chat_config_repo.get()
-            if doc:
-                self.chat_runtime = doc
-            else:
-                # create defaults on first run
-                self.chat_runtime = ChatConfigDocument()
-                await self.chat_config_repo.save(self.chat_runtime)
-
-            # trigger event if this is a reload
-            if self._get_event('load').is_set():
-                self._get_event('reload').set()
-
-            return True
-
-        except ValidationError as err:
-            logger.error(f'failed to validate chat runtime config: {err!s}')
-
-            if prev_state is not None:
-                self.chat_runtime = prev_state
 
             return False
 

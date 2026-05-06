@@ -92,7 +92,6 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 
 | File | Slash Group | Purpose |
 |---|---|---|
-| `chat.py` | `/ask` | RAG lore assistant - embeds query, vector-searches Qdrant, reranks with CrossEncoder, streams LLM response; see `attubot/ingestor/` |
 | `debug.py` | `/debug` | Diagnostic commands - version, scheduler state, year stats, message stats, starboard dump, config dump |
 | `fix.py` | `/fix` | Repair/rebuild commands - logo refresh, year links rebuild, message backfill, starboard learn and recount |
 | `marker.py` | `/marker` | Save, set, and clear year marker messages |
@@ -106,24 +105,19 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress |
 | `remind.py` | `/remind` | In-universe date reminders - add, list, cancel; fires when haracalnde date arrives |
 
-### package: `attubot/ingestor/`
-RAG ingestion pipeline for the `/ask` feature. Models are lazy singletons loaded by `ChatInitTask`. See [`notes/features/attu_chat.md`](notes/features/attu_chat.md) for full design and decisions.
+### package: `apps/chat/` (dormant)
+the LLM/RAG ingestor, `/ask` slash command, chat web admin, and chat config schema were extracted from the bot in 78.x. the package still ships in the workspace but is not loaded:
+- `apps/chat/attu_chat/ingestor/` - DiscordIngestTask, WikiIngestTask, embedder, reranker, llm client, vector store, summarizer, query expander, pipelines (was `attubot/ingestor/`)
+- `apps/chat/attu_chat/commands/ask.py` - `/ask` slash command (was `attubot/commands/chat.py`)
+- `apps/chat/attu_chat/tasks/chat_init.py` - one-shot startup loader for chat subsystems
+- `apps/chat/attu_chat/web/{routes,forms}.py` - `/chat` admin page and `/api/chat` endpoints, mounted via `register_chat_routes(app)`
+- `apps/chat/attu_chat/config.py` - `[chat]` TOML schema
+- `apps/chat/assets/prompts/` - chat-system, discord-summarization, character-extraction, query-expansion prompts
+- `apps/chat/legacy_web/` - chat_config.html and pages/chat-config.js
+- `apps/chat/compose.yml` - dormant `ingestor`, `qdrant`, `llama-server` services; root compose adds `include:` to revive
+- `apps/chat/attu-chat.py ingestor` - process entrypoint (was `attu-bot.py ingestor`)
 
-| File | Role |
-|---|---|
-| `__init__.py` | `start_ingestor()` - creates TaskScheduler, registers tasks, starts internal Quart API |
-| `embedder.py` | `Embedder` - wraps `all-MiniLM-L6-v2` sentence-transformers; `embed()` / `embed_batch()` |
-| `reranker.py` | `Reranker` - CrossEncoder reranking; `rerank(query, candidates)` adds `rerank_score` to each result |
-| `llm.py` | `LlmClient` - streaming llama.cpp HTTP client (OpenAI-compat); dual-URL primary/fallback |
-| `vector_store.py` | `VectorStore` - Qdrant client wrapper; `search()`, `upsert()`, `delete()`; COSINE distance |
-| `registry.py` | `ChatSourceRepository` access; tracks ingested content for deduplication |
-| `query_expander.py` | expands user queries before embedding to improve recall |
-| `summarizer.py` | summarizes long Discord threads before ingestion |
-| `tasks.py` | `DiscordIngestTask`, `WikiIngestTask`, `SummarizationTask` (`BaseTask` subclasses) |
-| `pipelines/wiki.py` | wiki page fetch → section split → embed → upsert |
-| `pipelines/discord.py` | reply-chain graph traversal, time-window grouping, noise filtering |
-
-Context blocks use `<article source="wiki" name="Page Title > Section">` tags. The system prompt is at `assets/prompts/chat-system-prompt.md`.
+mongo collections `chat_sources`, `chat_characters`, and the `global_config` doc with `config_type='chat'` remain in place as orphan data. the document and repository classes (`ChatConfigDocument`, `ChatSourceDocument`, `ChatCharacterDocument`, `ChatConfigRepository`, `ChatSourceRepository`, `ChatCharacterRepository`) stay in `packages/shared-models/attu_models/` so revival doesn't need a migration. the `[chat]` block in `assets/attu-bot.toml` stays dormant - the bot's config loader no longer reads it. revival = bot registers the slash command + root compose `include: [apps/chat/compose.yml]`.
 
 ### package: `attubot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
@@ -132,7 +126,6 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 |---|---|
 | `base.py` | `BaseTask` ABC - defines the task lifecycle interface |
 | `scheduler.py` | `TaskScheduler` - registers tasks, drives `_run_loop()` per task, exposes `running_tasks()` |
-| `chat_init.py` | `ChatInitTask` - one-shot startup task; loads embedder, reranker, vector store, LLM client, and system prompt |
 | `nova_year.py` | `NovaYearTask` - checks for year rollover on schedule; `job_construct_year_links()` helper |
 | `message_backfill.py` | `MessageBackfillTask` - periodic scan of configured channels to store unseen messages |
 | `logo_update.py` | `LogoUpdateTask` - refreshes the bot's avatar on a schedule |
@@ -345,7 +338,7 @@ Notes in `notes/` with relevant implementation details:
 - [`reminders.md`](notes/features/reminders.md) - in-universe date reminders, fire time computation, storage, commands
 - [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
 - [`web.md`](notes/features/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
-- [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions
+- [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions (currently dormant; lives at `apps/chat/`)
 
 **`notes/dev/`** - development guides
 - [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions (mock compensation rule moved to its skill)
@@ -368,7 +361,7 @@ prescriptive, auto-loaded reference cards live in `.claude/skills/`. each loads 
 | `mock-compensation` | the mock compensation rule and three standing cases | edits in `tests/python/`; new files in `commands/`; new predicates; new migrations |
 | `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `attubot/commands/` / `attubot/client/`; imports of `discord.*` |
 | `pydantic` | pydantic v2 idioms, document/runtime split, six-step tier-3 plumbing checklist | `database/models.py`, `config.py`, `web/forms.py`; `pydantic` imports |
-| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `attubot/wiki/`; `ingestor/pipelines/wiki.py`; `commands/wiki.py` |
+| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `attubot/wiki/`; `commands/wiki.py` (chat ingestor wiki pipeline currently dormant under `apps/chat/`) |
 | `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `attubot/database/`; `migrations.py`; `scripts/ferret_init.sh` |
 
 ---

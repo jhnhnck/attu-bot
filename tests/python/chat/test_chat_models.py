@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from attubot.database.models import (
+from attu_models import (
     ChatChannelConfig,
     ChatConfigDocument,
     ChatSourceDocument,
@@ -200,7 +200,7 @@ class TestReloadSignalChatType:
 
 @pytest.fixture
 def chat_source_repo():
-    from attubot.database.repositories import ChatSourceRepository
+    from attu_models import ChatSourceRepository
 
     mock_db = MagicMock()
     return ChatSourceRepository(mock_db)

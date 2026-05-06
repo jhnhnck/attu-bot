@@ -32,7 +32,7 @@ class DiscordIngestTask(BaseTask):
             logger.debug('discord ingest disabled; skipping')
             return
 
-        from attubot.ingestor.pipelines.discord import DiscordPipeline
+        from attu_chat.ingestor.pipelines.discord import DiscordPipeline
 
         pipeline = DiscordPipeline()
         await pipeline.run()
@@ -54,7 +54,7 @@ class WikiIngestTask(BaseTask):
             logger.debug('wiki ingest disabled; skipping')
             return
 
-        from attubot.ingestor.pipelines.wiki import WikiPipeline
+        from attu_chat.ingestor.pipelines.wiki import WikiPipeline
 
         pipeline = WikiPipeline()
         await pipeline.run_recent_changes()

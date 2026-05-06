@@ -13,12 +13,6 @@ repo wiring stay here - the bot is the index-creation leader.
 import asyncio
 
 from attu_models import (
-    ChatCharacterDocument,
-    ChatCharacterRepository,
-    ChatConfigDocument,
-    ChatConfigRepository,
-    ChatSourceDocument,
-    ChatSourceRepository,
     ConfigRepository,
     EggDocument,
     EggRepository,
@@ -66,7 +60,7 @@ async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0)
         logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
 
 
-def _wire_repos(*, config, family_repo, marker_repo, year_repo, signal_repo, message_repo, starboard_repo, egg_repo, egg_user_repo, wiki_view_repo, chat_config_repo, reminder_repo) -> None:
+def _wire_repos(*, family_repo, marker_repo, year_repo, signal_repo, message_repo, starboard_repo, egg_repo, egg_user_repo, wiki_view_repo, reminder_repo) -> None:
     """wire repository singletons into their respective modules after db init"""
     import attubot.client.families as _families
     import attubot.client.markers as _markers
@@ -87,7 +81,6 @@ def _wire_repos(*, config, family_repo, marker_repo, year_repo, signal_repo, mes
     _hatching._egg_repo = egg_repo
     _hatching._egg_user_repo = egg_user_repo
     _wiki._wiki_view_repo = wiki_view_repo
-    config.chat_config_repo = chat_config_repo
     _reminder._reminder_repo = reminder_repo
 
 
@@ -127,16 +120,6 @@ async def init_database(url: str, name: str):
     family_repo = FamilyRepository(database)
     await _try_init_indexes(family_repo, 'family')
 
-    chat_config_repo = ChatConfigRepository(database)
-    # ChatConfigRepository uses global_config collection; no dedicated index needed
-    logger.debug('chat config repo ready')
-
-    chat_source_repo = ChatSourceRepository(database)
-    await _try_init_indexes(chat_source_repo, 'chat_source')
-
-    chat_character_repo = ChatCharacterRepository(database)
-    await _try_init_indexes(chat_character_repo, 'chat_character')
-
     egg_repo = EggRepository(database)
     await _try_init_indexes(egg_repo, 'egg')
 
@@ -150,7 +133,6 @@ async def init_database(url: str, name: str):
     await _try_init_indexes(reminder_repo, 'reminder')
 
     _wire_repos(
-        config=config,
         family_repo=family_repo,
         marker_repo=marker_repo,
         year_repo=year_repo,
@@ -160,7 +142,6 @@ async def init_database(url: str, name: str):
         egg_repo=egg_repo,
         egg_user_repo=egg_user_repo,
         wiki_view_repo=wiki_view_repo,
-        chat_config_repo=chat_config_repo,
         reminder_repo=reminder_repo,
     )
 
@@ -168,12 +149,6 @@ async def init_database(url: str, name: str):
 
 
 __all__ = [
-    'ChatCharacterDocument',
-    'ChatCharacterRepository',
-    'ChatConfigDocument',
-    'ChatConfigRepository',
-    'ChatSourceDocument',
-    'ChatSourceRepository',
     'ConfigRepository',
     'EggDocument',
     'EggRepository',

@@ -128,50 +128,6 @@ export class SystemConfig {
     }
 }
 
-export class ChatConfig {
-    /**
-     * Create a ChatConfig instance
-     * @param {Object} data - Chat runtime config data
-     */
-    constructor(data = {}) {
-        this.discord_lookback_hours = data.discord_lookback_hours ?? 6;
-        this.discord_window_minutes = data.discord_window_minutes ?? 30;
-        this.noise_filter_min_tokens = data.noise_filter_min_tokens ?? 20;
-        this.ignored_user_ids = data.ignored_user_ids ?? [];
-        this.ingest_discord = data.ingest_discord ?? true;
-        this.ingest_wiki = data.ingest_wiki ?? true;
-        this.ingest_documents = data.ingest_documents ?? true;
-        this.wiki_namespaces = data.wiki_namespaces ?? ['0'];
-        this.character_log_channel_id = data.character_log_channel_id ?? null;
-        this.chat_channels = data.chat_channels ?? {};
-        this.user_nations = data.user_nations ?? {};
-        this.retrieval_top_k_wiki = data.retrieval_top_k_wiki ?? 5;
-        this.retrieval_top_k_discord = data.retrieval_top_k_discord ?? 5;
-        this.retrieval_top_k_documents = data.retrieval_top_k_documents ?? 3;
-        this.retrieval_top_k_images = data.retrieval_top_k_images ?? 2;
-    }
-
-    toJSON() {
-        return {
-            discord_lookback_hours: this.discord_lookback_hours,
-            discord_window_minutes: this.discord_window_minutes,
-            noise_filter_min_tokens: this.noise_filter_min_tokens,
-            ignored_user_ids: this.ignored_user_ids,
-            ingest_discord: this.ingest_discord,
-            ingest_wiki: this.ingest_wiki,
-            ingest_documents: this.ingest_documents,
-            wiki_namespaces: this.wiki_namespaces,
-            character_log_channel_id: this.character_log_channel_id,
-            chat_channels: this.chat_channels,
-            user_nations: this.user_nations,
-            retrieval_top_k_wiki: this.retrieval_top_k_wiki,
-            retrieval_top_k_discord: this.retrieval_top_k_discord,
-            retrieval_top_k_documents: this.retrieval_top_k_documents,
-            retrieval_top_k_images: this.retrieval_top_k_images,
-        };
-    }
-}
-
 // ========== API Functions ==========
 
 /**
@@ -230,20 +186,3 @@ export async function saveSystemConfig(data) {
     return api.saveSystem(data);
 }
 
-/**
- * Fetch and create ChatConfig
- * @returns {Promise<ChatConfig>} ChatConfig instance
- */
-export async function getChatConfig() {
-    const data = await api.getChat();
-    return new ChatConfig(data);
-}
-
-/**
- * Save ChatConfig
- * @param {Object} data - Chat config data
- * @returns {Promise<Object>} API response
- */
-export async function saveChatConfig(data) {
-    return api.saveChat(data);
-}

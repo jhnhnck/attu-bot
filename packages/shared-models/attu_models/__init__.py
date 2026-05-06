@@ -12,6 +12,7 @@ init_indexes() at import time.
 
 from .connection import MongoStorage
 from .documents import (
+    ChatChannelConfig,
     ChatCharacterDocument,
     ChatConfigDocument,
     ChatSourceDocument,
@@ -48,6 +49,7 @@ from .repositories import (
 
 
 __all__ = [
+    'ChatChannelConfig',
     'ChatCharacterDocument',
     'ChatCharacterRepository',
     'ChatConfigDocument',

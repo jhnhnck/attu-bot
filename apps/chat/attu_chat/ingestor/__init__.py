@@ -15,9 +15,9 @@ logger = get_logger(__name__)
 
 
 async def _run():
+    from attu_chat.ingestor.tasks import DiscordIngestTask, WikiIngestTask
     from attubot.client.core import config, db
     from attubot.database import init_database
-    from attubot.ingestor.tasks import DiscordIngestTask, WikiIngestTask
     from attubot.tasks.reload_watcher import ReloadWatcherTask
     from attubot.tasks.scheduler import scheduler
 
@@ -50,6 +50,6 @@ async def _run():
 
 
 def start_ingestor():
-    """entry point for the ingestor process (python attu-bot.py ingestor)"""
+    """entry point for the ingestor process (python attu-chat.py ingestor)"""
     logger.info('starting ingestor')
     asyncio.run(_run())

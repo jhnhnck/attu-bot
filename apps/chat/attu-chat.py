@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """
-AttuBot - Command line entrypoint
+AttuBot - Chat/RAG entrypoint
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
 Usage:
-    python attu-bot.py bot       # Launch the Discord bot (default)
-    python attu-bot.py web       # Launch the web interface
+    python attu-chat.py ingestor  # Launch the chat/RAG ingestor
 """
 
 import sys
@@ -28,23 +27,16 @@ if 'DEBUG' in environ:
 else:
     logger.info('Debug Mode: Disabled')
 
-# Determine mode from CLI args (default: bot)
-mode = sys.argv[1] if len(sys.argv) > 1 else 'bot'
+mode = sys.argv[1] if len(sys.argv) > 1 else 'ingestor'
 
-if mode not in ('bot', 'web'):
-    logger.error(f'Unknown mode: "{mode}". Valid options: bot, web')
+if mode != 'ingestor':
+    logger.error(f'Unknown mode: "{mode}". Valid options: ingestor')
     sys.exit(1)
 
 try:
-    if mode == 'bot':
-        from attubot import start_bot_loop
+    from attu_chat.ingestor import start_ingestor
 
-        start_bot_loop()
-
-    elif mode == 'web':
-        from attubot.web.app import start_web
-
-        start_web()
+    start_ingestor()
 
 except Exception as error:
     tb_str = ''.join(traceback.format_exception(error))

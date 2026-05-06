@@ -12,11 +12,11 @@ import uuid
 
 import mwparserfromhell
 
+from attu_chat.ingestor.embedder import _get_embedder
+from attu_chat.ingestor.registry import get_source, upsert_source
+from attu_chat.ingestor.vector_store import _get_vector_store
+from attu_models import ChatSourceDocument
 from attubot.client.core import config
-from attubot.database.models import ChatSourceDocument
-from attubot.ingestor.embedder import _get_embedder
-from attubot.ingestor.registry import get_source, upsert_source
-from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
 from attubot.wiki import get_wiki
 

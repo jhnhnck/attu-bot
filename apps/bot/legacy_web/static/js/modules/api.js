@@ -267,18 +267,6 @@ export class ApiClient {
         });
     }
 
-    // Chat config endpoints
-    async getChat() {
-        return this.fetch('/api/chat');
-    }
-
-    async saveChat(data) {
-        return this.fetch('/api/chat', {
-            method: 'POST',
-            body: JSON.stringify(this.stringifyBigInts(data)),
-        });
-    }
-
     // Admin/Stats endpoints
     async getStats() {
         return this.fetch('/api/admin/stats');

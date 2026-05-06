@@ -5,6 +5,7 @@ requires-python = "==3.13.*"
 [manifest]
 members = [
     "attu-bot-workspace",
+    "attu-chat",
     "attu-models",
     "attu-server",
     "attubot",
@@ -196,6 +197,43 @@ dev = [
 ]
 
 [[package]]
+name = "attu-chat"
+version = "0.0.0"
+source = { virtual = "apps/chat" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "anthropic" },
+    { name = "anyio" },
+    { name = "attu-models" },
+    { name = "httpx" },
+    { name = "mwparserfromhell" },
+    { name = "py-cord", extra = ["speed"] },
+    { name = "pydantic" },
+    { name = "pymongo" },
+    { name = "qdrant-client" },
+    { name = "quart" },
+    { name = "sentence-transformers" },
+    { name = "tomlkit" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp" },
+    { name = "anthropic" },
+    { name = "anyio", specifier = ">=4.12.0" },
+    { name = "attu-models", virtual = "packages/shared-models" },
+    { name = "httpx" },
+    { name = "mwparserfromhell" },
+    { name = "py-cord", extras = ["speed"], specifier = "<3" },
+    { name = "pydantic" },
+    { name = "pymongo", specifier = ">=4.6.0" },
+    { name = "qdrant-client" },
+    { name = "quart", specifier = ">=0.19.0" },
+    { name = "sentence-transformers" },
+    { name = "tomlkit" },
+]
+
+[[package]]
 name = "attu-models"
 version = "0.0.0"
 source = { virtual = "packages/shared-models" }
@@ -217,11 +255,10 @@ source = { virtual = "apps/server" }
 
 [[package]]
 name = "attubot"
-version = "78.1.5"
+version = "78.1.6"
 source = { virtual = "apps/bot" }
 dependencies = [
     { name = "aiohttp" },
-    { name = "anthropic" },
     { name = "anyio" },
     { name = "attu-models" },
     { name = "httpx" },
@@ -230,10 +267,8 @@ dependencies = [
     { name = "py-cord", extra = ["speed"] },
     { name = "pydantic" },
     { name = "pymongo" },
-    { name = "qdrant-client" },
     { name = "quart" },
     { name = "quart-rate-limiter" },
-    { name = "sentence-transformers" },
     { name = "termcolor" },
     { name = "tomlkit" },
     { name = "webauthn" },
@@ -242,7 +277,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp" },
-    { name = "anthropic" },
     { name = "anyio", specifier = ">=4.12.0" },
     { name = "attu-models", virtual = "packages/shared-models" },
     { name = "httpx" },
@@ -251,10 +285,8 @@ requires-dist = [
     { name = "py-cord", extras = ["speed"], specifier = "<3" },
     { name = "pydantic" },
     { name = "pymongo", specifier = ">=4.6.0" },
-    { name = "qdrant-client" },
     { name = "quart", specifier = ">=0.19.0" },
     { name = "quart-rate-limiter", specifier = ">=0.9.0" },
-    { name = "sentence-transformers" },
     { name = "termcolor" },
     { name = "tomlkit" },
     { name = "webauthn", specifier = ">=2.0.0" },

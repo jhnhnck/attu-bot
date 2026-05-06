@@ -8,14 +8,19 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import time
 import uuid
 
+from attu_chat.ingestor.embedder import _get_embedder
+from attu_chat.ingestor.registry import get_source, upsert_source
+from attu_chat.ingestor.summarizer import _get_summarizer
+from attu_chat.ingestor.vector_store import _get_vector_store
+from attu_models import (
+    ChatCharacterDocument,
+    ChatCharacterRepository,
+    ChatSourceDocument,
+    MessageDocument,
+    MessageRepository,
+)
 from attubot.client.calendar import haracalnde_date
 from attubot.client.core import config
-from attubot.database.models import ChatCharacterDocument, ChatSourceDocument, MessageDocument
-from attubot.database.repositories import ChatCharacterRepository, MessageRepository
-from attubot.ingestor.embedder import _get_embedder
-from attubot.ingestor.registry import get_source, upsert_source
-from attubot.ingestor.summarizer import _get_summarizer
-from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
 
 

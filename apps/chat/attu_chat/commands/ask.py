@@ -14,15 +14,15 @@ from discord import ApplicationCommand, ApplicationContext, Bot
 from discord.commands import option
 from discord.ext import commands
 
+from attu_chat.ingestor.embedder import _get_embedder
+from attu_chat.ingestor.llm import _get_llm
+from attu_chat.ingestor.query_expander import _get_query_expander
+from attu_chat.ingestor.reranker import _get_reranker
+from attu_chat.ingestor.vector_store import _get_vector_store
+from attu_models import ChatCharacterDocument
 from attubot.client.calendar import haracalnde_date
 from attubot.client.core import config
 from attubot.client.util import is_authorized_guild, is_bot_owner
-from attubot.database.models import ChatCharacterDocument
-from attubot.ingestor.embedder import _get_embedder
-from attubot.ingestor.llm import _get_llm
-from attubot.ingestor.query_expander import _get_query_expander
-from attubot.ingestor.reranker import _get_reranker
-from attubot.ingestor.vector_store import _get_vector_store
 from attubot.logging import get_logger
 
 
@@ -40,8 +40,8 @@ _char_repo = None
 def _get_char_repo():
     global _char_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _char_repo is None:
+        from attu_models import ChatCharacterRepository
         from attubot import db
-        from attubot.database.repositories import ChatCharacterRepository
 
         _char_repo = ChatCharacterRepository(db.get_db())
     return _char_repo

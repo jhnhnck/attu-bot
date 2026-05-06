@@ -15,13 +15,12 @@ logger = get_logger(__name__)
 _repo: ReloadSignalRepository | None = None
 
 # which consumer processes need to react to each signal type. the bot's runtime
-# config drives most behavior; the ingestor only needs to know about chat config
-# changes so its in-memory chat_runtime stays current.
+# config drives most behavior; chat-related signals were here when the ingestor
+# was a sibling process and will return when chat is revived.
 _signal_targets: dict[str, tuple[str, ...]] = {
     'guild': ('bot',),
     'theme': ('bot',),
     'system': ('bot',),
-    'chat': ('bot', 'ingestor'),
 }
 
 

@@ -11,7 +11,7 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["apps/bot", "apps/server", "packages/shared-models"]
+members = ["apps/bot", "apps/chat", "apps/server", "packages/shared-models"]
 
 [tool.uv.sources]
 attubot = { workspace = true }
