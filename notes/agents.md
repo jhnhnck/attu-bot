@@ -433,5 +433,5 @@ wip/                         # work-in-progress scratch space (excluded from lin
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026 (workspace layout: apps/bot/, apps/chat/, packages/shared-models/)
+last_updated: 6 May 2026
 ```

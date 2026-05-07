@@ -36,6 +36,7 @@ attu-bot.toml
 # wip files
 *.wip.py
 *.wip.md
+wip/
 
 # databases
 *.db
