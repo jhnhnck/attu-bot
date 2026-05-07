@@ -85,7 +85,14 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help='show full test output')
     parser.add_argument('-x', action='store_true', dest='exit_early', help='stop pytest on first failure within each suite')
     parser.add_argument('--coverage', action='store_true', help='print coverage report after tests')
+    parser.add_argument('--coverage-json', action='store_true', help='emit coverage json to stdout; all other output goes to stderr')
     args = parser.parse_args()
+
+    real_stdout = sys.stdout
+    if args.coverage_json:
+        # redirect all script prints to stderr; reserve real stdout for the json payload
+        sys.stdout = sys.stderr
+        args.verbose = False  # force capture so subprocess output cannot leak to fd 1
 
     exit_flags = ['-x'] if args.exit_early else []
 
@@ -108,7 +115,11 @@ if __name__ == '__main__':
 
     if args.coverage:
         print()
-        subprocess.run(['coverage', 'report'], check=False)  # noqa: S607
+        report_stdout = sys.stderr if args.coverage_json else None
+        subprocess.run(['coverage', 'report'], stdout=report_stdout, check=False)  # noqa: S607
+
+    if args.coverage_json:
+        subprocess.run(['coverage', 'json', '-o', '-'], stdout=real_stdout, check=False)  # noqa: S607
 
     # --- summary ---
     print()
