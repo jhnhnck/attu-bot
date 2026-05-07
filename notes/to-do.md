@@ -22,11 +22,23 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### starboard
 
-- ⭕ `medium priority` `medium effort` bug: starboard doesn't render multiple images from messages with more than one attachment (from cowboy)
+- ⭕ `medium priority` `medium effort` bug: starboard doesn't render multiple images from messages with more than one attachment (from cowboy) — fixed for ccboard via shared `embed.url` on the gallery; legacy starboard still affected
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
-- ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
+- ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv. — fixed for ccboard via dedicated rules; legacy starboard still affected
+
+### ccboard
+
+phase 1 landed on `feat/ccboard-redesign`: foundation models/repos, builder, tier-3 config, /fix stars convert migration, watcher with echo suppression, manager + sweeps, and /fix ccboard + /debug ccboard slash commands. `enabled=False` is the default; legacy starboard remains active until a guild flips the flag.
+
+- ⭕ `high priority` `medium effort` user-facing ccboard slash commands: `/stars random`, `/stars lost`, `/stars recheck`, and the four leaderboards (`most-stars`, `most-starred`, `most-given`, `top-messages`). today only legacy `/stars` exists and queries the legacy starboard; new commands need to register under a fresh group (e.g. `stars_new`) until the legacy is retired. paginate leaderboards with the wiki-result button pattern.
+- ⭕ `high priority` `high effort` phase 2 auditor: `AuditorTask(BaseTask)` with discovery, reconciliation, and orphan passes. wire `/fix ccboard recover` and `/fix ccboard recount` to call its passes (stubs today).
+- ⭕ `medium priority` `medium effort` wiki-attribution pass: parse the wiki editor username from webhook notification messages (first markdown link, pattern `[Username](wiki-url)`) and resolve to a discord user via a `wiki_identities` collection. gated behind a separate flag or manual-only trigger.
+- ⭕ `medium priority` `medium effort` `effective_author_id` re-resolution path: backfill misses do not retroactively update once the reply target becomes available. add a periodic sweep or a `/fix ccboard reattribute <link>` command.
+- ⭕ `medium priority` `medium effort` retroactive emoji-weight recalculation: changing `ccboard.emojis` weights leaves existing `ReactionDocument.point_value` snapshots at old values. needs a bulk recalc command (decide during phase 2 whether the auditor's recount should also re-snapshot weights).
+- ⭕ `medium priority` `low effort` decide on extension reload vs. always-loaded: today the ccboard handlers gate on `enabled` per call. if slash command visibility becomes a concern, register guild-scoped commands or wire `bot.reload_extension()` into the reload watcher's `ccboard.enabled` diff.
+- ⭕ `low priority` `low effort` retire `notes/plans/ccboard.md`: the architectural plan was used to drive the implementation and is now superseded by `notes/features/ccboard.md`. delete or move to `notes/reports/` for history.
 
 ### wiki
 
