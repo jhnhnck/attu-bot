@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """doom_bot.tasks | tasks package."""
 
+from doom_bot.ccboard.manager import ManagerTask as CCBoardManagerTask
+from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
 from doom_bot.logging import get_logger
 from doom_bot.tasks.base import BaseTask
 from doom_bot.tasks.db_backup import DatabaseBackupTask, db_backup_task
@@ -36,6 +38,7 @@ def register_bot_tasks(s: TaskScheduler) -> None:
         egg_cleanup_task,
         presence_update_task,
         reminder_task,
+        ccboard_manager_task,
     )
     registered = set(s.registered_tasks())
     for task in bot_tasks:
@@ -45,6 +48,7 @@ def register_bot_tasks(s: TaskScheduler) -> None:
 
 __all__ = [
     'BaseTask',
+    'CCBoardManagerTask',
     'DatabaseBackupTask',
     'EggCleanupTask',
     'ErrorHookTask',
@@ -55,6 +59,7 @@ __all__ = [
     'ReloadWatcherTask',
     'ReminderTask',
     'TaskScheduler',
+    'ccboard_manager_task',
     'db_backup_task',
     'egg_cleanup_task',
     'error_hook_refresh',
