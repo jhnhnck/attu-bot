@@ -719,7 +719,12 @@ class TestEmojis:
     async def test_render_egg_swaps_class(self):
         """render_egg replaces 'common' class with the given rarity in the svg"""
         fake_png = b'fakepng'
-        with patch('doom_bot.eggs.emojis.svg_to_png', new=AsyncMock(return_value=fake_png)) as mock_svg:
+        fake_svg = '<svg><g class="common"></g></svg>'
+        with (
+            patch('doom_bot.eggs.emojis.svg_to_png', new=AsyncMock(return_value=fake_png)) as mock_svg,
+            patch('doom_bot.client.core.config'),
+            patch('pathlib.Path.read_text', return_value=fake_svg),
+        ):
             from doom_bot.eggs.emojis import render_egg
 
             result = await render_egg('rare')
@@ -1585,7 +1590,10 @@ class TestEnsureProgressEmojis:
         mock_guild.id = test_guild
         mock_guild.create_custom_emoji = AsyncMock(return_value=mock_emoji)
 
-        with patch('pathlib.Path.read_bytes', return_value=b'fakepng'):
+        with (
+            patch('doom_bot.client.core.config'),
+            patch('pathlib.Path.read_bytes', return_value=b'fakepng'),
+        ):
             from doom_bot.eggs.emojis import ensure_progress_emojis
 
             result = await ensure_progress_emojis(mock_guild)
@@ -1606,9 +1614,10 @@ class TestEnsureProgressEmojis:
         mock_guild.id = test_guild
         mock_guild.create_custom_emoji = AsyncMock()
 
-        from doom_bot.eggs.emojis import ensure_progress_emojis
+        with patch('doom_bot.client.core.config'):
+            from doom_bot.eggs.emojis import ensure_progress_emojis
 
-        result = await ensure_progress_emojis(mock_guild)
+            result = await ensure_progress_emojis(mock_guild)
 
         assert len(result) == 6
         mock_guild.create_custom_emoji.assert_not_called()

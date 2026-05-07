@@ -12,9 +12,11 @@ logger = get_logger(__name__)
 
 async def render_egg(rarity: str) -> bytes:
     """Render the egg SVG for the given rarity to PNG bytes."""
+    from pathlib import Path
+
     from doom_bot.client.core import config
 
-    svg_path = config.path.parent / 'static' / 'emoji' / 'egg.svg'
+    svg_path = Path(config.paths.assets) / 'static' / 'emoji' / 'egg.svg'
     svg_text = svg_path.read_text()
     # swap the class on the root <g> element to select the correct color theme
     svg_text = svg_text.replace('class="common"', f'class="{rarity}"', 1)
@@ -55,9 +57,11 @@ async def ensure_progress_emojis(guild: discord.Guild) -> dict[str, discord.Emoj
     Returns mapping of segment_key -> Emoji.
     Keys: left_full, left_empty, none_full, none_empty, right_full, right_empty.
     """
+    from pathlib import Path
+
     from doom_bot.client.core import config
 
-    assets_dir = config.path.parent / 'static' / 'emoji'
+    assets_dir = Path(config.paths.assets) / 'static' / 'emoji'
     existing = {e.name: e for e in guild.emojis}
     result: dict[str, discord.Emoji] = {}
 
