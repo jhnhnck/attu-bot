@@ -12,7 +12,7 @@ __config_version__ = '2.5.4'  # minimum compatible config file version; bump onl
 __email__ = 'doom@attuproject.org'
 __description__ = 'A discord bot designed for automating tasks for the Attu Project'
 
-__version__ = '78.1.6'
+__version__ = '79.0'
 __build_time__ = 'Thu Aug 11 02:23:20 UTC 2022'  # stamped during docker build
 
 # --- Re-exports for backward compatibility ---
