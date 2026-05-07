@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """doom_bot.tasks | tasks package."""
 
-from doom_bot.ccboard.manager import ManagerTask as CCBoardManagerTask
-from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
 from doom_bot.logging import get_logger
 from doom_bot.tasks.base import BaseTask
 from doom_bot.tasks.db_backup import DatabaseBackupTask, db_backup_task
@@ -28,6 +26,12 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     bot task into the ingestor process, since both processes share this package.
     idempotent: tasks already registered are skipped.
     """
+    # local import: doom_bot.ccboard.manager pulls in client.starboard helpers via
+    # the builder, which back-imports doom_bot.tasks. eager import here would
+    # collide with that load order at first import. moving it inside the function
+    # defers manager construction until startup, after the package graph is settled.
+    from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
+
     bot_tasks = (
         nova_year_task,
         logo_update_task,
@@ -48,7 +52,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
 
 __all__ = [
     'BaseTask',
-    'CCBoardManagerTask',
     'DatabaseBackupTask',
     'EggCleanupTask',
     'ErrorHookTask',
@@ -59,7 +62,6 @@ __all__ = [
     'ReloadWatcherTask',
     'ReminderTask',
     'TaskScheduler',
-    'ccboard_manager_task',
     'db_backup_task',
     'egg_cleanup_task',
     'error_hook_refresh',

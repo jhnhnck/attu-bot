@@ -444,7 +444,8 @@ async def test_sweep_swallows_exceptions():
 
 def test_register_bot_tasks_includes_manager():
     """register_bot_tasks must add ccboard_manager_task to the scheduler"""
-    from doom_bot.tasks import ccboard_manager_task, register_bot_tasks
+    from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
+    from doom_bot.tasks import register_bot_tasks
 
     scheduler = MagicMock()
     scheduler.registered_tasks = MagicMock(return_value=[])
@@ -458,7 +459,8 @@ def test_register_bot_tasks_includes_manager():
 
 def test_register_bot_tasks_idempotent():
     """calling twice doesn't re-register the manager"""
-    from doom_bot.tasks import ccboard_manager_task, register_bot_tasks
+    from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
+    from doom_bot.tasks import register_bot_tasks
 
     scheduler = MagicMock()
     scheduler.registered_tasks = MagicMock(return_value=[ccboard_manager_task])

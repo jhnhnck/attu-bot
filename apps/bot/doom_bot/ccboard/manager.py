@@ -7,8 +7,8 @@ from datetime import timedelta
 import discord
 
 from attu_models import BoardEntryDocument, EntryRepository
-from doom_bot import config
 from doom_bot.ccboard.builder import build_embeds
+from doom_bot.client.core import config
 from doom_bot.client.util import format_message_link, theme_color
 from doom_bot.config import GuildCCBoard, UnauthorizedGuild
 from doom_bot.logging import get_logger
