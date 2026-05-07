@@ -126,6 +126,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
+fix_stars = fix_group.create_subgroup('stars', 'One-shot migration helpers from starboard to ccboard')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -640,6 +641,32 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         await ctx.respond(', '.join(parts))
     else:
         await ctx.respond(f'Failed: no entry deleted; message {message_id} not found', ephemeral=True)
+
+
+@fix_stars.command(name='convert', description='One-shot migration from the legacy starboard collection to ccboard_reactions and ccboard_entries')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='confirm', required=True, description='Set true to actually run the migration; false will refuse', input_type=bool)
+async def fix_stars_convert(ctx: ApplicationContext, confirm: bool):
+    if not confirm:
+        await ctx.respond('Failed: pass confirm=True to run the migration; this is a one-shot data copy', ephemeral=True)
+        return
+
+    cfg = config.guild(ctx.guild.id).ccboard
+    if not cfg.emojis:
+        await ctx.respond('Failed: ccboard.emojis is empty; configure emoji weights before running the migration', ephemeral=True)
+        return
+
+    try:
+        _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
+        return
+
+    from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+
+    await ctx.respond('starting starboard → ccboard migration; this may take a while...', ephemeral=True)
+    status_msg = await ctx.channel.send('Starting starboard → ccboard migration...')
+    scheduler.add_job(job_convert_starboard_to_ccboard(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_stars_convert')
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')
