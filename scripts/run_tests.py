@@ -43,22 +43,43 @@ def run_suite(title: str, cmd: list[str], quiet: bool, step: int, total: int) ->
     """run one test suite; return (passed, elapsed_seconds, counts_summary)."""
     header(step, total, title)
     start = time.monotonic()
-    result = subprocess.run(cmd, capture_output=quiet, text=True, check=False)  # noqa: S603
+    pipe = subprocess.PIPE if quiet else None
+    proc = subprocess.Popen(cmd, stdout=pipe, stderr=pipe, text=True)  # noqa: S603
+    interrupted = False
+    try:
+        stdout, stderr = proc.communicate()
+    except KeyboardInterrupt:
+        # ^C reached the child via the shared process group; let it shut down and drain its output
+        interrupted = True
+        try:
+            stdout, stderr = proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = proc.communicate()
     elapsed = time.monotonic() - start
-    combined = (result.stdout or '') + (result.stderr or '')
+    combined = (stdout or '') + (stderr or '')
     counts = extract_counts(combined) if quiet else None
-    if result.returncode != 0:
-        if quiet:
-            print(combined.strip(), file=sys.stderr)
-        return False, elapsed, counts
-    return True, elapsed, counts
+    if quiet and (proc.returncode != 0 or interrupted) and combined.strip():
+        print(combined.strip(), file=sys.stderr)
+    if interrupted:
+        raise KeyboardInterrupt
+    return proc.returncode == 0, elapsed, counts
 
 
 if __name__ == '__main__':
     if not Path('/.dockerenv').exists():
         dev_dir = Path(__file__).parent.parent.resolve()
         cmd = ['docker', 'compose', 'run', '--build', '--rm', '--quiet-build', 'tests', 'scripts/run_tests.py', *sys.argv[1:]]
-        sys.exit(subprocess.run(cmd, cwd=dev_dir, check=False).returncode)  # noqa: S603
+        proc = subprocess.Popen(cmd, cwd=dev_dir)  # noqa: S603
+        # docker compose run shares our process group, so ^C reaches it directly; keep waiting
+        # while it forwards the signal and tears down the container instead of exiting early
+        while True:
+            try:
+                rc = proc.wait()
+                break
+            except KeyboardInterrupt:
+                pass
+        sys.exit(rc)
 
     parser = argparse.ArgumentParser(description='run doom_bot test suites')
     parser.add_argument('-v', '--verbose', action='store_true', help='show full test output')
