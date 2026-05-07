@@ -11,6 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from doom_bot.web.forms import (
+    GuildCCBoardForm,
     GuildChannelsForm,
     GuildConfigForm,
     GuildEpochForm,
@@ -296,6 +297,52 @@ class TestGuildStarboardForm:
         """test valid_bots parsed from comma-separated string"""
         form = GuildStarboardForm(valid_bots='111, 222')  # type: ignore[arg-type]
         assert form.valid_bots == [111, 222]
+
+
+# ========== GuildCCBoardForm Tests ==========
+
+
+class TestGuildCCBoardForm:
+    def test_default_values(self):
+        form = GuildCCBoardForm()
+        assert form.enabled is False
+        assert form.channel_id == 0
+        assert form.emojis == {}
+        assert form.super_bonus == 1
+        assert form.threshold == 2
+        assert form.points_label == 'stars'
+        assert form.positive_color == '#EEDD20'
+        assert form.negative_color == '#DD2020'
+
+    def test_signed_int_emojis(self):
+        form = GuildCCBoardForm(emojis={'⭐': 1, '💀': -1})
+        assert form.emojis == {'⭐': 1, '💀': -1}
+
+    def test_emojis_json_string(self):
+        form = GuildCCBoardForm(emojis='{"⭐": 1, "💀": -1}')  # type: ignore[arg-type]
+        assert form.emojis == {'⭐': 1, '💀': -1}
+
+    def test_emojis_empty_string_yields_empty_dict(self):
+        form = GuildCCBoardForm(emojis='')  # type: ignore[arg-type]
+        assert form.emojis == {}
+
+    def test_emojis_invalid_json_raises(self):
+        with pytest.raises(ValidationError):
+            GuildCCBoardForm(emojis='not valid json{{{')  # type: ignore[arg-type]
+
+    def test_emojis_non_dict_raises(self):
+        with pytest.raises(ValidationError):
+            GuildCCBoardForm(emojis=['⭐', 1])  # type: ignore[arg-type]
+
+    def test_invalid_color_rejected(self):
+        with pytest.raises(ValidationError):
+            GuildCCBoardForm(positive_color='not-a-color')
+        with pytest.raises(ValidationError):
+            GuildCCBoardForm(negative_color='#ZZZ')
+
+    def test_threshold_minimum(self):
+        with pytest.raises(ValidationError):
+            GuildCCBoardForm(threshold=0)
 
 
 # ========== GuildConfigForm Tests ==========

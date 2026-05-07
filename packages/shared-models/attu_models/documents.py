@@ -26,6 +26,7 @@ class GuildConfigDocument(BaseModel):
     roles: dict
     users: dict
     starboard: dict = {}
+    ccboard: dict = {}
 
 
 class ThemeDocument(BaseModel):

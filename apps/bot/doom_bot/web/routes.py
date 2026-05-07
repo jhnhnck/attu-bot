@@ -5,13 +5,13 @@ from pydantic import ValidationError
 from quart import Quart, Response, jsonify, redirect, render_template, request, session
 
 from doom_bot.client.logo import generate_svg
-from doom_bot.config import GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+from doom_bot.config import GuildCCBoard, GuildChannels, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 from doom_bot.logging import get_logger
 from doom_bot.signals import send_signal
 from doom_bot.web.app import config
 from doom_bot.web.audit import ConfigChange, compare_configs, log_audit
 from doom_bot.web.discord_integration import get_guild_channels, get_guild_info, get_guild_roles, get_users_info, invalidate_guild_cache
-from doom_bot.web.forms import GuildChannelsForm, GuildConfigForm, GuildEpochForm, GuildRolesForm, GuildStarboardForm, GuildUsersForm, SystemConfigForm, ThemeConfigForm
+from doom_bot.web.forms import GuildCCBoardForm, GuildChannelsForm, GuildConfigForm, GuildEpochForm, GuildRolesForm, GuildStarboardForm, GuildUsersForm, SystemConfigForm, ThemeConfigForm
 
 
 logger = get_logger(__name__)
@@ -386,6 +386,38 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             logger.error(f'error saving starboard for guild {guild_id}: {e}')
             return jsonify({'error': 'Failed to save starboard'}), 500
 
+    @app.route('/api/guilds/<int:guild_id>/ccboard', methods=['PATCH'])
+    async def api_patch_ccboard(guild_id: int):
+        """Update guild ccboard configuration"""
+        if guild_id not in config.authorized_guilds:
+            return jsonify({'error': 'Unauthorized guild'}), 403
+        guild = config.guilds.get(guild_id)
+        if not guild:
+            return jsonify({'error': 'Guild not found'}), 404
+
+        try:
+            form_data = await request.get_json()
+            if not form_data:
+                return jsonify({'error': 'No data provided'}), 400
+
+            validated = GuildCCBoardForm(**form_data)
+            old_section = guild.ccboard.model_dump()
+            guild.ccboard = GuildCCBoard(**validated.model_dump())
+            await guild.save()
+            await send_signal('guild', guild_id)
+
+            new_section = guild.ccboard.model_dump()
+            changes = compare_configs(old_section, new_section, prefix='ccboard')
+            if changes:
+                await log_audit('guild', 'update', changes, guild_id=guild_id)
+
+            return jsonify({'success': True, 'message': 'CCBoard saved'})
+        except ValidationError as e:
+            return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
+        except Exception as e:
+            logger.error(f'error saving ccboard for guild {guild_id}: {e}')
+            return jsonify({'error': 'Failed to save ccboard'}), 500
+
     # ========== API Routes - Guild Config ==========
 
     @app.route('/api/guilds')
@@ -488,6 +520,17 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'valid_bots': [str(b) for b in guild.starboard.valid_bots],
                 'valid_bots_names': [get_user_name(b) for b in guild.starboard.valid_bots],
             },
+            'ccboard': {
+                'enabled': guild.ccboard.enabled,
+                'channel_id': str(guild.ccboard.channel_id) if guild.ccboard.channel_id else '0',
+                'channel_id_name': get_channel_name(guild.ccboard.channel_id),
+                'emojis': guild.ccboard.emojis,
+                'super_bonus': guild.ccboard.super_bonus,
+                'threshold': guild.ccboard.threshold,
+                'points_label': guild.ccboard.points_label,
+                'positive_color': guild.ccboard.positive_color,
+                'negative_color': guild.ccboard.negative_color,
+            },
         })
 
     @app.route('/api/guilds/<int:guild_id>', methods=['POST'])
@@ -516,6 +559,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'roles': guild.roles.model_dump(),
                 'users': guild.users.model_dump(),
                 'starboard': guild.starboard.model_dump(),
+                'ccboard': guild.ccboard.model_dump(),
             }
 
             # Update guild configuration
@@ -524,6 +568,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             guild.roles = GuildRoles(**validated.roles.model_dump())
             guild.users = GuildUsers(**validated.users.model_dump())
             guild.starboard = GuildStarboard(**validated.starboard.model_dump())
+            guild.ccboard = GuildCCBoard(**validated.ccboard.model_dump())
 
             # Save to database
             await guild.save()
@@ -536,6 +581,7 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
                 'roles': guild.roles.model_dump(),
                 'users': guild.users.model_dump(),
                 'starboard': guild.starboard.model_dump(),
+                'ccboard': guild.ccboard.model_dump(),
             }
             changes = compare_configs(old_config, new_config)
             if changes:

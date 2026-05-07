@@ -95,6 +95,19 @@
         Starboard
       </button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button
+        class="nav-link"
+        id="ccboard-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#ccboard-pane"
+        type="button"
+        role="tab"
+      >
+        <i data-feather="award" class="me-1"></i>
+        CCBoard
+      </button>
+    </li>
   </ul>
 
   <!-- Configuration Form -->
@@ -503,6 +516,84 @@
                 </div>
                 <input type="hidden" id="starboard_valid_bots" name="starboard.valid_bots" />
                 <ul id="list-starboard_valid_bots" class="list-group list-group-flush"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CCBoard Tab -->
+      <div class="tab-pane fade" id="ccboard-pane" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">CCBoard Configuration</h5>
+            <small class="text-muted">Replacement reaction-board with signed emoji weights and attribution. Disabled by default; enabling activates the new system in place of the legacy starboard.</small>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="ccboard_enabled" name="ccboard.enabled" />
+                  <label class="form-check-label" for="ccboard_enabled">Enable CCBoard</label>
+                </div>
+                <small class="text-muted">When off, the legacy starboard remains active.</small>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="ccboard_channel_id">CCBoard Channel</label>
+                <select class="form-select discord-channel-select" id="ccboard_channel_id" name="ccboard.channel_id">
+                  <option value="0">Loading channels...</option>
+                </select>
+                <small class="text-muted">Channel where ccboard posts are sent</small>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label" for="ccboard_threshold">Threshold</label>
+                <input class="form-control" type="number" id="ccboard_threshold" name="ccboard.threshold" min="1" value="2" />
+                <small class="text-muted">Minimum positive points to post</small>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label" for="ccboard_super_bonus">Super Bonus</label>
+                <input class="form-control" type="number" id="ccboard_super_bonus" name="ccboard.super_bonus" value="1" />
+                <small class="text-muted">Extra points for burst reactions</small>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label class="form-label" for="ccboard_emojis_text">Emoji Weights (JSON)</label>
+                <small class="text-muted d-block mb-2">Map of emoji to signed integer point value. Positive values count toward the threshold; negative values reduce <code>net_points</code> but never block posting on their own.</small>
+                <textarea class="form-control font-monospace" id="ccboard_emojis_text" rows="4" placeholder='{"⭐": 1, "💀": -1}'></textarea>
+                <input type="hidden" id="ccboard_emojis" name="ccboard.emojis" value="{}" />
+                <small class="text-muted">Format: <code>{"⭐": 1, "&lt;:custom:123&gt;": 2, "💀": -1}</code></small>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="ccboard_points_label">Points Label</label>
+                <input class="form-control" type="text" id="ccboard_points_label" name="ccboard.points_label" value="stars" />
+                <small class="text-muted">Used in the post content string (e.g. <code>4 stars | …</code>)</small>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="ccboard_positive_color">Positive Color</label>
+                <input class="form-control form-control-color" type="color" id="ccboard_positive_color" name="ccboard.positive_color" value="#EEDD20" />
+                <small class="text-muted">Embed color when net points are positive</small>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="ccboard_negative_color">Negative Color</label>
+                <input class="form-control form-control-color" type="color" id="ccboard_negative_color" name="ccboard.negative_color" value="#DD2020" />
+                <small class="text-muted">Embed color when net points are zero or negative</small>
               </div>
             </div>
           </div>
