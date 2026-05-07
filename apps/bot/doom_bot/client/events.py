@@ -349,6 +349,14 @@ async def on_application_command_complete(ctx: ApplicationContext):
 logger.info('registered event handlers')
 
 
+def _ccboard_enabled(guild_id: int) -> bool:
+    """return True when the ccboard feature flag is set for this guild"""
+    try:
+        return config.guild(guild_id).ccboard.enabled
+    except Exception:
+        return False
+
+
 @bot.listen()
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
     logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
@@ -366,6 +374,34 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
         emoji_str=str(payload.emoji),
         is_burst=payload.burst,
     )
+
+    if _ccboard_enabled(payload.guild_id):
+        from doom_bot.ccboard import watcher as ccboard_watcher
+
+        # payload.member is the reactor for raw_reaction_add; if missing or partial,
+        # fall back to a guild member lookup so bot-authored reactions are filtered
+        is_bot = False
+        member = payload.member
+        if member is not None:
+            is_bot = bool(getattr(member, 'bot', False))
+        else:
+            try:
+                fetched = await bot.get_or_fetch_member(bot.get_guild(payload.guild_id), payload.user_id)
+                if fetched is not None:
+                    is_bot = bool(getattr(fetched, 'bot', False))
+            except Exception:
+                # leave is_bot False so a missing member lookup doesn't silently drop reactions
+                is_bot = False
+
+        await ccboard_watcher.handle_reaction_add(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            user_id=payload.user_id,
+            emoji_str=str(payload.emoji),
+            is_burst=payload.burst,
+            is_bot=is_bot,
+        )
 
 
 @bot.listen()
@@ -386,6 +422,17 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         is_burst=payload.burst,
     )
 
+    if _ccboard_enabled(payload.guild_id):
+        from doom_bot.ccboard import watcher as ccboard_watcher
+
+        await ccboard_watcher.handle_reaction_remove(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            user_id=payload.user_id,
+            emoji_str=str(payload.emoji),
+        )
+
 
 @bot.listen()
 async def on_raw_reaction_clear(payload: RawReactionClearEvent):
@@ -401,6 +448,15 @@ async def on_raw_reaction_clear(payload: RawReactionClearEvent):
         channel_id=payload.channel_id,
         message_id=payload.message_id,
     )
+
+    if _ccboard_enabled(payload.guild_id):
+        from doom_bot.ccboard import watcher as ccboard_watcher
+
+        await ccboard_watcher.handle_reaction_clear(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+        )
 
 
 @bot.listen()
@@ -418,3 +474,13 @@ async def on_raw_reaction_clear_emoji(payload: RawReactionClearEmojiEvent):
         message_id=payload.message_id,
         emoji_str=str(payload.emoji),
     )
+
+    if _ccboard_enabled(payload.guild_id):
+        from doom_bot.ccboard import watcher as ccboard_watcher
+
+        await ccboard_watcher.handle_reaction_clear_emoji(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            emoji_str=str(payload.emoji),
+        )
