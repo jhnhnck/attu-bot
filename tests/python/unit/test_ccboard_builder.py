@@ -256,8 +256,8 @@ def test_voice_memo_no_preview_notice():
     embeds = build_embeds(entry, make_config())
     assert len(embeds) == 1
     assert embeds[0].description == 'voice memo - playback unavailable'
-    # voice memo has no usable preview image
-    assert embeds[0].image.url is None
+    # voice memo has no usable preview image - py-cord returns None for unset .image
+    assert getattr(embeds[0].image, 'url', None) is None
 
 
 def test_forwarded_sets_footer():
@@ -271,7 +271,9 @@ def test_not_forwarded_no_footer():
     snap = make_msg(text='regular message', forwarded=False)
     entry = make_entry(snapshot=snap)
     embeds = build_embeds(entry, make_config())
-    assert embeds[0].footer.text is None
+    # py-cord returns None for an unset .footer; pin via to_dict() so the assertion
+    # holds across both proxy and None representations
+    assert 'footer' not in embeds[0].to_dict()
 
 
 def test_link_preview_simple_merges_into_main():
