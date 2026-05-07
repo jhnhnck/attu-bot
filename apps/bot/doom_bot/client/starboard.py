@@ -275,6 +275,7 @@ async def build_embeds(  # noqa: PLR0912, PLR0915 - embed assembly requires hand
         try:
             ref_doc = await _get_msg_repo().get(message_doc.refs.reply_to)
         except Exception:
+            logger.debug('reply ref not in starboard db', message_id=message_doc.refs.reply_to, exc_info=True)
             ref_doc = None
 
         if ref_doc:
@@ -456,6 +457,7 @@ async def backfill_message_reactions(message: discord.Message, guild_id: int, *,
     try:
         guild_config = config.guild(guild_id)
     except Exception:
+        logger.warning('starboard config unavailable; skipping handler', guild_id=guild_id, exc_info=True)
         return
 
     sb = guild_config.starboard
@@ -566,6 +568,7 @@ async def handle_star_add(  # noqa: PLR0911, PLR0912, PLR0915 - inherently branc
     try:
         guild_config = config.guild(guild_id)
     except Exception:
+        logger.warning('starboard config unavailable; skipping handler', guild_id=guild_id, exc_info=True)
         return
 
     sb = guild_config.starboard
@@ -679,6 +682,7 @@ async def handle_star_remove(
     try:
         guild_config = config.guild(guild_id)
     except Exception:
+        logger.warning('starboard config unavailable; skipping handler', guild_id=guild_id, exc_info=True)
         return
 
     sb = guild_config.starboard
@@ -731,6 +735,7 @@ async def handle_star_clear(guild_id: int, channel_id: int, message_id: int) -> 
     try:
         guild_config = config.guild(guild_id)
     except Exception:
+        logger.warning('starboard config unavailable; skipping handler', guild_id=guild_id, exc_info=True)
         return
 
     sb = guild_config.starboard
@@ -763,6 +768,7 @@ async def handle_star_clear_emoji(guild_id: int, channel_id: int, message_id: in
     try:
         guild_config = config.guild(guild_id)
     except Exception:
+        logger.warning('starboard config unavailable; skipping handler', guild_id=guild_id, exc_info=True)
         return
 
     sb = guild_config.starboard

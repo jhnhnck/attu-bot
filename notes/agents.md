@@ -19,7 +19,7 @@ There are two runnable modes, both launched from `apps/bot/doom-bot.py`:
 
 1. do not edit the rules.
 1. do not perform any interactions with Discord without asking.
-1. do not create commits without being explicitly asked to; ask for confirmation immediately before running each `git commit`, even when already instructed to commit.
+1. do not push or deploy without being explicitly asked to.
 1. all noqa comments must include a valid reason
 1. check the current time at the start of each conversation. if it is past 12:30 AM ET, suggest a natural stopping point before continuing any task.
 

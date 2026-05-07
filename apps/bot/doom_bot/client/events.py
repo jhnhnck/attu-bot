@@ -8,13 +8,14 @@ import sys
 import time
 
 import anyio
+import structlog
 from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, RawReactionActionEvent, RawReactionClearEmojiEvent, RawReactionClearEvent
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
 from doom_bot.client.core import bot, config
 from doom_bot.client.embeds import ui_emoji
-from doom_bot.client.util import shift_hue
+from doom_bot.client.util import event_log_context, shift_hue
 from doom_bot.config import UnauthorizedGuild
 from doom_bot.logging import get_logger
 
@@ -109,7 +110,7 @@ async def _do_ready_init():
         logger.info('loading configuration from database')
         await config.on_load()
     except Exception as err:
-        logger.fatal('exception caught initializing database; exiting', err)
+        logger.fatal('exception caught initializing database; exiting', exc_info=True)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
@@ -117,7 +118,7 @@ async def _do_ready_init():
     try:
         await config.on_ready()
     except Exception as err:
-        logger.fatal('exception caught in on_ready() event; exiting', err)
+        logger.fatal('exception caught in on_ready() event; exiting', exc_info=True)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
@@ -136,7 +137,7 @@ async def _do_ready_init():
         register_bot_tasks(scheduler)
         await scheduler.start_all()
     except Exception as err:
-        logger.fatal('exception caught starting task scheduler; exiting', err)
+        logger.fatal('exception caught starting task scheduler; exiting', exc_info=True)
         await logger.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
@@ -159,7 +160,7 @@ async def _do_ready_init():
 
 @bot.event
 async def on_application_command_error(ctx: ApplicationContext, error: Exception):
-    logger.error(f'error sent to `on_application_command_error()` from `{ctx.command.name}` error={error!s}')
+    logger.error('error sent to on_application_command_error', exc_info=error, command=ctx.command.name)
 
     if isinstance(error, CheckFailure | UnauthorizedGuild):
         if ctx.guild.id in config.authorized_guilds:
@@ -208,118 +209,148 @@ async def on_ready():
 
 @bot.listen()
 async def on_message(message: Message):
-    if message.guild is None:
-        logger.debug(f'skipping checks for message from "{message.author.name}" with blank guild')
-        return
+    with event_log_context(
+        event='on_message',
+        guild_id=message.guild.id if message.guild is not None else None,
+        channel_id=message.channel.id,
+        user_id=message.author.id,
+    ):
+        if message.guild is None:
+            logger.debug(f'skipping checks for message from "{message.author.name}" with blank guild')
+            return
 
-    if message.guild.id not in config.valid_guilds:
-        logger.debug(f'skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
-        return
+        if message.guild.id not in config.valid_guilds:
+            logger.debug(f'skipping checks for message from "{message.author.name}" in "{message.guild.name}" (invalidated guild)')
+            return
 
-    guild_config = config.guild(message.guild.id)
+        guild_config = config.guild(message.guild.id)
 
-    # store the message unless it's in the logs channel
-    if message.channel.id != guild_config.channels.logs:
-        from doom_bot.client.messages import store_message
+        # store the message unless it's in the logs channel
+        if message.channel.id != guild_config.channels.logs:
+            from doom_bot.client.messages import store_message
 
-        await store_message(message)
+            await store_message(message)
 
-    activity_channel = guild_config.channels.activity
+        activity_channel = guild_config.channels.activity
 
-    if message.channel.id == activity_channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):
-        if 'blocked' in message.content or 'registered' in message.content:
-            await message.add_reaction(ui_emoji('tieteran_wave'))
-        else:
-            await message.add_reaction('💖')
+        if message.channel.id == activity_channel and message.content.startswith(f'[{config.wiki.user.split("@")[0]}]'):
+            if 'blocked' in message.content or 'registered' in message.content:
+                await message.add_reaction(ui_emoji('tieteran_wave'))
+            else:
+                await message.add_reaction('💖')
 
 
 @bot.listen()
 async def on_raw_message_edit(payload: RawMessageUpdateEvent):
-    if payload.guild_id is None:
-        logger.debug('raw_message_edit: dropping; guild_id is None')
-        return
-
-    if payload.guild_id not in config.valid_guilds:
-        logger.debug(f'raw_message_edit: dropping; guild_id={payload.guild_id} not in valid_guilds')
-        return
-
-    # skip edits in the logs channel
-    try:
-        logs_channel_id = config.guild(payload.guild_id).channels.logs
-        if payload.channel_id == logs_channel_id:
-            logger.debug('raw_message_edit: dropping; channel is logs channel')
+    with event_log_context(
+        event='on_raw_message_edit',
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+    ):
+        if payload.guild_id is None:
+            logger.debug('raw_message_edit: dropping; guild_id is None')
             return
-    except Exception as err:
-        logger.debug(f'raw_message_edit: dropping; exception resolving logs channel: {err}')
-        return
 
-    logger.debug('raw_message_edit: passing to log_edit')
-    from doom_bot.client.messages import log_edit
+        if payload.guild_id not in config.valid_guilds:
+            logger.debug(f'raw_message_edit: dropping; guild_id={payload.guild_id} not in valid_guilds')
+            return
 
-    await log_edit(payload)
+        # skip edits in the logs channel
+        try:
+            logs_channel_id = config.guild(payload.guild_id).channels.logs
+            if payload.channel_id == logs_channel_id:
+                logger.debug('raw_message_edit: dropping; channel is logs channel')
+                return
+        except Exception as err:
+            logger.debug(f'raw_message_edit: dropping; exception resolving logs channel: {err}')
+            return
+
+        logger.debug('raw_message_edit: passing to log_edit')
+        from doom_bot.client.messages import log_edit
+
+        await log_edit(payload)
 
 
 @bot.listen()
 async def on_raw_message_delete(payload: RawMessageDeleteEvent):
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        return
-
-    # skip deletions in the logs channel
-    try:
-        logs_channel_id = config.guild(payload.guild_id).channels.logs
-        if payload.channel_id == logs_channel_id:
+    with event_log_context(
+        event='on_raw_message_delete',
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+        message_id=payload.message_id,
+    ):
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             return
-    except Exception as err:
-        logger.debug(f'on_raw_message_delete: failed to get guild config for {payload.guild_id}: {err}')
-        return
 
-    from doom_bot.client.messages import log_delete
+        # skip deletions in the logs channel
+        try:
+            logs_channel_id = config.guild(payload.guild_id).channels.logs
+            if payload.channel_id == logs_channel_id:
+                return
+        except Exception as err:
+            logger.debug(f'on_raw_message_delete: failed to get guild config for {payload.guild_id}: {err}')
+            return
 
-    await log_delete(payload)
+        from doom_bot.client.messages import log_delete
+
+        await log_delete(payload)
 
 
 @bot.listen()
 async def on_raw_bulk_message_delete(payload: RawBulkMessageDeleteEvent):
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        return
-
-    # skip bulk deletions in the logs channel
-    try:
-        logs_channel_id = config.guild(payload.guild_id).channels.logs
-        if payload.channel_id == logs_channel_id:
+    with event_log_context(
+        event='on_raw_bulk_message_delete',
+        guild_id=payload.guild_id,
+        channel_id=payload.channel_id,
+    ):
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             return
-    except Exception as err:
-        logger.debug(f'on_raw_bulk_message_delete: failed to get guild config for {payload.guild_id}: {err}')
-        return
 
-    from doom_bot.client.messages import log_bulk_delete
+        # skip bulk deletions in the logs channel
+        try:
+            logs_channel_id = config.guild(payload.guild_id).channels.logs
+            if payload.channel_id == logs_channel_id:
+                return
+        except Exception as err:
+            logger.debug(f'on_raw_bulk_message_delete: failed to get guild config for {payload.guild_id}: {err}')
+            return
 
-    await log_bulk_delete(payload)
+        from doom_bot.client.messages import log_bulk_delete
+
+        await log_bulk_delete(payload)
 
 
 @bot.listen()
 async def on_member_join(member: Member):
-    if member.guild.id not in config.valid_guilds:
-        return
-
-    guild_config = config.guild(member.guild.id)
-
-    async def send_welcome():
-        channel_id = guild_config.channels.general
-        if channel_id == 0:
-            logger.debug(f'no general channel configured for guild {member.guild.id}, skipping welcome')
+    with event_log_context(event='on_member_join', guild_id=member.guild.id, user_id=member.id):
+        if member.guild.id not in config.valid_guilds:
             return
-        channel = member.guild.get_channel(channel_id)
-        if channel is None:
-            logger.warn(f'general channel {channel_id} not found in guild {member.guild.id}')
-            return
-        await channel.send(f'welcome to the archipelago {member.mention}')
 
-    await send_welcome()
+        guild_config = config.guild(member.guild.id)
+
+        async def send_welcome():
+            channel_id = guild_config.channels.general
+            if channel_id == 0:
+                logger.debug(f'no general channel configured for guild {member.guild.id}, skipping welcome')
+                return
+            channel = member.guild.get_channel(channel_id)
+            if channel is None:
+                logger.warn(f'general channel {channel_id} not found in guild {member.guild.id}')
+                return
+            await channel.send(f'welcome to the archipelago {member.mention}')
+
+        await send_welcome()
 
 
 @bot.before_invoke
 async def on_application_command(ctx: ApplicationContext):
+    structlog.contextvars.bind_contextvars(
+        command=ctx.command.qualified_name,
+        user_id=ctx.user.id,
+        guild_id=ctx.guild.id if ctx.guild is not None else None,
+        channel_id=ctx.channel.id if ctx.channel is not None else None,
+    )
     _cmd_start_times[ctx.interaction.id] = time.perf_counter()
     logger.info(f'command executed: user="{ctx.user.global_name}" command="/{ctx.command}" channel="{ctx.channel.name}" data={ctx.interaction.data}')
 
@@ -345,76 +376,104 @@ async def on_application_command_complete(ctx: ApplicationContext):
         except Exception as err:
             logger.warn(f'failed to save theme after hue shift: {err}')
 
+    structlog.contextvars.clear_contextvars()
+
 
 logger.info('registered event handlers')
 
 
 @bot.listen()
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
-    logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_add: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
-        return
-
-    from doom_bot.client.starboard import handle_star_add
-
-    await handle_star_add(
+    with event_log_context(
+        event='on_raw_reaction_add',
         guild_id=payload.guild_id,
         channel_id=payload.channel_id,
         message_id=payload.message_id,
         user_id=payload.user_id,
-        emoji_str=str(payload.emoji),
-        is_burst=payload.burst,
-    )
+    ):
+        logger.debug(f'reaction_add: emoji={str(payload.emoji)!r}')
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+            logger.debug(f'reaction_add: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+            return
+
+        from doom_bot.client.starboard import handle_star_add
+
+        await handle_star_add(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            user_id=payload.user_id,
+            emoji_str=str(payload.emoji),
+            is_burst=payload.burst,
+        )
 
 
 @bot.listen()
 async def on_raw_reaction_remove(payload: RawReactionActionEvent):
-    logger.debug(f'reaction_remove: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_remove: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
-        return
-
-    from doom_bot.client.starboard import handle_star_remove
-
-    await handle_star_remove(
+    with event_log_context(
+        event='on_raw_reaction_remove',
         guild_id=payload.guild_id,
         channel_id=payload.channel_id,
         message_id=payload.message_id,
         user_id=payload.user_id,
-        emoji_str=str(payload.emoji),
-        is_burst=payload.burst,
-    )
+    ):
+        logger.debug(f'reaction_remove: emoji={str(payload.emoji)!r}')
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+            logger.debug(f'reaction_remove: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+            return
+
+        from doom_bot.client.starboard import handle_star_remove
+
+        await handle_star_remove(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            user_id=payload.user_id,
+            emoji_str=str(payload.emoji),
+            is_burst=payload.burst,
+        )
 
 
 @bot.listen()
 async def on_raw_reaction_clear(payload: RawReactionClearEvent):
-    logger.debug(f'reaction_clear: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id}')
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_clear: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
-        return
-
-    from doom_bot.client.starboard import handle_star_clear
-
-    await handle_star_clear(
+    with event_log_context(
+        event='on_raw_reaction_clear',
         guild_id=payload.guild_id,
         channel_id=payload.channel_id,
         message_id=payload.message_id,
-    )
+    ):
+        logger.debug('reaction_clear')
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+            logger.debug(f'reaction_clear: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+            return
+
+        from doom_bot.client.starboard import handle_star_clear
+
+        await handle_star_clear(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+        )
 
 
 @bot.listen()
 async def on_raw_reaction_clear_emoji(payload: RawReactionClearEmojiEvent):
-    logger.debug(f'reaction_clear_emoji: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} emoji={str(payload.emoji)!r}')
-    if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
-        logger.debug(f'reaction_clear_emoji: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
-        return
-
-    from doom_bot.client.starboard import handle_star_clear_emoji
-
-    await handle_star_clear_emoji(
+    with event_log_context(
+        event='on_raw_reaction_clear_emoji',
         guild_id=payload.guild_id,
         channel_id=payload.channel_id,
         message_id=payload.message_id,
-        emoji_str=str(payload.emoji),
-    )
+    ):
+        logger.debug(f'reaction_clear_emoji: emoji={str(payload.emoji)!r}')
+        if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
+            logger.debug(f'reaction_clear_emoji: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
+            return
+
+        from doom_bot.client.starboard import handle_star_clear_emoji
+
+        await handle_star_clear_emoji(
+            guild_id=payload.guild_id,
+            channel_id=payload.channel_id,
+            message_id=payload.message_id,
+            emoji_str=str(payload.emoji),
+        )

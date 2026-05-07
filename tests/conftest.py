@@ -490,3 +490,16 @@ def make_year():
         )
 
     return _make
+
+
+@pytest.fixture
+def capture_structlog():
+    """yield a list of structlog event_dicts captured for the duration of the test.
+
+    each call to a structlog logger appends one dict with the `event` message and any bound
+    kwargs/contextvars. use to assert on log content without inspecting rendered strings.
+    """
+    import structlog.testing
+
+    with structlog.testing.capture_logs() as captured:
+        yield captured

@@ -211,7 +211,7 @@ async def trees_link(ctx: ApplicationContext, code: str):
         logger.alert('trees_link: hmac rejected by server (401); check DISCORD_BOT_HMAC_SECRET')
         await ctx.respond(f"the bot's keys aren't lining up; this is on us, not you {ui_emoji('rockball_player')}", ephemeral=True)
     else:
-        logger.error(f'trees_link: unexpected status {resp.status_code}')
+        logger.error('trees_link non-2xx', status=resp.status_code, base_url=base_url)
         await logger.send_to_webhook(Exception(f'trees_link: unexpected status {resp.status_code} from {base_url}'))
         await ctx.respond(f'the trees returned something weird; the proper authorities have been pinged {ui_emoji("rockball_player")}', ephemeral=True)
 

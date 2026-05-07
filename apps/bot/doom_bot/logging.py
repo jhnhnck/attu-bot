@@ -21,6 +21,15 @@ logging.addLevelName(ALERT, 'ALERT')
 
 _DEBUG_MODE = 'DEBUG' in environ
 
+# LOG_LEVEL: optional override for the root logger level. accepts standard level names
+# (DEBUG/INFO/WARNING/ERROR/CRITICAL) plus our customs (TRACE/ALERT). DEBUG=1 still takes
+# precedence for the wrapper short-circuit on trace/debug/alert calls.
+_LOG_LEVEL_ENV = environ.get('LOG_LEVEL', '').upper()
+
+# LOG_FORMAT=json swaps the dev console renderer for a JSON renderer + iso timestamp.
+# default stays ConsoleRenderer so `docker compose logs` is unchanged.
+_LOG_FORMAT = environ.get('LOG_FORMAT', 'console').lower()
+
 
 # --- Foreign-Record Processor (pycord rate-limit bucket) ---
 
@@ -54,17 +63,45 @@ def _resolve_pycord_bucket(_logger, _method_name, event_dict):
 # --- Renderer Setup ---
 
 
+def _final_renderer():
+    """choose the final renderer based on LOG_FORMAT.
+
+    json: machine-readable for log shipping (BetterStack, etc.); adds an iso timestamp.
+    console (default): colored dev output; preserves the original no-timestamp shape.
+    """
+    if _LOG_FORMAT == 'json':
+        return structlog.processors.JSONRenderer()
+    return structlog.dev.ConsoleRenderer(colors=True, force_colors=True)
+
+
+def _resolve_root_level() -> int:
+    """resolve the root logger level from LOG_LEVEL env, then DEBUG fallback, else INFO.
+
+    accepts standard names plus our customs (TRACE, ALERT). unknown values fall through to INFO.
+    """
+    if _LOG_LEVEL_ENV:
+        # logging.getLevelName returns the int for known names, else the string back
+        resolved = logging.getLevelName(_LOG_LEVEL_ENV)
+        if isinstance(resolved, int):
+            return resolved
+    return TRACE if _DEBUG_MODE else logging.INFO
+
+
 def _build_formatter() -> logging.Formatter:
     """build the shared structlog formatter used by both stdout and stderr stdlib handlers"""
+    foreign_pre_chain: list = [
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        _resolve_pycord_bucket,
+    ]
+    if _LOG_FORMAT == 'json':
+        foreign_pre_chain.append(structlog.processors.TimeStamper(fmt='iso'))
+
     return structlog.stdlib.ProcessorFormatter(
-        foreign_pre_chain=[
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            _resolve_pycord_bucket,
-        ],
+        foreign_pre_chain=foreign_pre_chain,
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.dev.ConsoleRenderer(colors=True, force_colors=True),
+            _final_renderer(),
         ],
     )
 
@@ -102,18 +139,27 @@ def _configure() -> None:
 
     root.addHandler(stdout_h)
     root.addHandler(stderr_h)
-    root.setLevel(TRACE if _DEBUG_MODE else logging.INFO)
+    root.setLevel(_resolve_root_level())
+
+    # quiet noisy third-party loggers; opt back in by setting LOG_LEVEL=DEBUG (or below)
+    # which the resolver applies to the root and these inherit unless we pin them here.
+    for name in ('pymongo', 'aiohttp.access', 'discord.gateway'):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+    structlog_processors: list = [
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+    ]
+    if _LOG_FORMAT == 'json':
+        structlog_processors.append(structlog.processors.TimeStamper(fmt='iso'))
+    structlog_processors.append(structlog.stdlib.ProcessorFormatter.wrap_for_formatter)
 
     structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.add_logger_name,
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
+        processors=structlog_processors,
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,

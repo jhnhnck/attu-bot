@@ -46,8 +46,11 @@ class WikiClient:
 
     async def authenticate(self, user: str, key: str) -> None:
         """log in to the wiki; required before any write/admin operations"""
+        logger.debug('authenticating to wiki', user=user)
         await self.auth.login(user, key)
+        logger.info('wiki authenticated', user=user)
 
     async def close(self) -> None:
         """close the underlying http client"""
+        logger.debug('closing wiki http client')
         await self._http.aclose()

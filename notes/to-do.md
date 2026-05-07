@@ -86,10 +86,25 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 
 ### testing
 
+- ⭕ `medium priority` `high effort` add tests for commands/fix.py (42%) - 492 statements, 278 missed across the largest command module
+- ⭕ `medium priority` `high effort` add tests for client/events.py (38%) - 264 statements, 156 missed across discord event handlers
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
-- ⭕ `medium priority` `medium effort` add tests for client/migrations.py (30%) - schema migration runner and version logic
+- ⭕ `medium priority` `medium effort` add tests for client/migrations.py (33%) - schema migration runner and version logic
+- ⭕ `medium priority` `medium effort` add tests for client/starboard.py (69%) - 168 missed statements; reaction cascade and embed rendering paths
+- ⭕ `medium priority` `medium effort` add tests for web/auth.py (69%) - 80 missed statements in login/session/oauth flow
+- ⭕ `medium priority` `medium effort` add tests for web/helpers.py (56%) - 37 missed statements in shared route helpers
+- ⭕ `medium priority` `medium effort` add tests for client/markers.py (68%) - 39 missed statements in marker parsing/validation
+- ⭕ `medium priority` `medium effort` add tests for shared-models/attu_models/repositories.py (69%) - 167 missed statements across repository methods
+- ⭕ `low priority` `high effort` add tests for web/routes.py (67%) - 217 missed statements across guild config endpoints
+- ⭕ `low priority` `medium effort` add tests for client/modlog.py (77%) - 62 missed statements in mod log embed/event paths
+- ⭕ `low priority` `medium effort` add tests for tasks/message_backfill.py (71%) - 49 missed statements in batched fetch loop
+- ⭕ `low priority` `medium effort` add tests for commands/wiki.py (69%) - 42 missed statements in lookup pagination view
+- ⭕ `low priority` `medium effort` add tests for commands/trees.py (73%) - 65 missed statements across link/share/unshare paths
+- ⭕ `low priority` `low effort` add tests for web/forms.py (78%) - 26 missed statements in form validation
+- ⭕ `low priority` `low effort` add tests for web/audit.py (71%) - 21 missed statements in audit log writer
+- ⭕ `low priority` `low effort` add tests for config.py (65%) - 135 missed statements; gaps mostly in error paths and toml round-tripping
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
-- ⭕ `low priority` `medium effort` add tests for wiki/pages.py (21% coverage) - page fetch and parsing
+- ⭕ `low priority` `medium effort` add tests for wiki/pages.py (21%) - page fetch and parsing
 
 ---
 
@@ -205,6 +220,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 4 May 2026
+last_updated: 7 May 2026
 total_completed: 72
 ```

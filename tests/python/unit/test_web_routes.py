@@ -1020,6 +1020,7 @@ class TestAuditLogAPI:
         # Reset the mock for other tests
         config.guilds[test_guild].save.side_effect = None
 
+
 # ========== Error Handling Tests ==========
 
 

@@ -9,7 +9,6 @@ import subprocess
 from unittest.mock import patch
 
 import pytest
-
 from run_tests import extract_counts, run_suite
 
 

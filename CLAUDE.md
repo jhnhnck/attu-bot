@@ -6,7 +6,7 @@ Read `notes/agents.md` before starting any task. It contains the full architectu
 
 1. do not edit the rules.
 1. do not perform any interactions with Discord without asking.
-1. do not create commits without being explicitly asked to.
+1. do not push or deploy without being explicitly asked to.
 1. all noqa comments must include a valid reason.
 
 ## must report

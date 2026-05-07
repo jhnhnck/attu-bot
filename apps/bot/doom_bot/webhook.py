@@ -20,7 +20,7 @@ async def send_to_webhook(error: Exception, location: str = '', logger_name: str
     tb_str = ''.join(traceback.format_exception(error))
 
     # log locally first so the failure is visible even if the webhook itself fails
-    logger.error(f'{error!s}\n{tb_str}')
+    logger.error('error reported via webhook', exc_info=error)
 
     try:
         import aiohttp

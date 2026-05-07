@@ -2,10 +2,12 @@
 """doom_bot.client.util | generic utils."""
 
 import colorsys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Any, cast
 
 import discord
+import structlog
 from discord.ext.commands import Context
 
 from doom_bot.client.core import config
@@ -33,6 +35,7 @@ def has_announcements_role(ctx: Context) -> bool:
     try:
         gc = config.guild(ctx.guild.id)
     except Exception:
+        logger.warning('announcements role lookup failed', guild_id=ctx.guild.id, exc_info=True)
         return False
     role_id = gc.roles.announcements
     if role_id == 0:
@@ -57,11 +60,29 @@ def webhook_logging(scope: Logger) -> Callable:
                 return await func(*args, **kwargs)
 
             except Exception as error:
+                scope.error('decorated function raised', exc_info=True, func=func.__name__)
                 await scope.send_to_webhook(error)
 
         return wrapper
 
     return decorator
+
+
+# --- Logging Context ---
+
+
+@contextmanager
+def event_log_context(**fields: object) -> Iterator[None]:
+    """bind structlog contextvars for the duration of an event handler body.
+
+    listen-style event handlers don't go through bot.before_invoke/after_invoke, so they need
+    explicit binding. unbinds on exit so context doesn't leak into other tasks sharing the loop.
+    """
+    structlog.contextvars.bind_contextvars(**fields)
+    try:
+        yield
+    finally:
+        structlog.contextvars.unbind_contextvars(*fields.keys())
 
 
 # --- Theme ---
