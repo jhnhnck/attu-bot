@@ -13,12 +13,12 @@ git worktree add /srv/services/doom-bot-dev dev
 # 2. enter the worktree and copy secrets
 cd /srv/services/doom-bot-dev
 mkdir -p .secrets
-cp /srv/services/doom-bot/.secrets/.env .secrets/.env
+cp /srv/services/doom-bot/.env .env
 cp config/attu-bot.sample.toml .secrets/attu-bot.toml
 ```
 
 Edit `.secrets/attu-bot.toml` with at minimum:
-- `[database] url = "mongodb://<POSTGRES_USER>:<POSTGRES_PASSWORD>@ferret:27017/doombot?authSource=admin"` - paste the literal values from `.secrets/.env` (the toml is not env-substituted at load). `authSource=admin` is required because ferretdb authenticates through the postgres role table; the `/doombot` path is informational (the bot reads the db name from `database.name`).
+- `[database] url = "mongodb://<POSTGRES_USER>:<POSTGRES_PASSWORD>@ferret:27017/doombot?authSource=admin"` - paste the literal values from `.env` (the toml is not env-substituted at load). `authSource=admin` is required because ferretdb authenticates through the postgres role table; the `/doombot` path is informational (the bot reads the db name from `database.name`).
 - `[auth.bot] token = "..."` - the prod token is fine; `TEST_MODE=1` means the bot never opens a discord gateway connection during tests
 
 ```bash
@@ -65,12 +65,11 @@ docker compose up --build -d
 
 ### one-time secret migration on prod
 
-The first deploy after the `.secrets/` move needs a manual file shuffle (the new compose looks under `.secrets/` but the existing files still live at the old paths):
+The first deploy after the `.secrets/` move needs a manual file shuffle (`attu-bot.toml` moves under `.secrets/`; `.env` stays at the project root so docker compose auto-discovers it for variable interpolation):
 
 ```bash
 cd /srv/services/doom-bot
 mkdir -p .secrets
-mv .env .secrets/.env
 mv apps/bot/assets/attu-bot.toml .secrets/attu-bot.toml
 # then edit .secrets/attu-bot.toml and set:
 #   [paths]

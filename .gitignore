@@ -21,6 +21,7 @@ venv/
 
 # secrets
 .secrets/
+.env
 
 # type checker / linter caches
 .ruff_cache/

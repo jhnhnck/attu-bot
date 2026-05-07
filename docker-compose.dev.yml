@@ -9,7 +9,7 @@ services:
     image: ghcr.io/ferretdb/ferretdb:latest
     restart: no
     env_file:
-      - ./.secrets/.env
+      - ./.env
     environment:
       FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
@@ -20,7 +20,7 @@ services:
     image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
     restart: no
     env_file:
-      - ./.secrets/.env
+      - ./.env
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -36,7 +36,7 @@ services:
       target: tester
     restart: no
     env_file:
-      - ./.secrets/.env
+      - ./.env
     depends_on:
       ferret:
         condition: service_started
@@ -84,7 +84,7 @@ services:
       TEST_MODE: "1"
       DEBUG: "1"
     env_file:
-      - ./.secrets/.env
+      - ./.env
     volumes:
       - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml:ro
     user: doom:doom
