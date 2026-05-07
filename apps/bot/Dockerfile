@@ -38,6 +38,7 @@ RUN --mount=type=cache,target=/var/lib/apt \
     apt-get update -qq; \
     apt-get install -qq \
     curl \
+    gnupg \
     neovim \
     zsh;
 
