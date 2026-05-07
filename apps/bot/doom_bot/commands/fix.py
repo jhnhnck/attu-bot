@@ -127,6 +127,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
 fix_stars = fix_group.create_subgroup('stars', 'One-shot migration helpers from starboard to ccboard')
+fix_ccboard = fix_group.create_subgroup('ccboard', 'Commands to repair ccboard state')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -667,6 +668,84 @@ async def fix_stars_convert(ctx: ApplicationContext, confirm: bool):
     await ctx.respond('starting starboard → ccboard migration; this may take a while...', ephemeral=True)
     status_msg = await ctx.channel.send('Starting starboard → ccboard migration...')
     scheduler.add_job(job_convert_starboard_to_ccboard(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_stars_convert')
+
+
+@fix_ccboard.command(name='regen', description='Marks every ccboard entry in this guild as dirty so the manager rebuilds all posts on the next tick')
+@commands.check(is_bot_owner)
+async def fix_ccboard_regen(ctx: ApplicationContext):
+    from doom_bot import ccboard
+
+    if ccboard._entry_repo is None:
+        await ctx.respond('Failed: ccboard entry repo not initialized yet', ephemeral=True)
+        return
+
+    affected = await ccboard._entry_repo.mark_all_dirty(ctx.guild.id)
+    await ctx.respond(f'Marked {affected:,} ccboard entries dirty; manager will rebuild on the next tick')
+
+
+@fix_ccboard.command(name='purge', description='Removes a message from the ccboard database given its message link')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
+async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
+    from doom_bot import ccboard
+    from doom_bot.client.starboard import parse_jump_url
+
+    parsed = parse_jump_url(message_link)
+    if parsed is None:
+        await ctx.respond('Failed: invalid message link; expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        return
+    _g, _c, target_id = parsed
+
+    if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+        await ctx.respond('Failed: ccboard repos not initialized yet', ephemeral=True)
+        return
+
+    # accept either the original message link or the ccboard post link
+    entry = await ccboard._entry_repo.get(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_starboard_message(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_display_message(target_id)
+    if entry is None:
+        await ctx.respond(f'Failed: no ccboard entry found for message {target_id}', ephemeral=True)
+        return
+
+    deleted_post = False
+    if entry.starboard_message_id:
+        try:
+            cfg = config.guild(ctx.guild.id)
+            cc_channel = bot.get_channel(cfg.ccboard.channel_id)
+            if cc_channel:
+                cc_msg = cc_channel.get_partial_message(entry.starboard_message_id)
+                await cc_msg.delete()
+                deleted_post = True
+        except discord.NotFound:
+            pass
+        except Exception as err:
+            logger.warn(f'fix ccboard purge: could not delete ccboard post {entry.starboard_message_id}: {err}')
+
+    now = int(__import__('time').time())
+    await ccboard._reaction_repo.soft_delete_all_for_message(entry.message_id, now=now)
+    await ccboard._entry_repo.delete(entry.message_id)
+
+    parts = [f'Purged ccboard entry for message {entry.message_id}']
+    if deleted_post:
+        parts.append('and deleted the ccboard post')
+    elif entry.starboard_message_id:
+        parts.append('(ccboard post could not be deleted; may already be gone)')
+    await ctx.respond(', '.join(parts))
+
+
+@fix_ccboard.command(name='recover', description='Auditor discovery pass — phase 2 only, not yet implemented')
+@commands.check(is_bot_owner)
+async def fix_ccboard_recover(ctx: ApplicationContext):
+    await ctx.respond('Failed: recover is part of the auditor (phase 2) and is not yet implemented', ephemeral=True)
+
+
+@fix_ccboard.command(name='recount', description='Auditor reconciliation pass — phase 2 only, not yet implemented')
+@commands.check(is_bot_owner)
+async def fix_ccboard_recount(ctx: ApplicationContext):
+    await ctx.respond('Failed: recount is part of the auditor (phase 2) and is not yet implemented', ephemeral=True)
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')
