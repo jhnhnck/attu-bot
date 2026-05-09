@@ -667,7 +667,7 @@ wheels = [
 
 [[package]]
 name = "doom-bot"
-version = "78.1.6"
+version = "79.0"
 source = { virtual = "apps/bot" }
 dependencies = [
     { name = "aiohttp" },
