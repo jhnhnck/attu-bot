@@ -256,7 +256,46 @@ Each phase ships only when its DoD is met. Placeholder DoDs were per-phase only;
   - unknown retired: command coexistence under py-cord
   - rollback: legacy /stars is preserved entirely; only the no-op gate changes; trivial to revert
 
-### Process
+## phase 2.1 — recount semantic (design note, awaiting user approval)
+
+The `point_value` field on `ReactionDocument` is documented as "snapshot at reaction time" ([packages/shared-models/attu_models/documents.py:176](../../packages/shared-models/attu_models/documents.py#L176)). The phase 2 pre-mortem flagged this as a high-severity premise risk because phase 2.3's recount pass changes that meaning — at minimum, recounted records reflect *current* config weights, not *original* reaction-time weights. Three options for resolving the semantic; one must be chosen before phase 2.3 lands.
+
+### option A — rename `point_value` → `current_point_value`
+
+Make the new semantic explicit in the field name. `point_value` becomes `current_point_value`, documented as "most recent snapshot — refreshed on same-emoji re-react and on auditor recount; reflects the config weight in effect at that moment".
+
+- **callers to update**: watcher (4 sites), migration (3 sites), manager `_sync_post`, `aggregate_points` aggregation, `/debug ccboard show_reactions`, every test that constructs a `ReactionDocument`.
+- **migration**: ferretdb `update_many({}, {'$rename': {'point_value': 'current_point_value'}})` against `ccboard_reactions` at startup, then drop on subsequent runs (idempotent).
+- **upside**: most honest semantic; no historical-vs-current confusion; field name *is* the documentation.
+- **downside**: largest blast radius — touches every site that reads or writes the field, plus a one-shot migration step. Migration risk on a multi-thousand-record collection is bounded but real.
+
+### option B — add `last_recounted_at: int | None = None`
+
+Keep `point_value` but extend its docstring to "snapshot at most recent reaction or recount; check `last_recounted_at` to disambiguate". `last_recounted_at` is `None` for records never recounted (almost all of them today) and a unix timestamp for records the auditor has touched.
+
+- **callers to update**: only the recount pass (writes `last_recounted_at = now`) and `/debug ccboard show_reactions` (displays it).
+- **migration**: zero — the field defaults to `None` so existing records read as never-recounted on first load.
+- **upside**: smallest blast radius; data model surfaces the semantic to `/debug ccboard show_reactions` and gives leaderboards a tie-break key (recent recount = more authoritative); compatible with all existing tests.
+- **downside**: callers that aggregate `point_value` (the manager, the leaderboard repo methods) treat all values uniformly without distinguishing "old config snapshot" from "current config snapshot". The semantic is *available* in the model but not *enforced*; misuse possible.
+
+### option C — silent drift
+
+Document in `notes/features/ccboard.md` that `point_value` reflects the most recent snapshot (reaction-time *or* recount-time, whichever is later). No code or schema change. Same-emoji re-react already refreshes `point_value`, so the drift exists today; the recount pass just extends it to records the user hasn't touched.
+
+- **callers to update**: zero.
+- **migration**: zero.
+- **upside**: zero cost, zero risk.
+- **downside**: invisible in the data model; future readers of `ReactionDocument` won't notice the semantic without reading the doc; `/debug ccboard show_reactions` cannot display "this was recounted" because there's no field for it.
+
+### recommendation
+
+**option B**. Smallest blast radius, surfaces the semantic in the data model (so `/debug ccboard show_reactions` can flag recounted records), and gives leaderboards a tie-break key without a schema rename. Option A is the cleanest semantic but the migration cost is exactly the kind of "phase-late surprise" the pre-mortem exists to surface; option C is operationally cheapest but invisible to anyone reading the model later.
+
+**Verdict:** *awaiting user choice*. Phase 2.2 (per-entry reconcile) does not depend on this decision — it can proceed in parallel since it doesn't touch `point_value` arithmetic; phase 2.3 (per-entry recount with re-snapshot) is blocked until this is resolved.
+
+---
+
+## phase 2 process loop
 
 The placeholder's "1..n with the per-phase loop" still applies after these revisions. Each of phases 0-10 above runs:
 
@@ -320,5 +359,5 @@ End-to-end discord verification (steps 3-12) requires a guild with `ccboard.enab
 
 ```yaml
 last_updated: 2026-05-09
-status: phase 1 landed on feat/ccboard-redesign; phase 2 pre-mortem applied (proceed with revisions); awaiting recount-semantic decision before phase 2.2 begins
+status: phase 2.0 walking skeleton landed; phase 2.1 design note drafted with three options + recommendation (option B); awaiting user verdict before phase 2.3 begins; phase 2.2 unblocked
 ```
