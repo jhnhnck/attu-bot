@@ -1,6 +1,6 @@
 ---
 # dev environment: ephemeral ferretdb seeded from apps/bot/assets/doombot-seed on each start.
-# usage (tests): docker compose -f docker-compose.dev.yml run --build --rm tests
+# usage (tests): docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 # usage (web):   docker compose -f docker-compose.dev.yml up --build legacy-web
 name: doom-bot-dev
 
@@ -88,6 +88,7 @@ services:
     volumes:
       - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml:ro
     user: doom:doom
+    # tests bypass ferret-init: they create their own data and don't need the seed.
     depends_on:
       ferret:
         condition: service_started

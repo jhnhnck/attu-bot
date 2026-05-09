@@ -31,7 +31,7 @@ bash scripts/create_dev_seed.sh
 
 ```bash
 cd /srv/services/doom-bot-dev
-docker compose -f docker-compose.dev.yml --profile tests run --build --rm tests
+docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 ```
 
 The ferret/postgres pair starts fresh on every run (postgres uses a tmpfs data dir) and `ferret-init` reseeds it from `apps/bot/assets/doombot-seed/`.

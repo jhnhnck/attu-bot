@@ -19,9 +19,9 @@ File names follow the convention `test_<feature>.py` for python and `<feature>.t
 
 ## Running tests
 
-Run all tests inside the test container. If needed, other commands can be swapped out in place of the script. Do not remove other arguments.
+Run all tests inside the test container. The container's `CMD` already invokes `scripts/run_tests.py`; append it explicitly when you need to pass flags (e.g. `... tests scripts/run_tests.py --coverage -x`).
 ```
-docker compose run --build --rm --quiet-build tests scripts/run_tests.py
+docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 ```
 
 1. **Python unit/component/integration**

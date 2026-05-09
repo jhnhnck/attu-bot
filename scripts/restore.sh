@@ -5,9 +5,9 @@
 # example: bash scripts/restore.sh /srv/backups/attu-bot/2026-03-17_030000.tar.bz2
 #
 # pre-restore checklist:
-#   1. stop bot services: docker compose stop core web ingestor
+#   1. stop bot services: docker compose stop core legacy-web
 #   2. run this script
-#   3. restart: docker compose start core web ingestor
+#   3. restart: docker compose start core legacy-web
 set -e
 
 BACKUP="${1:-}"
@@ -28,7 +28,7 @@ fi
 
 echo "restoring from: $BACKUP"
 echo "WARNING: drops and replaces all data in 'doombot'."
-echo "ensure 'core', 'web', and 'ingestor' services are stopped."
+echo "ensure 'core' and 'legacy-web' services are stopped."
 read -r -p "proceed? [y/N] " confirm
 [[ "$confirm" =~ ^[yY]$ ]] || { echo "aborted"; exit 0; }
 

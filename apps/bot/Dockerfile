@@ -87,7 +87,7 @@ RUN --mount=type=cache,target=/var/lib/apt \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg; \
     printf 'Types: deb\nURIs: https://deb.nodesource.com/node_22.x\nSuites: nodistro\nComponents: main\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/nodesource.gpg\n' > /etc/apt/sources.list.d/nodesource.sources; \
     apt-get update -qq; \
-    apt-get install -qq nsolid;
+    apt-get install -qq nodejs;
 
 # copy extra needed files (as root so scripts can be chmod'd)
 COPY --chown=doom:doom \
@@ -101,8 +101,7 @@ COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
 # install dev deps for testing (runtime deps already in doombox)
 RUN --mount=type=cache,target=/root/.cache/ \
-    uv sync --no-install-project --quiet; \
-    chmod a+x "$DOOM_HOME/scripts/run_tests.py";
+    uv sync --no-install-project --quiet;
 
 USER doom
 WORKDIR /home/doom

@@ -284,7 +284,7 @@ levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `
 
 ## testing
 ```
-docker compose run --build --rm --quiet-build tests
+docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 ```
 
 - `asyncio_mode = "auto"` - async tests work without explicit `@pytest.mark.asyncio`
