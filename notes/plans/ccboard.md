@@ -291,7 +291,43 @@ Document in `notes/features/ccboard.md` that `point_value` reflects the most rec
 
 **option B**. Smallest blast radius, surfaces the semantic in the data model (so `/debug ccboard show_reactions` can flag recounted records), and gives leaderboards a tie-break key without a schema rename. Option A is the cleanest semantic but the migration cost is exactly the kind of "phase-late surprise" the pre-mortem exists to surface; option C is operationally cheapest but invisible to anyone reading the model later.
 
-**Verdict:** *awaiting user choice*. Phase 2.2 (per-entry reconcile) does not depend on this decision — it can proceed in parallel since it doesn't touch `point_value` arithmetic; phase 2.3 (per-entry recount with re-snapshot) is blocked until this is resolved.
+### verdict — option B+ (chosen 2026-05-09)
+
+**Approved with refinement.** The naive option B would recount *every* record on each invocation. The refinement ("option B+") makes recount **targeted**: only records whose `point_value` snapshot predates the most recent weight change get recomputed.
+
+Two model changes:
+
+- **`ReactionDocument.last_recounted_at: int | None = None`** — set to `now` whenever the watcher refreshes a record in place (same-emoji re-react) and whenever the auditor's recount stamps it. `None` means "never refreshed beyond original `reacted_at`".
+- **`GuildCCBoard.weights_updated_at: int = 0`** — bumped to `now` whenever an admin saves a change that affects per-reaction value: `emojis` or `super_bonus`. The web `routes.py` save path is the natural bump site; an audit-log entry already fires there. Default `0` so the first recount after this field rolls out treats every pre-existing record as potentially stale.
+
+Staleness predicate (used by phase 2.3 recount):
+
+```
+is_stale(reaction, cfg) := (reaction.last_recounted_at or reaction.reacted_at) < cfg.weights_updated_at
+```
+
+Recount per record:
+
+```
+new_value = cfg.emojis[reaction.emoji_str] + (cfg.super_bonus if reaction.is_super else 0)
+if new_value != reaction.point_value:
+    reaction.point_value = new_value
+reaction.last_recounted_at = now
+```
+
+Behavior implications captured here so phase 2.3 doesn't relitigate:
+
+- **Watcher's same-emoji re-react** ([watcher.py:381-400](../../apps/bot/doom_bot/ccboard/watcher.py#L381-L400)) must also write `last_recounted_at=now`. Without it, a user who re-reacts after a weight change has a fresh `point_value` but no fresh marker, and the staleness predicate would (harmlessly but pointlessly) flag it for recount.
+- **Different-emoji vote change** writes a new `ReactionDocument` with `reacted_at=now`, so `last_recounted_at=None` is fine — the staleness predicate falls back to `reacted_at`, which is `now`, so it's not stale.
+- **Migration** (`/fix stars convert`) creates new records with the current config weights, so `last_recounted_at=None` is correct (`reacted_at` reflects the migration time and is by definition >= any prior `weights_updated_at`).
+- **Aggregations** (`aggregate_points`, leaderboards) ignore `last_recounted_at` entirely — they only sum `point_value`. The new field is observability-only at the manager/leaderboard layer.
+- **`/debug ccboard show_reactions`** can display "recounted YYYY-MM-DD" next to records where `last_recounted_at is not None`.
+
+This pushes phase 2.3's scope: it's not a "for every record, recompute" loop — it's a "for every stale record, recompute" loop. Discovery (phase 2.4) and orphan cleanup (phase 2.5) are unaffected. Phase 2.2 (per-entry reconcile) is also unaffected since reconcile is about discord ↔ DB diff, not point arithmetic.
+
+Schema-wise, `last_recounted_at` is added to `ReactionDocument` as `int | None = None` (no migration; defaults absorb pre-existing records). `weights_updated_at` is added to `GuildCCBoard` as `int = 0` and to `GuildConfigDocument.ccboard` likewise; the web form save bumps it. The web tier-3 form does not need a UI control — the field is a derived audit timestamp, not user-editable. Audit logging on the existing `compare_configs + log_audit` path will pick it up automatically.
+
+**Verdict:** approved, with the option B+ refinement above. Phase 2.2 (per-entry reconcile) and phase 2.3 (per-entry recount + watcher stamp + config bump) are both unblocked; phase 2.3 carries the data-model and config-bump work. Risk-first ordering still puts phase 2.2 before 2.3 because reconcile is the harder correctness problem.
 
 ---
 
@@ -359,5 +395,5 @@ End-to-end discord verification (steps 3-12) requires a guild with `ccboard.enab
 
 ```yaml
 last_updated: 2026-05-09
-status: phase 2.0 walking skeleton landed; phase 2.1 design note drafted with three options + recommendation (option B); awaiting user verdict before phase 2.3 begins; phase 2.2 unblocked
+status: phase 2.0 walking skeleton landed; phase 2.1 verdict — option B+ approved (last_recounted_at on ReactionDocument + weights_updated_at on GuildCCBoard, targeted recount via staleness predicate); phases 2.2 and 2.3 unblocked
 ```
