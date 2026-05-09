@@ -30,6 +30,8 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     # the builder, which back-imports doom_bot.tasks. eager import here would
     # collide with that load order at first import. moving it inside the function
     # defers manager construction until startup, after the package graph is settled.
+    # the auditor task lives in the same package and follows the same lazy-import rule.
+    from doom_bot.ccboard.auditor import auditor_task as ccboard_auditor_task
     from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
 
     bot_tasks = (
@@ -43,6 +45,7 @@ def register_bot_tasks(s: TaskScheduler) -> None:
         presence_update_task,
         reminder_task,
         ccboard_manager_task,
+        ccboard_auditor_task,
     )
     registered = set(s.registered_tasks())
     for task in bot_tasks:

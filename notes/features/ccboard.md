@@ -15,6 +15,7 @@ apps/bot/doom_bot/ccboard/
   manager.py         # ManagerTask(BaseTask); 10s poll, 60s settle debounce
   builder.py         # rule-pipeline embed builder; pure (entry, config, state) → state
   migration.py       # one-shot starboard → ccboard data migration
+  auditor.py         # AuditorTask(BaseTask); manual-only stub; reconcile/recount/discover/orphan passes (phase 2)
 ```
 
 state lives in two collections:
@@ -109,6 +110,7 @@ helpers (`parse_jump_url`, `_is_image`, `_looks_like_image_url`, `_hydrate_store
 | `_sync_post(entry, config)` | `manager` | create/update/delete the board post for one entry |
 | `build_embeds(entry, config)` | `builder` | runs the rule pipeline and returns the full embed list |
 | `job_convert_starboard_to_ccboard(...)` | `migration` | one-shot starboard → ccboard data migration |
+| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; phase 2.0 stub (each pass returns a `PassResult` with `dry_run=True`); real implementations land in phases 2.2-2.5 |
 
 ---
 
@@ -135,9 +137,10 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 | `/fix stars convert` | one-shot migration; copies `starboard` records into `ccboard_reactions` + `ccboard_entries`. idempotent. requires `confirm=True` and a non-empty `ccboard.emojis`. |
 | `/fix ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
 | `/fix ccboard purge <link>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
-| `/fix ccboard recover` | auditor discovery pass — phase 2, currently a stub |
-| `/fix ccboard recount` | auditor reconciliation pass — phase 2, currently a stub |
+| `/fix ccboard recover` | auditor discovery pass — phase 2.0 walking-skeleton stub; calls `auditor_task.discover_guild(dry_run=True)`; real scoped discovery is phase 2.4 |
+| `/fix ccboard recount` | auditor reconciliation pass — phase 2.0 walking-skeleton stub; calls `auditor_task.reconcile_guild(dry_run=True)`; real per-entry reconcile is phase 2.2 |
 | `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, and `reacted_at` |
+| `/cc stars test` | walking-skeleton placeholder for the future ccboard-backed `/stars` surface (random/lost/recheck/leaderboard); phases 2.6-2.8 replace this stub |
 
 ---
 
@@ -154,6 +157,6 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 ## metadata
 
 ```yaml
-last_updated: 2026-05-07
-status: phase 1 — watcher, manager, builder, migration, fix/debug commands
+last_updated: 2026-05-09
+status: phase 2.0 walking skeleton — auditor task and /cc stars stubs registered; recount semantic awaits user-approval gate (phase 2.1)
 ```

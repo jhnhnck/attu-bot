@@ -736,16 +736,22 @@ async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
     await ctx.respond(', '.join(parts))
 
 
-@fix_ccboard.command(name='recover', description='Auditor discovery pass — phase 2 only, not yet implemented')
+@fix_ccboard.command(name='recover', description='Auditor discovery pass (phase 2.4 stub) — scans recently-active channels for missed reactions')
 @commands.check(is_bot_owner)
 async def fix_ccboard_recover(ctx: ApplicationContext):
-    await ctx.respond('Failed: recover is part of the auditor (phase 2) and is not yet implemented', ephemeral=True)
+    from doom_bot.ccboard.auditor import auditor_task
+
+    result = await auditor_task.discover_guild(ctx.guild.id, dry_run=True)
+    await ctx.respond(f'auditor.discover_guild: {result.summary}', ephemeral=True)
 
 
-@fix_ccboard.command(name='recount', description='Auditor reconciliation pass — phase 2 only, not yet implemented')
+@fix_ccboard.command(name='recount', description='Auditor reconciliation pass (phase 2.2 stub) — diffs db reactions against live discord state')
 @commands.check(is_bot_owner)
 async def fix_ccboard_recount(ctx: ApplicationContext):
-    await ctx.respond('Failed: recount is part of the auditor (phase 2) and is not yet implemented', ephemeral=True)
+    from doom_bot.ccboard.auditor import auditor_task
+
+    result = await auditor_task.reconcile_guild(ctx.guild.id, dry_run=True)
+    await ctx.respond(f'auditor.reconcile_guild: {result.summary}', ephemeral=True)
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')
