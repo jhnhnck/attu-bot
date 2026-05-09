@@ -13,6 +13,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
+- ⭕ `medium priority` `low effort` post-merge: reconcile `.gitignore` with `notes/dev/process.md` — the doc says plans live in `notes/plans/<project>.md` (implying tracked) but `.gitignore:56-57` ignores `notes/plans/` and `notes/reports/`. either drop those gitignore lines so plans/reports are tracked, or update the process doc to reflect that they're local-only. handle once the dev-tree WIP merges so we're not editing both trees in parallel
 
 ### eggs / hatch game
 
