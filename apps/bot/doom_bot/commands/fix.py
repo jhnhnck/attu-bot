@@ -745,13 +745,32 @@ async def fix_ccboard_recover(ctx: ApplicationContext):
     await ctx.respond(f'auditor.discover_guild: {result.summary}', ephemeral=True)
 
 
-@fix_ccboard.command(name='recount', description='Auditor reconciliation pass (phase 2.2 stub) — diffs db reactions against live discord state')
+@fix_ccboard.command(name='recount', description='Reconcile ccboard reactions against live Discord state (per-entry; pass a message_link)')
 @commands.check(is_bot_owner)
-async def fix_ccboard_recount(ctx: ApplicationContext):
+@discord.commands.option(name='message_link', required=False, default=None, description='Discord message link to reconcile; omit for guild-wide stub', input_type=str)
+@discord.commands.option(name='confirm', required=False, default=False, description='When true, applies the diff; default is dry-run', input_type=bool)
+async def fix_ccboard_recount(ctx: ApplicationContext, message_link: str | None = None, confirm: bool = False):
     from doom_bot.ccboard.auditor import auditor_task
+    from doom_bot.client.starboard import parse_jump_url
 
-    result = await auditor_task.reconcile_guild(ctx.guild.id, dry_run=True)
-    await ctx.respond(f'auditor.reconcile_guild: {result.summary}', ephemeral=True)
+    if message_link is None:
+        result = await auditor_task.reconcile_guild(ctx.guild.id, dry_run=not confirm)
+        await ctx.respond(f'auditor.reconcile_guild: {result.summary}', ephemeral=True)
+        return
+
+    parsed = parse_jump_url(message_link.strip())
+    if parsed is None:
+        await ctx.respond('Failed: invalid message link; paste the full discord message link', ephemeral=True)
+        return
+    link_guild_id, _channel_id, target_message_id = parsed
+    if link_guild_id != ctx.guild.id:
+        await ctx.respond('Failed: that message link is from a different server', ephemeral=True)
+        return
+
+    await ctx.defer(ephemeral=True)
+    result = await auditor_task.reconcile_entry(ctx.guild.id, target_message_id, dry_run=not confirm)
+    verdict = 'APPLIED' if result.mutated else ('dry-run' if result.dry_run else 'no change')
+    await ctx.respond(f'auditor.reconcile_entry [{verdict}]: {result.summary}', ephemeral=True)
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')

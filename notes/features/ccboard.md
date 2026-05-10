@@ -15,7 +15,7 @@ apps/bot/doom_bot/ccboard/
   manager.py         # ManagerTask(BaseTask); 10s poll, 60s settle debounce
   builder.py         # rule-pipeline embed builder; pure (entry, config, state) → state
   migration.py       # one-shot starboard → ccboard data migration
-  auditor.py         # AuditorTask(BaseTask); manual-only stub; reconcile/recount/discover/orphan passes (phase 2)
+  auditor.py         # AuditorTask(BaseTask); manual-only; reconcile_entry (phase 2.2) + recount/discover/orphan stubs
 ```
 
 state lives in two collections:
@@ -110,7 +110,7 @@ helpers (`parse_jump_url`, `_is_image`, `_looks_like_image_url`, `_hydrate_store
 | `_sync_post(entry, config)` | `manager` | create/update/delete the board post for one entry |
 | `build_embeds(entry, config)` | `builder` | runs the rule pipeline and returns the full embed list |
 | `job_convert_starboard_to_ccboard(...)` | `migration` | one-shot starboard → ccboard data migration |
-| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; phase 2.0 stub (each pass returns a `PassResult` with `dry_run=True`); real implementations land in phases 2.2-2.5 |
+| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; `reconcile_entry` shipped in phase 2.2 (per-entry diff vs live discord, dry-run by default); other passes still return a `PassResult` stub. real implementations land in phases 2.3-2.5 |
 
 ---
 
@@ -138,7 +138,7 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 | `/fix ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
 | `/fix ccboard purge <link>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
 | `/fix ccboard recover` | auditor discovery pass — phase 2.0 walking-skeleton stub; calls `auditor_task.discover_guild(dry_run=True)`; real scoped discovery is phase 2.4 |
-| `/fix ccboard recount` | auditor reconciliation pass — phase 2.0 walking-skeleton stub; calls `auditor_task.reconcile_guild(dry_run=True)`; real per-entry reconcile is phase 2.2 |
+| `/fix ccboard recount [message_link] [confirm]` | auditor reconciliation pass. with `message_link` runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state, default dry-run; pass `confirm=True` to apply (writes adds/replaces, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`). degrades to add+replace-only when discord pagination is partial. without a link it falls through to the phase-2.4 `reconcile_guild` stub |
 | `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, and `reacted_at` |
 | `/cc stars test` | walking-skeleton placeholder for the future ccboard-backed `/stars` surface (random/lost/recheck/leaderboard); phases 2.6-2.8 replace this stub |
 
@@ -146,8 +146,8 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 
 ## known gaps
 
-- **missed `reaction_add`**: no self-healing in phase 1; reaction exists on discord but no `ReactionDocument` is created. only the auditor (phase 2) corrects this.
-- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until auditor reconciliation.
+- **missed `reaction_add`**: no self-healing in phase 1; reaction exists on discord but no `ReactionDocument` is created. `/fix ccboard recount <link>` (phase 2.2) corrects this per-entry; guild-wide discovery is phase 2.4.
+- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until `/fix ccboard recount <link>` runs over the entry.
 - **`effective_author_id` re-resolution**: once set (or left None) during backfill, attribution is never revisited. no command or automatic path exists to re-resolve.
 - **config weight retroactive recalculation**: changing emoji weights leaves existing `ReactionDocument.point_value` snapshots at old values. same-emoji re-react refreshes `point_value` for active users; there is no bulk recalculation path.
 - **user-facing `/stars` against ccboard**: not yet implemented. legacy `/stars` continues to operate against the legacy starboard.
@@ -158,5 +158,5 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 
 ```yaml
 last_updated: 2026-05-09
-status: phase 2.0 walking skeleton — auditor task and /cc stars stubs registered; recount semantic awaits user-approval gate (phase 2.1)
+status: phase 2.2 — per-entry reconcile via `/fix ccboard recount <link>` (dry-run default; pass confirm=True to apply); recount semantic locked in (option B+); recount/discovery/orphan-cleanup still stub
 ```
