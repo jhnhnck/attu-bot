@@ -21,6 +21,10 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 - ⭕ `bug` `commands/time.py:34` `time_advance` passes `cfg.guild.id` to `scheduler.add_job` but `GuildConfig` has no `.guild` attr; should be `cfg.id`
 
+### architecture
+
+- ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `doom_bot.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken (verified by structlog phase 1 cross-phase check) but the type-hint coupling means shared-models still knows about `doom_bot.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro)
+
 ### upstream / dependencies
 
 - ⭕ `bug` `discord/client.py:250` pycord `DeprecationWarning` on python 3.13 — `asyncio.get_event_loop()` called without a running loop; will break on a future python version; may need a pycord upgrade or workaround
@@ -86,6 +90,6 @@ the skill reads every entry in full, assigns severity + disposition, and surface
 ### metadata
 
 ```yaml
-last_updated: 9 May 2026
+last_updated: 10 May 2026
 total_resolved: 0
 ```
