@@ -85,6 +85,13 @@ These came from the deferred items I added to `notes/to-do.md` under the ccboard
 11. Retire `notes/plans/ccboard.md` — superseded by THIS file (the predecessor at the same path was never in git).
 12. Dev-tree merge conflict (environmental). The original `dev` worktree has 291 lines of uncommitted edits to `events.py`, plus changes to `modlog.py`, `starboard.py`, `util.py`, `logging.py`, `scheduler.py`, `wiki/client.py`, `webhook.py`, `commands/trees.py`, `tests/conftest.py`, `notes/agents.md`, `notes/to-do.md`, and `uv.lock`. Slice W's edits to `events.py` will conflict on merge.
 
+#### Surfaced during phase 2.2 (added 2026-05-10)
+
+13. Watcher↔auditor concurrent-write integration not proven by test. Both call sites take `ccboard.get_lock(message_id)` against the shared `ccboard._locks` dict, and the watcher's lock pattern is exercised by tests, but no test runs `handle_reaction_add` concurrently with `reconcile_entry` to prove the lock actually serializes them on the same `asyncio.Lock` instance. Inspectionally identical → almost certainly correct, but unverified.
+14. `_apply_diff` ignores `_safe_remove_reaction` return values. When discord rejects a remove (rate limit, NotFound, Forbidden), `_safe_remove_reaction` discards the pending key and returns False, but the diff summary still reports `strip_invalid=N` / `strip_extras=N` as if they applied. The DB state is unaffected (strips are best-effort cleanup of reactions that should never have been recorded). Operator-facing metric only.
+15. Partial-pagination degradation has unit-test coverage only. `_collect_live_reactions` raises `partial=True` on any `reaction.users()` failure or mid-stream pagination loss; `_compute_diff` then suppresses removes globally. The behavior is unit-tested, but the production codepath against a real flaky discord reaction stream is never exercised.
+16. Single flaky emoji blocks all soft-deletes on an entry. `partial=True` from any one emoji's `reaction.users()` failure suppresses removes for **every** emoji on the entry, not just the failing one. Conservative; in practice partial=True is rare. Phantom-vote cleanup for healthy emojis is then deferred until the next reconcile run.
+
 ### Triage (2026-05-07)
 
 ```
@@ -104,6 +111,22 @@ These came from the deferred items I added to `notes/to-do.md` under the ccboard
 - **Items 9 and 6 interact at the design level.** The auditor's recount pass is the natural home for retroactive weight recalc, but only if we explicitly decide it re-snapshots `point_value` with current config weights. The plan-revise output for phase 2a should pin that down before implementation, not during.
 - **Items 7, 8, 10, 11 are mostly defer/won't-fix.** The bug log reads scarier than it is — the actually-actionable items at the project boundary are the blocker (#12) and the two phase-2 importants (#6, #9).
 
+### Triage (2026-05-10) — phase 2.2 retro
+
+```
+- [important] #6  phase 2 auditor (recover/recount)     → fix-in-phase-2.4 · partially satisfied: per-entry recount surface ships in 2.2 via /fix ccboard recount <link>; guild-wide reconcile + scoped discovery is 2.4
+- [important] #9  retroactive emoji-weight recalc       → fix-in-phase-2.3 · option B+ semantic locked in; folds into a `to_recount` bucket extending phase 2.2's _compute_diff via the staleness predicate
+- [important] #13 watcher↔auditor concurrent lock       → defer · before phase-2 ship gate; add a concurrent-coroutine unit test or live discord smoke check; lock pattern is inspectionally correct but unverified
+- [nit]       #14 _apply_diff ignores _safe_remove ret  → defer · operator-facing metric only; revisit if production diffs report strip counts that don't match discord state
+- [nit]       #15 partial-pagination live verification  → defer · fold into phase-2 ship gate's live discord smoke check (alongside #13)
+- [nit]       #16 single flaky emoji blocks all removes → defer · could sharpen to per-emoji partial flags later; not worth complexity until production shows it bites
+```
+
+**Patterns observed (2026-05-10):**
+
+- **Items #13, #14, #15, #16 all share one root: the auditor's apply path landed without a real-discord integration check.** They are not a phase-level rewrite signal — the unit-test contract is solid — they are a phase-2-ship-gate signal. Hand to `plan-revise`: add a "live discord smoke check" line item to the phase-2 ship gate (today's `## ship readiness — ccboard phase 1` section needs a phase-2 sibling) covering: concurrent watcher+auditor on the same message (#13), `_safe_remove_reaction` failure path (#14), partial-pagination from a real flaky stream (#15), and per-emoji partial isolation (#16). One ship-gate checklist item, not four code patches.
+- **#6 is now structurally split across phases 2.2 and 2.4.** Per-entry recount surface shipped early; guild-wide discovery is still 2.4. Plan-revise should annotate the split so the eventual "ship readiness for phase 2" entry doesn't double-count this.
+- **#9 narrowed.** The retro showed phase 2.2's `_compute_diff` already carries the structure recount needs (a "replace with same emoji + fresh point_value" path is the existing replace bucket). Plan-revise should narrow phase 2.3's scope to (a) data-model adds, (b) config bump, (c) watcher stamp, (d) staleness-predicate bucket folded into reconcile_entry — *not* a parallel codepath.
 
 ---
 
@@ -223,14 +246,16 @@ Each phase ships only when its DoD is met. Placeholder DoDs were per-phase only;
   - integration check: dry-run reconcile against a real seeded entry produces a diff summary; no DB mutation observed; watcher continues to write reactions normally during the run (proves lock cooperation)
   - unknown retired: diff logic correctness on a real entry
   - rollback: if dry-run produces nonsensical diffs (e.g., "would remove every reaction"), abandon the diff strategy and redesign before any non-dry-run path lands
-- **phase 3 (per-entry recount with re-snapshot)** — DoD adds:
-  - integration check: recount on one seeded entry uses the approved semantic from phase 1; before/after `point_value` deltas logged; /debug ccboard show_reactions reflects the new values
+- **phase 3 (per-entry recount with re-snapshot)** — REVISED 2026-05-10 after phase 2.2 retro and bug-triage; scope narrowed because phase 2.2's `_compute_diff` already carries the structure recount needs (the existing replace bucket is "soft-delete old + upsert with fresh `point_value`" — exactly recount's mutation). DoD now reads:
+  - scope, in order: (a) add `last_recounted_at: int | None = None` to `ReactionDocument` (`packages/shared-models/attu_models/documents.py`); (b) add `weights_updated_at: int = 0` to `GuildCCBoard` (`apps/bot/doom_bot/config.py`) and the `GuildConfigDocument.ccboard` flow; (c) bump `weights_updated_at = int(time.time())` in the web save handler (`apps/bot/doom_bot/web/routes.py`) when `emojis` or `super_bonus` change; (d) stamp `last_recounted_at = now` in the watcher's same-emoji refresh path (`apps/bot/doom_bot/ccboard/watcher.py:381-400`); (e) extend `_compute_diff` (or a sibling helper) with a `to_recount` bucket fed by the staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at`; (f) reuse `_apply_diff`'s replace-bucket path for `to_recount` items (same emoji, fresh `point_value` from current `cfg.emojis[emoji] + super_bonus`, stamp `last_recounted_at = now`); (g) `recount_entry(guild_id, message_id, dry_run=True)` becomes a thin wrapper around `reconcile_entry` with the to_recount bucket enabled. **explicitly out of scope**: a parallel codepath, a bulk update_many across all guilds, or any change to existing reconcile semantics
+  - integration check: recount on one seeded entry uses option B+ (per phase 2.1 verdict); before/after `point_value` deltas logged; `/debug ccboard show_reactions` reflects the new values; records whose `last_recounted_at` already exceeds `weights_updated_at` are untouched
   - unknown retired: re-snapshot mechanics under live config
-  - rollback: if re-snapshot leaves inconsistent net_points / positive_points, soft-revert via `mark_dirty` and let the manager re-aggregate from the (now-corrected) reaction records
-- **phase 4 (discovery, scoped)** — DoD adds:
-  - integration check: discovery on a single channel completes within a measured time budget (probe output drives the budget); rate-limit waits logged; no `ReactionDocument` created without an existing or newly-created `BoardEntryDocument`
-  - unknown retired: discovery cost on a real channel
-  - rollback: if discovery exceeds the time budget, narrow scope further (last 7 days vs 30) before re-running; never run unbounded
+  - rollback (tightened 2026-05-10): trigger if recount changes `point_value` for any record where the staleness predicate did not match — proves the predicate is wrong, not the apply path. soft-revert via `mark_dirty` and let the manager re-aggregate from the (now-corrected) reaction records; secondary rollback for inconsistent net_points / positive_points unchanged from prior wording
+- **phase 4 (discovery, scoped + guild-wide reconcile)** — REVISED 2026-05-10 to absorb the guild-wide half of bug-log #6; phase 2.2 shipped the per-entry recover surface (`/fix ccboard recount <link>`), so this phase owns the remaining `reconcile_guild` stub plus scoped discovery. DoD adds:
+  - scope: (a) replace `auditor.reconcile_guild` stub with a real implementation that walks every `BoardEntryDocument` in the guild and calls `reconcile_entry(..., dry_run=True/confirm)` per entry, respecting a per-guild time budget; (b) implement `discover_guild` against the channel set produced by the watcher's recent-reactions cache (scope retired risk); (c) keep `/fix ccboard recover` (already wired to `discover_guild`) unchanged; the "no-link" path of `/fix ccboard recount` (currently the `reconcile_guild` stub) becomes real here
+  - integration check: discovery on a single channel completes within a measured time budget (probe output drives the budget); rate-limit waits logged; no `ReactionDocument` created without an existing or newly-created `BoardEntryDocument`; guild-wide reconcile against a seeded ccboard guild produces the same per-entry diffs as running `/fix ccboard recount <link>` over each entry individually
+  - unknown retired: discovery cost on a real channel; per-guild budget shape under realistic entry counts
+  - rollback: if discovery exceeds the time budget, narrow scope further (last 7 days vs 30) before re-running; never run unbounded; if guild-wide reconcile produces diffs that differ from per-entry reconcile, the iteration order or lock acquisition is wrong — abandon and run per-entry from a slash-command loop instead
 - **phase 5 (orphan-post cleanup)** — DoD adds:
   - integration check: dry-run on the ccboard channel produces a list of candidate orphan posts with ages; only posts older than the grace period appear; manual confirmation required before delete
   - unknown retired: orphan detection accuracy
@@ -391,9 +416,100 @@ End-to-end discord verification (steps 3-12) requires a guild with `ccboard.enab
 
 ---
 
+## phase 2.2 retro — 2026-05-10
+
+Applied via the `phase-retro` skill against commit `133e96f5`. Inputs to `bug-triage` follow this section; downstream-phase edits flow into `plan-revise`.
+
+### spec delta
+
+- delivered: per-entry reconcile via `reconcile_entry(guild_id, message_id, dry_run=True)` plus `/fix ccboard recount <link> [confirm]`. pure `_compute_diff` (seven outcome buckets: add / replace / remove / matching / strip_invalid / strip_extras / partial flag), `_apply_diff` apply path, lock cooperation via `ccboard.get_lock(message_id)`, partial-pagination degradation, watcher's `_safe_remove_reaction` reused for self/bot/extras stripping. unit + component tests cover dry-run, apply, partial, no-change, missing entry, disabled cfg, unfetchable message, invalid-link, cross-guild rejection.
+- missed / deferred:
+  - **DoD integration check #3 (lock cooperation under live watcher activity) — not exercised.** The lock pattern is inspectionally identical to the watcher's, but no test runs a `handle_reaction_add` concurrently with a `reconcile_entry` to prove the per-message lock actually serializes them. → bug-log; either add a concurrent unit test using two coroutines on the same `asyncio.Lock`, or fold a real-discord smoke check into the phase 2 ship gate.
+- extra (beyond DoD):
+  - **apply path landed** — DoD specified dry-run only (rollback criterion was "if dry-run produces nonsensical diffs, abandon"). apply was added opportunistically with a `confirm=True` gate. not a problem in practice — diffs were sane — but the rollback criterion could not have fired since `dry_run=False` paths bypassed that check.
+  - one-vote-per-message enforcement (`to_strip_extras`) added to the diff. the watcher already enforces this on event handling; reconcile now mirrors it.
+  - duplicate `aggregate_points` call in the apply path was caught and fixed pre-commit (per handoff). near-miss; logged below.
+
+### surprises
+
+- assumption: dry-run is the cautious path and apply lands later → reality: apply was wired the same session under a `confirm=True` gate → delta: phase 2.2 collapsed phases 2.2 and what would have been 2.2b. phase 2.3 (recount) inherits a working apply-path scaffold rather than having to introduce one.
+- assumption: `_compute_diff` would be a flat add/remove pair → reality: it grew to seven discrete outcome buckets to handle one-vote enforcement, self/bot stripping, and partial-pagination degradation in one structured pass → delta: the structure makes phase 2.3 recount easier — recount is "another bucket fed from the staleness predicate" rather than a parallel codepath.
+- assumption: `partial=True` would only ever come from a single-emoji failure → reality: `_collect_live_reactions` raises `partial=True` on any per-emoji `reaction.users()` failure OR mid-stream pagination loss; `_compute_diff` then suppresses **all** removes globally, not just per-emoji → delta: more conservative than the pre-mortem mitigation called for. unlikely to bite (production almost never hits partial), but worth noting that a single flaky emoji blocks every soft-delete on the entry.
+- assumption: the unit test harness could exercise component flows with monkeypatches → reality: invoking `pytest tests/python/component/...` directly outside docker hits `ServerSelectionTimeoutError` on `ferret:27017`; component tests must go through `scripts/run_tests.py` (which auto-redirects through `docker compose run`) → delta: workflow gotcha, not a phase 2.2 issue, but agents-in-the-future will keep tripping on this if they assume pytest runs locally.
+- duplicate `aggregate_points` call in the apply path made it into the working tree before commit. caught by inspection, not by tests (both calls returned the same value). → delta: structural review beats test review for "calls happen exactly once" assertions.
+
+### residual debt
+
+- **watcher↔auditor concurrent-write integration not proven by test.** lock pattern is inspectionally correct; needs a concurrent-coroutine test or live smoke check before phase 2 ship gate. · routed to bug log as #13
+- **`reconcile_guild` is still a stub.** `/fix ccboard recount` without a `<link>` falls through to it; phase 2.4 (scoped discovery) absorbs this. · already in bug log as part of #6
+- **`_apply_diff` ignores `_safe_remove_reaction` return values.** if a discord remove fails, the diff summary still claims `strip_invalid=N` / `strip_extras=N` were applied. safe-remove logs the failure internally, so the operator can find it; counter is misleading though. · routed to bug log as #14
+- **partial-pagination degradation has unit test coverage only.** simulating `reaction.users()` mid-stream failure against a real discord requires an unhappy fixture. not blocking phase 2.3; flag for phase 2 ship gate. · routed to bug log as #15
+- **single-flaky-emoji blocks all soft-deletes on an entry.** the partial-mode global remove suppression is conservative; if one emoji's pagination fails, valid removes for other emojis on the same entry are also suppressed. · routed to bug log as #16
+
+### implications for downstream phases
+
+- **phase 2.3 (recount) is wider open than originally scoped.** the apply path already handles "soft-delete old, upsert with fresh `point_value`" for the replace bucket — that is exactly recount's per-entry mutation. recount becomes "feed the staleness predicate's matches into the replace bucket with the same emoji" rather than an entirely new helper. plan-revise should narrow phase 2.3's scope to: (a) add `last_recounted_at` to `ReactionDocument`, (b) add `weights_updated_at` to `GuildCCBoard`, (c) bump `weights_updated_at` in the web save handler, (d) stamp `last_recounted_at` in the watcher's same-emoji refresh, (e) extend `_compute_diff` (or a sibling) with a `to_recount` bucket fed by the staleness predicate, (f) fold into `reconcile_entry` so `/fix ccboard recount <link>` does both reconcile *and* recount in one pass.
+- **the rollback criterion "if dry-run produces nonsensical diffs" should be tightened for phase 2.3** to "if recount changes `point_value` for records where the staleness predicate didn't match" — proving the predicate is the load-bearing question.
+- **bug log items #5, #6, #9 from the 2026-05-07 triage** all converge on the same machinery now. plan-revise can mark #6 as partially satisfied (per-entry recover surface ships in 2.2; guild-wide is 2.4) and #9 as squarely phase-2.3 work.
+
+---
+
+## revision after phase 2.2 — 2026-05-10
+
+Applied via the `plan-revise` skill against the phase 2.2 retro (above) and the 2026-05-10 triage block in the bug log.
+
+what changed:
+
+- phase 3 (per-entry recount): **revise** — scope narrowed to fold into phase 2.2's `_compute_diff` via a `to_recount` bucket fed by the staleness predicate; data-model + watcher-stamp + web-save-bump items spelled out in the DoD; rollback criterion tightened to "recount changed `point_value` for a record the predicate didn't match"
+- phase 4 (discovery, scoped): **revise** — absorbs the still-stub `reconcile_guild` (the no-link path of `/fix ccboard recount`); guild-wide reconcile is now half of phase 4's scope alongside scoped discovery; closes the remaining half of bug-log #6
+- phases 0, 1, 2: complete (delivered as 2.0, 2.1, 2.2)
+- phases 5-10: **valid** — no premise shifted; revisit at each phase's start
+
+new section added:
+
+- **`## phase 2 ship gate` (below)** — captures the live discord smoke checks that bug-triage clustered under #13/#14/#15/#16. one ship-gate checklist, not four code patches.
+
+follow-up questions raised by the retro that this revision did NOT answer:
+
+- phase 2.3 (e) above lists "extend `_compute_diff` (or a sibling helper)" — the helper-vs-extension call is left to phase-2.3 implementation. either is fine; mention it here so the implementer doesn't treat it as undecided design.
+- the phase-2 ship gate checklist (below) names four live-discord verifications that require a guild with `ccboard.enabled=True`. timing of that smoke check (after 2.5? after 2.8? right before merge?) is left for the user to pick when phase 2.5 wraps.
+
+---
+
+## phase 2 ship gate
+
+Created 2026-05-10 alongside the phase 2.2 plan-revise. Parallel to `## ship readiness — ccboard phase 1` above; the phase-1 entry remains as a record of the wave-3 boundary. This section is the pre-merge gate for `feat/ccboard-redesign` → `dev` after **all** of phase 2 (phases 2.3 through 2.5 at minimum; phases 2.6+ are optional and can ship in a separate gate per the 2026-05-07 phase-2a/2b split).
+
+The mechanical checks (ruff / basedpyright / `scripts/run_tests.py` all green) are a precondition, not part of this gate.
+
+### Live discord smoke checks
+
+These cover the bug-log items that the unit and component tests cannot exercise (#13–#16 from the 2026-05-10 triage). Each is a manual check against a real guild with `ccboard.enabled=True`; expected to be one focused session.
+
+1. **Watcher↔auditor concurrent lock cooperation (#13).** Add a real reaction to a tracked message **while** `/fix ccboard recount <link> confirm:True` is running on that same message. Expected: no duplicate `ReactionDocument`, no missed soft-delete, no point-aggregate corruption. Watch the log for two `ccboard auditor: reconcile_entry` events and one `ccboard: reaction add` event interleaved without errors. Failure mode: a `KeyError` or a "phantom" reaction that persists past the next manager tick.
+2. **`_safe_remove_reaction` failure path (#14).** Force a `discord.HTTPException` from `message.remove_reaction` (revoke `Manage Messages` on the bot mid-recount, or rate-limit via repeated /fix runs). Expected: the diff summary still reports `strip_invalid=N` / `strip_extras=N`, the discord reaction stays put, and `_pending_bot_removals` is left clean (the watcher's `discard_pending_removal` call ran). Failure mode: a stuck pending key would cause the next remove echo to be eaten silently.
+3. **Real flaky pagination (#15).** Run `/fix ccboard recount <link>` against a message with a high-volume reaction (>200 of one emoji is enough to fan out into a paginated `users()` call) while the bot is approaching its global rate limit. Expected: any pagination failure surfaces `partial=True` in the summary and the apply path skips removes; never produces a "would remove every reaction" diff. Failure mode: a partial pagination silently treated as complete would soft-delete real reactions.
+4. **Per-emoji partial isolation (#16).** Reproduce a partial-mode reconcile and verify (via the log) that **all** removes are suppressed, not just the failing emoji's. This is the conservative behavior we shipped — the smoke check is to confirm it, not to break it. Failure mode: if removes for healthy emojis ARE applied during a partial run, the conservative invariant is broken and #16 needs immediate redesign before merge.
+
+### Other gates (carry-forward from phase 1's ship-readiness)
+
+- `integration-check` skill against the running watcher/manager/auditor stack
+- `bug-triage` re-walk of the open bug log (re-evaluate #8, #13, #14, #15, #16 — at least #13 should leave the log resolved)
+- dev-tree merge conflict (#12) gets re-walked here per the 2026-05-07 verdict
+- final `code-review` over the cumulative phase-2 diff
+- `feature-completion` checklist clean across the whole phase (tests, docs, config plumbing, web interface, lint)
+
+### Verdict format (filled in at gate time)
+
+| ship-or-no? | rationale |
+|---|---|
+| _(filled in by `ship-readiness` skill at the gate)_ | _(blockers, deferred items, follow-ups)_ |
+
+---
+
 ## metadata
 
 ```yaml
-last_updated: 2026-05-09
-status: phase 2.0 walking skeleton landed; phase 2.1 verdict — option B+ approved (last_recounted_at on ReactionDocument + weights_updated_at on GuildCCBoard, targeted recount via staleness predicate); phases 2.2 and 2.3 unblocked
+last_updated: 2026-05-10
+status: phase 2.2 landed; retro + bug-triage + plan-revise complete; phase 2.3 unblocked with narrowed scope (folds into phase 2.2's _compute_diff via staleness-predicate bucket); phase-2 ship gate scaffold added
 ```
