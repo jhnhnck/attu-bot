@@ -160,6 +160,38 @@ class TestMaxLevelFilter:
 
 
 # ============================================================
+# discord.http level gating
+# ============================================================
+
+
+class TestDiscordHttpLevelGating:
+    """unit: _setup_discord_logging respects the DEBUG env var"""
+
+    def _reset_discord_http(self):
+        from doom_bot.logging import PycordBridgeHandler
+
+        log = logging.getLogger('discord.http')
+        log.setLevel(logging.NOTSET)
+        log.handlers = [h for h in log.handlers if not isinstance(h, PycordBridgeHandler)]
+
+    def test_pinned_to_warning_when_debug_unset(self, monkeypatch):
+        from doom_bot.client import _setup_discord_logging
+
+        monkeypatch.delenv('DEBUG', raising=False)
+        self._reset_discord_http()
+        _setup_discord_logging()
+        assert logging.getLogger('discord.http').level == logging.WARNING
+
+    def test_set_to_debug_when_debug_present(self, monkeypatch):
+        from doom_bot.client import _setup_discord_logging
+
+        monkeypatch.setenv('DEBUG', '1')
+        self._reset_discord_http()
+        _setup_discord_logging()
+        assert logging.getLogger('discord.http').level == logging.DEBUG
+
+
+# ============================================================
 # _configure idempotency
 # ============================================================
 

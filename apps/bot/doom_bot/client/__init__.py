@@ -55,10 +55,13 @@ def _setup_discord_logging():
     bucket-resolution logic now lives as a foreign_pre_chain processor in doom_bot.logging.
     """
     import logging as _logging
+    from os import environ
 
     discord_http_logger = _logging.getLogger('discord.http')
     discord_http_logger.addHandler(PycordBridgeHandler())
-    discord_http_logger.setLevel(_logging.DEBUG)
+    # WARNING by default keeps rate-limit warnings visible while suppressing per-request DEBUG noise;
+    # DEBUG=1 opts back into the verbose http traces
+    discord_http_logger.setLevel(_logging.DEBUG if 'DEBUG' in environ else _logging.WARNING)
 
 
 def _load_event_handlers():
