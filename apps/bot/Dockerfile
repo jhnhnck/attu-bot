@@ -99,6 +99,9 @@ COPY --chown=doom:doom \
 COPY --chown=doom:doom ./tests $DOOM_HOME/tests
 COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
+# the host wrapper (`python scripts/run_tests.py`) re-enters via `docker compose run … tests scripts/run_tests.py …`, which makes docker exec the path directly; the repo commits the script at mode 644, so without +x the container fails to start.
+RUN chmod +x $DOOM_HOME/scripts/*.py $DOOM_HOME/scripts/*.sh
+
 # install dev deps for testing (runtime deps already in doombox)
 RUN --mount=type=cache,target=/root/.cache/ \
     uv sync --no-install-project --quiet;
