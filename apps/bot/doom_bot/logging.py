@@ -196,6 +196,9 @@ class AttubotLogger:
     def warn(self, *args: object, **kw: object) -> None:
         self._log.warning(_join(args), **kw)
 
+    # stdlib alias: callers that learned the name from python's logging module use `.warning`
+    warning = warn
+
     def error(self, *args: object, **kw: object) -> None:
         self._log.error(_join(args), **kw)
 
