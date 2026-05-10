@@ -22,15 +22,12 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### starboard
 
-- ⭕ `medium priority` `medium effort` bug: starboard doesn't render multiple images from messages with more than one attachment (from cowboy)
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
-- ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv.
 
 ### wiki
 
-- ⭕ `medium priority` `low effort` bug: wiki lookup pagination allows negative index via rapid button clicks — `_prev_callback`/`_next_callback` have no bounds check; the `disabled` state only rebuilds after the async wiki fetch, so concurrent clicks bypass it; corrupted index persists to db (from banarnar)
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
 
@@ -71,8 +68,6 @@ see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `n
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
-- ⭕ `low priority` `low effort` bug: `time_advance` passes `cfg.guild.id` to `scheduler.add_job` but `GuildConfig` has no `.guild` attr; should be `cfg.id` (`commands/time.py:34`)
-- ⭕ `low priority` `low effort` bug: pycord `DeprecationWarning` on python 3.13 — `asyncio.get_event_loop()` called without a running loop (`discord/client.py:250`); will break on a future python version. upstream issue, may need a pycord upgrade or workaround
 - ⭕ `low priority` `medium effort` make debug logging filterable; support filtering by module name matching `__name__` via env var
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
@@ -210,6 +205,8 @@ when an item is completed, move it to the `# completed` section under the approp
 
 when adding a new item, sort it into the appropriate section by topic, or add a new section if none fits. assign priority and effort tags. if the scope, priority, or effort is unclear, ask clarifying questions before adding. split larger projects into multiple entries.
 
+bugs go in `notes/bugs.md`, not here. this file is for features, refactors, audits, and other forward work; defects go to the bug log so the `bug-triage` skill can cut them.
+
 ### sections
 
 - **to-do** - active items grouped by area; sorted within each section by priority (high first)
@@ -220,6 +217,6 @@ when adding a new item, sort it into the appropriate section by topic, or add a 
 ### metadata
 
 ```yaml
-last_updated: 7 May 2026
+last_updated: 9 May 2026
 total_completed: 72
 ```
