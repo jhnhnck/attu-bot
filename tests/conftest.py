@@ -17,6 +17,14 @@ from pathlib import Path
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
+# configure logging before any repo import so module-level loggers see the right
+# handlers/processors. tests don't run an app entrypoint, so without this call
+# the first emit binds to structlog's default config instead of ours.
+from attu_logging import configure as _configure_logging
+
+
+_configure_logging()
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

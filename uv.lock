@@ -6,6 +6,7 @@ requires-python = "==3.13.*"
 members = [
     "attu-bot-workspace",
     "attu-chat",
+    "attu-logging",
     "attu-models",
     "attu-server",
     "doom-bot",
@@ -158,6 +159,7 @@ name = "attu-bot-workspace"
 version = "0"
 source = { virtual = "." }
 dependencies = [
+    { name = "attu-logging" },
     { name = "attu-models" },
     { name = "doom-bot" },
 ]
@@ -179,6 +181,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "attu-models", virtual = "packages/shared-models" },
     { name = "doom-bot", virtual = "apps/bot" },
 ]
@@ -206,6 +209,7 @@ dependencies = [
     { name = "aiohttp" },
     { name = "anthropic" },
     { name = "anyio" },
+    { name = "attu-logging" },
     { name = "attu-models" },
     { name = "httpx" },
     { name = "mwparserfromhell" },
@@ -223,6 +227,7 @@ requires-dist = [
     { name = "aiohttp" },
     { name = "anthropic" },
     { name = "anyio", specifier = ">=4.12.0" },
+    { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "attu-models", virtual = "packages/shared-models" },
     { name = "httpx" },
     { name = "mwparserfromhell" },
@@ -236,16 +241,29 @@ requires-dist = [
 ]
 
 [[package]]
+name = "attu-logging"
+version = "0.0.0"
+source = { virtual = "packages/attu-logging" }
+dependencies = [
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "structlog", specifier = ">=24.0.0" }]
+
+[[package]]
 name = "attu-models"
 version = "0.0.0"
 source = { virtual = "packages/shared-models" }
 dependencies = [
+    { name = "attu-logging" },
     { name = "pydantic" },
     { name = "pymongo" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "pydantic" },
     { name = "pymongo", specifier = ">=4.6.0" },
 ]
@@ -254,6 +272,12 @@ requires-dist = [
 name = "attu-server"
 version = "0.0.0"
 source = { virtual = "apps/server" }
+dependencies = [
+    { name = "attu-logging" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "attu-logging", virtual = "packages/attu-logging" }]
 
 [[package]]
 name = "backports-zstd"
@@ -672,6 +696,7 @@ source = { virtual = "apps/bot" }
 dependencies = [
     { name = "aiohttp" },
     { name = "anyio" },
+    { name = "attu-logging" },
     { name = "attu-models" },
     { name = "httpx" },
     { name = "hypercorn" },
@@ -690,6 +715,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp" },
     { name = "anyio", specifier = ">=4.12.0" },
+    { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "attu-models", virtual = "packages/shared-models" },
     { name = "httpx" },
     { name = "hypercorn", specifier = ">=0.16.0" },

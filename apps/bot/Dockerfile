@@ -24,7 +24,7 @@ ENV VIRTUAL_ENV="$DOOM_HOME/.venv"
 ENV PATH="$DOOM_HOME/.venv/bin:$PATH"
 # doom_bot lives at apps/bot/doom_bot, attu_models at packages/shared-models/attu_models;
 # both are workspace virtual packages (uv does not install them), so PYTHONPATH carries the import roots.
-ENV PYTHONPATH="$DOOM_HOME/apps/bot:$DOOM_HOME/packages/shared-models"
+ENV PYTHONPATH="$DOOM_HOME/apps/bot:$DOOM_HOME/packages/shared-models:$DOOM_HOME/packages/attu-logging"
 
 # setup runtime
 RUN mkdir -p $DOOM_HOME/
@@ -60,6 +60,7 @@ COPY --chown=doom:doom ./apps/bot/pyproject.toml $DOOM_HOME/apps/bot/pyproject.t
 COPY --chown=doom:doom ./apps/chat/pyproject.toml $DOOM_HOME/apps/chat/pyproject.toml
 COPY --chown=doom:doom ./apps/server/pyproject.toml $DOOM_HOME/apps/server/pyproject.toml
 COPY --chown=doom:doom ./packages/shared-models/pyproject.toml $DOOM_HOME/packages/shared-models/pyproject.toml
+COPY --chown=doom:doom ./packages/attu-logging/pyproject.toml $DOOM_HOME/packages/attu-logging/pyproject.toml
 
 # install all service dependencies
 RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
@@ -73,6 +74,7 @@ COPY --chown=doom:doom ./apps/bot/legacy_web $DOOM_HOME/apps/bot/legacy_web
 COPY --chown=doom:doom ./apps/bot/assets/hatch.toml $DOOM_HOME/apps/bot/assets/hatch.toml
 COPY --chown=doom:doom ./apps/bot/assets/static $DOOM_HOME/apps/bot/assets/static
 COPY --chown=doom:doom ./packages/shared-models/attu_models $DOOM_HOME/packages/shared-models/attu_models
+COPY --chown=doom:doom ./packages/attu-logging/attu_logging $DOOM_HOME/packages/attu-logging/attu_logging
 
 # stamp version and build time into __init__.py from git-info stage
 COPY --from=git-info --chown=doom:doom /src/apps/bot/doom_bot/__init__.py $DOOM_HOME/apps/bot/doom_bot/__init__.py

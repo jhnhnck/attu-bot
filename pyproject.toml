@@ -5,17 +5,19 @@ requires-python = "==3.13.*"
 dependencies = [
     "doom-bot",
     "attu-models",
+    "attu-logging",
 ]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["apps/bot", "apps/chat", "apps/server", "packages/shared-models"]
+members = ["apps/bot", "apps/chat", "apps/server", "packages/shared-models", "packages/attu-logging"]
 
 [tool.uv.sources]
 doom-bot = { workspace = true }
 attu-models = { workspace = true }
+attu-logging = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -98,7 +100,7 @@ skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
-known-first-party = ["doom_bot", "attu_models"]
+known-first-party = ["doom_bot", "attu_models", "attu_logging"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -106,7 +108,7 @@ convention = "google"
 [tool.basedpyright]
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
-extraPaths = ["scripts", "apps/bot", "packages/shared-models"]
+extraPaths = ["scripts", "apps/bot", "packages/shared-models", "packages/attu-logging"]
 reportOptionalOperand = false
 reportOptionalMemberAccess = false
 reportOptionalSubscript = false
@@ -124,7 +126,7 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
-pythonpath = ["scripts", "apps/bot", "packages/shared-models"]
+pythonpath = ["scripts", "apps/bot", "packages/shared-models", "packages/attu-logging"]
 addopts = "-v"
 asyncio_mode = "auto"
 # 10 seconds is generous for unit tests and tight enough to catch runaways.

@@ -2,12 +2,12 @@
 """doom_bot.eggs.emojis | egg emoji rendering and discord upload helpers."""
 
 import discord
+import structlog
 
 from doom_bot.client.logo import svg_to_png
-from doom_bot.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def render_egg(rarity: str) -> bytes:

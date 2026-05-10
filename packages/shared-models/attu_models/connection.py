@@ -8,14 +8,13 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import asyncio
 import contextlib
 
+import structlog
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import ConfigurationError, ConnectionFailure
 
-from doom_bot.logging import get_logger
 
-
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 _RETRY_DELAYS = (2.0, 4.0, 8.0)  # seconds between attempts 1→2, 2→3, 3→4
 

@@ -1,0 +1,13 @@
+[project]
+name = "attu-logging"
+version = "0.0.0"
+requires-python = "==3.13.*"
+# attu-logging is the workspace's structlog/stdlib bootstrap; depending only on
+# structlog keeps the package free of any project-local imports so shared-models
+# and the apps can all consume it without a workspace cycle.
+dependencies = [
+    "structlog>=24.0.0",
+]
+
+[tool.uv]
+package = false

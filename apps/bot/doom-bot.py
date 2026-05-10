@@ -10,13 +10,22 @@ Usage:
     python doom-bot.py web       # Launch the web interface
 """
 
-import sys
-import time
-import traceback
-from os import environ
+# configure logging before any repo import so module-level loggers see the right
+# handlers/processors. structlog caches logger config on first emit, so anything
+# that imports doom_bot.* before this line could end up bound to the default
+# console renderer instead of ours.
+from attu_logging import configure as _configure_logging
 
-from doom_bot import __build_time__
-from doom_bot.logging import get_logger
+
+_configure_logging()
+
+import sys  # noqa: E402 - configure must run before any other import
+import time  # noqa: E402 - configure must run before any other import
+import traceback  # noqa: E402 - configure must run before any other import
+from os import environ  # noqa: E402 - configure must run before any other import
+
+from doom_bot import __build_time__  # noqa: E402 - configure must run before any repo import
+from doom_bot.logging import get_logger  # noqa: E402 - configure must run before any repo import
 
 
 logger = get_logger(__name__)

@@ -5,6 +5,7 @@ requires-python = "==3.13.*"
 dependencies = [
     "aiohttp",
     "anyio>=4.12.0",
+    "attu-logging",
     "attu-models",
     "httpx",
     "hypercorn>=0.16.0",
@@ -23,4 +24,5 @@ dependencies = [
 package = false
 
 [tool.uv.sources]
+attu-logging = { workspace = true }
 attu-models = { workspace = true }

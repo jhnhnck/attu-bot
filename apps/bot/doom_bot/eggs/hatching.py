@@ -8,14 +8,14 @@ import uuid
 from datetime import date
 
 import discord
+import structlog
 
 from doom_bot.client.core import bot, config
 from doom_bot.database.models import EggDocument, EggUserDocument
 from doom_bot.database.repositories import EggRepository, EggUserRepository
-from doom_bot.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level repo singletons; wired by database/__init__.py
 _egg_repo: EggRepository | None = None
