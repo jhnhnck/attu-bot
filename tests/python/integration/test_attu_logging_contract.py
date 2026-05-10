@@ -168,3 +168,18 @@ class TestSharedModelsLoggerPath:
         assert captured[0]['event'] == 'hello from attu_models.connection'
         assert captured[0]['log_level'] == 'info'
         assert captured[0]['component'] == 'test'
+
+    def test_attu_models_repositories_logger_routes_through_structlog(self):
+        # phase-1 invariant: repositories.py was flipped from the wrapper to direct
+        # structlog. import smoke-tests the module-level `logger = structlog.stdlib.get_logger(__name__)`
+        # resolves; the capture confirms emits land in the configured pipeline.
+        import attu_models.repositories  # noqa: F401 - imported for the side effect of binding the module-level logger
+
+        log = structlog.stdlib.get_logger('attu_models.repositories')
+        with structlog.testing.capture_logs() as captured:
+            log.warning('repository warning under capture', emoji='dot.bad')
+
+        assert len(captured) == 1, f'expected 1 captured event, got {len(captured)}: {captured!r}'
+        assert captured[0]['event'] == 'repository warning under capture'
+        assert captured[0]['log_level'] == 'warning'
+        assert captured[0]['emoji'] == 'dot.bad'

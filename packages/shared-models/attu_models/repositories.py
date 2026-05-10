@@ -8,10 +8,9 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 import re
 from typing import TYPE_CHECKING
 
+import structlog
 from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
-
-from doom_bot.logging import get_logger
 
 from .documents import (
     ChatCharacterDocument,
@@ -36,7 +35,7 @@ from .documents import (
 if TYPE_CHECKING:
     from doom_bot.config import BotTheme, GuildConfig
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class ConfigRepository:
