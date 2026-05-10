@@ -179,6 +179,7 @@ class ReactionDocument(BaseModel):
     removed_at: int | None = None  # unix timestamp when soft-deleted
     source_message_id: int  # physical discord message where the reaction lives (pre-redirect)
     source_channel_id: int  # physical discord channel where the reaction lives (pre-redirect)
+    last_recounted_at: int | None = None  # unix timestamp; stamped on every point_value re-snapshot (watcher refresh, auditor recount). None means "never recounted; use reacted_at for the staleness predicate"
 
 
 class BoardEntryDocument(BaseModel):

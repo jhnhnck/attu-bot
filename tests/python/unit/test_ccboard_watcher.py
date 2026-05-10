@@ -268,6 +268,47 @@ async def test_same_emoji_re_react_phantom_recovery(make_guild_ccboard, entry_do
     refreshed = reaction_repo.upsert_active.call_args.args[0]
     assert refreshed.emoji_str == emoji_star
     assert refreshed.user_id == reactor_id
+    # phase 2.3: stamp last_recounted_at so the auditor's recount staleness predicate sees this fresh
+    assert refreshed.last_recounted_at is not None
+    assert refreshed.last_recounted_at == refreshed.reacted_at
+
+
+@pytest.mark.asyncio
+async def test_same_emoji_refresh_re_snapshots_point_value_after_weight_change(make_guild_ccboard, cfg, entry_doc, reaction_repo, _stub_remove_reaction):
+    """phase 2.3: when cfg weights changed after the original reaction, the same-emoji
+    refresh path re-snapshots point_value from current cfg and stamps last_recounted_at
+    so the auditor's staleness predicate skips this record on the next recount pass."""
+    existing = ReactionDocument(
+        message_id=message_id,
+        user_id=reactor_id,
+        guild_id=test_guild,
+        author_id=author_id,
+        emoji_str=emoji_star,
+        is_super=False,
+        point_value=1,  # snapshot from before the weight bump
+        reacted_at=1,
+        removed=False,
+        removed_at=None,
+        source_message_id=message_id,
+        source_channel_id=channel_id,
+        last_recounted_at=None,
+    )
+    reaction_repo.get_active.return_value = existing
+    cfg.emojis[emoji_star] = 7  # admin bumped the weight via the web UI
+
+    await watcher.handle_reaction_add(
+        guild_id=test_guild,
+        channel_id=channel_id,
+        message_id=message_id,
+        user_id=reactor_id,
+        emoji_str=emoji_star,
+        is_burst=False,
+        is_bot=False,
+    )
+
+    refreshed = reaction_repo.upsert_active.call_args.args[0]
+    assert refreshed.point_value == 7
+    assert refreshed.last_recounted_at is not None
 
 
 @pytest.mark.asyncio

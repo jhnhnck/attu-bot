@@ -193,6 +193,7 @@ class GuildCCBoard(BaseModel):
     points_label: str = 'stars'  # display name for points in the post content string
     positive_color: str = '#EEDD20'  # embed color when net_points > 0
     negative_color: str = '#DD2020'  # embed color when net_points <= 0
+    weights_updated_at: int = 0  # unix timestamp; bumped by the web save handler when emojis or super_bonus change. drives the auditor's recount staleness predicate
 
 
 class GuildConfig(BaseModel):

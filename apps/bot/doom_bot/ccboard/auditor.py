@@ -162,8 +162,43 @@ class _ReconcileDiff:
     to_strip_from_discord: list[_LiveReaction] = field(default_factory=list)
     # users with multiple live rows; the extras would be auto-removed from discord
     to_strip_extras: list[_LiveReaction] = field(default_factory=list)
+    # users in both with matching emoji+super, but the db record's freshness predates
+    # cfg.weights_updated_at — re-snapshot point_value with current weights and stamp last_recounted_at
+    to_recount: list[ReactionDocument] = field(default_factory=list)
     # users in both with matching emoji+super — no change needed (counted, not enumerated)
     matching_count: int = 0
+
+
+def _is_stale(db_row: ReactionDocument, weights_updated_at: int) -> bool:
+    """staleness predicate (option B+, phase 2.1 verdict).
+
+    a record is stale when its last point_value snapshot predates the most recent
+    config weight change. None last_recounted_at falls back to reacted_at — the
+    record was snapshotted at reaction time and never re-snapshotted.
+    weights_updated_at == 0 short-circuits to "never stale" so guilds that have
+    not changed weights since the field was added pay no recount cost.
+    """
+    if weights_updated_at <= 0:
+        return False
+    effective = db_row.last_recounted_at if db_row.last_recounted_at is not None else db_row.reacted_at
+    return effective < weights_updated_at
+
+
+def _classify_existing_match(
+    diff: _ReconcileDiff,
+    *,
+    live_row: _LiveReaction,
+    db_row: ReactionDocument,
+    weights_updated_at: int,
+) -> None:
+    """one user is in both live and db: place them in to_replace, to_recount, or matching"""
+    if db_row.emoji_str == live_row.emoji_str and db_row.is_super == live_row.is_super:
+        if _is_stale(db_row, weights_updated_at):
+            diff.to_recount.append(db_row)
+        else:
+            diff.matching_count += 1
+        return
+    diff.to_replace.append((live_row, db_row))
 
 
 def _compute_diff(
@@ -172,6 +207,7 @@ def _compute_diff(
     db_active: dict[int, ReactionDocument],
     credited_author_id: int,
     partial: bool,
+    weights_updated_at: int = 0,
 ) -> _ReconcileDiff:
     """pure function: compare live discord state to db state.
 
@@ -179,6 +215,11 @@ def _compute_diff(
     apply mode use the diff as the mutation plan. partial=True suppresses
     `to_remove` so missing-from-live records (which might be missing only
     because pagination failed) are not soft-deleted.
+
+    weights_updated_at drives the recount staleness predicate (phase 2.3 /
+    option B+). matching records whose effective freshness predates this
+    timestamp move from `matching_count` to `to_recount` so the apply path
+    re-snapshots `point_value`.
     """
     diff = _ReconcileDiff()
 
@@ -199,16 +240,13 @@ def _compute_diff(
         else:
             valid_live[user_id] = row
 
-    # diff per user: add / replace / matching
+    # diff per user: add (new), or hand off to _classify_existing_match
     for user_id, live_row in valid_live.items():
         db_row = db_active.get(user_id)
         if db_row is None:
             diff.to_add.append(live_row)
             continue
-        if db_row.emoji_str == live_row.emoji_str and db_row.is_super == live_row.is_super:
-            diff.matching_count += 1
-            continue
-        diff.to_replace.append((live_row, db_row))
+        _classify_existing_match(diff, live_row=live_row, db_row=db_row, weights_updated_at=weights_updated_at)
 
     # remove side — only when not partial
     if not partial:
@@ -226,6 +264,7 @@ def _summarize_diff(diff: _ReconcileDiff, *, partial: bool, dry_run: bool, messa
         f'add={len(diff.to_add)}',
         f'replace={len(diff.to_replace)}',
         f'remove={len(diff.to_remove)}',
+        f'recount={len(diff.to_recount)}',
         f'match={diff.matching_count}',
         f'strip_invalid={len(diff.to_strip_from_discord)}',
         f'strip_extras={len(diff.to_strip_extras)}',
@@ -242,6 +281,7 @@ def _diff_details(diff: _ReconcileDiff, *, partial: bool) -> dict:
         'add': len(diff.to_add),
         'replace': len(diff.to_replace),
         'remove': len(diff.to_remove),
+        'recount': len(diff.to_recount),
         'match': diff.matching_count,
         'strip_invalid': len(diff.to_strip_from_discord),
         'strip_extras': len(diff.to_strip_extras),
@@ -318,6 +358,30 @@ async def _apply_diff(
     for db_row in diff.to_remove:
         await reaction_repo.soft_delete(entry.message_id, db_row.user_id, expected_emoji=db_row.emoji_str, now=now)
 
+    # recounts — same emoji/is_super as the existing record, fresh point_value from current cfg,
+    # last_recounted_at stamped to now. structurally a soft-delete + upsert under the same
+    # (message, user) unique key, identical to the replace bucket but without changing emoji.
+    for db_row in diff.to_recount:
+        new_point_value = cfg.emojis[db_row.emoji_str] + (cfg.super_bonus if db_row.is_super else 0)
+        await reaction_repo.soft_delete(entry.message_id, db_row.user_id, expected_emoji=db_row.emoji_str, now=now)
+        await reaction_repo.upsert_active(
+            ReactionDocument(
+                message_id=entry.message_id,
+                user_id=db_row.user_id,
+                guild_id=entry.guild_id,
+                author_id=entry.author_id,
+                emoji_str=db_row.emoji_str,
+                is_super=db_row.is_super,
+                point_value=new_point_value,
+                reacted_at=db_row.reacted_at,
+                removed=False,
+                removed_at=None,
+                source_message_id=db_row.source_message_id,
+                source_channel_id=db_row.source_channel_id,
+                last_recounted_at=now,
+            )
+        )
+
     # discord-side strips: invalid live rows (bot/self) and one-vote extras
     for live in diff.to_strip_from_discord:
         await _safe_remove_reaction(entry.channel_id, entry.message_id, live.user_id, live.emoji_str)
@@ -391,10 +455,16 @@ class AuditorTask(BaseTask):
             db_active: dict[int, ReactionDocument] = {row.user_id: row for row in db_active_list}
 
             credited = _credited_author_id(entry)
-            diff = _compute_diff(live_rows=live_rows, db_active=db_active, credited_author_id=credited, partial=partial)
+            diff = _compute_diff(
+                live_rows=live_rows,
+                db_active=db_active,
+                credited_author_id=credited,
+                partial=partial,
+                weights_updated_at=cfg.weights_updated_at,
+            )
             details = _diff_details(diff, partial=partial)
 
-            no_change = not diff.to_add and not diff.to_replace and not diff.to_remove and not diff.to_strip_from_discord and not diff.to_strip_extras
+            no_change = not diff.to_add and not diff.to_replace and not diff.to_remove and not diff.to_recount and not diff.to_strip_from_discord and not diff.to_strip_extras
 
             if dry_run or no_change:
                 summary = _summarize_diff(diff, partial=partial, dry_run=True, message_id=message_id)
@@ -426,19 +496,24 @@ class AuditorTask(BaseTask):
         )
 
     async def recount_entry(self, guild_id: int, message_id: int, *, dry_run: bool = True) -> PassResult:
-        """phase 2.3 placeholder: re-snapshot point_value for stale records.
+        """thin wrapper around `reconcile_entry` (phase 2.3, option B+).
 
-        per the phase 2.1 verdict (option B+), recount is targeted via the
-        staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at`.
-        the data-model fields (`ReactionDocument.last_recounted_at`,
-        `GuildCCBoard.weights_updated_at`) and the watcher stamp land in
-        phase 2.3 alongside the implementation.
+        recount is no longer a separate codepath. `reconcile_entry` always
+        consults `cfg.weights_updated_at`, and stale records (those whose
+        `(last_recounted_at or reacted_at) < cfg.weights_updated_at`) flow
+        through the `to_recount` bucket inside the existing diff. callers
+        that only care about recount semantics can call this method instead
+        of `reconcile_entry`; the only difference is the `kind` tag on the
+        returned `PassResult`, which keeps the slash-command response
+        readable.
         """
-        logger.info(f'ccboard auditor: recount_entry stub for guild={guild_id} message={message_id} dry_run={dry_run}')
+        result = await self.reconcile_entry(guild_id, message_id, dry_run=dry_run)
         return PassResult(
             kind='recount_entry',
-            dry_run=dry_run,
-            summary='stub: per-entry recount is phase 2.3; semantic approved (option B+)',
+            dry_run=result.dry_run,
+            mutated=result.mutated,
+            summary=result.summary,
+            details=result.details,
         )
 
     async def discover_guild(self, guild_id: int, *, dry_run: bool = True) -> PassResult:

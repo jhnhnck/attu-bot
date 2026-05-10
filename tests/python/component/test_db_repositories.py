@@ -120,6 +120,7 @@ def _make_guild_config(guild_id: int = 1111111111):
             points_label='points',
             positive_color='#00ff00',
             negative_color='#ff0000',
+            weights_updated_at=1735689600,  # 2025-01-01 00:00:00 UTC
         ),
     )
 
@@ -238,6 +239,7 @@ class TestConfigRepositoryGuild:
         assert reloaded.ccboard.points_label == 'points'
         assert reloaded.ccboard.positive_color == '#00ff00'
         assert reloaded.ccboard.negative_color == '#ff0000'
+        assert reloaded.ccboard.weights_updated_at == 1735689600
 
 
 class TestConfigRepositoryTheme:

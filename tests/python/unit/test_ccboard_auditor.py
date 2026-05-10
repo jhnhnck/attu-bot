@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """tests.python.unit.test_ccboard_auditor | unit tests for the ccboard auditor task.
 
-phase 2.2 implementation: covers `_compute_diff` (pure) and `reconcile_entry`
-(mocked end-to-end). later-phase passes (recount, discover, cleanup_orphans)
-remain stubs and are exercised at the PassResult-shape level only.
+phase 2.2 covered `_compute_diff` (pure) and `reconcile_entry` (mocked
+end-to-end). phase 2.3 layered the recount staleness predicate (`_is_stale`),
+the `to_recount` bucket on `_ReconcileDiff`, and `recount_entry` as a thin
+wrapper. later-phase passes (discover, cleanup_orphans) remain stubs.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -25,6 +26,7 @@ from doom_bot.ccboard.auditor import (
     AuditorTask,
     PassResult,
     _compute_diff,
+    _is_stale,
     _LiveReaction,
     auditor_task,
 )
@@ -137,7 +139,15 @@ def _live(user_id: int, emoji: str, *, is_super: bool = False, is_bot_reactor: b
     return _LiveReaction(user_id=user_id, emoji_str=emoji, is_super=is_super, is_bot_reactor=is_bot_reactor)
 
 
-def _db_reaction(user_id: int, emoji: str, *, is_super: bool = False, point_value: int = 1) -> ReactionDocument:
+def _db_reaction(
+    user_id: int,
+    emoji: str,
+    *,
+    is_super: bool = False,
+    point_value: int = 1,
+    reacted_at: int = 1704067200,
+    last_recounted_at: int | None = None,
+) -> ReactionDocument:
     return ReactionDocument(
         message_id=message_id,
         user_id=user_id,
@@ -146,9 +156,10 @@ def _db_reaction(user_id: int, emoji: str, *, is_super: bool = False, point_valu
         emoji_str=emoji,
         is_super=is_super,
         point_value=point_value,
-        reacted_at=1704067200,
+        reacted_at=reacted_at,
         source_message_id=message_id,
         source_channel_id=channel_id,
+        last_recounted_at=last_recounted_at,
     )
 
 
@@ -270,6 +281,84 @@ class TestComputeDiff:
         assert diff.to_add[0].emoji_str == emoji_star
         assert len(diff.to_strip_extras) == 1
         assert diff.to_strip_extras[0].emoji_str == emoji_fire
+
+    def test_recount_when_match_is_stale(self):
+        """matching record whose effective freshness predates weights_updated_at moves to to_recount"""
+        stale = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None)
+        diff = _compute_diff(
+            live_rows=[_live(reactor_a, emoji_star)],
+            db_active={reactor_a: stale},
+            credited_author_id=author_id,
+            partial=False,
+            weights_updated_at=200,
+        )
+        assert diff.matching_count == 0
+        assert len(diff.to_recount) == 1
+        assert diff.to_recount[0] is stale
+
+    def test_recount_skipped_when_last_recounted_after_bump(self):
+        """last_recounted_at >= weights_updated_at keeps the record in matching_count"""
+        fresh = _db_reaction(reactor_a, emoji_star, reacted_at=50, last_recounted_at=300)
+        diff = _compute_diff(
+            live_rows=[_live(reactor_a, emoji_star)],
+            db_active={reactor_a: fresh},
+            credited_author_id=author_id,
+            partial=False,
+            weights_updated_at=200,
+        )
+        assert diff.matching_count == 1
+        assert diff.to_recount == []
+
+    def test_recount_zero_weights_updated_at_short_circuits(self):
+        """weights_updated_at == 0 keeps every match counted; no recount work done"""
+        old = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=None)
+        diff = _compute_diff(
+            live_rows=[_live(reactor_a, emoji_star)],
+            db_active={reactor_a: old},
+            credited_author_id=author_id,
+            partial=False,
+            weights_updated_at=0,
+        )
+        assert diff.matching_count == 1
+        assert diff.to_recount == []
+
+    def test_recount_does_not_fire_for_replace(self):
+        """a record being replaced (different emoji) skips the recount path; replace already snapshots fresh point_value"""
+        stale = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None)
+        diff = _compute_diff(
+            live_rows=[_live(reactor_a, emoji_fire)],
+            db_active={reactor_a: stale},
+            credited_author_id=author_id,
+            partial=False,
+            weights_updated_at=200,
+        )
+        assert len(diff.to_replace) == 1
+        assert diff.to_recount == []
+
+
+class TestIsStale:
+    def test_zero_updated_at_means_never_stale(self):
+        rec = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=None)
+        assert _is_stale(rec, weights_updated_at=0) is False
+
+    def test_negative_updated_at_treated_as_zero(self):
+        rec = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=None)
+        assert _is_stale(rec, weights_updated_at=-5) is False
+
+    def test_falls_back_to_reacted_at_when_no_recount(self):
+        rec = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None)
+        assert _is_stale(rec, weights_updated_at=200) is True
+        assert _is_stale(rec, weights_updated_at=99) is False
+
+    def test_uses_last_recounted_at_when_set(self):
+        """last_recounted_at overrides reacted_at — newer recount means fresh even if reacted_at is old"""
+        rec = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=300)
+        assert _is_stale(rec, weights_updated_at=200) is False
+
+    def test_equal_timestamp_is_fresh(self):
+        """strict less-than: a record stamped at exactly weights_updated_at is considered fresh"""
+        rec = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=200)
+        assert _is_stale(rec, weights_updated_at=200) is False
 
 
 # --- reconcile_entry tests ---
@@ -429,6 +518,77 @@ class TestReconcileEntry:
         # nothing valid was added, so no upsert
         reaction_repo.upsert_active.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_dry_run_reports_recount_when_weights_updated(self, task, make_guild_ccboard, fake_discord_msg, patch_fetch_message, reaction_repo):
+        """live and db match but the db record predates weights_updated_at: dry-run reports recount=1, no mutation"""
+        make_guild_ccboard.ccboard.weights_updated_at = 9_999_999_999
+        stale_db = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None)
+        patch_fetch_message(fake_discord_msg([(emoji_star, [_user(reactor_a)], False)]))
+        reaction_repo.list_for_message = AsyncMock(return_value=[stale_db])
+
+        result = await task.reconcile_entry(guild_id, message_id, dry_run=True)
+        assert result.dry_run is True
+        assert result.mutated is False
+        assert 'recount=1' in result.summary
+        assert 'match=0' in result.summary
+        reaction_repo.upsert_active.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_apply_path_recounts_stale_match_with_fresh_point_value(self, task, make_guild_ccboard, fake_discord_msg, patch_fetch_message, reaction_repo, entry_repo, stub_safe_remove):
+        """confirm=True with a stale match: soft-delete + upsert under same emoji with current cfg point_value, last_recounted_at stamped"""
+        # bump star weight to 5; existing record has point_value 1 from before the bump
+        make_guild_ccboard.ccboard.emojis[emoji_star] = 5
+        make_guild_ccboard.ccboard.weights_updated_at = 9_999_999_999
+        stale_db = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None, point_value=1)
+        patch_fetch_message(fake_discord_msg([(emoji_star, [_user(reactor_a)], False)]))
+        reaction_repo.list_for_message = AsyncMock(return_value=[stale_db])
+        reaction_repo.aggregate_points = AsyncMock(return_value=(5, 5))
+
+        result = await task.reconcile_entry(guild_id, message_id, dry_run=False)
+
+        assert result.mutated is True
+        assert 'APPLIED' in result.summary
+        assert 'recount=1' in result.summary
+        # soft-delete called against the existing emoji
+        reaction_repo.soft_delete.assert_awaited_once()
+        # upsert called once with the new point_value
+        upserted: ReactionDocument = reaction_repo.upsert_active.await_args.args[0]
+        assert upserted.user_id == reactor_a
+        assert upserted.emoji_str == emoji_star
+        assert upserted.point_value == 5  # cfg.emojis[emoji_star] (5) + super_bonus * 0
+        assert upserted.last_recounted_at is not None
+        assert upserted.reacted_at == 100  # original reaction time preserved
+        entry_repo.set_points.assert_awaited_once_with(message_id, net_points=5, positive_points=5)
+
+
+class TestRecountEntryWrapper:
+    """`recount_entry` is a thin wrapper around `reconcile_entry` that retags the kind."""
+
+    @pytest.mark.asyncio
+    async def test_returns_kind_recount_entry(self, task, make_guild_ccboard, fake_discord_msg, patch_fetch_message, reaction_repo):
+        patch_fetch_message(fake_discord_msg([(emoji_star, [_user(reactor_a)], False)]))
+        reaction_repo.list_for_message = AsyncMock(return_value=[])
+
+        result = await task.recount_entry(guild_id, message_id, dry_run=True)
+        assert result.kind == 'recount_entry'
+        assert result.dry_run is True
+        assert result.mutated is False
+
+    @pytest.mark.asyncio
+    async def test_propagates_apply_path_through_to_reconcile(self, task, make_guild_ccboard, fake_discord_msg, patch_fetch_message, reaction_repo, entry_repo, stub_safe_remove):
+        """confirm=True via recount_entry should mutate identically to reconcile_entry"""
+        make_guild_ccboard.ccboard.weights_updated_at = 9_999_999_999
+        stale_db = _db_reaction(reactor_a, emoji_star, reacted_at=100, last_recounted_at=None, point_value=1)
+        patch_fetch_message(fake_discord_msg([(emoji_star, [_user(reactor_a)], False)]))
+        reaction_repo.list_for_message = AsyncMock(return_value=[stale_db])
+        reaction_repo.aggregate_points = AsyncMock(return_value=(1, 1))
+
+        result = await task.recount_entry(guild_id, message_id, dry_run=False)
+        assert result.kind == 'recount_entry'
+        assert result.mutated is True
+        assert 'recount=1' in result.summary
+        reaction_repo.upsert_active.assert_awaited_once()
+
 
 # --- Singleton / scheduler-wiring guards ---
 
@@ -460,14 +620,6 @@ async def test_reconcile_guild_returns_stub():
     assert result.dry_run is True
     assert result.mutated is False
     assert 'phase 2.4' in result.summary
-
-
-@pytest.mark.asyncio
-async def test_recount_entry_advertises_phase_dependency():
-    result = await auditor_task.recount_entry(guild_id, message_id)
-    assert result.kind == 'recount_entry'
-    assert 'phase 2.3' in result.summary
-    assert result.mutated is False
 
 
 @pytest.mark.asyncio

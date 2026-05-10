@@ -517,6 +517,86 @@ class TestPatchRolesAPI:
         assert response.status_code == 400
 
 
+class TestPatchCCBoardWeightsBump:
+    """phase 2.3: PATCH /api/guilds/<id>/ccboard bumps weights_updated_at when
+    emojis or super_bonus actually change, and preserves the existing value
+    otherwise. drives the auditor's recount staleness predicate.
+    """
+
+    @pytest.mark.asyncio
+    async def test_unchanged_weights_preserve_timestamp(self, client):
+        from doom_bot.web.app import config
+
+        guild = config.guilds[test_guild]
+        guild.ccboard.emojis = {'⭐': 1}
+        guild.ccboard.super_bonus = 1
+        guild.ccboard.weights_updated_at = 1700000000
+
+        payload = {
+            'enabled': guild.ccboard.enabled,
+            'channel_id': guild.ccboard.channel_id,
+            'emojis': {'⭐': 1},
+            'super_bonus': 1,
+            'threshold': guild.ccboard.threshold,
+            'points_label': guild.ccboard.points_label,
+            'positive_color': guild.ccboard.positive_color,
+            'negative_color': guild.ccboard.negative_color,
+        }
+        response = await client.patch(f'/api/guilds/{test_guild}/ccboard', json=payload)
+        assert response.status_code == 200
+
+        assert config.guilds[test_guild].ccboard.weights_updated_at == 1700000000
+
+    @pytest.mark.asyncio
+    async def test_changed_emojis_bump_timestamp(self, client):
+        from doom_bot.web.app import config
+
+        guild = config.guilds[test_guild]
+        guild.ccboard.emojis = {'⭐': 1}
+        guild.ccboard.super_bonus = 1
+        guild.ccboard.weights_updated_at = 1700000000
+
+        payload = {
+            'enabled': guild.ccboard.enabled,
+            'channel_id': guild.ccboard.channel_id,
+            'emojis': {'⭐': 5},  # weight changed
+            'super_bonus': 1,
+            'threshold': guild.ccboard.threshold,
+            'points_label': guild.ccboard.points_label,
+            'positive_color': guild.ccboard.positive_color,
+            'negative_color': guild.ccboard.negative_color,
+        }
+        response = await client.patch(f'/api/guilds/{test_guild}/ccboard', json=payload)
+        assert response.status_code == 200
+
+        new_ts = config.guilds[test_guild].ccboard.weights_updated_at
+        assert new_ts > 1700000000
+
+    @pytest.mark.asyncio
+    async def test_changed_super_bonus_bumps_timestamp(self, client):
+        from doom_bot.web.app import config
+
+        guild = config.guilds[test_guild]
+        guild.ccboard.emojis = {'⭐': 1}
+        guild.ccboard.super_bonus = 1
+        guild.ccboard.weights_updated_at = 1700000000
+
+        payload = {
+            'enabled': guild.ccboard.enabled,
+            'channel_id': guild.ccboard.channel_id,
+            'emojis': {'⭐': 1},
+            'super_bonus': 3,  # bonus changed
+            'threshold': guild.ccboard.threshold,
+            'points_label': guild.ccboard.points_label,
+            'positive_color': guild.ccboard.positive_color,
+            'negative_color': guild.ccboard.negative_color,
+        }
+        response = await client.patch(f'/api/guilds/{test_guild}/ccboard', json=payload)
+        assert response.status_code == 200
+
+        assert config.guilds[test_guild].ccboard.weights_updated_at > 1700000000
+
+
 # ========== SSR Helper Tests ==========
 
 
@@ -1019,6 +1099,7 @@ class TestAuditLogAPI:
 
         # Reset the mock for other tests
         config.guilds[test_guild].save.side_effect = None
+
 
 # ========== Error Handling Tests ==========
 

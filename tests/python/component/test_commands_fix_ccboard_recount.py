@@ -203,6 +203,42 @@ class TestFixCCBoardRecount:
         assert entry.positive_points == 1
         assert entry.is_dirty is True
 
+    async def test_apply_path_recounts_stale_record_with_fresh_point_value(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
+        """phase 2.3: a record predating cfg.weights_updated_at is re-snapshotted with current cfg point_value and stamped"""
+        from doom_bot.ccboard import auditor as auditor_mod
+        from doom_bot.ccboard import watcher as watcher_mod
+        from doom_bot.commands.fix import fix_ccboard_recount
+
+        # seed: existing reaction snapshotted with the old weight, weights_updated_at later than the seed's reacted_at
+        await fix_cc_repos['entry'].upsert(_entry())
+        await fix_cc_repos['reaction'].upsert_active(_reaction(reactor_a, point_value=1))
+        # bump star weight in cfg AFTER the reaction was recorded; mirrors a web save handler bump
+        fix_cc_repos['cfg'].ccboard.emojis[emoji_star] = 7
+        fix_cc_repos['cfg'].ccboard.weights_updated_at = 9_999_999_999
+
+        async def _fake_fetch(*_a, **_kw):
+            return _discord_msg_with([(emoji_star, [_user_mock(reactor_a)], False)])
+
+        monkeypatch.setattr(auditor_mod, '_fetch_discord_message', _fake_fetch)
+        monkeypatch.setattr(watcher_mod, '_safe_remove_reaction', AsyncMock(return_value=True))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id}'
+
+        await fix_ccboard_recount(ctx, message_link=link, confirm=True)
+
+        # exactly one active reaction; point_value reflects the new weight; last_recounted_at stamped
+        live_reactions = await fix_cc_repos['reaction'].list_for_message(msg_id, include_removed=False)
+        assert len(live_reactions) == 1
+        assert live_reactions[0].point_value == 7
+        assert live_reactions[0].last_recounted_at is not None
+
+        # entry net_points reflects the recounted weight
+        entry = await fix_cc_repos['entry'].get(msg_id)
+        assert entry is not None
+        assert entry.net_points == 7
+        assert any('recount=1' in r['args'][0] for r in ctx._responses)
+
     async def test_apply_path_strips_self_and_bot_via_safe_remove(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """author and bot reactors trigger _safe_remove_reaction during apply, never get added to the db"""
         from doom_bot.ccboard import auditor as auditor_mod

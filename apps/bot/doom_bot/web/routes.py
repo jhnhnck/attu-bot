@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """doom_bot.web.routes | web routes."""
 
+import time
+
 from pydantic import ValidationError
 from quart import Quart, Response, jsonify, redirect, render_template, request, session
 
@@ -402,7 +404,12 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
 
             validated = GuildCCBoardForm(**form_data)
             old_section = guild.ccboard.model_dump()
-            guild.ccboard = GuildCCBoard(**validated.model_dump())
+            new_ccboard = GuildCCBoard(**validated.model_dump())
+            # the form only carries user-facing fields; preserve weights_updated_at and bump it
+            # when the weights themselves changed, so the auditor's recount staleness predicate fires
+            weights_changed = old_section.get('emojis') != new_ccboard.emojis or old_section.get('super_bonus') != new_ccboard.super_bonus
+            new_ccboard.weights_updated_at = int(time.time()) if weights_changed else old_section.get('weights_updated_at', 0)
+            guild.ccboard = new_ccboard
             await guild.save()
             await send_signal('guild', guild_id)
 
@@ -568,7 +575,12 @@ def register_routes(app: Quart):  # noqa: PLR0915 - route registration defines m
             guild.roles = GuildRoles(**validated.roles.model_dump())
             guild.users = GuildUsers(**validated.users.model_dump())
             guild.starboard = GuildStarboard(**validated.starboard.model_dump())
-            guild.ccboard = GuildCCBoard(**validated.ccboard.model_dump())
+            new_ccboard_full = GuildCCBoard(**validated.ccboard.model_dump())
+            # mirror the per-section bump; the form does not carry weights_updated_at
+            old_cc_section = old_config['ccboard']
+            cc_weights_changed = old_cc_section.get('emojis') != new_ccboard_full.emojis or old_cc_section.get('super_bonus') != new_ccboard_full.super_bonus
+            new_ccboard_full.weights_updated_at = int(time.time()) if cc_weights_changed else old_cc_section.get('weights_updated_at', 0)
+            guild.ccboard = new_ccboard_full
 
             # Save to database
             await guild.save()

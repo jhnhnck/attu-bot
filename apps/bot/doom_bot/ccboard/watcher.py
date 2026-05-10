@@ -380,7 +380,11 @@ async def handle_reaction_add(  # noqa: PLR0911 - early returns mirror the 10-st
         # step 8 - one-vote enforcement
         if existing is not None and existing.emoji_str == emoji_str:
             # same-emoji re-react: refresh in place. discord already enforces one
-            # reaction-per-emoji-per-user so no removal is needed.
+            # reaction-per-emoji-per-user so no removal is needed. point_value is
+            # re-snapshotted from current cfg (may differ from existing.point_value
+            # if cfg.emojis weights changed since last reaction); stamp
+            # last_recounted_at so the auditor's recount staleness predicate sees
+            # this record as fresh.
             refreshed = ReactionDocument(
                 message_id=real_message_id,
                 user_id=user_id,
@@ -394,6 +398,7 @@ async def handle_reaction_add(  # noqa: PLR0911 - early returns mirror the 10-st
                 removed_at=None,
                 source_message_id=source_message_id,
                 source_channel_id=source_channel_id,
+                last_recounted_at=now,
             )
             await reaction_repo.upsert_active(refreshed)
             await _recompute_and_mark(real_message_id, now=now)

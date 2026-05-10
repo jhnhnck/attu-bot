@@ -745,7 +745,7 @@ async def fix_ccboard_recover(ctx: ApplicationContext):
     await ctx.respond(f'auditor.discover_guild: {result.summary}', ephemeral=True)
 
 
-@fix_ccboard.command(name='recount', description='Reconcile ccboard reactions against live Discord state (per-entry; pass a message_link)')
+@fix_ccboard.command(name='recount', description='Reconcile and recount ccboard reactions against live Discord state (per-entry; pass a message_link)')
 @commands.check(is_bot_owner)
 @discord.commands.option(name='message_link', required=False, default=None, description='Discord message link to reconcile; omit for guild-wide stub', input_type=str)
 @discord.commands.option(name='confirm', required=False, default=False, description='When true, applies the diff; default is dry-run', input_type=bool)
