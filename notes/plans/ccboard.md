@@ -92,6 +92,14 @@ These came from the deferred items I added to `notes/to-do.md` under the ccboard
 15. Partial-pagination degradation has unit-test coverage only. `_collect_live_reactions` raises `partial=True` on any `reaction.users()` failure or mid-stream pagination loss; `_compute_diff` then suppresses removes globally. The behavior is unit-tested, but the production codepath against a real flaky discord reaction stream is never exercised.
 16. Single flaky emoji blocks all soft-deletes on an entry. `partial=True` from any one emoji's `reaction.users()` failure suppresses removes for **every** emoji on the entry, not just the failing one. Conservative; in practice partial=True is rare. Phantom-vote cleanup for healthy emojis is then deferred until the next reconcile run.
 
+#### Surfaced during phase 2.3 (added 2026-05-10)
+
+17. Per-record `point_value` before/after delta logging missing. `_apply_diff` logs only the aggregate `recount=N` summary line; the phase 2.3 DoD called for per-record before/after deltas. Operators can reconstruct the deltas by running `/debug ccboard show_reactions` before and after, but that is clunky.
+18. `/debug ccboard show_reactions` does not display `last_recounted_at`. `point_value` and `reacted_at` are shown; the new field is silently omitted. Without it, an operator running the recount path cannot easily verify a specific record was re-snapshotted.
+19. `_compute_diff` is at the `PLR0912` 12-branch ceiling. Phase 2.3 reached the limit and extracted `_classify_existing_match` to stay under; any future bucket addition (orphan signals from phase 2.5, future predicates) forces another extraction or a `noqa: PLR0912 — <reason>`.
+20. Web save bump logic duplicated. The `weights_updated_at` preserve-or-bump block (≈6 lines) appears in both `PATCH /api/guilds/<id>/ccboard` and the whole-config endpoint. If a third user-hidden field requires the same dance, extract a helper.
+21. Pre-existing import-sort error in `tests/python/unit/test_run_tests.py` fails `ruff check` against the whole repo. Predates phase 2.3; auto-fixable via `ruff check --fix` (one blank line). Visible in any phase-level lint sweep.
+
 ### Triage (2026-05-07)
 
 ```
@@ -127,6 +135,24 @@ These came from the deferred items I added to `notes/to-do.md` under the ccboard
 - **Items #13, #14, #15, #16 all share one root: the auditor's apply path landed without a real-discord integration check.** They are not a phase-level rewrite signal — the unit-test contract is solid — they are a phase-2-ship-gate signal. Hand to `plan-revise`: add a "live discord smoke check" line item to the phase-2 ship gate (today's `## ship readiness — ccboard phase 1` section needs a phase-2 sibling) covering: concurrent watcher+auditor on the same message (#13), `_safe_remove_reaction` failure path (#14), partial-pagination from a real flaky stream (#15), and per-emoji partial isolation (#16). One ship-gate checklist item, not four code patches.
 - **#6 is now structurally split across phases 2.2 and 2.4.** Per-entry recount surface shipped early; guild-wide discovery is still 2.4. Plan-revise should annotate the split so the eventual "ship readiness for phase 2" entry doesn't double-count this.
 - **#9 narrowed.** The retro showed phase 2.2's `_compute_diff` already carries the structure recount needs (a "replace with same emoji + fresh point_value" path is the existing replace bucket). Plan-revise should narrow phase 2.3's scope to (a) data-model adds, (b) config bump, (c) watcher stamp, (d) staleness-predicate bucket folded into reconcile_entry — *not* a parallel codepath.
+
+### Triage (2026-05-10) — phase 2.3 retro
+
+```
+- [important] #6  phase 2 auditor (recover/recount)     → fix-in-phase-2.4 · per-entry recount delivered in 2.3 (was per-entry reconcile in 2.2); only guild-wide reconcile + scoped discovery left for 2.4. unchanged from prior triage
+- [important] #9  retroactive emoji-weight recalc       → fix-in-phase-2.4 · per-entry path delivered in 2.3 (watcher refresh + /fix ccboard recount <link> confirm:True); guild-wide bulk recount across all entries folds into 2.4's reconcile_guild for free since it iterates per-entry. only the bulk surface remains
+- [nit]       #17 per-record point_value delta logging  → defer · land as patch(ccboard) follow-up before phase-2 ship gate; one debug log line per record in _apply_diff; not blocking 2.4
+- [nit]       #18 show_reactions missing last_recounted → fix-in-phase-2.4 · phase 2.4 needs an inspection surface for guild-wide recount; one-line addition to debug_ccboard_show_reactions
+- [nit]       #19 _compute_diff at PLR0912 ceiling      → fix-in-phase-2.5 · 2.4 does not add new branches (per-entry iteration); 2.5 (orphan cleanup) is the next phase that might add a bucket. extract or noqa with reason at that point
+- [nit]       #20 web save bump logic duplicated        → defer · code-quality only; revisit if a third user-hidden field needs the preserve-or-bump dance
+- [nit]       #21 ruff import-sort in test_run_tests.py → defer · pre-existing; auto-fix via `ruff check --fix`. land as a `chore: ruff` commit anytime; don't bundle with feature work
+```
+
+**Patterns observed (2026-05-10, phase-2.3 set):**
+
+- **Items #17 and #18 are both diagnostic gaps from phase 2.3's apply path.** Two items is below the cluster threshold, but the pattern is real: 2.3 prioritized correctness over observability. Plan-revise should fold #18 into 2.4's scope (inspection surface for guild-wide recount needs the field) and let #17 ride as a small follow-up. No phase-level rewrite implied; the rule of thumb for 2.4 is "every state change in apply has an operator-readable signal".
+- **Items #19 and #20 are both code-health debt** from prioritizing scope over polish in 2.3. Neither blocks 2.4; both have natural homes (2.5 for #19, third-occurrence trigger for #20). Plan-revise should NOT carve out a refactor phase for these.
+- **#9 is now mostly delivered.** The original "weight changes don't propagate" framing is satisfied for the per-entry surface (watcher refresh + /fix ccboard recount). The remaining piece is the operator workflow "I bumped weights; recount EVERY entry in this guild" — which falls into 2.4's `reconcile_guild` for free without any 2.4-specific recount work.
 
 ---
 
@@ -251,12 +277,13 @@ Each phase ships only when its DoD is met. Placeholder DoDs were per-phase only;
   - integration check: recount on one seeded entry uses option B+ (per phase 2.1 verdict); before/after `point_value` deltas logged; `/debug ccboard show_reactions` reflects the new values; records whose `last_recounted_at` already exceeds `weights_updated_at` are untouched
   - unknown retired: re-snapshot mechanics under live config
   - rollback (tightened 2026-05-10): trigger if recount changes `point_value` for any record where the staleness predicate did not match — proves the predicate is wrong, not the apply path. soft-revert via `mark_dirty` and let the manager re-aggregate from the (now-corrected) reaction records; secondary rollback for inconsistent net_points / positive_points unchanged from prior wording
-- **phase 4 (discovery, scoped + guild-wide reconcile)** — REVISED 2026-05-10 to absorb the guild-wide half of bug-log #6; phase 2.2 shipped the per-entry recover surface (`/fix ccboard recount <link>`), so this phase owns the remaining `reconcile_guild` stub plus scoped discovery. DoD adds:
-  - scope: (a) replace `auditor.reconcile_guild` stub with a real implementation that walks every `BoardEntryDocument` in the guild and calls `reconcile_entry(..., dry_run=True/confirm)` per entry, respecting a per-guild time budget; (b) implement `discover_guild` against the channel set produced by the watcher's recent-reactions cache (scope retired risk); (c) keep `/fix ccboard recover` (already wired to `discover_guild`) unchanged; the "no-link" path of `/fix ccboard recount` (currently the `reconcile_guild` stub) becomes real here
-  - integration check: discovery on a single channel completes within a measured time budget (probe output drives the budget); rate-limit waits logged; no `ReactionDocument` created without an existing or newly-created `BoardEntryDocument`; guild-wide reconcile against a seeded ccboard guild produces the same per-entry diffs as running `/fix ccboard recount <link>` over each entry individually
-  - unknown retired: discovery cost on a real channel; per-guild budget shape under realistic entry counts
-  - rollback: if discovery exceeds the time budget, narrow scope further (last 7 days vs 30) before re-running; never run unbounded; if guild-wide reconcile produces diffs that differ from per-entry reconcile, the iteration order or lock acquisition is wrong — abandon and run per-entry from a slash-command loop instead
-- **phase 5 (orphan-post cleanup)** — DoD adds:
+- **phase 4 (discovery, scoped + guild-wide reconcile + recount)** — REVISED 2026-05-10 first to absorb the guild-wide half of bug-log #6; FURTHER REVISED 2026-05-10 after the phase 2.3 retro to (i) inherit guild-wide recount for free (per-entry iteration calls `reconcile_entry`, which already honors `cfg.weights_updated_at` via the staleness predicate — no recount-specific work needed in 2.4), (ii) absorb bug-log #18 (extend `/debug ccboard show_reactions` to display `last_recounted_at`) since this phase introduces the guild-wide diagnostic surface, and (iii) tighten the rollback criterion to mirror 2.3's. DoD now reads:
+  - scope: (a) replace `auditor.reconcile_guild` stub with a real implementation that walks every `BoardEntryDocument` in the guild and calls `reconcile_entry(..., dry_run=True/confirm)` per entry, respecting a per-guild time budget; (b) implement `discover_guild` against the channel set produced by the watcher's recent-reactions cache (scope retired risk); (c) keep `/fix ccboard recover` (already wired to `discover_guild`) unchanged; the "no-link" path of `/fix ccboard recount` (currently the `reconcile_guild` stub) becomes real here; (d) extend `/debug ccboard show_reactions` (`apps/bot/doom_bot/commands/debug.py:378`) to render `last_recounted_at` next to `reacted_at` so an operator can verify a guild-wide recount touched the records they expected (closes #18). **explicitly out of scope**: any change to `reconcile_entry` or `_compute_diff` — guild-wide recount is the per-entry path called in a loop, nothing more
+  - integration check: discovery on a single channel completes within a measured time budget (probe output drives the budget); rate-limit waits logged; no `ReactionDocument` created without an existing or newly-created `BoardEntryDocument`; guild-wide reconcile against a seeded ccboard guild produces the same per-entry diffs as running `/fix ccboard recount <link>` over each entry individually; after a `weights_updated_at` bump, guild-wide recount re-snapshots `point_value` for every active record older than the bump and leaves fresher records untouched (verified via `/debug ccboard show_reactions` per entry pre/post)
+  - unknown retired: discovery cost on a real channel; per-guild budget shape under realistic entry counts; recount throughput at guild scale
+  - rollback (tightened 2026-05-10 phase-2.3 retro): two triggers — (1) if discovery exceeds the time budget, narrow scope further (last 7 days vs 30) before re-running; never run unbounded; (2) if guild-wide recount changes `point_value` for any record where the staleness predicate did not match, the iteration is wrong (most likely passing a stale `cfg` snapshot per-entry instead of re-reading `cfg.weights_updated_at` each iteration) — abandon the bulk path and revert to slash-command-driven per-entry recount until the iteration bug is fixed; if guild-wide reconcile produces diffs that differ from per-entry reconcile, lock acquisition is wrong — abandon and run per-entry from a slash-command loop
+- **phase 5 (orphan-post cleanup)** — REVISED 2026-05-10 (phase 2.3 retro) to acknowledge bug-log #19 (`_compute_diff` is at the `PLR0912` 12-branch ceiling); this phase is the next plausible bucket-adder if orphan signals fold into the existing diff. DoD adds:
+  - implementation note: if orphan-post detection signals are added to `_compute_diff` (rather than as a separate `_compute_orphan_diff`), the implementer MUST either extract another `_classify_*` helper (mirroring `_classify_existing_match`) or apply `# noqa: PLR0912 — <real reason>`. silently bumping the limit in pyproject.toml is not an acceptable resolution
   - integration check: dry-run on the ccboard channel produces a list of candidate orphan posts with ages; only posts older than the grace period appear; manual confirmation required before delete
   - unknown retired: orphan detection accuracy
   - rollback: if the dry-run flags posts that are actually current entries (false positive), the diff logic is wrong; abandon the pass before any deletion
@@ -454,6 +481,47 @@ Applied via the `phase-retro` skill against commit `133e96f5`. Inputs to `bug-tr
 
 ---
 
+## phase 2.3 retro — 2026-05-10
+
+Applied via the `phase-retro` skill against commit `199a703c`. Inputs to `bug-triage` and `plan-revise` follow.
+
+### spec delta
+
+- delivered: phase 2.3's seven scope items (a)–(g) all landed. `ReactionDocument.last_recounted_at` added; `GuildCCBoard.weights_updated_at` added (flows through `GuildConfigDocument.ccboard` automatically since it is `dict[str, Any]`); both web save paths bump `weights_updated_at` only when `emojis` or `super_bonus` actually change; watcher's same-emoji refresh stamps `last_recounted_at = now` and re-snapshots `point_value` from current cfg; `_compute_diff` grew a `to_recount` bucket (gated by the standalone `_is_stale` predicate); `_apply_diff` runs soft-delete + upsert with fresh `point_value` and stamped `last_recounted_at` for recount items; `recount_entry` is now a thin wrapper that retags `kind='recount_entry'` on `reconcile_entry`'s result. summary line gained `recount=N`. 17 new tests across unit + component; full sweep 1346/160/13/32 green.
+- missed / deferred:
+  - **per-record `point_value` before/after delta logging — missed.** DoD called for "before/after `point_value` deltas logged"; the apply path logs only the aggregate `recount=N` summary line. → bug-log; small change to `_apply_diff` to emit a debug-level line per record.
+  - **`/debug ccboard show_reactions` does not display `last_recounted_at`** — DoD said "show_reactions reflects the new values"; the new `point_value` is visible (it always was), but the new field is not. → bug-log as a small UX gap; one-line addition to the response formatter.
+- extra (beyond DoD):
+  - the web save bump applied to **two** routes, not one: `PATCH /api/guilds/<id>/ccboard` (the per-section endpoint) and the whole-config endpoint that also accepts ccboard payload. plan only named one; the second was caught by inspection.
+  - `_classify_existing_match` helper extracted to keep `_compute_diff` under the `PLR0912` 12-branch ceiling. not a design call — forced by the linter — but reads cleaner than the inline 13-branch version.
+  - `_is_stale` shipped as a standalone, separately-tested helper rather than an inline expression in `_compute_diff`. five direct tests pin the predicate behavior (zero/negative `weights_updated_at`, fallback to `reacted_at`, `last_recounted_at` overrides, equal-timestamp = fresh).
+
+### surprises
+
+- assumption: extending `_compute_diff` would be a one-line addition to the matching branch → reality: hit the `PLR0912` 12-branch limit on first try and had to extract `_classify_existing_match`. → delta: every future bucket addition (orphan signals, future predicates) will hit the same wall; either keep extracting or accept a `noqa: PLR0912` with a real reason. flag for the next phase touching this function.
+- assumption: bumping `weights_updated_at` was a one-liner in the web layer → reality: two routes set `guild.ccboard = GuildCCBoard(**...)`, both had to be patched, and both lose the field on roundtrip without explicit preservation logic since the form doesn't carry it. → delta: any future tier-3 field that the user shouldn't directly edit (and that the form therefore omits) needs the same preserve-and-bump dance; consider a small helper if a third such field shows up.
+- assumption: `recount_entry` would need its own apply path → reality: `_apply_diff`'s replace bucket already handled "soft-delete old + upsert with fresh point_value" exactly; recount-as-bucket was a ~20-line addition to `_apply_diff` rather than a new function. → delta: phase 2.2's structural choice to make `_compute_diff` bucket-shaped paid off precisely as phase 2.2's retro predicted.
+- assumption: tightened rollback criterion ("recount changes `point_value` for a record the predicate did not match") would be hard to test directly → reality: `test_recount_skipped_when_last_recounted_after_bump` and `test_uses_last_recounted_at_when_set` together prove the predicate refuses to admit non-stale records into `to_recount`, which is the inverse of the rollback condition. → delta: rollback proven by structural invariant, not by an apply-path assertion. clean.
+- the pre-existing import-sort lint error in `tests/python/unit/test_run_tests.py` surfaced again. not phase-2.3 work, not introduced by phase 2.3, but `ruff check` against the whole repo flags it. → delta: noted as ongoing tech debt; do not silently fix in a feature commit.
+
+### residual debt
+
+- **per-record `point_value` delta logging missing.** DoD called for it; apply path logs only the aggregate count. operator-facing diagnostic gap. · routed to bug log as #17
+- **`/debug ccboard show_reactions` should display `last_recounted_at`** for diagnostic confidence after a recount. one-line UX gap. · routed to bug log as #18
+- **`_compute_diff` is at the `PLR0912` ceiling.** the next bucket addition (or any branch growth) forces a refactor or a `noqa`. · routed to bug log as #19
+- **web save bump logic duplicated** between the per-section PATCH and the whole-config endpoint. minor DRY debt; extract a 2-line helper if a third bumped field shows up. · routed to bug log as #20
+- **pre-existing import-sort error in `tests/python/unit/test_run_tests.py`** fails `ruff check` against the whole repo. unrelated to phase 2.3, but visible. · routed to bug log as #21
+
+### implications for downstream phases
+
+- **phase 2.4's `reconcile_guild` gets recount for free.** when 2.4 walks every entry and calls `reconcile_entry(...)` per entry, `cfg.weights_updated_at` automatically engages the staleness predicate. no additional 2.4 work to make recount guild-wide.
+- **phase 2.4 should fold in the `/debug ccboard show_reactions` extension** (#18) — `show_reactions` is the natural diagnostic for "did recount land?", and 2.4's guild-wide recount needs an inspection surface.
+- **per-record delta logging (#17) is small enough to land as a `patch(ccboard)` follow-up** without waiting for a phase boundary; it is operator-facing and bounded. plan-revise should NOT carve out a phase for it.
+- **`_compute_diff` branch ceiling (#19) is a phase-2.4-or-later concern** — 2.4's `reconcile_guild` does NOT add new `_compute_diff` branches (it iterates per-entry), so 2.4 doesn't trip the ceiling. the issue surfaces when phase 2.5 (orphan cleanup) considers folding orphan signals into the same diff structure.
+- **rollback criterion for phase 2.4** should mirror 2.3's: trigger if a guild-wide recount changes `point_value` for a record that wasn't stale. the test pattern is reusable — repeat the staleness-skip assertion at the per-entry layer that 2.4 calls into.
+
+---
+
 ## revision after phase 2.2 — 2026-05-10
 
 Applied via the `plan-revise` skill against the phase 2.2 retro (above) and the 2026-05-10 triage block in the bug log.
@@ -473,6 +541,34 @@ follow-up questions raised by the retro that this revision did NOT answer:
 
 - phase 2.3 (e) above lists "extend `_compute_diff` (or a sibling helper)" — the helper-vs-extension call is left to phase-2.3 implementation. either is fine; mention it here so the implementer doesn't treat it as undecided design.
 - the phase-2 ship gate checklist (below) names four live-discord verifications that require a guild with `ccboard.enabled=True`. timing of that smoke check (after 2.5? after 2.8? right before merge?) is left for the user to pick when phase 2.5 wraps.
+
+---
+
+## revision after phase 2.3 — 2026-05-10
+
+Applied via the `plan-revise` skill against the phase 2.3 retro and 2026-05-10 phase-2.3-retro triage block.
+
+what changed:
+
+- phase 4 (discovery, scoped + guild-wide reconcile + recount): **revise** — three additions: (i) recount inherited free since per-entry iteration calls `reconcile_entry` which already honors `cfg.weights_updated_at`; (ii) absorbs bug-log #18 (extend `/debug ccboard show_reactions` to render `last_recounted_at`); (iii) rollback criterion gets a second trigger mirroring 2.3's — abort if guild-wide recount mutates `point_value` for a non-stale record
+- phase 5 (orphan-post cleanup): **revise** — adds an implementation note for bug-log #19: if orphan signals fold into `_compute_diff`, the implementer must extract another `_classify_*` helper or apply `noqa: PLR0912 — <reason>`; silently bumping the lint limit is not acceptable
+- phases 2.6 (/stars random/lost), 2.7 (/stars leaderboards), 2.8 (/stars recheck), 2.9 (legacy routing decision), 2.10 (legacy /stars retirement): **valid** — phase 2.3 surface didn't touch the user-facing /stars or legacy-retirement design; revisit at each phase's start
+
+phases not in scope for this revision (already done): 2.0, 2.1, 2.2, 2.3.
+
+bug-log items the revision retired or moved:
+
+- #6 (auditor recover/recount): now squarely 2.4-only — per-entry surface was satisfied by 2.2 + 2.3
+- #9 (retroactive emoji-weight recalc): per-entry path delivered in 2.3 (watcher refresh + `/fix ccboard recount`); guild-wide bulk recount now trivially absorbed into 2.4 by the iteration loop
+- #18 (show_reactions missing last_recounted_at): folded into 2.4's DoD scope item (d)
+- #19 (PLR0912 ceiling): folded into 2.5's DoD as an implementation note
+- #17, #20, #21: deferred per triage; not load-bearing for downstream phases
+
+follow-up questions raised by the phase-2.3 retro that this revision did NOT answer:
+
+- per-record `point_value` delta logging (#17) — left as a small `patch(ccboard)` follow-up at the implementer's discretion; not gated on a phase
+- web save bump duplication (#20) — flagged for a third-occurrence trigger; no action until a third user-hidden field needs the same dance
+- pre-existing import-sort error in `tests/python/unit/test_run_tests.py` (#21) — auto-fixable; can land as a `chore: ruff` commit anytime
 
 ---
 
@@ -511,5 +607,5 @@ These cover the bug-log items that the unit and component tests cannot exercise 
 
 ```yaml
 last_updated: 2026-05-10
-status: phase 2.2 landed; retro + bug-triage + plan-revise complete; phase 2.3 unblocked with narrowed scope (folds into phase 2.2's _compute_diff via staleness-predicate bucket); phase-2 ship gate scaffold added
+status: phase 2.3 landed (per-entry recount via staleness predicate); retro + bug-triage + plan-revise complete; phase 2.4 unblocked — guild-wide reconcile + scoped discovery + show_reactions extension, with guild-wide recount inherited free from per-entry iteration; phase 2.5 carries an implementation note for the PLR0912 ceiling
 ```
