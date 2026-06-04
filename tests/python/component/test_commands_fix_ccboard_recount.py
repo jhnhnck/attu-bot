@@ -314,3 +314,47 @@ class TestFixCCBoardRecount:
         assert {r.user_id for r in live_reactions} == {reactor_a}
         # _safe_remove_reaction called for both stripped users
         assert safe_remove.await_count == 2
+
+
+class TestFixCCBoardCleanup:
+    async def test_dry_run_reports_orphan_count(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
+        """dry_run=True (default): responds with orphan count, nothing deleted.
+
+        the real EntryRepository returns None for an unseeded starboard_message_id,
+        so no monkeypatch needed for the DB lookup.
+        """
+        from datetime import UTC, datetime
+
+        import discord
+
+        from doom_bot.ccboard import auditor as auditor_mod
+        from doom_bot.commands.fix import fix_ccboard_cleanup
+
+        orphan_msg_id = msg_id + 500
+
+        class _FakeCCBoardChannel(discord.abc.Messageable):
+            async def _get_channel(self):
+                return self
+
+            def history(self, *args, **kwargs):
+                async def _gen():
+                    msg = MagicMock()
+                    msg.id = orphan_msg_id
+                    msg.author.id = bot_user_id
+                    msg.created_at = datetime(2020, 1, 1, tzinfo=UTC)
+                    msg.delete = AsyncMock()
+                    yield msg
+
+                return _gen()
+
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=_FakeCCBoardChannel())
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        await fix_ccboard_cleanup(ctx, confirm=False)
+
+        assert any('dry-run' in r['args'][0] for r in ctx._responses)
+        assert any('orphans=1' in r['args'][0] for r in ctx._responses)
+        assert any('would_delete=0' in r['args'][0] for r in ctx._responses)

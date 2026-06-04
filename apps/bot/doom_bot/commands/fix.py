@@ -736,13 +736,24 @@ async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
     await ctx.respond(', '.join(parts))
 
 
-@fix_ccboard.command(name='recover', description='Auditor discovery pass (phase 2.4 stub) — scans recently-active channels for missed reactions')
+@fix_ccboard.command(name='recover', description='Auditor discovery pass — scans recently-active channels for missed reactions')
 @commands.check(is_bot_owner)
 async def fix_ccboard_recover(ctx: ApplicationContext):
     from doom_bot.ccboard.auditor import auditor_task
 
     result = await auditor_task.discover_guild(ctx.guild.id, dry_run=True)
     await ctx.respond(f'auditor.discover_guild: {result.summary}', ephemeral=True)
+
+
+@fix_ccboard.command(name='cleanup', description='Scan ccboard channel for orphan posts (no DB entry); confirm=True to delete')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='confirm', required=False, default=False, description='Apply deletions; default is dry-run (list only)', input_type=bool)
+async def fix_ccboard_cleanup(ctx: ApplicationContext, confirm: bool = False):
+    from doom_bot.ccboard.auditor import auditor_task
+
+    result = await auditor_task.cleanup_orphans(ctx.guild.id, dry_run=not confirm)
+    verdict = 'APPLIED' if result.mutated else ('dry-run' if result.dry_run else 'no change')
+    await ctx.respond(f'auditor.cleanup_orphans [{verdict}]: {result.summary}', ephemeral=True)
 
 
 @fix_ccboard.command(name='recount', description='reconcile and recount ccboard reactions; guild-wide if no link, per-entry if link given')

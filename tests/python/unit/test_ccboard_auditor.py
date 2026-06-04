@@ -5,10 +5,11 @@ phase 2.2 covered `_compute_diff` (pure) and `reconcile_entry` (mocked
 end-to-end). phase 2.3 layered the recount staleness predicate (`_is_stale`),
 the `to_recount` bucket on `_ReconcileDiff`, and `recount_entry` as a thin
 wrapper. phase 2.4 added `reconcile_guild` (per-entry iteration + time budget)
-and `discover_guild` (scoped channel-history scan). cleanup_orphans is still
-a stub (phase 2.5).
+and `discover_guild` (scoped channel-history scan). phase 2.5 added
+`cleanup_orphans` (bot-post scan with grace period; replaces the old stub).
 """
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
@@ -706,6 +707,16 @@ def _make_discord_msg_with_reactions(msg_id: int, emoji_strs: list[str]) -> Magi
     return msg
 
 
+def _make_board_msg(msg_id: int, author_id_val: int) -> MagicMock:
+    """minimal fake Discord message for cleanup_orphans tests."""
+    msg = MagicMock()
+    msg.id = msg_id
+    msg.author.id = author_id_val
+    msg.created_at = datetime(2020, 1, 1, tzinfo=UTC)
+    msg.delete = AsyncMock()
+    return msg
+
+
 class _FakeChannel(discord.abc.Messageable):
     """minimal discord.abc.Messageable subclass for discover_guild tests."""
 
@@ -861,13 +872,105 @@ class TestDiscoverGuild:
         assert 'untracked=1' in result.summary
 
 
-@pytest.mark.asyncio
-async def test_cleanup_orphans_advertises_grace_period():
-    result = await auditor_task.cleanup_orphans(guild_id, grace_days=14)
-    assert result.kind == 'cleanup_orphans'
-    assert result.dry_run is True
-    assert '14d' in result.summary
-    assert result.mutated is False
+class TestCleanupOrphans:
+    @pytest.fixture
+    def task(self):
+        return AuditorTask()
+
+    @pytest.mark.asyncio
+    async def test_repos_not_initialized(self, task, monkeypatch):
+        monkeypatch.setattr(ccboard, '_entry_repo', None)
+        monkeypatch.setattr(ccboard, '_reaction_repo', None)
+        result = await task.cleanup_orphans(guild_id)
+        assert result.kind == 'cleanup_orphans'
+        assert result.mutated is False
+        assert 'repos not initialized' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_disabled_config(self, task, make_guild_ccboard):
+        make_guild_ccboard.ccboard.enabled = False
+        result = await task.cleanup_orphans(guild_id)
+        assert 'ccboard disabled' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_no_channel_configured(self, task, make_guild_ccboard):
+        make_guild_ccboard.ccboard.channel_id = 0
+        result = await task.cleanup_orphans(guild_id)
+        assert 'channel_id not configured' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_dry_run_detects_orphans(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """bot message with no DB twin older than grace period: reported as orphan candidate"""
+        orphan_msg = _make_board_msg(message_id + 100, bot_user_id)
+        entry_repo.get_by_starboard_message = AsyncMock(return_value=None)
+
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=_FakeChannel([orphan_msg]))
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.cleanup_orphans(guild_id, dry_run=True)
+        assert result.kind == 'cleanup_orphans'
+        assert result.mutated is False
+        assert 'orphans=1' in result.summary
+        assert 'would_delete=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_skips_non_bot_messages(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """messages not authored by the bot are ignored regardless of DB state"""
+        user_msg = _make_board_msg(message_id + 101, reactor_a)
+        entry_repo.get_by_starboard_message = AsyncMock(return_value=None)
+
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=_FakeChannel([user_msg]))
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.cleanup_orphans(guild_id, dry_run=True)
+        assert 'orphans=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_skips_messages_with_db_twin(self, task, make_guild_ccboard, entry_doc, entry_repo, monkeypatch):
+        """bot message that has a DB twin is not an orphan"""
+        tracked_msg = _make_board_msg(message_id + 102, bot_user_id)
+        entry_repo.get_by_starboard_message = AsyncMock(return_value=entry_doc)
+
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=_FakeChannel([tracked_msg]))
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.cleanup_orphans(guild_id, dry_run=True)
+        assert 'orphans=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_apply_deletes_orphan(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """dry_run=False: orphan is deleted from Discord and deleted=1 reported"""
+        orphan_msg = _make_board_msg(message_id + 103, bot_user_id)
+        entry_repo.get_by_starboard_message = AsyncMock(return_value=None)
+
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=_FakeChannel([orphan_msg]))
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.cleanup_orphans(guild_id, dry_run=False)
+        assert result.mutated is True
+        assert 'deleted=1' in result.summary
+        orphan_msg.delete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_channel_unavailable(self, task, make_guild_ccboard, monkeypatch):
+        """ccboard channel fetch fails: returns a Failed summary"""
+        mock_bot = MagicMock()
+        mock_bot.user.id = bot_user_id
+        mock_bot.get_channel = MagicMock(return_value=None)
+        mock_bot.fetch_channel = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.cleanup_orphans(guild_id)
+        assert 'Failed' in result.summary
+        assert 'unavailable' in result.summary
 
 
 def test_register_bot_tasks_includes_auditor():

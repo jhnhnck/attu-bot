@@ -15,8 +15,9 @@ phases shipped so far:
     (discover_guild scoped to channels with existing entries — never
     unbounded), and show_reactions last_recounted_at display
 
-phases still stub:
-  * 2.5 orphan-post cleanup with grace period
+  * 2.5 orphan-post cleanup with grace period (cleanup_orphans: scans the
+    ccboard channel for bot-authored posts with no BoardEntryDocument twin,
+    respects a grace period so freshly-failed manager writes get a retry window)
 
 design notes from the phase 2 pre-mortem (notes/plans/ccboard.md):
   * every mutating pass takes ccboard.get_lock(message_id) just like the
@@ -684,17 +685,82 @@ class AuditorTask(BaseTask):
             details={'channels': channels_scanned, 'scanned': scanned, 'found': found, 'created': created, 'elapsed_s': round(elapsed, 1), 'budget_exhausted': budget_exhausted},
         )
 
-    async def cleanup_orphans(self, guild_id: int, *, dry_run: bool = True, grace_days: int = 7) -> PassResult:
-        """phase 2.5 placeholder: delete bot-authored ccboard posts with no DB twin.
+    async def cleanup_orphans(self, guild_id: int, *, dry_run: bool = True, grace_days: int = 7) -> PassResult:  # noqa: PLR0911, PLR0912 — channel-scan with per-precondition early returns and per-failure-mode error branches
+        """scan the ccboard channel for bot-authored posts with no DB twin (phase 2.5).
 
-        real implementation respects `grace_days` so freshly-created posts
+        only considers posts older than `grace_days` so freshly-created posts
         whose entry write failed are not deleted before the manager retries.
+        dry_run=True (the default) lists candidates without deleting anything.
+        every deletion is logged individually regardless of dry_run.
         """
-        logger.info(f'ccboard auditor: cleanup_orphans stub for guild={guild_id} dry_run={dry_run} grace_days={grace_days}')
+        if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary='Failed: ccboard repos not initialized')
+        try:
+            guild_cfg = config.guild(guild_id)
+        except UnauthorizedGuild:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary=f'Failed: guild {guild_id} unauthorized')
+        cfg = guild_cfg.ccboard
+        if not cfg.enabled:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary='Failed: ccboard disabled for this guild')
+        if not cfg.channel_id:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary='Failed: ccboard.channel_id not configured; cannot scan for orphan posts')
+
+        bot = _get_bot()
+        try:
+            channel = bot.get_channel(cfg.channel_id)
+            if channel is None:
+                channel = await bot.fetch_channel(cfg.channel_id)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException) as err:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary=f'Failed: ccboard channel {cfg.channel_id} unavailable: {err}')
+        if not isinstance(channel, discord.abc.Messageable):
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary=f'Failed: ccboard channel {cfg.channel_id} is not a text channel')
+
+        cutoff = datetime.now(tz=UTC) - timedelta(days=grace_days)
+        bot_id = bot.user.id
+
+        _BUDGET_SECONDS = 90.0
+        start = time.monotonic()
+        scanned = candidates = deleted = 0
+        budget_exhausted = False
+
+        try:
+            async for message in channel.history(limit=None, before=cutoff, oldest_first=False):
+                if time.monotonic() - start >= _BUDGET_SECONDS:
+                    budget_exhausted = True
+                    break
+                if message.author.id != bot_id:
+                    continue
+                scanned += 1
+                entry = await ccboard._entry_repo.get_by_starboard_message(message.id)
+                if entry is not None:
+                    continue
+                candidates += 1
+                age_days = (datetime.now(tz=UTC) - message.created_at).days
+                logger.info(f'ccboard auditor: cleanup_orphans orphan post={message.id} age={age_days}d guild={guild_id}')
+                if not dry_run:
+                    try:
+                        await message.delete()
+                        deleted += 1
+                        logger.info(f'ccboard auditor: cleanup_orphans deleted orphan post={message.id} age={age_days}d guild={guild_id}')
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException) as err:
+                        logger.warning(f'ccboard auditor: cleanup_orphans failed to delete post={message.id}: {err}')
+        except discord.Forbidden as err:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary=f'Failed: cannot read ccboard channel {cfg.channel_id}: {err}')
+        except discord.HTTPException as err:
+            return PassResult(kind='cleanup_orphans', dry_run=dry_run, summary=f'Failed: HTTP error reading ccboard channel {cfg.channel_id}: {err}')
+
+        elapsed = time.monotonic() - start
+        mode = 'dry_run' if dry_run else 'applied'
+        extra = ' (budget exhausted — re-run to continue)' if budget_exhausted else ''
+        action = 'would_delete' if dry_run else 'deleted'
+        summary = f'guild={guild_id} scanned={scanned} orphans={candidates} {action}={deleted} grace={grace_days}d elapsed={elapsed:.1f}s [{mode}]{extra}'
+        logger.info(f'ccboard auditor: cleanup_orphans {summary}')
         return PassResult(
             kind='cleanup_orphans',
             dry_run=dry_run,
-            summary=f'stub: orphan cleanup is phase 2.5; would have run on guild {guild_id} (grace {grace_days}d)',
+            mutated=deleted > 0,
+            summary=summary,
+            details={'scanned': scanned, 'orphans': candidates, 'deleted': deleted, 'elapsed_s': round(elapsed, 1), 'budget_exhausted': budget_exhausted},
         )
 
 
