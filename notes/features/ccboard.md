@@ -111,7 +111,7 @@ helpers (`parse_jump_url`, `_is_image`, `_looks_like_image_url`, `_hydrate_store
 | `_sync_post(entry, config)` | `manager` | create/update/delete the board post for one entry |
 | `build_embeds(entry, config)` | `builder` | runs the rule pipeline and returns the full embed list |
 | `job_convert_starboard_to_ccboard(...)` | `migration` | one-shot starboard → ccboard data migration |
-| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; `reconcile_entry` (phase 2.2) carries a `to_recount` bucket gated by the staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3, option B+); `recount_entry` is a thin tag wrapper; `reconcile_guild` / `discover_guild` / `cleanup_orphans` still return `PassResult` stubs (phases 2.4-2.5) |
+| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; `reconcile_entry` (phase 2.2) carries a `to_recount` bucket gated by the staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3, option B+); `recount_entry` is a thin tag wrapper; `reconcile_guild` (phase 2.4) iterates all entries per-guild under a 90s budget; `discover_guild` (phase 2.4) scans channel history scoped to channels with existing entries under the same budget; `cleanup_orphans` is still a stub (phase 2.5) |
 
 ---
 
@@ -138,19 +138,19 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 | `/fix stars convert` | one-shot migration; copies `starboard` records into `ccboard_reactions` + `ccboard_entries`. idempotent. requires `confirm=True` and a non-empty `ccboard.emojis`. |
 | `/fix ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
 | `/fix ccboard purge <link>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
-| `/fix ccboard recover` | auditor discovery pass — phase 2.0 walking-skeleton stub; calls `auditor_task.discover_guild(dry_run=True)`; real scoped discovery is phase 2.4 |
-| `/fix ccboard recount [message_link] [confirm]` | auditor reconcile + recount pass. with `message_link` runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state and additionally re-snapshots `point_value` for any active record stale per `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3). default dry-run; `confirm=True` writes adds/replaces/recounts, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`. degrades to add+replace-only when discord pagination is partial. summary fields: `add` / `replace` / `remove` / `recount` / `match` / `strip_invalid` / `strip_extras`. without a link it falls through to the phase-2.4 `reconcile_guild` stub |
-| `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, and `reacted_at` |
+| `/fix ccboard recover` | auditor discovery pass — calls `auditor_task.discover_guild(dry_run=True)`; scans channel history for messages with configured-emoji reactions that have no `BoardEntryDocument`; scoped to channels with existing entries (never unbounded); 90s budget; dry-run only at the command level |
+| `/fix ccboard recount [message_link] [confirm]` | auditor reconcile + recount pass. with `message_link` runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state and additionally re-snapshots `point_value` for any active record stale per `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3). default dry-run; `confirm=True` writes adds/replaces/recounts, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`. degrades to add+replace-only when discord pagination is partial. summary fields: `add` / `replace` / `remove` / `recount` / `match` / `strip_invalid` / `strip_extras`. without a link calls `reconcile_guild` (phase 2.4): iterates every entry in the guild per-entry with a 90s budget; guild-wide recount inherited free via the staleness predicate |
+| `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, `reacted_at`, and `last_recounted_at` (when set) |
 | `/cc stars test` | walking-skeleton placeholder for the future ccboard-backed `/stars` surface (random/lost/recheck/leaderboard); phases 2.6-2.8 replace this stub |
 
 ---
 
 ## known gaps
 
-- **missed `reaction_add`**: no self-healing in phase 1; reaction exists on discord but no `ReactionDocument` is created. `/fix ccboard recount <link>` (phase 2.2) corrects this per-entry; guild-wide discovery is phase 2.4.
-- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until `/fix ccboard recount <link>` runs over the entry.
+- **missed `reaction_add`**: no self-healing in phase 1; reaction exists on discord but no `ReactionDocument` is created. `/fix ccboard recount <link>` (phase 2.2) corrects this per-entry; `/fix ccboard recover` (phase 2.4) scans channel history scoped to channels with existing entries.
+- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until `/fix ccboard recount <link>` or `/fix ccboard recount` (guild-wide) runs over the entry.
 - **`effective_author_id` re-resolution**: once set (or left None) during backfill, attribution is never revisited. no command or automatic path exists to re-resolve.
-- **config weight retroactive recalculation**: changing emoji weights leaves existing `ReactionDocument.point_value` snapshots at old values. self-healing happens through three paths now: (1) same-emoji re-react refreshes `point_value` and stamps `last_recounted_at` (watcher); (2) `/fix ccboard recount <link> confirm:True` re-snapshots every stale active record on one entry (auditor, phase 2.3); (3) guild-wide bulk recount is still pending phase 2.4 (`reconcile_guild`).
+- **config weight retroactive recalculation**: changing emoji weights leaves existing `ReactionDocument.point_value` snapshots at old values. self-healing happens through three paths: (1) same-emoji re-react refreshes `point_value` and stamps `last_recounted_at` (watcher); (2) `/fix ccboard recount <link> confirm:True` re-snapshots every stale active record on one entry; (3) `/fix ccboard recount confirm:True` (no link) runs `reconcile_guild` which iterates all entries and inherits the staleness predicate for free.
 - **user-facing `/stars` against ccboard**: not yet implemented. legacy `/stars` continues to operate against the legacy starboard.
 
 ---
@@ -158,6 +158,6 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 ## metadata
 
 ```yaml
-last_updated: 2026-05-10
-status: phase 2.3 — per-entry recount layered onto reconcile via the staleness predicate (option B+); `ReactionDocument.last_recounted_at` and `GuildCCBoard.weights_updated_at` shipped; watcher's same-emoji refresh stamps both; web save handler bumps `weights_updated_at` when emojis or super_bonus change; guild-wide recount + scoped discovery + orphan cleanup still phase 2.4-2.5
+last_updated: 2026-06-04
+status: phase 2.4 — guild-wide reconcile (`reconcile_guild`, iterates all entries per-guild under 90s budget), scoped discovery (`discover_guild`, channel history scan bounded to channels with existing entries), and `/debug ccboard show_reactions` last_recounted_at display delivered. orphan cleanup still phase 2.5; user-facing /stars still phases 2.6-2.8
 ```

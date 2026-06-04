@@ -1086,6 +1086,11 @@ class EntryRepository:
         docs = await cursor.to_list(length=None)
         return [BoardEntryDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
+    async def distinct_channel_ids(self, guild_id: int) -> list[int]:
+        """return distinct channel_ids of entries in this guild; used by discover_guild to scope channel scans."""
+        result = await self.db[self.COLLECTION].distinct('channel_id', {'guild_id': guild_id})
+        return [int(v) for v in result]
+
     async def recent_authors(self, guild_id: int, *, limit: int) -> list[int]:
         """return the credited author id of the last `limit` posted entries in chronological
         order, newest first; used by the sweep streak counter. credited author is

@@ -375,7 +375,8 @@ async def debug_ccboard_show_reactions(ctx: ApplicationContext, message_link: st
     for r in reactions:
         flag = '~~' if r.removed else ''
         super_tag = ' [super]' if r.is_super else ''
-        lines.append(f'- {flag}{r.emoji_str} by <@{r.user_id}> {r.point_value:+d}{super_tag} src={r.source_channel_id}/{r.source_message_id} reacted_at={r.reacted_at}{flag}')
+        recount_tag = f' recounted={r.last_recounted_at}' if r.last_recounted_at is not None else ''
+        lines.append(f'- {flag}{r.emoji_str} by <@{r.user_id}> {r.point_value:+d}{super_tag} src={r.source_channel_id}/{r.source_message_id} reacted_at={r.reacted_at}{recount_tag}{flag}')
     body = '\n'.join(lines)
     if len(body) > 1900:
         body = body[:1900] + '\n... (truncated)'

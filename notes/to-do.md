@@ -31,15 +31,14 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### ccboard
 
-phase 1 landed on `feat/ccboard-redesign`: foundation models/repos, builder, tier-3 config, /fix stars convert migration, watcher with echo suppression, manager + sweeps, and /fix ccboard + /debug ccboard slash commands. `enabled=False` is the default; legacy starboard remains active until a guild flips the flag.
+phases 1–2.4 landed on `feat/ccboard`. foundation models/repos, builder, tier-3 config, /fix stars convert migration, watcher with echo suppression, manager + sweeps, /fix ccboard + /debug ccboard slash commands, per-entry reconcile + recount (phases 2.2/2.3), and guild-wide reconcile + scoped discovery (phase 2.4). `enabled=False` is the default; legacy starboard remains active until a guild flips the flag.
 
 - ⭕ `high priority` `medium effort` user-facing ccboard slash commands: `/stars random`, `/stars lost`, `/stars recheck`, and the four leaderboards (`most-stars`, `most-starred`, `most-given`, `top-messages`). today only legacy `/stars` exists and queries the legacy starboard; new commands need to register under a fresh group (e.g. `stars_new`) until the legacy is retired. paginate leaderboards with the wiki-result button pattern.
-- ⭕ `high priority` `high effort` phase 2 auditor: `AuditorTask(BaseTask)` with discovery, reconciliation, and orphan passes. wire `/fix ccboard recover` and `/fix ccboard recount` to call its passes (stubs today).
+- ⭕ `high priority` `medium effort` orphan-post cleanup (phase 2.5): `cleanup_orphans` is still a stub; needs dry-run scan of the ccboard channel for bot posts with no `BoardEntryDocument` twin, with a 7-day grace period.
 - ⭕ `medium priority` `medium effort` wiki-attribution pass: parse the wiki editor username from webhook notification messages (first markdown link, pattern `[Username](wiki-url)`) and resolve to a discord user via a `wiki_identities` collection. gated behind a separate flag or manual-only trigger.
 - ⭕ `medium priority` `medium effort` `effective_author_id` re-resolution path: backfill misses do not retroactively update once the reply target becomes available. add a periodic sweep or a `/fix ccboard reattribute <link>` command.
-- ⭕ `medium priority` `medium effort` retroactive emoji-weight recalculation: changing `ccboard.emojis` weights leaves existing `ReactionDocument.point_value` snapshots at old values. needs a bulk recalc command (decide during phase 2 whether the auditor's recount should also re-snapshot weights).
 - ⭕ `medium priority` `low effort` decide on extension reload vs. always-loaded: today the ccboard handlers gate on `enabled` per call. if slash command visibility becomes a concern, register guild-scoped commands or wire `bot.reload_extension()` into the reload watcher's `ccboard.enabled` diff.
-- ⭕ `low priority` `low effort` retire `notes/plans/ccboard.md`: the architectural plan was used to drive the implementation and is now superseded by `notes/features/ccboard.md`. delete or move to `notes/reports/` for history.
+- ⭕ `low priority` `low effort` retire `notes/plans/ccboard.md` (the old monolithic plan on the ccboard branch): the plan was converted to `.claude/plans/ccboard/` and `notes/features/ccboard.md` is the reference doc; delete at `pre-merge`.
 
 ### wiki
 

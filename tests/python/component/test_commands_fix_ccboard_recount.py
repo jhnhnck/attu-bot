@@ -239,6 +239,47 @@ class TestFixCCBoardRecount:
         assert entry.net_points == 7
         assert any('recount=1' in r['args'][0] for r in ctx._responses)
 
+    async def test_guild_wide_reconcile_reports_per_entry_results(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
+        """no message_link path: calls reconcile_guild, response includes processed count"""
+        from doom_bot.ccboard import auditor as auditor_mod
+        from doom_bot.ccboard import watcher as watcher_mod
+        from doom_bot.commands.fix import fix_ccboard_recount
+
+        await fix_cc_repos['entry'].upsert(_entry())
+
+        async def _fake_fetch(*_a, **_kw):
+            return _discord_msg_with([(emoji_star, [_user_mock(reactor_a)], False)])
+
+        monkeypatch.setattr(auditor_mod, '_fetch_discord_message', _fake_fetch)
+        monkeypatch.setattr(watcher_mod, '_safe_remove_reaction', AsyncMock(return_value=True))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        await fix_ccboard_recount(ctx, message_link=None, confirm=False)
+
+        # the no-link path now calls reconcile_guild; response contains processed count
+        assert any('processed=1/1' in r['args'][0] for r in ctx._responses)
+
+    async def test_distinct_channel_ids_returns_seeded_channels(self, fix_cc_repos):
+        """distinct_channel_ids returns the set of channel_ids from seeded entries (no duplicates)."""
+        entry_repo = fix_cc_repos['entry']
+        ch1, ch2 = 7770000001, 7770000002
+        # two entries in ch1, one in ch2, plus the default _entry() already in ch msg_channel
+        e1 = _entry()
+        e1.message_id = msg_id + 1
+        e1.channel_id = ch1
+        e2 = _entry()
+        e2.message_id = msg_id + 2
+        e2.channel_id = ch1
+        e3 = _entry()
+        e3.message_id = msg_id + 3
+        e3.channel_id = ch2
+        for e in [e1, e2, e3]:
+            await entry_repo.upsert(e)
+
+        channels = await entry_repo.distinct_channel_ids(test_guild)
+        assert set(channels) == {msg_channel, ch1, ch2}
+        assert len(channels) == len(set(channels))  # no duplicates
+
     async def test_apply_path_strips_self_and_bot_via_safe_remove(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """author and bot reactors trigger _safe_remove_reaction during apply, never get added to the db"""
         from doom_bot.ccboard import auditor as auditor_mod

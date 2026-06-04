@@ -8,13 +8,14 @@ phases shipped so far:
     state; dry_run=True default; degrades to add+refresh-only when discord
     pagination is partial; uses ccboard.get_lock and the watcher's
     _safe_remove_reaction so echo-suppression keeps working
-
-phases still stub:
   * 2.3 per-entry recount with re-snapshot (option B+ from phase 2.1:
     ReactionDocument.last_recounted_at + GuildCCBoard.weights_updated_at,
     targeted via staleness predicate)
-  * 2.4 scoped discovery — channel-history scan limited to channels with
-    recent ccboard reactions
+  * 2.4 guild-wide reconcile (reconcile_guild), scoped discovery
+    (discover_guild scoped to channels with existing entries — never
+    unbounded), and show_reactions last_recounted_at display
+
+phases still stub:
   * 2.5 orphan-post cleanup with grace period
 
 design notes from the phase 2 pre-mortem (notes/plans/ccboard.md):
@@ -28,7 +29,7 @@ design notes from the phase 2 pre-mortem (notes/plans/ccboard.md):
 
 import time
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import discord
 
@@ -67,6 +68,13 @@ class PassResult:
 
 def _credited_author_id(entry) -> int:
     return entry.effective_author_id if entry.effective_author_id is not None else entry.author_id
+
+
+def _get_bot():
+    """lazy import of the bot singleton; extracted so tests can monkeypatch it."""
+    from doom_bot.client.core import bot
+
+    return bot
 
 
 async def _fetch_discord_message(guild_id: int, channel_id: int, message_id: int) -> discord.Message | None:
@@ -481,18 +489,55 @@ class AuditorTask(BaseTask):
             return PassResult(kind='reconcile_entry', dry_run=False, mutated=True, summary=summary, details=details)
 
     async def reconcile_guild(self, guild_id: int, *, dry_run: bool = True) -> PassResult:
-        """phase 2.4 placeholder: reconcile every entry in a guild.
+        """reconcile every entry in a guild (phase 2.4).
 
-        scoped guild-wide reconcile is folded into phase 2.4's discovery
-        path so the channel-history scope can be reused. today only the
-        per-entry surface (`reconcile_entry`) is implemented; callers
-        should pass a message_link to /fix ccboard recount.
+        calls reconcile_entry per entry under a 90s per-guild time budget.
+        guild-wide recount is inherited free — reconcile_entry already
+        consults cfg.weights_updated_at via the staleness predicate in
+        _compute_diff, so a weights bump before running this will
+        re-snapshot every stale active record automatically.
         """
-        logger.info(f'ccboard auditor: reconcile_guild stub for guild={guild_id} dry_run={dry_run}')
+        if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+            return PassResult(kind='reconcile_guild', dry_run=dry_run, summary='Failed: ccboard repos not initialized')
+        try:
+            guild_cfg = config.guild(guild_id)
+        except UnauthorizedGuild:
+            return PassResult(kind='reconcile_guild', dry_run=dry_run, summary=f'Failed: guild {guild_id} unauthorized')
+        cfg = guild_cfg.ccboard
+        if not cfg.enabled:
+            return PassResult(kind='reconcile_guild', dry_run=dry_run, summary='Failed: ccboard disabled for this guild')
+        if not cfg.emojis:
+            return PassResult(kind='reconcile_guild', dry_run=dry_run, summary='Failed: ccboard.emojis is empty; configure weights first')
+
+        entries = await ccboard._entry_repo.all_for_guild(guild_id)
+        if not entries:
+            return PassResult(kind='reconcile_guild', dry_run=dry_run, summary=f'guild={guild_id} no entries found')
+
+        _BUDGET_SECONDS = 90.0
+        start = time.monotonic()
+        processed = mutated_count = skipped = 0
+
+        for entry in entries:
+            if time.monotonic() - start >= _BUDGET_SECONDS:
+                skipped = len(entries) - processed
+                logger.info(f'ccboard auditor: reconcile_guild budget {_BUDGET_SECONDS}s exhausted after {processed}/{len(entries)} guild={guild_id}')
+                break
+            result = await self.reconcile_entry(guild_id, entry.message_id, dry_run=dry_run)
+            processed += 1
+            if result.mutated:
+                mutated_count += 1
+
+        elapsed = time.monotonic() - start
+        mode = 'dry_run' if dry_run else 'applied'
+        extra = ' (budget exhausted — re-run to continue)' if skipped else ''
+        summary = f'guild={guild_id} processed={processed}/{len(entries)} mutated={mutated_count} skipped={skipped} elapsed={elapsed:.1f}s [{mode}]{extra}'
+        logger.info(f'ccboard auditor: reconcile_guild {summary}')
         return PassResult(
             kind='reconcile_guild',
             dry_run=dry_run,
-            summary='stub: guild-wide reconcile is phase 2.4; pass a message_link to /fix ccboard recount for per-entry reconcile',
+            mutated=mutated_count > 0,
+            summary=summary,
+            details={'processed': processed, 'total': len(entries), 'mutated': mutated_count, 'skipped': skipped, 'elapsed_s': round(elapsed, 1)},
         )
 
     async def recount_entry(self, guild_id: int, message_id: int, *, dry_run: bool = True) -> PassResult:
@@ -516,18 +561,127 @@ class AuditorTask(BaseTask):
             details=result.details,
         )
 
-    async def discover_guild(self, guild_id: int, *, dry_run: bool = True) -> PassResult:
-        """phase 2.4 placeholder: scan recently-active channels for missed reactions.
+    async def discover_guild(self, guild_id: int, *, dry_run: bool = True, lookback_days: int = 30) -> PassResult:  # noqa: PLR0912, PLR0915 — channel-history scan with per-channel and per-message error/skip branches
+        """scan recently-active channels for missed reactions (phase 2.4).
 
-        real implementation scopes the scan to channels with recent ccboard
-        reactions (per the phase 2 pre-mortem, an unbounded channel scan was
-        flagged as a high-severity performance risk).
+        scoped to channels that already have ccboard entries — never performs
+        an unbounded guild-wide scan (the pre-mortem flagged that as a
+        high-severity performance risk). for each channel, walks the last
+        `lookback_days` days of message history; messages with configured-emoji
+        reactions that have no BoardEntryDocument are counted (dry_run=True)
+        or created via the watcher's _ensure_entry backfill path (dry_run=False).
+
+        rate-limit waits are logged; scan respects a 90s time budget and
+        reports when exhausted so callers know to re-run.
         """
-        logger.info(f'ccboard auditor: discover_guild stub for guild={guild_id} dry_run={dry_run}')
+        if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+            return PassResult(kind='discover_guild', dry_run=dry_run, summary='Failed: ccboard repos not initialized')
+        try:
+            guild_cfg = config.guild(guild_id)
+        except UnauthorizedGuild:
+            return PassResult(kind='discover_guild', dry_run=dry_run, summary=f'Failed: guild {guild_id} unauthorized')
+        cfg = guild_cfg.ccboard
+        if not cfg.enabled:
+            return PassResult(kind='discover_guild', dry_run=dry_run, summary='Failed: ccboard disabled for this guild')
+        if not cfg.emojis:
+            return PassResult(kind='discover_guild', dry_run=dry_run, summary='Failed: ccboard.emojis is empty; configure weights first')
+
+        channel_ids = await ccboard._entry_repo.distinct_channel_ids(guild_id)
+        if not channel_ids:
+            return PassResult(kind='discover_guild', dry_run=dry_run, summary=f'guild={guild_id} no channels with ccboard entries; nothing to discover')
+
+        _BUDGET_SECONDS = 90.0
+        cutoff = datetime.now(tz=UTC) - timedelta(days=lookback_days)
+        configured = set(cfg.emojis)
+        bot = _get_bot()
+
+        start = time.monotonic()
+        channels_scanned = scanned = found = created = 0
+        budget_exhausted = False
+
+        for channel_id in channel_ids:
+            if time.monotonic() - start >= _BUDGET_SECONDS:
+                budget_exhausted = True
+                break
+
+            channel = bot.get_channel(channel_id)
+            if channel is None:
+                try:
+                    channel = await bot.fetch_channel(channel_id)
+                except (discord.NotFound, discord.Forbidden) as err:
+                    logger.debug(f'ccboard auditor: discovery channel {channel_id} unavailable guild={guild_id}: {err}')
+                    continue
+                except discord.HTTPException as err:
+                    retry = getattr(err, 'retry_after', None)
+                    if retry:
+                        logger.info(f'ccboard auditor: discovery rate-limited fetching channel {channel_id} guild={guild_id}; retry_after={retry:.1f}s')
+                    else:
+                        logger.warning(f'ccboard auditor: discovery fetch channel {channel_id} failed guild={guild_id}: {err}')
+                    continue
+            if not isinstance(channel, discord.abc.Messageable):
+                continue
+
+            channels_scanned += 1
+            try:
+                async for message in channel.history(limit=None, after=cutoff, oldest_first=True):
+                    if time.monotonic() - start >= _BUDGET_SECONDS:
+                        budget_exhausted = True
+                        break
+
+                    if not any(str(r.emoji) in configured for r in message.reactions):
+                        continue
+
+                    scanned += 1
+                    if await ccboard._entry_repo.get(message.id) is not None:
+                        continue  # already tracked
+
+                    found += 1
+                    logger.info(f'ccboard auditor: discovery untracked message={message.id} ch={channel_id} guild={guild_id}')
+                    if not dry_run:
+                        from doom_bot.ccboard.watcher import _ensure_entry
+
+                        now = int(time.time())
+                        lock = ccboard.get_lock(message.id)
+                        async with lock:
+                            entry = await _ensure_entry(
+                                real_message_id=message.id,
+                                real_channel_id=channel_id,
+                                guild_id=guild_id,
+                                cfg=cfg,
+                                skip_user=0,
+                                skip_emoji='',
+                                now=now,
+                            )
+                        if entry is not None:
+                            created += 1
+                            logger.info(f'ccboard auditor: discovery created entry for {message.id} guild={guild_id}')
+
+            except discord.Forbidden as err:
+                logger.warning(f'ccboard auditor: discovery history forbidden ch={channel_id} guild={guild_id}: {err}')
+                continue
+            except discord.HTTPException as err:
+                retry = getattr(err, 'retry_after', None)
+                if retry:
+                    logger.info(f'ccboard auditor: discovery rate-limited history ch={channel_id} guild={guild_id}; retry_after={retry:.1f}s')
+                else:
+                    logger.warning(f'ccboard auditor: discovery history failed ch={channel_id} guild={guild_id}: {err}')
+                continue
+
+            if budget_exhausted:
+                break
+
+        elapsed = time.monotonic() - start
+        mode = 'dry_run' if dry_run else 'applied'
+        extra = ' (budget exhausted — re-run to continue)' if budget_exhausted else ''
+        action = 'would_create' if dry_run else 'created'
+        summary = f'guild={guild_id} channels={channels_scanned} scanned={scanned} untracked={found} {action}={created} elapsed={elapsed:.1f}s [{mode}]{extra}'
+        logger.info(f'ccboard auditor: discover_guild {summary}')
         return PassResult(
             kind='discover_guild',
             dry_run=dry_run,
-            summary=f'stub: scoped discovery is phase 2.4; would have run on guild {guild_id}',
+            mutated=created > 0,
+            summary=summary,
+            details={'channels': channels_scanned, 'scanned': scanned, 'found': found, 'created': created, 'elapsed_s': round(elapsed, 1), 'budget_exhausted': budget_exhausted},
         )
 
     async def cleanup_orphans(self, guild_id: int, *, dry_run: bool = True, grace_days: int = 7) -> PassResult:

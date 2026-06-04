@@ -4,11 +4,14 @@
 phase 2.2 covered `_compute_diff` (pure) and `reconcile_entry` (mocked
 end-to-end). phase 2.3 layered the recount staleness predicate (`_is_stale`),
 the `to_recount` bucket on `_ReconcileDiff`, and `recount_entry` as a thin
-wrapper. later-phase passes (discover, cleanup_orphans) remain stubs.
+wrapper. phase 2.4 added `reconcile_guild` (per-entry iteration + time budget)
+and `discover_guild` (scoped channel-history scan). cleanup_orphans is still
+a stub (phase 2.5).
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
+import discord
 import pytest
 
 from attu_models import (
@@ -610,24 +613,252 @@ async def test_run_is_a_no_op():
     await auditor_task.run()
 
 
-# --- Pass stubs that have not yet been implemented ---
+# --- reconcile_guild tests (phase 2.4) ---
 
 
-@pytest.mark.asyncio
-async def test_reconcile_guild_returns_stub():
-    result = await auditor_task.reconcile_guild(guild_id)
-    assert result.kind == 'reconcile_guild'
-    assert result.dry_run is True
-    assert result.mutated is False
-    assert 'phase 2.4' in result.summary
+def _make_entry(msg_id: int) -> MagicMock:
+    e = MagicMock()
+    e.message_id = msg_id
+    return e
 
 
-@pytest.mark.asyncio
-async def test_discover_guild_returns_stub():
-    result = await auditor_task.discover_guild(guild_id)
-    assert result.kind == 'discover_guild'
-    assert result.dry_run is True
-    assert result.mutated is False
+class TestReconcileGuild:
+    @pytest.mark.asyncio
+    async def test_repos_not_initialized(self, task, monkeypatch):
+        monkeypatch.setattr(ccboard, '_entry_repo', None)
+        monkeypatch.setattr(ccboard, '_reaction_repo', None)
+        result = await task.reconcile_guild(guild_id)
+        assert result.kind == 'reconcile_guild'
+        assert result.mutated is False
+        assert 'repos not initialized' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_disabled_config(self, task, make_guild_ccboard):
+        make_guild_ccboard.ccboard.enabled = False
+        result = await task.reconcile_guild(guild_id)
+        assert result.mutated is False
+        assert 'disabled' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_no_entries(self, task, make_guild_ccboard, entry_repo):
+        entry_repo.all_for_guild = AsyncMock(return_value=[])
+        result = await task.reconcile_guild(guild_id)
+        assert result.kind == 'reconcile_guild'
+        assert result.mutated is False
+        assert 'no entries found' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_iterates_all_entries_and_reports_processed(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """each entry triggers a reconcile_entry call; processed count matches"""
+        e1, e2 = _make_entry(message_id), _make_entry(message_id + 1)
+        entry_repo.all_for_guild = AsyncMock(return_value=[e1, e2])
+        called_with = []
+
+        async def fake_reconcile(gid, mid, *, dry_run=True):
+            called_with.append(mid)
+            return PassResult(kind='reconcile_entry', dry_run=dry_run, summary='no change')
+
+        monkeypatch.setattr(task, 'reconcile_entry', fake_reconcile)
+        result = await task.reconcile_guild(guild_id)
+        assert set(called_with) == {message_id, message_id + 1}
+        assert 'processed=2/2' in result.summary
+        assert 'mutated=0' in result.summary
+        assert 'skipped=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_mutated_count_tracks_applied_entries(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        entry_repo.all_for_guild = AsyncMock(return_value=[_make_entry(message_id)])
+
+        async def fake_reconcile(gid, mid, *, dry_run=True):
+            return PassResult(kind='reconcile_entry', dry_run=False, mutated=True, summary='APPLIED')
+
+        monkeypatch.setattr(task, 'reconcile_entry', fake_reconcile)
+        result = await task.reconcile_guild(guild_id, dry_run=False)
+        assert result.mutated is True
+        assert 'mutated=1' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_dry_run_propagated_to_each_entry(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        entry_repo.all_for_guild = AsyncMock(return_value=[_make_entry(message_id)])
+        received_dry_run = []
+
+        async def fake_reconcile(gid, mid, *, dry_run=True):
+            received_dry_run.append(dry_run)
+            return PassResult(kind='reconcile_entry', dry_run=dry_run, summary='ok')
+
+        monkeypatch.setattr(task, 'reconcile_entry', fake_reconcile)
+        await task.reconcile_guild(guild_id, dry_run=False)
+        assert received_dry_run == [False]
+
+
+# --- discover_guild tests (phase 2.4) ---
+
+
+def _make_discord_msg_with_reactions(msg_id: int, emoji_strs: list[str]) -> MagicMock:
+    msg = MagicMock()
+    msg.id = msg_id
+    reactions = []
+    for es in emoji_strs:
+        r = MagicMock()
+        r.emoji = es
+        reactions.append(r)
+    msg.reactions = reactions
+    return msg
+
+
+class _FakeChannel(discord.abc.Messageable):
+    """minimal discord.abc.Messageable subclass for discover_guild tests."""
+
+    def __init__(self, messages: list):
+        self._messages = messages
+
+    async def _get_channel(self):  # required by Messageable ABC
+        return self
+
+    def history(self, *args, **kwargs):
+        async def _gen():
+            for m in self._messages:
+                yield m
+
+        return _gen()
+
+
+class TestDiscoverGuild:
+    @pytest.mark.asyncio
+    async def test_repos_not_initialized(self, task, monkeypatch):
+        monkeypatch.setattr(ccboard, '_entry_repo', None)
+        monkeypatch.setattr(ccboard, '_reaction_repo', None)
+        result = await task.discover_guild(guild_id)
+        assert result.kind == 'discover_guild'
+        assert result.mutated is False
+        assert 'repos not initialized' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_disabled_config(self, task, make_guild_ccboard):
+        make_guild_ccboard.ccboard.enabled = False
+        result = await task.discover_guild(guild_id)
+        assert result.mutated is False
+        assert 'disabled' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_no_channels(self, task, make_guild_ccboard, entry_repo):
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[])
+        result = await task.discover_guild(guild_id)
+        assert result.kind == 'discover_guild'
+        assert result.mutated is False
+        assert 'no channels' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_dry_run_counts_untracked_without_creating(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """channel has one message with configured emoji and no db entry: dry_run reports found=1, mutated=False"""
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[channel_id])
+        entry_repo.get = AsyncMock(return_value=None)  # no existing entry
+
+        msg = _make_discord_msg_with_reactions(message_id + 50, [emoji_star])
+        mock_channel = _FakeChannel([msg])
+        mock_bot = MagicMock()
+        mock_bot.get_channel = MagicMock(return_value=mock_channel)
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.discover_guild(guild_id, dry_run=True)
+        assert result.kind == 'discover_guild'
+        assert result.dry_run is True
+        assert result.mutated is False
+        assert 'untracked=1' in result.summary
+        assert 'would_create=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_dry_run_skips_already_tracked_messages(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """message already in db: not counted as untracked"""
+        from unittest.mock import MagicMock as MM
+
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[channel_id])
+        existing_entry = MM()
+        entry_repo.get = AsyncMock(return_value=existing_entry)
+
+        msg = _make_discord_msg_with_reactions(message_id, [emoji_star])
+        mock_channel = _FakeChannel([msg])
+        mock_bot = MagicMock()
+        mock_bot.get_channel = MagicMock(return_value=mock_channel)
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.discover_guild(guild_id, dry_run=True)
+        assert 'untracked=0' in result.summary
+        assert result.mutated is False
+
+    @pytest.mark.asyncio
+    async def test_dry_run_skips_messages_without_configured_emoji(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """message has an emoji not in cfg.emojis: not counted"""
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[channel_id])
+        entry_repo.get = AsyncMock(return_value=None)
+
+        msg = _make_discord_msg_with_reactions(message_id + 50, ['🍕'])  # not a configured emoji
+        mock_channel = _FakeChannel([msg])
+        mock_bot = MagicMock()
+        mock_bot.get_channel = MagicMock(return_value=mock_channel)
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.discover_guild(guild_id, dry_run=True)
+        assert 'untracked=0' in result.summary
+
+    @pytest.mark.asyncio
+    async def test_apply_creates_entry_via_ensure_entry(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """dry_run=False: calls _ensure_entry for untracked messages; created=1"""
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[channel_id])
+        entry_repo.get = AsyncMock(return_value=None)
+
+        msg = _make_discord_msg_with_reactions(message_id + 50, [emoji_star])
+        mock_channel = _FakeChannel([msg])
+        mock_bot = MagicMock()
+        mock_bot.get_channel = MagicMock(return_value=mock_channel)
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        created_entry = MagicMock()
+        ensure_calls = []
+
+        async def fake_ensure_entry(**kwargs):
+            ensure_calls.append(kwargs)
+            return created_entry
+
+        import doom_bot.ccboard.watcher as watcher_mod_ref
+
+        monkeypatch.setattr(watcher_mod_ref, '_ensure_entry', fake_ensure_entry)
+
+        result = await task.discover_guild(guild_id, dry_run=False)
+        assert result.mutated is True
+        assert 'created=1' in result.summary
+        assert len(ensure_calls) == 1
+        assert ensure_calls[0]['real_message_id'] == message_id + 50
+        assert ensure_calls[0]['guild_id'] == guild_id
+
+    @pytest.mark.asyncio
+    async def test_unavailable_channel_is_skipped(self, task, make_guild_ccboard, entry_repo, monkeypatch):
+        """channel fetch fails: channel is skipped, scan continues with the next one"""
+        entry_repo.distinct_channel_ids = AsyncMock(return_value=[channel_id, channel_id + 1])
+        entry_repo.get = AsyncMock(return_value=None)
+
+        msg = _make_discord_msg_with_reactions(message_id + 50, [emoji_star])
+        good_channel = _FakeChannel([msg])
+
+        mock_bot = MagicMock()
+
+        def get_channel_side_effect(cid):
+            return None  # force fetch_channel path
+
+        async def fetch_channel_side_effect(cid):
+            if cid == channel_id:
+                raise discord.NotFound(MagicMock(), 'not found')
+            return good_channel
+
+        mock_bot.get_channel = MagicMock(side_effect=get_channel_side_effect)
+        mock_bot.fetch_channel = AsyncMock(side_effect=fetch_channel_side_effect)
+        monkeypatch.setattr(auditor_mod, '_get_bot', lambda: mock_bot)
+
+        result = await task.discover_guild(guild_id, dry_run=True)
+        # only the good channel was scanned; one untracked message found
+        assert result.kind == 'discover_guild'
+        assert 'channels=1' in result.summary
+        assert 'untracked=1' in result.summary
 
 
 @pytest.mark.asyncio
