@@ -256,3 +256,38 @@ Worktree: `.claude/worktrees/ccboard` · branch: `feat/ccboard`
 Restarted the project: tagged the discarded `feat/ccboard-redesign` history as `archive/ccboard-redesign` (`f6483dd8`, phases 0–2.3), deleted the old worktree+branch, and created a fresh worktree at `.claude/worktrees/ccboard` on branch `feat/ccboard` checked out from that tag — all code preserved.
 
 Converted the 612-line monolith `notes/plans/ccboard.md` into this four-file directory per `notes/dev/process.md`: forward-looking spec + phase status → [plan.md](plan.md); phase-2 pre-mortem + new conversion addendum → [pre-mortem.md](pre-mortem.md); phase log, retros, revisions, ship gate (this file) → log.md; bug log + triage dispositions → [bugs.md](bugs.md). Phase numbering (0, 1, 2.0–2.10) preserved for cross-reference; phases 0–2.3 marked closed, 2.4–2.10 open. Branch references updated `feat/ccboard-redesign` → `feat/ccboard`. No code changed. The monolithic `notes/plans/ccboard.md` is now a superseded predecessor (see the conversion addendum in [pre-mortem.md](pre-mortem.md)); retire it at `pre-merge`. Resume precondition: re-run `scripts/run_tests.py` to refresh the ~3.5-week-stale 1346/160/13/32 baseline before starting phase 2.4.
+
+---
+
+## starting phase 2.6 — 2026-06-04
+
+**definition of done confirmed:** with `enabled=True`, `/stars random` returns a `ccboard_entries` entry; a reaction on the response redirects to the original via `display_message_ids`; `enabled=False` guilds keep legacy `/stars`. display message id appended to entry.display_message_ids (cap 20); no `refs.starboard_post` write.
+
+discovery: the worktree had no `docker-compose.yml` symlink (`.dockerignore` excludes `.claude/`), so every previous test run in this session was running against the main `dev` branch code. created `.env` and `docker-compose.yml` symlinks in the worktree; true baseline is 1369 unit / 170 component / 13 integration / 32 JS (not 1270/142/25/32 as the main-repo counts showed).
+
+---
+
+## phase 2.6 retro — 2026-06-04
+
+### spec delta
+- delivered: `require_board_post` kwarg on `EntryRepository.get_random`; `_show_ccboard_random` routing function; `stars_random`/`stars_lost` routed by `cfg.ccboard.enabled`; display_message_id append on response; 4 unit routing tests; 7 component tests in `test_commands_stars_ccboard.py`. full suite green (1369/170/13/32).
+- missed / deferred: none
+- extra: created worktree `docker-compose.yml` and `.env` symlinks (infrastructure fix); fixed pre-existing test bug in `test_distinct_channel_ids_returns_seeded_channels` (never seeded base entry → see bug #22); also surfaces that all prior test claims used the wrong build context.
+
+### surprises
+- assumption: worktree tests were running correctly → reality: `docker-compose.yml` symlink was missing from the worktree; docker compose walked up to parent and tested the main `dev` branch; previous phases' "green" assertions were against a different codebase → delta: created symlinks; actual worktree counts differ from main-repo counts.
+- assumption: `_show_random_message` refactor would silently break 0 tests → reality: 3 unit tests failed because they relied on config loading being deferred until after `get_random` returned None/raised; fixed by adding `guild` fixture to each.
+
+### residual debt
+- bug #21 (import sort, test_run_tests.py) — unchanged, deferred per prior plan.
+- `cc_stars.py` walking-skeleton `/cc stars test` stub — unchanged until phase 2.10.
+
+### implications for downstream phases
+- phase 2.7 (leaderboards): same routing pattern; all four leaderboard commands plus new `top-messages` follow the same `cfg.ccboard.enabled` gate.
+
+---
+
+## revision after phase 2.6 — 2026-06-04
+
+- phase 2.6 (/stars random/lost): closed — all DoD items delivered; test infrastructure fixed (worktree symlinks); bug #22 resolved.
+- phases 2.7–2.10: **valid** — routing pattern established; no premise change.

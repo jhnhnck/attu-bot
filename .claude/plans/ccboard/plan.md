@@ -74,13 +74,13 @@ The phase-2 pre-mortem (in [pre-mortem.md](pre-mortem.md)) surfaced three high-s
 **scope:** `cleanup_orphans` (dry-run default, 7-day grace, log every deletion). implementation note (#19): if orphan signals fold into `_compute_diff`, extract another `_classify_*` helper or `# noqa: PLR0912 — <reason>`; silently bumping the lint limit is not acceptable.
 **rollback:** dry-run flags a current entry as orphan → diff logic wrong, abandon before any deletion.
 
-## phase 2.6 — /stars random/lost on ccboard  ← NEXT
-**status:** open
+## phase 2.6 — /stars random/lost on ccboard
+**status:** closed in 05d2fc9
 **definition of done:** with `enabled=True`, `/stars random` returns a `ccboard_entries` entry; a reaction on the response redirects to the original via `display_message_ids`; `enabled=False` guilds keep legacy `/stars`.
 **scope:** ccboard-backed `/stars random|lost` replacing legacy by config gate; append response ids to `display_message_ids` (cap 20); never write `MessageDocument.refs.starboard_post`. probe first: one-command router branching on guild config, verify command-tree sync.
 **rollback:** routing returns ccboard data when legacy expected → gate logic off; revert routing without touching repos.
 
-## phase 2.7 — /stars leaderboards
+## phase 2.7 — /stars leaderboards  ← NEXT
 **status:** open
 **definition of done:** each leaderboard subcommand returns expected top-N for a seeded guild; `effective_author_id` attribution honored; pagination matches `_PAGE_SIZE`.
 **scope:** `/stars leaderboard {most-stars,most-starred,most-given,top-messages}` over existing tested repo methods.

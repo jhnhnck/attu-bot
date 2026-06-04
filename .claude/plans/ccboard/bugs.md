@@ -4,7 +4,7 @@ Bug log. Format: `[severity · disposition] description`. Dispositions are from 
 
 ## open
 
-- **#5** [important · fix-in-phase-2.6] user-facing ccboard slash commands (`/stars random`, `/stars lost`, `/stars recheck`, four leaderboards). legacy `/stars` still hits the legacy starboard. note: after a guild migrates via `/fix stars convert`, legacy `/stars` returns increasingly stale data (new reactions land only in ccboard).
+- **#5** [important · fix-in-phase-2.7] user-facing ccboard slash commands (`/stars recheck`, four leaderboards). `/stars random` and `/stars lost` delivered in phase 2.6. legacy `/stars` leaderboards still hit the legacy starboard. note: after a guild migrates via `/fix stars convert`, legacy `/stars` returns increasingly stale data (new reactions land only in ccboard).
 - **#7** [nit · defer] wiki-attribution pass — parse webhook notification messages, resolve wiki usernames to discord ids via a `wiki_identities` collection. revisit after phase 2 lands and there's usage data.
 - **#8** [important · defer] `effective_author_id` re-resolution. once set or left None during backfill, never revisited; if the reply target later becomes available (re-fetched, restored from backup), attribution stays stale. rare; revisit before the phase-2 ship gate.
 - **#10** [nit · defer] extension reload policy — keep handlers always loaded with per-call gating (current), or wire `bot.reload_extension()` into the `enabled` toggle path. current per-call gating works; revisit only if slash-command visibility becomes a problem.
@@ -19,6 +19,8 @@ Bug log. Format: `[severity · disposition] description`. Dispositions are from 
 
 ## closed
 
+- **#22** [resolved in phase 2.6] `test_distinct_channel_ids_returns_seeded_channels` never seeded the base entry into `msg_channel` before asserting it appeared in results. fixed: added `await entry_repo.upsert(_entry())`. surfaced when the worktree tests were first correctly run (see below).
+- **#23** [resolved in phase 2.6] worktree `docker-compose.yml` symlink was missing; docker compose walked up to parent repo and tested main-branch code. all prior "green" assertions in this project were against the `dev` branch, not `feat/ccboard`. fixed: created `.env` and `docker-compose.yml` symlinks in the worktree. actual worktree test counts: 1369 unit / 170 component / 13 integration / 32 JS.
 - **#19** [resolved in phase 2.5] `_compute_diff` was not the PLR0912 concern; `cleanup_orphans` needed its own noqa. applied `# noqa: PLR0911, PLR0912` with a reason on the method signature.
 - **#6** [resolved in phase 2.4] guild-wide `reconcile_guild` + scoped `discover_guild` delivered; `/fix ccboard recount` (no-link) is real; `/fix ccboard recover` is real.
 - **#9** [resolved in phase 2.4] guild-wide bulk recount delivered via `reconcile_guild` (staleness predicate in per-entry iteration).
