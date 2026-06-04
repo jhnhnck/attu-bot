@@ -1051,14 +1051,18 @@ class EntryRepository:
         max_positive: int | None = None,
         author_id: int | None = None,
         message_ids: list[int] | None = None,
+        require_board_post: bool = True,
     ) -> BoardEntryDocument | None:
         """return a random entry matching the filters using $sample.
 
         `message_ids`, when provided, restricts to entries with one of these ids — used by
         emoji-filtered random by first calling ReactionRepository.message_ids_with_emoji.
         `author_id` matches against (effective_author_id or author_id).
+        `require_board_post=False` allows lost-message queries (entries below threshold with no board post).
         """
-        match: dict = {'guild_id': guild_id, 'positive_points': {'$gte': min_positive}, 'starboard_message_id': {'$ne': None}}
+        match: dict = {'guild_id': guild_id, 'positive_points': {'$gte': min_positive}}
+        if require_board_post:
+            match['starboard_message_id'] = {'$ne': None}
         if max_positive is not None:
             match['positive_points']['$lte'] = max_positive
         if message_ids is not None:

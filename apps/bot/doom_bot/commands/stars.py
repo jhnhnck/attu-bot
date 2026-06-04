@@ -33,26 +33,83 @@ def _get_msg_repo():
     return _get_repo()
 
 
+def _get_entry_repo():
+    from doom_bot.ccboard import _entry_repo
+
+    if _entry_repo is None:
+        raise RuntimeError('ccboard entry repo not initialized')
+    return _entry_repo
+
+
+def _get_cc_reaction_repo():
+    from doom_bot.ccboard import _reaction_repo
+
+    if _reaction_repo is None:
+        raise RuntimeError('ccboard reaction repo not initialized')
+    return _reaction_repo
+
+
+async def _show_ccboard_random(ctx: ApplicationContext, guild_id: int, guild_config, *, min_positive: int, max_positive: int | None = None) -> None:
+    """ccboard path for /stars random and /stars lost — per-guild config gate."""
+    from doom_bot.ccboard.builder import build_embeds as cc_build_embeds
+
+    try:
+        entry_repo = _get_entry_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+        return
+
+    cc_cfg = guild_config.ccboard
+    # random: only entries with a board post; lost: below threshold so board post absent
+    require_board_post = max_positive is None
+    entry = await entry_repo.get_random(guild_id, min_positive=min_positive, max_positive=max_positive, require_board_post=require_board_post)
+
+    if entry is None:
+        label = 'exactly 1 star' if max_positive == 1 else f'{min_positive}+ stars'
+        await ctx.respond(f'no messages found with {label} {ui_emoji("rockball_player")}', ephemeral=True)
+        return
+
+    jump_url = f'https://discord.com/channels/{guild_id}/{entry.channel_id}/{entry.message_id}'
+    content = f'{entry.net_points} {cc_cfg.points_label} | {jump_url}'
+    embeds = cc_build_embeds(entry, cc_cfg)
+
+    await ctx.respond(content=content, embeds=embeds)
+    try:
+        interaction = ctx.interaction
+        if interaction is None:
+            raise RuntimeError('missing interaction')
+        response_msg = await interaction.original_response()
+        await entry_repo.append_display_message_id(entry.message_id, response_msg.id)
+    except Exception as err:
+        logger.warn(f'ccboard: could not store /stars display_message_id: {err}')
+
+
 async def _show_random_message(ctx: ApplicationContext, min_total: int, max_total: int | None = None) -> None:
     """fetch and display a random starred message matching the reaction count range."""
+    guild_id = ctx.guild.id
+
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        return
+
+    if guild_config.ccboard.enabled:
+        await _show_ccboard_random(ctx, guild_id, guild_config, min_positive=min_total, max_positive=max_total)
+        return
+
+    # legacy path
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
         await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
-    guild_id = ctx.guild.id
     doc = await sb_repo.get_random(guild_id, min_total=min_total, max_total=max_total)
 
     if doc is None:
         label = 'exactly 1 star' if max_total == 1 else f'{min_total}+ stars'
         await ctx.respond(f'no messages found with {label} {ui_emoji("rockball_player")}', ephemeral=True)
-        return
-
-    try:
-        guild_config = config.guild(guild_id)
-    except Exception:
-        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
         return
 
     from doom_bot.client.starboard import build_content, build_embeds, dominant_color

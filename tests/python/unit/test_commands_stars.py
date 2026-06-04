@@ -226,7 +226,7 @@ class TestShowRandomMessage:
         assert len(ctx._responses) == 1
         assert 'content' in ctx._responses[0]['kwargs']
 
-    async def test_no_match(self, mock_ctx_factory):
+    async def test_no_match(self, mock_ctx_factory, guild):
         """responds ephemeral when no message matches."""
         ctx = mock_ctx_factory(guild_id=test_guild)
         mock_sb_repo = AsyncMock()
@@ -239,7 +239,7 @@ class TestShowRandomMessage:
         assert 'no messages found' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
-    async def test_no_match_exactly_one_star(self, mock_ctx_factory):
+    async def test_no_match_exactly_one_star(self, mock_ctx_factory, guild):
         """label says 'exactly 1 star' when max_total=1."""
         ctx = mock_ctx_factory(guild_id=test_guild)
         mock_sb_repo = AsyncMock()
@@ -250,7 +250,7 @@ class TestShowRandomMessage:
 
         assert 'exactly 1 star' in ctx._responses[0]['args'][0]
 
-    async def test_repo_not_initialized(self, mock_ctx_factory):
+    async def test_repo_not_initialized(self, mock_ctx_factory, guild):
         """responds ephemeral when the starboard repo is not initialized."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
@@ -471,4 +471,69 @@ class TestResolveRecheckTarget:
 
         assert result is None
         assert 'could not fetch original message' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+
+# --- ccboard routing for _show_random_message ---
+
+
+class TestShowRandomMessageCCBoardRouting:
+    async def test_routes_to_ccboard_when_enabled(self, mock_ctx_factory, make_guild):
+        """when ccboard.enabled=True, calls _show_ccboard_random instead of legacy path."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        with patch('doom_bot.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc, patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
+            await _show_random_message(ctx, min_total=2)
+
+        mock_cc.assert_called_once()
+        mock_sb.assert_not_called()
+
+    async def test_routes_to_legacy_when_ccboard_disabled(self, mock_ctx_factory, make_guild):
+        """when ccboard.enabled=False (default), takes the legacy sb_repo path."""
+        make_guild(guild_id=test_guild)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_sb_repo = AsyncMock()
+        mock_sb_repo.get_random = AsyncMock(return_value=None)
+
+        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('doom_bot.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc:
+            await _show_random_message(ctx, min_total=2)
+
+        mock_cc.assert_not_called()
+        mock_sb_repo.get_random.assert_called_once()
+
+    async def test_ccboard_random_no_match_responds_ephemeral(self, mock_ctx_factory, make_guild):
+        """ccboard path: no matching entry → 'no messages found' response."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_entry_repo = AsyncMock()
+        mock_entry_repo.get_random = AsyncMock(return_value=None)
+
+        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo):
+            await _show_random_message(ctx, min_total=2)
+
+        assert 'no messages found' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+    async def test_ccboard_not_initialized_responds_ephemeral(self, mock_ctx_factory, make_guild):
+        """ccboard path: entry repo not initialized → 'ccboard not initialized' response."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        with patch('doom_bot.commands.stars._get_entry_repo', side_effect=RuntimeError('not initialized')):
+            await _show_random_message(ctx, min_total=2)
+
+        assert 'ccboard not initialized' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True

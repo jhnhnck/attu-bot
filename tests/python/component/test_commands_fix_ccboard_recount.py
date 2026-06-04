@@ -263,7 +263,8 @@ class TestFixCCBoardRecount:
         """distinct_channel_ids returns the set of channel_ids from seeded entries (no duplicates)."""
         entry_repo = fix_cc_repos['entry']
         ch1, ch2 = 7770000001, 7770000002
-        # two entries in ch1, one in ch2, plus the default _entry() already in ch msg_channel
+        # seed base entry in msg_channel, then two more entries across ch1/ch2
+        await entry_repo.upsert(_entry())
         e1 = _entry()
         e1.message_id = msg_id + 1
         e1.channel_id = ch1
