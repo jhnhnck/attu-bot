@@ -291,3 +291,34 @@ discovery: the worktree had no `docker-compose.yml` symlink (`.dockerignore` exc
 
 - phase 2.6 (/stars random/lost): closed — all DoD items delivered; test infrastructure fixed (worktree symlinks); bug #22 resolved.
 - phases 2.7–2.10: **valid** — routing pattern established; no premise change.
+
+---
+
+## starting phase 2.7 — 2026-06-04
+
+**definition of done confirmed:** each leaderboard subcommand returns expected top-N for a seeded guild; `effective_author_id` attribution honored; pagination matches `_PAGE_SIZE`. plus `top-messages` (ccboard-only).
+
+---
+
+## phase 2.7 retro — 2026-06-04
+
+### spec delta
+- delivered: ccboard routing for `most-stars`, `most-starred`, `most-given` (all three use `cfg.ccboard.enabled` gate); new `top-messages` command (ccboard-only, responds ephemeral when disabled); `_cc_top_messages_embed` helper. 5 new unit routing tests + `_cc_top_messages_embed` tests; 6 new component tests (`TestCCBoardLeaderboards`). full suite green (1376/176/13/32).
+- missed / deferred: none
+- extra: none
+
+### surprises
+- assumption: `ReactionRepository` had an `upsert` method → reality: the method is `upsert_active`; caught by first test run, one-word fix.
+
+### residual debt
+- bug #5 residual: `/stars recheck` (phase 2.8) is the last user-facing command to wire. after that, the full ccboard surface is live.
+
+### implications for downstream phases
+- phase 2.8 (/stars recheck): same routing pattern established; wire `reconcile_entry` as the ccboard path.
+
+---
+
+## revision after phase 2.7 — 2026-06-04
+
+- phase 2.7 (/stars leaderboards): closed — all DoD items delivered; `top-messages` added as a bonus.
+- phases 2.8–2.10: **valid** — no premise change.

@@ -4,7 +4,7 @@ Bug log. Format: `[severity · disposition] description`. Dispositions are from 
 
 ## open
 
-- **#5** [important · fix-in-phase-2.7] user-facing ccboard slash commands (`/stars recheck`, four leaderboards). `/stars random` and `/stars lost` delivered in phase 2.6. legacy `/stars` leaderboards still hit the legacy starboard. note: after a guild migrates via `/fix stars convert`, legacy `/stars` returns increasingly stale data (new reactions land only in ccboard).
+- **#5** [important · fix-in-phase-2.8] user-facing ccboard slash commands (`/stars recheck`). `/stars random`, `/stars lost`, and all four leaderboards delivered in phases 2.6/2.7. note: after a guild migrates via `/fix stars convert`, legacy `/stars` recheck still hits the legacy starboard.
 - **#7** [nit · defer] wiki-attribution pass — parse webhook notification messages, resolve wiki usernames to discord ids via a `wiki_identities` collection. revisit after phase 2 lands and there's usage data.
 - **#8** [important · defer] `effective_author_id` re-resolution. once set or left None during backfill, never revisited; if the reply target later becomes available (re-fetched, restored from backup), attribution stays stale. rare; revisit before the phase-2 ship gate.
 - **#10** [nit · defer] extension reload policy — keep handlers always loaded with per-call gating (current), or wire `bot.reload_extension()` into the `enabled` toggle path. current per-call gating works; revisit only if slash-command visibility becomes a problem.
