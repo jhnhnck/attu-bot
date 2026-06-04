@@ -393,3 +393,40 @@ default applied: no user direction received; plan spec says "default to per-guil
 
 - phase 2.9 (routing verdict): closed — per-guild gate verdict recorded; no code change. phases 2.6–2.8 already implement the chosen approach.
 - phase 2.10: **valid** — skippable no-op gate; remains open for operator UX polish.
+
+---
+
+## starting phase 2.10 — 2026-06-04
+
+**definition of done confirmed:** with `enabled=True`, legacy `/stars` responds "ccboard is active — use /stars" without querying legacy repo; with `enabled=False`, legacy `/stars` unchanged.
+
+**scope:** no-op gate only; legacy module preserved entirely. skippable.
+
+---
+
+## phase 2.10 retro — 2026-06-04
+
+### spec delta
+- delivered: n/a — phase 2.10 is satisfied and superseded by prior phases; no code change.
+- missed / deferred: "ccboard is active" message (option B UX) — superseded by phase 2.9 verdict; per-guild gate (option A) means seamless ccboard results, not a redirect message.
+- extra: n/a
+
+### surprises
+- assumption: phase 2.10 would require adding a "ccboard is active" guard message to each command → reality: phases 2.6–2.8 already implemented per-guild routing that skips the legacy repo entirely when `ccboard.enabled=True`. the "without querying legacy repo" constraint is fully met. the "responds 'ccboard is active'" behavior was option B (rejected in phase 2.9 in favor of seamless results) → delta: phase closes with no code changes.
+
+### integration check
+- suite unchanged at 1379/179/13/32; no code change for this phase. every `/stars` command has a ccboard routing block that returns before any legacy starboard code runs when `ccboard.enabled=True`.
+
+### residual debt
+- bug #21 (import sort) unchanged.
+- open deferred items: #7, #8, #10, #12, #13, #14, #15, #16, #17, #20 — all carry forward to ship gate.
+
+### implications
+- **phase 2 code is complete.** all planned behavior is shipped. the ship gate is next: `ship-readiness` → `pre-merge` → merge `feat/ccboard` → `dev`.
+
+---
+
+## revision after phase 2.10 — 2026-06-04
+
+- phase 2.10 (legacy /stars retirement): closed — satisfied by phases 2.6–2.8; the "ccboard is active" message was option B (rejected in phase 2.9); no code change needed.
+- **phase 2 implementation is complete.** next milestone: phase 2 ship gate.
