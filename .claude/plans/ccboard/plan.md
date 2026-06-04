@@ -67,13 +67,14 @@ The phase-2 pre-mortem (in [pre-mortem.md](pre-mortem.md)) surfaced three high-s
 **scope:** real `reconcile_guild` (walks every `BoardEntryDocument`, calls `reconcile_entry` per entry under a per-guild time budget — recount inherited free via the staleness predicate); real `discover_guild` against the watcher's recent-reactions channel set; the no-link path of `/fix ccboard recount` becomes real; extend `/debug ccboard show_reactions` to render `last_recounted_at` (closes #18). out of scope: any change to `reconcile_entry`/`_compute_diff`.
 **rollback:** discovery over budget → narrow scope (7d vs 30d), never unbounded; recount changes a non-stale record → stale `cfg` per iteration, revert to per-entry; guild-wide diffs differ from per-entry → lock acquisition wrong, revert to slash-command loop.
 
-## phase 2.5 — orphan-post cleanup (grace period)  ← NEXT
-**status:** open
+## phase 2.5 — orphan-post cleanup (grace period)
+**status:** closed in c99b0a6
+
 **definition of done:** dry-run on the ccboard channel lists candidate orphan posts with ages; only posts older than the grace period appear; manual confirm required before any delete.
 **scope:** `cleanup_orphans` (dry-run default, 7-day grace, log every deletion). implementation note (#19): if orphan signals fold into `_compute_diff`, extract another `_classify_*` helper or `# noqa: PLR0912 — <reason>`; silently bumping the lint limit is not acceptable.
 **rollback:** dry-run flags a current entry as orphan → diff logic wrong, abandon before any deletion.
 
-## phase 2.6 — /stars random/lost on ccboard
+## phase 2.6 — /stars random/lost on ccboard  ← NEXT
 **status:** open
 **definition of done:** with `enabled=True`, `/stars random` returns a `ccboard_entries` entry; a reaction on the response redirects to the original via `display_message_ids`; `enabled=False` guilds keep legacy `/stars`.
 **scope:** ccboard-backed `/stars random|lost` replacing legacy by config gate; append response ids to `display_message_ids` (cap 20); never write `MessageDocument.refs.starboard_post`. probe first: one-command router branching on guild config, verify command-tree sync.

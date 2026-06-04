@@ -211,6 +211,46 @@ Working in existing worktree `.claude/worktrees/ccboard`, branch `feat/ccboard` 
 
 ---
 
+## starting phase 2.5 — 2026-06-04
+
+Worktree: `.claude/worktrees/ccboard` · branch: `feat/ccboard`
+
+### confirmed DoD
+- dry-run on the ccboard channel lists candidate orphan posts with ages; only posts older than the grace period appear; manual confirm required before any delete
+- `cleanup_orphans(guild_id, *, dry_run=True, grace_days=7)` on `AuditorTask`
+- `/fix ccboard cleanup [confirm]` slash command wired to the auditor
+- full suite green at the step-3 exit
+
+---
+
+## phase 2.5 retro — 2026-06-04
+
+### spec delta
+- delivered: all three DoD items. `cleanup_orphans` scans cfg.channel_id for bot-authored posts without a DB twin, respects the grace period via `channel.history(before=cutoff)`, logs every candidate and every deletion. `/fix ccboard cleanup [confirm]` wired to the auditor. 7 new unit tests, 1 new component test; full suite green (1270/142/25/32).
+- missed / deferred: none
+- extra: updated the `/fix ccboard recover` description to remove the stale "(phase 2.4 stub)" label.
+
+### surprises
+- assumption: `_compute_diff` would need a new branch for orphan signals → reality: orphan detection is a separate scan of the ccboard output channel, completely independent of `_compute_diff`; no branches added → delta: bug #19 PLR0912 ceiling is irrelevant to this phase; resolved below.
+- assumption: PLR0912 noqa would not be needed → reality: `cleanup_orphans` itself hits the 15-branch ceiling due to its own validation + error-handling chain (same pattern as `discover_guild`) → delta: added `# noqa: PLR0911, PLR0912` with a reason to the method signature; valid per CLAUDE.md rule #4.
+
+### residual debt
+- bug #19 resolved: `_compute_diff` was NOT the concern; `cleanup_orphans` needed its own noqa. bug #19 can now close (the PLR0912 risk was the note about 2.5 being a bucket-adder; 2.5 didn't add buckets to `_compute_diff`).
+- pre-existing: #14 (strip-count reporting), #17 (per-record delta log) — unchanged.
+
+### implications for downstream phases
+- phase 2.6 (/stars random/lost): no premise change.
+- the ccboard channel scan pattern (`channel.history(before=cutoff, oldest_first=False)`) is now tested via the `_FakeChannel` harness and reusable.
+
+---
+
+## revision after phase 2.5 — 2026-06-04
+
+- phase 2.5 (orphan cleanup): closed — all DoD items delivered; bug #19 closed (the PLR0912 concern resolved via noqa with reason on `cleanup_orphans`, not on `_compute_diff`)
+- phases 2.6–2.10 (/stars surface + legacy retirement): **valid** — no premise change from 2.5
+
+---
+
 ## conversion to four-file format — 2026-06-04
 
 Restarted the project: tagged the discarded `feat/ccboard-redesign` history as `archive/ccboard-redesign` (`f6483dd8`, phases 0–2.3), deleted the old worktree+branch, and created a fresh worktree at `.claude/worktrees/ccboard` on branch `feat/ccboard` checked out from that tag — all code preserved.

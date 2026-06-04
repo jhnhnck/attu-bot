@@ -14,12 +14,12 @@ Bug log. Format: `[severity · disposition] description`. Dispositions are from 
 - **#15** [nit · defer→ship-gate] partial-pagination degradation has unit-test coverage only. `_collect_live_reactions` raises `partial=True` on any `reaction.users()` failure or mid-stream loss; `_compute_diff` suppresses removes globally. production codepath against a real flaky discord stream is never exercised.
 - **#16** [nit · defer] single flaky emoji blocks all soft-deletes on an entry. `partial=True` from any one emoji suppresses removes for **every** emoji on the entry. conservative; partial=True is rare. could sharpen to per-emoji flags later; not worth the complexity until production shows it bites.
 - **#17** [nit · defer (patch follow-up)] per-record `point_value` before/after delta logging missing. `_apply_diff` logs only the aggregate `recount=N` line; the 2.3 DoD called for per-record deltas. land as a small `patch(ccboard)` debug-log line in `_apply_diff` anytime; not gated on a phase.
-- **#19** [nit · fix-in-phase-2.5] `_compute_diff` is at the `PLR0912` 12-branch ceiling. 2.3 extracted `_classify_existing_match` to stay under. 2.4 adds no new branches (per-entry iteration); 2.5 (orphan cleanup) is the next plausible bucket-adder. at that point extract another `_classify_*` helper or apply `# noqa: PLR0912 — <reason>`; silently bumping the lint limit is not acceptable.
 - **#20** [nit · defer] web save bump logic duplicated. the `weights_updated_at` preserve-or-bump block (≈6 lines) appears in both `PATCH /api/guilds/<id>/ccboard` and the whole-config endpoint. extract a helper if a third user-hidden field needs the same dance.
 - **#21** [nit · defer (chore anytime)] pre-existing import-sort error in `tests/python/unit/test_run_tests.py` fails `ruff check` against the whole repo. predates phase 2.3; auto-fixable via `ruff check --fix`. land as a standalone `chore: ruff` commit; don't bundle with feature work.
 
 ## closed
 
+- **#19** [resolved in phase 2.5] `_compute_diff` was not the PLR0912 concern; `cleanup_orphans` needed its own noqa. applied `# noqa: PLR0911, PLR0912` with a reason on the method signature.
 - **#6** [resolved in phase 2.4] guild-wide `reconcile_guild` + scoped `discover_guild` delivered; `/fix ccboard recount` (no-link) is real; `/fix ccboard recover` is real.
 - **#9** [resolved in phase 2.4] guild-wide bulk recount delivered via `reconcile_guild` (staleness predicate in per-entry iteration).
 - **#18** [resolved in phase 2.4] `/debug ccboard show_reactions` now renders `last_recounted_at`.

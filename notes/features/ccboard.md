@@ -111,7 +111,7 @@ helpers (`parse_jump_url`, `_is_image`, `_looks_like_image_url`, `_hydrate_store
 | `_sync_post(entry, config)` | `manager` | create/update/delete the board post for one entry |
 | `build_embeds(entry, config)` | `builder` | runs the rule pipeline and returns the full embed list |
 | `job_convert_starboard_to_ccboard(...)` | `migration` | one-shot starboard → ccboard data migration |
-| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; `reconcile_entry` (phase 2.2) carries a `to_recount` bucket gated by the staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3, option B+); `recount_entry` is a thin tag wrapper; `reconcile_guild` (phase 2.4) iterates all entries per-guild under a 90s budget; `discover_guild` (phase 2.4) scans channel history scoped to channels with existing entries under the same budget; `cleanup_orphans` is still a stub (phase 2.5) |
+| `AuditorTask` (+ `reconcile_entry`, `reconcile_guild`, `recount_entry`, `discover_guild`, `cleanup_orphans`) | `auditor` | manual-trigger task; `reconcile_entry` (phase 2.2) carries a `to_recount` bucket gated by the staleness predicate `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3, option B+); `recount_entry` is a thin tag wrapper; `reconcile_guild` (phase 2.4) iterates all entries per-guild under a 90s budget; `discover_guild` (phase 2.4) scans channel history scoped to channels with existing entries under the same budget; `cleanup_orphans` (phase 2.5) scans the ccboard output channel for bot-authored posts with no `BoardEntryDocument` twin; respects a grace period so recently-failed manager writes are not prematurely deleted |
 
 ---
 
@@ -140,6 +140,7 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 | `/fix ccboard purge <link>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
 | `/fix ccboard recover` | auditor discovery pass — calls `auditor_task.discover_guild(dry_run=True)`; scans channel history for messages with configured-emoji reactions that have no `BoardEntryDocument`; scoped to channels with existing entries (never unbounded); 90s budget; dry-run only at the command level |
 | `/fix ccboard recount [message_link] [confirm]` | auditor reconcile + recount pass. with `message_link` runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state and additionally re-snapshots `point_value` for any active record stale per `(last_recounted_at or reacted_at) < cfg.weights_updated_at` (phase 2.3). default dry-run; `confirm=True` writes adds/replaces/recounts, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`. degrades to add+replace-only when discord pagination is partial. summary fields: `add` / `replace` / `remove` / `recount` / `match` / `strip_invalid` / `strip_extras`. without a link calls `reconcile_guild` (phase 2.4): iterates every entry in the guild per-entry with a 90s budget; guild-wide recount inherited free via the staleness predicate |
+| `/fix ccboard cleanup [confirm]` | orphan-post cleanup pass — calls `auditor_task.cleanup_orphans`; scans the ccboard output channel (`cfg.channel_id`) for bot-authored messages that have no corresponding `BoardEntryDocument.starboard_message_id`; only considers posts older than the grace period (default 7 days) so recently-failed manager writes are not deleted before the next retry. default dry-run; `confirm=True` deletes the orphan posts. respects a 90s budget |
 | `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, `reacted_at`, and `last_recounted_at` (when set) |
 | `/cc stars test` | walking-skeleton placeholder for the future ccboard-backed `/stars` surface (random/lost/recheck/leaderboard); phases 2.6-2.8 replace this stub |
 
@@ -159,5 +160,5 @@ phase 1 ships admin / debug coverage. user-facing `/stars random/lost/recheck/le
 
 ```yaml
 last_updated: 2026-06-04
-status: phase 2.4 — guild-wide reconcile (`reconcile_guild`, iterates all entries per-guild under 90s budget), scoped discovery (`discover_guild`, channel history scan bounded to channels with existing entries), and `/debug ccboard show_reactions` last_recounted_at display delivered. orphan cleanup still phase 2.5; user-facing /stars still phases 2.6-2.8
+status: phase 2.5 — orphan-post cleanup (`cleanup_orphans` + `/fix ccboard cleanup`) delivered. user-facing /stars still phases 2.6-2.8
 ```
