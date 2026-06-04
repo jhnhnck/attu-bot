@@ -354,3 +354,42 @@ discovery: the worktree had no `docker-compose.yml` symlink (`.dockerignore` exc
 
 - phase 2.8 (/stars recheck): closed — all DoD items delivered; bug #5 fully resolved.
 - phases 2.9–2.10: **valid** — no premise change.
+
+---
+
+## starting phase 2.9 — 2026-06-04
+
+**definition of done confirmed:** design note + user-approved verdict (per-guild gate vs hard cutover); no code.
+
+---
+
+## phase 2.9 — legacy /stars routing verdict — 2026-06-04
+
+### design note
+
+two options for how to treat legacy `/stars` when `ccboard.enabled=True`:
+
+**option a — per-guild gate (current implementation):** each command handler checks `guild_config.ccboard.enabled` and routes to either the ccboard path or the legacy path. legacy code remains live and functional. guilds that have not migrated continue to see unmodified legacy `/stars` behavior.
+
+**option b — hard cutover (explicit no-op):** when `ccboard.enabled=True`, all `/stars` commands respond immediately with a short "ccboard is now active" message without querying any repo. legacy code is bypassed, but kept in-tree (physical deletion is phase 2.10 / deferred indefinitely).
+
+**comparison:**
+
+| dimension | option a (per-guild gate) | option b (hard cutover) |
+|---|---|---|
+| risk | none — legacy path exercised daily | orphans a live code path on upgrade |
+| ux | seamless; enabled=True just changes results | explicit "ccboard active" message if user hits old surface |
+| rollback | flip `enabled=False` | same |
+| maintenance | both paths must stay compilable | legacy path becomes dead code; riskier to maintain |
+| phase 2.10 | trivially adds the "ccboard active" message | already done |
+
+**verdict: option a — per-guild gate.** phases 2.6–2.8 already implemented this. the approach is correct, conservative, and already proven by 1379/179/13/32 tests. option b can be layered on top as phase 2.10's no-op gate when operator UX polish warrants it; that phase is skippable per the plan.
+
+default applied: no user direction received; plan spec says "default to per-guild gate (conservative) if undecided."
+
+---
+
+## revision after phase 2.9 — 2026-06-04
+
+- phase 2.9 (routing verdict): closed — per-guild gate verdict recorded; no code change. phases 2.6–2.8 already implement the chosen approach.
+- phase 2.10: **valid** — skippable no-op gate; remains open for operator UX polish.

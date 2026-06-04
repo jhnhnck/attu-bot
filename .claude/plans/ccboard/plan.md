@@ -91,12 +91,12 @@ The phase-2 pre-mortem (in [pre-mortem.md](pre-mortem.md)) surfaced three high-s
 **scope:** wire `/stars recheck` to `reconcile_entry`. explicit cross-phase dep on 2.2.
 **rollback:** unexpected mutation → require explicit confirm before mutating.
 
-## phase 2.9 — legacy /stars routing decision  ← NEXT
-**status:** open
+## phase 2.9 — legacy /stars routing decision
+**status:** closed in 1a276fa (verdict: per-guild gate — phases 2.6–2.8 already implement this; default applied per plan spec)
 **definition of done:** design note + user-approved verdict (per-guild gate vs hard cutover); no code.
 **scope:** decision only. default to per-guild gate (conservative) if undecided.
 
-## phase 2.10 — legacy /stars retirement (no-op route)
+## phase 2.10 — legacy /stars retirement (no-op route)  ← NEXT
 **status:** open
 **definition of done:** with `enabled=True`, legacy `/stars` responds "ccboard is active — use /stars" without querying legacy repo; with `enabled=False`, legacy `/stars` unchanged.
 **scope:** no-op gate only; legacy module preserved entirely; physical removal is a separate later decision. ship last; skippable.
