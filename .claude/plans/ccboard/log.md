@@ -322,3 +322,35 @@ discovery: the worktree had no `docker-compose.yml` symlink (`.dockerignore` exc
 
 - phase 2.7 (/stars leaderboards): closed — all DoD items delivered; `top-messages` added as a bonus.
 - phases 2.8–2.10: **valid** — no premise change.
+
+---
+
+## starting phase 2.8 — 2026-06-04
+
+**definition of done confirmed:** `/stars recheck <link>` invokes phase-2.2's per-entry reconcile with `confirm=True`; result message mirrors legacy recheck.
+
+---
+
+## phase 2.8 retro — 2026-06-04
+
+### spec delta
+- delivered: `stars_recheck` loads `guild_config` first, routes to `auditor_task.reconcile_entry(..., dry_run=False)` when `ccboard.enabled=True`; responds with `result.summary`. 3 unit routing tests (`TestRecheckCCBoardRouting`); 3 component tests (`TestCCBoardStarsRecheck`). full suite green (1379/179/13/32).
+- missed / deferred: none
+- extra: none
+
+### surprises
+- assumption: `stars_recheck` had 5 returns → reality: it already had 6 before this phase; adding 1 for the ccboard routing block hit PLR0911 → delta: `# noqa: PLR0911` with reason; valid per CLAUDE.md rule 4.
+
+### residual debt
+- bug #5 fully resolved: all ccboard user-facing slash commands delivered (random, lost, all four leaderboards, recheck).
+- bug #21 (import sort) unchanged.
+
+### implications for downstream phases
+- phase 2.9 (routing verdict): per-guild gate was already implemented in phases 2.6–2.8; verdict just records the decision as closed.
+
+---
+
+## revision after phase 2.8 — 2026-06-04
+
+- phase 2.8 (/stars recheck): closed — all DoD items delivered; bug #5 fully resolved.
+- phases 2.9–2.10: **valid** — no premise change.

@@ -85,13 +85,13 @@ The phase-2 pre-mortem (in [pre-mortem.md](pre-mortem.md)) surfaced three high-s
 **definition of done:** each leaderboard subcommand returns expected top-N for a seeded guild; `effective_author_id` attribution honored; pagination matches `_PAGE_SIZE`.
 **scope:** `/stars leaderboard {most-stars,most-starred,most-given,top-messages}` over existing tested repo methods.
 
-## phase 2.8 — /stars recheck on ccboard  ← NEXT
-**status:** open
+## phase 2.8 — /stars recheck on ccboard
+**status:** closed in 52c47cd
 **definition of done:** `/stars recheck <link>` invokes phase-2.2's per-entry reconcile with `confirm=True`; result message mirrors legacy recheck.
 **scope:** wire `/stars recheck` to `reconcile_entry`. explicit cross-phase dep on 2.2.
 **rollback:** unexpected mutation → require explicit confirm before mutating.
 
-## phase 2.9 — legacy /stars routing decision
+## phase 2.9 — legacy /stars routing decision  ← NEXT
 **status:** open
 **definition of done:** design note + user-approved verdict (per-guild gate vs hard cutover); no code.
 **scope:** decision only. default to per-guild gate (conservative) if undecided.
