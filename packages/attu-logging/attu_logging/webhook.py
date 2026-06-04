@@ -6,11 +6,9 @@ import traceback
 import structlog
 
 
-# implementation choice: re-implemented rather than imported from doom_bot.webhook.
-# importing back into apps/bot would re-introduce the workspace cycle this package
-# is meant to break. the legacy `apps/bot/doom_bot/webhook.py` survives until phase 3
-# of the structlog migration; it stays the source of truth for callers still on the
-# wrapper. this module is the source of truth for direct attu_logging consumers.
+# re-implemented rather than imported from doom_bot.webhook to avoid re-introducing
+# the workspace cycle this package is meant to break. doom_bot.webhook remains the
+# source of truth for callers still on the legacy wrapper.
 
 logger = structlog.stdlib.get_logger(__name__)
 

@@ -9,7 +9,7 @@ from os import environ
 import structlog
 
 
-# --- Foreign-Record Processor (pycord rate-limit bucket) ---
+# --- foreign-record processor (pycord rate-limit bucket) ---
 
 _BUCKET_RE = re.compile(r'"([^"]*?):([^"]*?):(\/[^"]*?)"')
 _PLACEHOLDER_RE = re.compile(r'/\{[^}]+\}')
@@ -38,7 +38,7 @@ def _resolve_pycord_bucket(_logger, _method_name, event_dict):
     return event_dict
 
 
-# --- Renderer / Level Helpers ---
+# --- renderer / level helpers ---
 
 
 def _final_renderer(log_format: str):
@@ -91,7 +91,7 @@ class _MaxLevelFilter(logging.Filter):
         return record.levelno < self.max_level
 
 
-# --- Public API ---
+# --- public api ---
 
 
 def configure(*, json: bool | None = None, level: str | None = None) -> None:
@@ -105,8 +105,8 @@ def configure(*, json: bool | None = None, level: str | None = None) -> None:
     root = logging.getLogger()
 
     # idempotent: skip if either marker is already attached. the `_doom_bot_owned`
-    # check lets the legacy wrapper's _configure() see our handlers and bail too —
-    # temporary coexistence hack; remove the second marker in phase 5.
+    # check lets the legacy wrapper's _configure() see our handlers and bail too -
+    # temporary coexistence hack for dual-consumer compatibility.
     if any(getattr(h, '_attu_owned', False) or getattr(h, '_doom_bot_owned', False) for h in root.handlers):
         return
 
@@ -119,13 +119,13 @@ def configure(*, json: bool | None = None, level: str | None = None) -> None:
     stdout_h.setFormatter(formatter)
     stdout_h.addFilter(_MaxLevelFilter(logging.WARNING))
     stdout_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stdout_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker; remove in phase 5
+    stdout_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker for dual-consumer compatibility
 
     stderr_h = logging.StreamHandler(sys.stderr)
     stderr_h.setFormatter(formatter)
     stderr_h.setLevel(logging.WARNING)
     stderr_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stderr_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker; remove in phase 5
+    stderr_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker for dual-consumer compatibility
 
     root.addHandler(stdout_h)
     root.addHandler(stderr_h)
