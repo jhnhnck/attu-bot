@@ -45,6 +45,9 @@ wip/
 # editor
 .vscode/*
 .claude/settings.local.json
+.claude/plans
+.claude/worktrees
+
 
 # docker prod/dev split
 docker-compose.yml
