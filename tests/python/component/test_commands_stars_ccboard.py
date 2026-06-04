@@ -298,3 +298,53 @@ class TestCCBoardLeaderboards:
 
         assert 'only available when ccboard is enabled' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+
+class TestCCBoardStarsRecheck:
+    async def test_recheck_no_entry_returns_failed(self, cc_repos, mock_ctx_factory):
+        """no db entry → auditor returns 'Failed: no ccboard entry' in response."""
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_recheck
+
+        link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
+        await stars_recheck(ctx, link)
+
+        assert len(ctx._responses) == 1
+        assert 'no ccboard entry' in ctx._responses[0]['args'][0]
+
+    async def test_recheck_with_entry_applies_reconcile(self, cc_repos, mock_ctx_factory):
+        """seeded entry → auditor runs reconcile and responds with the diff summary."""
+        from unittest.mock import MagicMock, patch
+
+        await cc_repos['entry'].upsert(_entry(msg_id_a))
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        fake_msg = MagicMock()
+        fake_msg.reactions = []
+
+        with patch('doom_bot.ccboard.auditor._fetch_discord_message', new_callable=AsyncMock, return_value=fake_msg):
+            from doom_bot.commands.stars import stars_recheck
+
+            link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
+            await stars_recheck(ctx, link)
+
+        assert len(ctx._responses) == 1
+        assert f'msg={msg_id_a}' in ctx._responses[0]['args'][0]
+
+    async def test_recheck_disabled_uses_legacy_path(self, cc_repos, mock_ctx_factory):
+        """when ccboard disabled, legacy _get_sb_repo path taken instead of auditor."""
+        from unittest.mock import patch
+
+        cc_repos['cfg'].ccboard.enabled = False
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
+
+        with patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb:
+            from doom_bot.commands.stars import stars_recheck
+
+            await stars_recheck(ctx, link)
+
+        mock_sb.assert_called_once()
+        assert 'not initialized' in ctx._responses[0]['args'][0]

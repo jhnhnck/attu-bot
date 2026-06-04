@@ -239,7 +239,7 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
 
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
 @discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
-async def stars_recheck(ctx: ApplicationContext, message_link: str):
+async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PLR0911 — branchy validation chain with one early-return per precondition failure
     from doom_bot.client.starboard import backfill_message_reactions, parse_jump_url
 
     parsed = parse_jump_url(message_link.strip())
@@ -253,15 +253,23 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):
         return
 
     try:
-        _get_sb_repo()
-    except RuntimeError:
-        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
-        return
-
-    try:
         guild_config = config.guild(ctx.guild.id)
     except Exception as err:
         await ctx.respond(f'Failed: could not load guild config: {err}', ephemeral=True)
+        return
+
+    if guild_config.ccboard.enabled:
+        from doom_bot.ccboard.auditor import auditor_task
+
+        await ctx.defer()
+        result = await auditor_task.reconcile_entry(ctx.guild.id, message_id, dry_run=False)
+        await ctx.respond(result.summary)
+        return
+
+    try:
+        _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
 
     await ctx.defer()

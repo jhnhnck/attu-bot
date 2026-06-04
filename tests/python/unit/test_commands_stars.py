@@ -654,3 +654,62 @@ class TestLeaderboardCCBoardRouting:
             await stars_top_messages(ctx)
 
         mock_entry_repo.leaderboard_top_messages.assert_called_once()
+
+
+# --- ccboard routing for stars_recheck ---
+
+
+class TestRecheckCCBoardRouting:
+    async def test_recheck_routes_to_auditor_when_ccboard_enabled(self, mock_ctx_factory, make_guild):
+        """when ccboard.enabled=True, reconcile_entry is called and its summary responded."""
+        from doom_bot.ccboard.auditor import auditor_task
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_result = MagicMock()
+        mock_result.summary = 'msg=5001 add=0 replace=0 remove=0 recount=0 match=2 strip_invalid=0 strip_extras=0 APPLIED'
+
+        link = f'https://discord.com/channels/{test_guild}/{msg_channel}/5001'
+
+        with patch.object(auditor_task, 'reconcile_entry', new_callable=AsyncMock, return_value=mock_result) as mock_reconcile:
+            from doom_bot.commands.stars import stars_recheck
+
+            await stars_recheck(ctx, link)
+
+        mock_reconcile.assert_called_once_with(test_guild, 5001, dry_run=False)
+        assert ctx._responses[0]['args'][0] == mock_result.summary
+
+    async def test_recheck_routes_to_legacy_when_ccboard_disabled(self, mock_ctx_factory, make_guild):
+        """when ccboard.enabled=False, legacy _get_sb_repo path is taken."""
+        make_guild(guild_id=test_guild)
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        link = f'https://discord.com/channels/{test_guild}/{msg_channel}/5001'
+
+        from doom_bot.ccboard.auditor import auditor_task
+
+        with (
+            patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb,
+            patch.object(auditor_task, 'reconcile_entry', new_callable=AsyncMock) as mock_reconcile,
+        ):
+            from doom_bot.commands.stars import stars_recheck
+
+            await stars_recheck(ctx, link)
+
+        mock_reconcile.assert_not_called()
+        mock_sb.assert_called_once()
+        assert 'not initialized' in ctx._responses[0]['args'][0]
+
+    async def test_recheck_invalid_link_responds_ephemeral(self, mock_ctx_factory):
+        """invalid link responds ephemeral with 'invalid message link'."""
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_recheck
+
+        await stars_recheck(ctx, 'not-a-link')
+
+        assert 'invalid message link' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
