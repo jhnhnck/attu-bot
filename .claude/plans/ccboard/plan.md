@@ -61,7 +61,7 @@ The phase-2 pre-mortem (in [pre-mortem.md](pre-mortem.md)) surfaced three high-s
 **scope:** add `ReactionDocument.last_recounted_at`; add `GuildCCBoard.weights_updated_at` (+ bump in both web save paths when `emojis`/`super_bonus` change); stamp `last_recounted_at` in watcher same-emoji refresh; `to_recount` bucket fed by `_is_stale`; `recount_entry` as thin wrapper. out of scope: parallel codepath, bulk update_many.
 
 ## phase 2.4 — guild-wide reconcile + scoped discovery + show_reactions ext
-**status:** pending commit
+**status:** closed in 7d04e7ba
 
 **definition of done:** discovery on one channel completes within a measured time budget (rate-limit waits logged, never unbounded); no `ReactionDocument` created without a `BoardEntryDocument`; guild-wide reconcile produces the same per-entry diffs as running `/fix ccboard recount <link>` per entry; post-`weights_updated_at`-bump, guild-wide recount re-snapshots every stale active record and leaves fresh ones untouched.
 **scope:** real `reconcile_guild` (walks every `BoardEntryDocument`, calls `reconcile_entry` per entry under a per-guild time budget — recount inherited free via the staleness predicate); real `discover_guild` against the watcher's recent-reactions channel set; the no-link path of `/fix ccboard recount` becomes real; extend `/debug ccboard show_reactions` to render `last_recounted_at` (closes #18). out of scope: any change to `reconcile_entry`/`_compute_diff`.
