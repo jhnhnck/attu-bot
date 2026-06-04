@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from doom_bot.commands.stars import _build_recheck_response, _leaderboard_embed, _resolve_recheck_target, _show_random_message
+from doom_bot.commands.stars import _build_recheck_response, _cc_top_messages_embed, _leaderboard_embed, _resolve_recheck_target, _show_random_message
 from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
 from tests.conftest import test_guild
 
@@ -537,3 +537,120 @@ class TestShowRandomMessageCCBoardRouting:
 
         assert 'ccboard not initialized' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+
+# --- _cc_top_messages_embed ---
+
+
+class TestCCTopMessagesEmbed:
+    async def test_empty_entries_responds_ephemeral(self, mock_ctx_factory):
+        """responds ephemeral when entries list is empty."""
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        await _cc_top_messages_embed(ctx, [], test_guild, 'Top Messages')
+
+        assert 'no data yet' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+    async def test_formats_jump_url_and_stars(self, mock_ctx_factory):
+        """formats entries as numbered list with jump urls and star counts."""
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        entry = MagicMock()
+        entry.channel_id = 4000000001
+        entry.message_id = 5001
+        entry.positive_points = 7
+
+        await _cc_top_messages_embed(ctx, [entry], test_guild, 'Top Messages')
+
+        embed = ctx._responses[0]['kwargs']['embed']
+        desc = embed.description
+        assert str(5001) in desc
+        assert '7' in desc
+        assert 'stars' in desc
+
+
+# --- ccboard leaderboard routing ---
+
+
+class TestLeaderboardCCBoardRouting:
+    async def test_most_stars_routes_to_ccboard_entry_repo(self, mock_ctx_factory, make_guild):
+        """most-stars uses entry_repo.leaderboard_most_stars when ccboard.enabled=True."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_entry_repo = AsyncMock()
+        mock_entry_repo.leaderboard_most_stars = AsyncMock(return_value=[])
+
+        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo), patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
+            from doom_bot.commands.stars import stars_most_stars
+
+            await stars_most_stars(ctx)
+
+        mock_entry_repo.leaderboard_most_stars.assert_called_once()
+        mock_sb.assert_not_called()
+
+    async def test_most_stars_routes_to_legacy_when_disabled(self, mock_ctx_factory, make_guild):
+        """most-stars uses sb_repo when ccboard.enabled=False."""
+        make_guild(guild_id=test_guild)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_sb_repo = AsyncMock()
+        mock_sb_repo.leaderboard_most_stars = AsyncMock(return_value=[])
+
+        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('doom_bot.commands.stars._get_entry_repo') as mock_entry:
+            from doom_bot.commands.stars import stars_most_stars
+
+            await stars_most_stars(ctx)
+
+        mock_sb_repo.leaderboard_most_stars.assert_called_once()
+        mock_entry.assert_not_called()
+
+    async def test_most_given_routes_to_reaction_repo(self, mock_ctx_factory, make_guild):
+        """most-given uses reaction_repo.leaderboard_most_given when ccboard.enabled=True."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_reaction_repo = AsyncMock()
+        mock_reaction_repo.leaderboard_most_given = AsyncMock(return_value=[])
+
+        with patch('doom_bot.commands.stars._get_cc_reaction_repo', return_value=mock_reaction_repo), patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
+            from doom_bot.commands.stars import stars_most_given
+
+            await stars_most_given(ctx)
+
+        mock_reaction_repo.leaderboard_most_given.assert_called_once()
+        mock_sb.assert_not_called()
+
+    async def test_top_messages_ccboard_only(self, mock_ctx_factory, make_guild):
+        """top-messages returns ephemeral when ccboard is disabled."""
+        make_guild(guild_id=test_guild)
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_top_messages
+
+        await stars_top_messages(ctx)
+
+        assert 'only available when ccboard is enabled' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+    async def test_top_messages_calls_entry_repo_when_enabled(self, mock_ctx_factory, make_guild):
+        """top-messages calls leaderboard_top_messages when ccboard.enabled=True."""
+        from doom_bot.config import GuildCCBoard
+
+        gc = make_guild(guild_id=test_guild)
+        gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+        mock_entry_repo = AsyncMock()
+        mock_entry_repo.leaderboard_top_messages = AsyncMock(return_value=[])
+
+        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo):
+            from doom_bot.commands.stars import stars_top_messages
+
+            await stars_top_messages(ctx)
+
+        mock_entry_repo.leaderboard_top_messages.assert_called_once()

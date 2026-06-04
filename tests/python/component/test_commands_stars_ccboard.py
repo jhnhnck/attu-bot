@@ -184,3 +184,117 @@ class TestCCBoardStarsRandom:
             await stars_random(ctx)
 
         mock_sb_repo.get_random.assert_called_once()
+
+
+class TestCCBoardLeaderboards:
+    async def test_most_stars_ranks_by_positive_points(self, cc_repos, mock_ctx_factory):
+        """ccboard most-stars ranks credited authors by sum of positive_points."""
+        # author_a: two entries with 3+2 points; author_b: one entry with 1 point
+        await cc_repos['entry'].upsert(_entry(msg_id_a, author_a, positive_points=3, starboard_message_id=board_post_a))
+        await cc_repos['entry'].upsert(_entry(msg_id_b, author_a, positive_points=2, starboard_message_id=board_post_a + 1))
+        await cc_repos['entry'].upsert(_entry(msg_id_c, author_b, positive_points=1, starboard_message_id=board_post_a + 2))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_most_stars
+
+        await stars_most_stars(ctx)
+
+        embed = ctx._responses[0]['kwargs']['embed']
+        desc = embed.description
+        assert f'<@{author_a}>' in desc
+        assert f'<@{author_b}>' in desc
+        assert desc.index(f'<@{author_a}>') < desc.index(f'<@{author_b}>')
+
+    async def test_most_starred_ranks_by_message_count(self, cc_repos, mock_ctx_factory):
+        """ccboard most-starred ranks by count of messages with a board post."""
+        # author_a: 2 board posts; author_b: 1
+        await cc_repos['entry'].upsert(_entry(msg_id_a, author_a, starboard_message_id=board_post_a))
+        await cc_repos['entry'].upsert(_entry(msg_id_b, author_a, starboard_message_id=board_post_a + 1))
+        await cc_repos['entry'].upsert(_entry(msg_id_c, author_b, starboard_message_id=board_post_a + 2))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_most_starred
+
+        await stars_most_starred(ctx)
+
+        embed = ctx._responses[0]['kwargs']['embed']
+        desc = embed.description
+        assert desc.index(f'<@{author_a}>') < desc.index(f'<@{author_b}>')
+
+    async def test_most_given_ranks_by_reactions_given(self, cc_repos, mock_ctx_factory):
+        """ccboard most-given uses ReactionRepository; ranks by active positive reactions given."""
+        from attu_models import ReactionDocument
+
+        def _rxn(user_id, msg_id, *, removed=False):
+            return ReactionDocument(
+                message_id=msg_id,
+                user_id=user_id,
+                guild_id=test_guild,
+                author_id=author_a,
+                emoji_str='⭐',
+                is_super=False,
+                point_value=1,
+                reacted_at=1704067200,
+                removed=removed,
+                source_message_id=msg_id,
+                source_channel_id=msg_channel,
+            )
+
+        # reactor_a gave 2 reactions, reactor_b gave 1
+        await cc_repos['reaction'].upsert_active(_rxn(reactor_a, msg_id_a))
+        await cc_repos['reaction'].upsert_active(_rxn(reactor_a, msg_id_b))
+        await cc_repos['reaction'].upsert_active(_rxn(reactor_b, msg_id_c))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_most_given
+
+        await stars_most_given(ctx)
+
+        embed = ctx._responses[0]['kwargs']['embed']
+        desc = embed.description
+        assert f'<@{reactor_a}>' in desc
+        assert desc.index(f'<@{reactor_a}>') < desc.index(f'<@{reactor_b}>')
+
+    async def test_top_messages_ranks_by_positive_points(self, cc_repos, mock_ctx_factory):
+        """ccboard top-messages ranks entries by positive_points with jump urls."""
+        await cc_repos['entry'].upsert(_entry(msg_id_a, positive_points=5, starboard_message_id=board_post_a))
+        await cc_repos['entry'].upsert(_entry(msg_id_b, positive_points=2, starboard_message_id=board_post_a + 1))
+
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_top_messages
+
+        await stars_top_messages(ctx)
+
+        embed = ctx._responses[0]['kwargs']['embed']
+        desc = embed.description
+        # msg_id_a has higher points so appears first
+        assert str(msg_id_a) in desc
+        assert str(msg_id_b) in desc
+        assert desc.index(str(msg_id_a)) < desc.index(str(msg_id_b))
+
+    async def test_leaderboard_empty_responds_ephemeral(self, cc_repos, mock_ctx_factory):
+        """all leaderboards respond ephemeral with 'no data yet' when db is empty."""
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_most_stars
+
+        await stars_most_stars(ctx)
+
+        assert 'no data yet' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True
+
+    async def test_top_messages_disabled_responds_ephemeral(self, cc_repos, mock_ctx_factory):
+        """top-messages responds ephemeral when ccboard disabled."""
+        cc_repos['cfg'].ccboard.enabled = False
+        ctx = mock_ctx_factory(guild_id=test_guild)
+
+        from doom_bot.commands.stars import stars_top_messages
+
+        await stars_top_messages(ctx)
+
+        assert 'only available when ccboard is enabled' in ctx._responses[0]['args'][0]
+        assert ctx._responses[0]['kwargs'].get('ephemeral') is True

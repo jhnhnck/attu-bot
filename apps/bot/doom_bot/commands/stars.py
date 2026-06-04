@@ -313,40 +313,126 @@ async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_ke
     await ctx.respond(embed=embed)
 
 
+async def _cc_top_messages_embed(ctx: ApplicationContext, entries: list, guild_id: int, title: str) -> None:
+    """build and send a numbered top-messages embed from BoardEntryDocument list."""
+    if not entries:
+        await ctx.respond(f'no data yet for {title.lower()} {ui_emoji("rockball_player")}', ephemeral=True)
+        return
+
+    lines = []
+    for i, entry in enumerate(entries[:_PAGE_SIZE], start=1):
+        jump_url = f'https://discord.com/channels/{guild_id}/{entry.channel_id}/{entry.message_id}'
+        lines.append(f'**{i}.** {jump_url} — **{entry.positive_points}** stars')
+
+    embed = discord.Embed(title=title, description='\n'.join(lines), color=theme_color())
+    await ctx.respond(embed=embed)
+
+
 @leaderboard_group.command(name='most-stars', description='Top users by total stars received')
 async def stars_most_stars(ctx: ApplicationContext):
+    guild_id = ctx.guild.id
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        return
+
+    if guild_config.ccboard.enabled:
+        try:
+            entry_repo = _get_entry_repo()
+        except RuntimeError:
+            await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+            return
+        rows = await entry_repo.leaderboard_most_stars(guild_id, limit=_PAGE_SIZE)
+        await _leaderboard_embed(ctx, rows, 'total_stars', 'stars received', 'Most Stars Received')
+        return
+
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
         await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
-
-    rows = await sb_repo.leaderboard_most_stars(ctx.guild.id, limit=_PAGE_SIZE)
+    rows = await sb_repo.leaderboard_most_stars(guild_id, limit=_PAGE_SIZE)
     await _leaderboard_embed(ctx, rows, 'total_stars', 'stars received', 'Most Stars Received')
 
 
 @leaderboard_group.command(name='most-starred', description='Top users by number of messages on the starboard')
 async def stars_most_starred(ctx: ApplicationContext):
+    guild_id = ctx.guild.id
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        return
+
+    if guild_config.ccboard.enabled:
+        try:
+            entry_repo = _get_entry_repo()
+        except RuntimeError:
+            await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+            return
+        rows = await entry_repo.leaderboard_most_starred(guild_id, limit=_PAGE_SIZE)
+        await _leaderboard_embed(ctx, rows, 'starred_messages', 'messages starred', 'Most Messages Starred')
+        return
+
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
         await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
-
-    rows = await sb_repo.leaderboard_most_starred(ctx.guild.id, limit=_PAGE_SIZE)
+    rows = await sb_repo.leaderboard_most_starred(guild_id, limit=_PAGE_SIZE)
     await _leaderboard_embed(ctx, rows, 'starred_messages', 'messages starred', 'Most Messages Starred')
 
 
 @leaderboard_group.command(name='most-given', description='Top users by total stars given')
 async def stars_most_given(ctx: ApplicationContext):
+    guild_id = ctx.guild.id
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        return
+
+    if guild_config.ccboard.enabled:
+        try:
+            reaction_repo = _get_cc_reaction_repo()
+        except RuntimeError:
+            await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+            return
+        rows = await reaction_repo.leaderboard_most_given(guild_id, limit=_PAGE_SIZE)
+        await _leaderboard_embed(ctx, rows, 'total_given', 'stars given', 'Most Stars Given')
+        return
+
     try:
         sb_repo = _get_sb_repo()
     except RuntimeError:
         await ctx.respond('Failed: starboard not initialized yet', ephemeral=True)
         return
-
-    rows = await sb_repo.leaderboard_most_given(ctx.guild.id, limit=_PAGE_SIZE)
+    rows = await sb_repo.leaderboard_most_given(guild_id, limit=_PAGE_SIZE)
     await _leaderboard_embed(ctx, rows, 'total_given', 'stars given', 'Most Stars Given')
+
+
+@leaderboard_group.command(name='top-messages', description='Top messages by stars (ccboard only)')
+async def stars_top_messages(ctx: ApplicationContext):
+    guild_id = ctx.guild.id
+    try:
+        guild_config = config.guild(guild_id)
+    except Exception:
+        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        return
+
+    if not guild_config.ccboard.enabled:
+        await ctx.respond('top-messages is only available when ccboard is enabled for this server', ephemeral=True)
+        return
+
+    try:
+        entry_repo = _get_entry_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+        return
+
+    entries = await entry_repo.leaderboard_top_messages(guild_id, limit=_PAGE_SIZE)
+    await _cc_top_messages_embed(ctx, entries, guild_id, 'Top Messages')
 
 
 # --- Extension Def ---
