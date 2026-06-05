@@ -1,6 +1,6 @@
 [project]
 name = "doom-bot"
-version = "79.0"
+version = "80.0"
 requires-python = "==3.13.*"
 dependencies = [
     "aiohttp",
