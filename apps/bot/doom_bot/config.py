@@ -172,9 +172,29 @@ class TreesConfig(BaseModel):
 
 
 class GuildStarboard(BaseModel):
+    enabled: bool = True  # set False to silence the legacy starboard for a guild without removing code
     channel_id: int = 0  # channel where starboard posts are sent
     emojis: dict[str, str] = {}  # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
     valid_bots: list[int] = []  # bot IDs allowed to contribute legacy stars
+
+
+class GuildCCBoard(BaseModel):
+    """ccboard config — replacement reaction-board with signed emoji weights and attribution.
+
+    when `enabled` is False, the legacy starboard remains active and ccboard is dormant.
+    on the False → True transition, the bot reloads the ccboard extension and re-syncs
+    slash commands so the new /stars and /fix ccboard commands take effect.
+    """
+
+    enabled: bool = False  # feature flag; False keeps the legacy starboard active
+    channel_id: int = 0  # channel where ccboard posts are sent
+    emojis: dict[str, int] = {}  # emoji_str -> signed integer point value (e.g. {'⭐': 1, '💀': -1})
+    super_bonus: int = 1  # extra points for a burst/super reaction
+    threshold: int = 2  # minimum positive points required to create a board post
+    points_label: str = 'stars'  # display name for points in the post content string
+    positive_color: str = '#EEDD20'  # embed color when net_points > 0
+    negative_color: str = '#DD2020'  # embed color when net_points <= 0
+    weights_updated_at: int = 0  # unix timestamp; bumped by the web save handler when emojis or super_bonus change. drives the auditor's recount staleness predicate
 
 
 class GuildConfig(BaseModel):
@@ -184,6 +204,7 @@ class GuildConfig(BaseModel):
     roles: GuildRoles
     users: GuildUsers
     starboard: GuildStarboard = GuildStarboard()
+    ccboard: GuildCCBoard = GuildCCBoard()
     _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):
@@ -610,6 +631,7 @@ class NovaConfig:
                     roles=GuildRoles(**doc.roles),
                     users=GuildUsers(**doc.users),
                     starboard=GuildStarboard(**doc.starboard),
+                    ccboard=GuildCCBoard(**doc.ccboard),
                 )
 
             if guild not in self.valid_guilds:

@@ -3,6 +3,7 @@
 
 from .connection import MongoStorage
 from .documents import (
+    BoardEntryDocument,
     ChatChannelConfig,
     ChatCharacterDocument,
     ChatConfigDocument,
@@ -11,7 +12,11 @@ from .documents import (
     EggUserDocument,
     FamilyDocument,
     GuildConfigDocument,
+    MessageAuthor,
+    MessageContent,
     MessageDocument,
+    MessageRefs,
+    ReactionDocument,
     ReloadSignalDocument,
     ReminderDocument,
     StarredMessageDocument,
@@ -28,8 +33,10 @@ from .repositories import (
     ConfigRepository,
     EggRepository,
     EggUserRepository,
+    EntryRepository,
     FamilyRepository,
     MessageRepository,
+    ReactionRepository,
     ReloadSignalRepository,
     ReminderRepository,
     StarboardRepository,
@@ -40,6 +47,7 @@ from .repositories import (
 
 
 __all__ = [
+    'BoardEntryDocument',
     'ChatChannelConfig',
     'ChatCharacterDocument',
     'ChatCharacterRepository',
@@ -52,12 +60,18 @@ __all__ = [
     'EggRepository',
     'EggUserDocument',
     'EggUserRepository',
+    'EntryRepository',
     'FamilyDocument',
     'FamilyRepository',
     'GuildConfigDocument',
+    'MessageAuthor',
+    'MessageContent',
     'MessageDocument',
+    'MessageRefs',
     'MessageRepository',
     'MongoStorage',
+    'ReactionDocument',
+    'ReactionRepository',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
     'ReminderDocument',

@@ -13,6 +13,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
+- ⭕ `medium priority` `low effort` post-merge: reconcile `.gitignore` with `notes/dev/process.md` — the doc says plans live in `notes/plans/<project>.md` (implying tracked) but `.gitignore:56-57` ignores `notes/plans/` and `notes/reports/`. either drop those gitignore lines so plans/reports are tracked, or update the process doc to reflect that they're local-only. handle once the dev-tree WIP merges so we're not editing both trees in parallel
 
 ### eggs / hatch game
 
@@ -22,9 +23,26 @@ _see the [meta](#meta) section at the end of this file for format reference._
 
 ### starboard
 
+- ⭕ `medium priority` `medium effort` bug: starboard doesn't render multiple images from messages with more than one attachment (from cowboy) — fixed for ccboard via shared `embed.url` on the gallery; legacy starboard still affected
 - ⭕ `medium priority` `medium effort` add a /stars command to show which starboard messages have the most stars (not users)
 - ⭕ `medium priority` `medium effort` /stars leaderboard results should be paginated with the same buttons as the wiki results.
 - ⭕ `medium priority` `medium effort` add optional filters to /stars random and /stars lost for like user, and min stars for random, which emoji (might have to be by name)
+- ⭕ `medium priority` `high effort` stickers, voice memos still have rendering issues. with the latter not showing the no preview text bit either. the gif links aren't showing right either, they include a png instead of the gif/gifv. — fixed for ccboard via dedicated rules; legacy starboard still affected
+
+### ccboard
+
+all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, builder, tier-3 config, watcher with echo suppression + echo-suppression, manager + sweeps, `/fix stars convert` migration, `/fix ccboard {regen,purge}`, `/debug ccboard show_reactions`, per-entry reconcile + recount (2.2/2.3), guild-wide reconcile + scoped discovery (2.4), orphan-post cleanup (2.5), `/stars {random,lost,leaderboard,recheck}` with per-guild ccboard/legacy gate (2.6–2.8), legacy-retirement routing (2.9/2.10). ccboard-cutover prep also shipped: `starboard.enabled` gate + web toggle + migration runbook. `ccboard.enabled=False` is the default; legacy starboard remains active until a guild opts in. 🎯 carried in from plan: ccboard (2026-06-05)
+
+- ⭕ `high priority` `medium effort` before enabling ccboard on any production guild, run the watcher↔auditor concurrent-lock smoke check: add a real reaction to a tracked message while `/fix ccboard recount <link> confirm:True` runs on the same message; verify no duplicate `ReactionDocument`, no phantom, no point-aggregate corruption. this is the live-discord verification that unit tests cannot cover. 🎯 carried in from plan: ccboard #13 (2026-06-05)
+- ⭕ `medium priority` `medium effort` wiki-attribution pass: parse the wiki editor username from webhook notification messages (first markdown link, pattern `[Username](wiki-url)`) and resolve to a discord user via a `wiki_identities` collection. gated behind a separate flag or manual-only trigger. 🎯 carried in from plan: ccboard #7 (2026-06-05)
+- ⭕ `medium priority` `medium effort` `effective_author_id` re-resolution path: backfill misses do not retroactively update once the reply target becomes available. add a periodic sweep or a `/fix ccboard reattribute <link>` command. 🎯 carried in from plan: ccboard #8 (2026-06-05)
+- ⭕ `medium priority` `low effort` decide on extension reload vs. always-loaded: today the ccboard handlers gate on `enabled` per call. if slash command visibility becomes a concern, register guild-scoped commands or wire `bot.reload_extension()` into the reload watcher's `ccboard.enabled` diff. 🎯 carried in from plan: ccboard #10 (2026-06-05)
+- ⭕ `low priority` `low effort` `_apply_diff` strip-count reporting: when `_safe_remove_reaction` fails (discord HTTP error), the diff summary still reports `strip_invalid=N`/`strip_extras=N` as applied even though the remove was silently skipped. operator metric only; no data impact. 🎯 carried in from plan: ccboard #14 (2026-06-05)
+- ⭕ `low priority` `low effort` partial-pagination degradation not verified on real discord: `_collect_live_reactions` sets `partial=True` on any pagination failure; `_compute_diff` globally suppresses removes. path is unit-tested and conservative; production-against-flaky-stream codepath not smoke-tested. 🎯 carried in from plan: ccboard #15 (2026-06-05)
+- ⭕ `low priority` `low effort` per-emoji partial isolation: a single flaky emoji sets `partial=True` on the whole entry, suppressing removes for every emoji — including healthy ones. conservative; sharpen to per-emoji flags if production shows it bites. 🎯 carried in from plan: ccboard #16 (2026-06-05)
+- ⭕ `low priority` `low effort` per-record `point_value` delta logging missing: `_apply_diff` logs only the aggregate `recount=N` line; add a debug-log line per record showing before/after `point_value` whenever a recount changes it. land as a small standalone patch anytime. 🎯 carried in from plan: ccboard #17 (2026-06-05)
+- ⭕ `low priority` `low effort` web save bump logic duplicated: the `weights_updated_at` preserve-or-bump block (≈6 lines) appears in both `PATCH /api/guilds/<id>/ccboard` and the whole-config endpoint. extract a helper if a third user-hidden field needs the same dance. 🎯 carried in from plan: ccboard #20 (2026-06-05)
+- ⭕ `low priority` `low effort` pre-existing import-sort error in `tests/python/unit/test_run_tests.py` fails `ruff check` on the whole repo. auto-fixable: `ruff check --fix tests/python/unit/test_run_tests.py`. land as a standalone `chore: ruff` commit. 🎯 carried in from plan: ccboard #21 (2026-06-05)
 
 ### wiki
 

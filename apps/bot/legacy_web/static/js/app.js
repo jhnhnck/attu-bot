@@ -333,6 +333,7 @@ async function loadGuildConfig(guildId) {
 
         // starboard
         if (data.starboard) {
+            populateField('starboard.enabled', data.starboard.enabled);
             populateField('starboard.channel_id', data.starboard.channel_id);
             if (data.starboard.emojis) {
                 emojiMap = Object.assign({}, data.starboard.emojis);
@@ -341,7 +342,21 @@ async function loadGuildConfig(guildId) {
             initListField('starboard_valid_bots', data.starboard.valid_bots);
         }
 
-
+        // ccboard
+        if (data.ccboard) {
+            populateField('ccboard.enabled', data.ccboard.enabled);
+            populateField('ccboard.channel_id', data.ccboard.channel_id);
+            populateField('ccboard.threshold', data.ccboard.threshold);
+            populateField('ccboard.super_bonus', data.ccboard.super_bonus);
+            populateField('ccboard.points_label', data.ccboard.points_label);
+            populateField('ccboard.positive_color', data.ccboard.positive_color);
+            populateField('ccboard.negative_color', data.ccboard.negative_color);
+            const emojisJson = JSON.stringify(data.ccboard.emojis || {}, null, 2);
+            const textarea = document.getElementById('ccboard_emojis_text');
+            const hidden = document.getElementById('ccboard_emojis');
+            if (textarea) {textarea.value = emojisJson;}
+            if (hidden) {hidden.value = JSON.stringify(data.ccboard.emojis || {});}
+        }
 
     } catch {
         showNotification('Failed to load configuration', 'danger');
@@ -364,6 +379,24 @@ function populateField(name, value) {
     }
 }
 
+// parse the ccboard emojis textarea (or hidden field) into a dict for outbound payloads.
+// returns null on parse failure so callers can surface a validation error instead of
+// silently dropping a malformed entry.
+function parseCCBoardEmojis() {
+    const textarea = document.getElementById('ccboard_emojis_text');
+    const raw = textarea ? textarea.value.trim() : '';
+    if (!raw) {return {};}
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 async function saveGuildConfig(guildId, formElement) {
     const saveButton = document.getElementById('save-guild-btn');
     setLoading(saveButton, true);
@@ -374,6 +407,14 @@ async function saveGuildConfig(guildId, formElement) {
         // gets mangled by parseValue's comma-split logic when multiple emojis are present
         if (data.starboard) {
             data.starboard.emojis = { ...emojiMap };
+        }
+        if (data.ccboard) {
+            const ccEmojis = parseCCBoardEmojis();
+            if (ccEmojis === null) {
+                showNotification('CCBoard emojis: invalid JSON', 'danger');
+                return;
+            }
+            data.ccboard.emojis = ccEmojis;
         }
         const result = await fetchJSON(`/api/guilds/${guildId}`, {
             method: 'POST',
@@ -396,6 +437,14 @@ async function validateGuildConfig(guildId, formElement) {
         const data = serializeForm(formElement);
         if (data.starboard) {
             data.starboard.emojis = { ...emojiMap };
+        }
+        if (data.ccboard) {
+            const ccEmojis = parseCCBoardEmojis();
+            if (ccEmojis === null) {
+                showNotification('CCBoard emojis: invalid JSON', 'danger');
+                return;
+            }
+            data.ccboard.emojis = ccEmojis;
         }
         const result = await fetchJSON(`/api/guilds/${guildId}/validate`, {
             method: 'POST',
@@ -446,6 +495,12 @@ function exportGuildConfig(guildId, formElement) {
     const data = serializeForm(formElement);
     if (data.starboard) {
         data.starboard.emojis = { ...emojiMap };
+    }
+    if (data.ccboard) {
+        const ccEmojis = parseCCBoardEmojis();
+        if (ccEmojis !== null) {
+            data.ccboard.emojis = ccEmojis;
+        }
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

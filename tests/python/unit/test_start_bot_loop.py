@@ -237,9 +237,10 @@ class TestLoadExtensions:
         with patch.object(doom_bot.bot, 'load_extension') as mock_load:
             doom_bot._load_extensions()
 
-        assert mock_load.call_count == 12
+        assert mock_load.call_count == 13
         mock_load.assert_has_calls(
             [
+                call('doom_bot.commands.cc_stars'),
                 call('doom_bot.commands.debug'),
                 call('doom_bot.commands.eggs'),
                 call('doom_bot.commands.fix'),
@@ -387,6 +388,7 @@ class TestExtensionsList:
 
     def test_expected_extensions_present(self):
         expected = {
+            'doom_bot.commands.cc_stars',
             'doom_bot.commands.debug',
             'doom_bot.commands.eggs',
             'doom_bot.commands.fix',
@@ -405,8 +407,8 @@ class TestExtensionsList:
     def test_no_duplicates(self):
         assert len(doom_bot.extensions_list) == len(set(doom_bot.extensions_list))
 
-    def test_count_is_twelve(self):
-        assert len(doom_bot.extensions_list) == 12
+    def test_count_is_thirteen(self):
+        assert len(doom_bot.extensions_list) == 13
 
 
 # ============================================================

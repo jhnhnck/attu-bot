@@ -126,6 +126,8 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
 
 fix_group = SlashCommandGroup('fix', default_member_permissions=Permissions.all(), description='Commands to repair or rebuild bot state')
 fix_starboard = fix_group.create_subgroup('starboard', 'Commands to repair starboard state')
+fix_stars = fix_group.create_subgroup('stars', 'One-shot migration helpers from starboard to ccboard')
+fix_ccboard = fix_group.create_subgroup('ccboard', 'Commands to repair ccboard state')
 
 
 @fix_group.command(name='logo', description='Forces the logo update task to run immediately')
@@ -640,6 +642,146 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         await ctx.respond(', '.join(parts))
     else:
         await ctx.respond(f'Failed: no entry deleted; message {message_id} not found', ephemeral=True)
+
+
+@fix_stars.command(name='convert', description='One-shot migration from the legacy starboard collection to ccboard_reactions and ccboard_entries')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='confirm', required=True, description='Set true to actually run the migration; false will refuse', input_type=bool)
+async def fix_stars_convert(ctx: ApplicationContext, confirm: bool):
+    if not confirm:
+        await ctx.respond('Failed: pass confirm=True to run the migration; this is a one-shot data copy', ephemeral=True)
+        return
+
+    cfg = config.guild(ctx.guild.id).ccboard
+    if not cfg.emojis:
+        await ctx.respond('Failed: ccboard.emojis is empty; configure emoji weights before running the migration', ephemeral=True)
+        return
+
+    try:
+        _get_sb_repo()
+    except RuntimeError:
+        await ctx.respond('Failed: starboard repo not initialized yet', ephemeral=True)
+        return
+
+    from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+
+    await ctx.respond('starting starboard → ccboard migration; this may take a while...', ephemeral=True)
+    status_msg = await ctx.channel.send('Starting starboard → ccboard migration...')
+    scheduler.add_job(job_convert_starboard_to_ccboard(ctx.guild.id, status_msg=status_msg), 'Job', 'fix_stars_convert')
+
+
+@fix_ccboard.command(name='regen', description='Marks every ccboard entry in this guild as dirty so the manager rebuilds all posts on the next tick')
+@commands.check(is_bot_owner)
+async def fix_ccboard_regen(ctx: ApplicationContext):
+    from doom_bot import ccboard
+
+    if ccboard._entry_repo is None:
+        await ctx.respond('Failed: ccboard entry repo not initialized yet', ephemeral=True)
+        return
+
+    affected = await ccboard._entry_repo.mark_all_dirty(ctx.guild.id)
+    await ctx.respond(f'Marked {affected:,} ccboard entries dirty; manager will rebuild on the next tick')
+
+
+@fix_ccboard.command(name='purge', description='Removes a message from the ccboard database given its message link')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
+async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
+    from doom_bot import ccboard
+    from doom_bot.client.starboard import parse_jump_url
+
+    parsed = parse_jump_url(message_link)
+    if parsed is None:
+        await ctx.respond('Failed: invalid message link; expected https://discord.com/channels/GUILD/CHANNEL/MESSAGE', ephemeral=True)
+        return
+    _g, _c, target_id = parsed
+
+    if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+        await ctx.respond('Failed: ccboard repos not initialized yet', ephemeral=True)
+        return
+
+    # accept either the original message link or the ccboard post link
+    entry = await ccboard._entry_repo.get(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_starboard_message(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_display_message(target_id)
+    if entry is None:
+        await ctx.respond(f'Failed: no ccboard entry found for message {target_id}', ephemeral=True)
+        return
+
+    deleted_post = False
+    if entry.starboard_message_id:
+        try:
+            cfg = config.guild(ctx.guild.id)
+            cc_channel = bot.get_channel(cfg.ccboard.channel_id)
+            if cc_channel:
+                cc_msg = cc_channel.get_partial_message(entry.starboard_message_id)
+                await cc_msg.delete()
+                deleted_post = True
+        except discord.NotFound:
+            pass
+        except Exception as err:
+            logger.warn(f'fix ccboard purge: could not delete ccboard post {entry.starboard_message_id}: {err}')
+
+    now = int(__import__('time').time())
+    await ccboard._reaction_repo.soft_delete_all_for_message(entry.message_id, now=now)
+    await ccboard._entry_repo.delete(entry.message_id)
+
+    parts = [f'Purged ccboard entry for message {entry.message_id}']
+    if deleted_post:
+        parts.append('and deleted the ccboard post')
+    elif entry.starboard_message_id:
+        parts.append('(ccboard post could not be deleted; may already be gone)')
+    await ctx.respond(', '.join(parts))
+
+
+@fix_ccboard.command(name='recover', description='Auditor discovery pass — scans recently-active channels for missed reactions')
+@commands.check(is_bot_owner)
+async def fix_ccboard_recover(ctx: ApplicationContext):
+    from doom_bot.ccboard.auditor import auditor_task
+
+    result = await auditor_task.discover_guild(ctx.guild.id, dry_run=True)
+    await ctx.respond(f'auditor.discover_guild: {result.summary}', ephemeral=True)
+
+
+@fix_ccboard.command(name='cleanup', description='Scan ccboard channel for orphan posts (no DB entry); confirm=True to delete')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='confirm', required=False, default=False, description='Apply deletions; default is dry-run (list only)', input_type=bool)
+async def fix_ccboard_cleanup(ctx: ApplicationContext, confirm: bool = False):
+    from doom_bot.ccboard.auditor import auditor_task
+
+    result = await auditor_task.cleanup_orphans(ctx.guild.id, dry_run=not confirm)
+    verdict = 'APPLIED' if result.mutated else ('dry-run' if result.dry_run else 'no change')
+    await ctx.respond(f'auditor.cleanup_orphans [{verdict}]: {result.summary}', ephemeral=True)
+
+
+@fix_ccboard.command(name='recount', description='reconcile and recount ccboard reactions; guild-wide if no link, per-entry if link given')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='message_link', required=False, default=None, description='Discord message link to reconcile; omit for guild-wide reconcile', input_type=str)
+@discord.commands.option(name='confirm', required=False, default=False, description='When true, applies the diff; default is dry-run', input_type=bool)
+async def fix_ccboard_recount(ctx: ApplicationContext, message_link: str | None = None, confirm: bool = False):
+    from doom_bot.ccboard.auditor import auditor_task
+    from doom_bot.client.starboard import parse_jump_url
+
+    if message_link is None:
+        result = await auditor_task.reconcile_guild(ctx.guild.id, dry_run=not confirm)
+        await ctx.respond(f'auditor.reconcile_guild: {result.summary}', ephemeral=True)
+        return
+
+    parsed = parse_jump_url(message_link.strip())
+    if parsed is None:
+        await ctx.respond('Failed: invalid message link; paste the full discord message link', ephemeral=True)
+        return
+    link_guild_id, _channel_id, target_message_id = parsed
+    if link_guild_id != ctx.guild.id:
+        await ctx.respond('Failed: that message link is from a different server', ephemeral=True)
+        return
+
+    await ctx.defer(ephemeral=True)
+    result = await auditor_task.reconcile_entry(ctx.guild.id, target_message_id, dry_run=not confirm)
+    verdict = 'APPLIED' if result.mutated else ('dry-run' if result.dry_run else 'no change')
+    await ctx.respond(f'auditor.reconcile_entry [{verdict}]: {result.summary}', ephemeral=True)
 
 
 @fix_group.command(name='emoji', description='Upload and verify all custom emojis (eggs + progress bars) on secondary server')

@@ -382,6 +382,23 @@ async def on_application_command_complete(ctx: ApplicationContext):
 logger.info('registered event handlers')
 
 
+def _ccboard_enabled(guild_id: int) -> bool:
+    """return True when the ccboard feature flag is set for this guild"""
+    try:
+        return config.guild(guild_id).ccboard.enabled
+    except Exception:
+        return False
+
+
+def _starboard_enabled(guild_id: int) -> bool:
+    """return True when the legacy starboard is enabled for this guild; fails open so a
+    config error never silently suppresses the starboard"""
+    try:
+        return config.guild(guild_id).starboard.enabled
+    except Exception:
+        return True
+
+
 @bot.listen()
 async def on_raw_reaction_add(payload: RawReactionActionEvent):
     with event_log_context(
@@ -391,21 +408,50 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent):
         message_id=payload.message_id,
         user_id=payload.user_id,
     ):
-        logger.debug(f'reaction_add: emoji={str(payload.emoji)!r}')
+        logger.debug(f'reaction_add: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
         if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             logger.debug(f'reaction_add: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
             return
 
-        from doom_bot.client.starboard import handle_star_add
+        if _starboard_enabled(payload.guild_id):
+            from doom_bot.client.starboard import handle_star_add
 
-        await handle_star_add(
-            guild_id=payload.guild_id,
-            channel_id=payload.channel_id,
-            message_id=payload.message_id,
-            user_id=payload.user_id,
-            emoji_str=str(payload.emoji),
-            is_burst=payload.burst,
-        )
+            await handle_star_add(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                user_id=payload.user_id,
+                emoji_str=str(payload.emoji),
+                is_burst=payload.burst,
+            )
+
+        if _ccboard_enabled(payload.guild_id):
+            from doom_bot.ccboard import watcher as ccboard_watcher
+
+            # payload.member is the reactor for raw_reaction_add; if missing or partial,
+            # fall back to a guild member lookup so bot-authored reactions are filtered
+            is_bot = False
+            member = payload.member
+            if member is not None:
+                is_bot = bool(getattr(member, 'bot', False))
+            else:
+                try:
+                    fetched = await bot.get_or_fetch_member(bot.get_guild(payload.guild_id), payload.user_id)
+                    if fetched is not None:
+                        is_bot = bool(getattr(fetched, 'bot', False))
+                except Exception:
+                    # leave is_bot False so a missing member lookup doesn't silently drop reactions
+                    is_bot = False
+
+            await ccboard_watcher.handle_reaction_add(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                user_id=payload.user_id,
+                emoji_str=str(payload.emoji),
+                is_burst=payload.burst,
+                is_bot=is_bot,
+            )
 
 
 @bot.listen()
@@ -417,21 +463,33 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
         message_id=payload.message_id,
         user_id=payload.user_id,
     ):
-        logger.debug(f'reaction_remove: emoji={str(payload.emoji)!r}')
+        logger.debug(f'reaction_remove: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} user={payload.user_id} emoji={str(payload.emoji)!r}')
         if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             logger.debug(f'reaction_remove: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
             return
 
-        from doom_bot.client.starboard import handle_star_remove
+        if _starboard_enabled(payload.guild_id):
+            from doom_bot.client.starboard import handle_star_remove
 
-        await handle_star_remove(
-            guild_id=payload.guild_id,
-            channel_id=payload.channel_id,
-            message_id=payload.message_id,
-            user_id=payload.user_id,
-            emoji_str=str(payload.emoji),
-            is_burst=payload.burst,
-        )
+            await handle_star_remove(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                user_id=payload.user_id,
+                emoji_str=str(payload.emoji),
+                is_burst=payload.burst,
+            )
+
+        if _ccboard_enabled(payload.guild_id):
+            from doom_bot.ccboard import watcher as ccboard_watcher
+
+            await ccboard_watcher.handle_reaction_remove(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                user_id=payload.user_id,
+                emoji_str=str(payload.emoji),
+            )
 
 
 @bot.listen()
@@ -442,18 +500,28 @@ async def on_raw_reaction_clear(payload: RawReactionClearEvent):
         channel_id=payload.channel_id,
         message_id=payload.message_id,
     ):
-        logger.debug('reaction_clear')
+        logger.debug(f'reaction_clear: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id}')
         if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             logger.debug(f'reaction_clear: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
             return
 
-        from doom_bot.client.starboard import handle_star_clear
+        if _starboard_enabled(payload.guild_id):
+            from doom_bot.client.starboard import handle_star_clear
 
-        await handle_star_clear(
-            guild_id=payload.guild_id,
-            channel_id=payload.channel_id,
-            message_id=payload.message_id,
-        )
+            await handle_star_clear(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+            )
+
+        if _ccboard_enabled(payload.guild_id):
+            from doom_bot.ccboard import watcher as ccboard_watcher
+
+            await ccboard_watcher.handle_reaction_clear(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+            )
 
 
 @bot.listen()
@@ -464,16 +532,27 @@ async def on_raw_reaction_clear_emoji(payload: RawReactionClearEmojiEvent):
         channel_id=payload.channel_id,
         message_id=payload.message_id,
     ):
-        logger.debug(f'reaction_clear_emoji: emoji={str(payload.emoji)!r}')
+        logger.debug(f'reaction_clear_emoji: guild={payload.guild_id} channel={payload.channel_id} msg={payload.message_id} emoji={str(payload.emoji)!r}')
         if payload.guild_id is None or payload.guild_id not in config.valid_guilds:
             logger.debug(f'reaction_clear_emoji: dropping; guild_id={payload.guild_id} not in valid_guilds={config.valid_guilds}')
             return
 
-        from doom_bot.client.starboard import handle_star_clear_emoji
+        if _starboard_enabled(payload.guild_id):
+            from doom_bot.client.starboard import handle_star_clear_emoji
 
-        await handle_star_clear_emoji(
-            guild_id=payload.guild_id,
-            channel_id=payload.channel_id,
-            message_id=payload.message_id,
-            emoji_str=str(payload.emoji),
-        )
+            await handle_star_clear_emoji(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                emoji_str=str(payload.emoji),
+            )
+
+        if _ccboard_enabled(payload.guild_id):
+            from doom_bot.ccboard import watcher as ccboard_watcher
+
+            await ccboard_watcher.handle_reaction_clear_emoji(
+                guild_id=payload.guild_id,
+                channel_id=payload.channel_id,
+                message_id=payload.message_id,
+                emoji_str=str(payload.emoji),
+            )

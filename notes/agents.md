@@ -344,6 +344,7 @@ Notes in `notes/` with relevant implementation details:
 **`notes/features/`** - feature specs and system docs
 - [`eggs.md`](notes/features/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
 - [`starboard.md`](notes/features/starboard.md) - starboard feature spec and embed structure reference
+- [`ccboard.md`](notes/features/ccboard.md) - ccboard (replacement reaction-board) behavior rules, attribution, embed pipeline, sweeps, and commands
 - [`markers.md`](notes/features/markers.md) - marker system spec (resolution order, storage, commands, web API)
 - [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`reminders.md`](notes/features/reminders.md) - in-universe date reminders, fire time computation, storage, commands

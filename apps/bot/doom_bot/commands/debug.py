@@ -82,6 +82,7 @@ async def command_test(ctx: ApplicationContext):
 debug_group = SlashCommandGroup('debug', default_member_permissions=Permissions.all(), description='Prints out debug information on current bot functionality')
 # debug_admin_group = debug_group.create_subgroup('admin', description='Like the normal debug commands except scarier (Admin Only)', )
 debug_eggs = debug_group.create_subgroup('eggs', 'Egg game debug commands')
+debug_ccboard = debug_group.create_subgroup('ccboard', 'CCBoard reaction debug commands')
 
 
 @debug_group.command(name='version', description='Displays the current version and container build time')
@@ -336,6 +337,50 @@ async def debug_progress_bar(ctx: ApplicationContext):
         await asyncio.sleep(2)
         bar = render_progress_bar(step, 10)
         await msg.edit(content=f'{step * 10}% {bar}')
+
+
+@debug_ccboard.command(name='show_reactions', description='Lists every ccboard reaction record (active and removed) for one message')
+@commands.check(is_bot_owner)
+@discord.commands.option(name='message_link', required=True, description='Discord message link', input_type=str)
+async def debug_ccboard_show_reactions(ctx: ApplicationContext, message_link: str):
+    from doom_bot import ccboard
+    from doom_bot.client.starboard import parse_jump_url
+
+    parsed = parse_jump_url(message_link)
+    if parsed is None:
+        await ctx.respond('Failed: invalid message link', ephemeral=True)
+        return
+    _g, _c, target_id = parsed
+
+    if ccboard._entry_repo is None or ccboard._reaction_repo is None:
+        await ctx.respond('Failed: ccboard repos not initialized yet', ephemeral=True)
+        return
+
+    # resolve through the same redirects the watcher uses so users can paste a board-post link
+    entry = await ccboard._entry_repo.get(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_starboard_message(target_id)
+    if entry is None:
+        entry = await ccboard._entry_repo.get_by_display_message(target_id)
+    if entry is None:
+        await ctx.respond(f'Failed: no ccboard entry found for message {target_id}', ephemeral=True)
+        return
+
+    reactions = await ccboard._reaction_repo.list_for_message(entry.message_id, include_removed=True)
+    if not reactions:
+        await ctx.respond(f'No reactions recorded for message {entry.message_id}', ephemeral=True)
+        return
+
+    lines = [f'**{len(reactions)} reaction(s) for {entry.message_id}** (effective_author={entry.effective_author_id or entry.author_id}):']
+    for r in reactions:
+        flag = '~~' if r.removed else ''
+        super_tag = ' [super]' if r.is_super else ''
+        recount_tag = f' recounted={r.last_recounted_at}' if r.last_recounted_at is not None else ''
+        lines.append(f'- {flag}{r.emoji_str} by <@{r.user_id}> {r.point_value:+d}{super_tag} src={r.source_channel_id}/{r.source_message_id} reacted_at={r.reacted_at}{recount_tag}{flag}')
+    body = '\n'.join(lines)
+    if len(body) > 1900:
+        body = body[:1900] + '\n... (truncated)'
+    await ctx.respond(body, ephemeral=True)
 
 
 # --- Extension Def ---

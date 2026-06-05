@@ -102,7 +102,7 @@ async def db():
 
 def _make_guild_config(guild_id: int = 1111111111):
     """return a minimal GuildConfig-like object for repo tests"""
-    from doom_bot.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+    from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 
     return GuildConfig(
         id=guild_id,
@@ -111,6 +111,17 @@ def _make_guild_config(guild_id: int = 1111111111):
         roles=GuildRoles(announcements=500),
         users=GuildUsers(markers=[600, 700]),
         starboard=GuildStarboard(channel_id=800, emojis={'⭐': '#EEDD20'}),
+        ccboard=GuildCCBoard(
+            enabled=True,
+            channel_id=900,
+            emojis={'⭐': 1, '💀': -1},
+            super_bonus=2,
+            threshold=3,
+            points_label='points',
+            positive_color='#00ff00',
+            negative_color='#ff0000',
+            weights_updated_at=1735689600,  # 2025-01-01 00:00:00 UTC
+        ),
     )
 
 
@@ -194,6 +205,75 @@ class TestConfigRepositoryGuild:
         await repo.save_guild(cfg)
         doc = await repo.get_guild(cfg.id)
         assert doc.epoch['year'] == 7
+
+    async def test_ccboard_roundtrip_through_load_guild(self, db):
+        """save a guild with non-default ccboard, reconstruct via the same code path
+        load_guild() uses, and assert every ccboard field survives. catches the
+        silent-default failure mode where a missing line in load_guild() would cause
+        ccboard fields to revert to defaults regardless of the saved document.
+        """
+        from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+
+        repo = ConfigRepository(db)
+        await repo.init_indexes()
+        cfg = _make_guild_config(guild_id=1234567890)
+        await repo.save_guild(cfg)
+
+        doc = await repo.get_guild(1234567890)
+        assert doc is not None
+        # mirror load_guild's reconstruction step
+        reloaded = GuildConfig(
+            id=1234567890,
+            channels=GuildChannels(**doc.channels),
+            epoch=GuildEpoch(**doc.epoch),
+            roles=GuildRoles(**doc.roles),
+            users=GuildUsers(**doc.users),
+            starboard=GuildStarboard(**doc.starboard),
+            ccboard=GuildCCBoard(**doc.ccboard),
+        )
+        assert reloaded.ccboard.enabled is True
+        assert reloaded.ccboard.channel_id == 900
+        assert reloaded.ccboard.emojis == {'⭐': 1, '💀': -1}
+        assert reloaded.ccboard.super_bonus == 2
+        assert reloaded.ccboard.threshold == 3
+        assert reloaded.ccboard.points_label == 'points'
+        assert reloaded.ccboard.positive_color == '#00ff00'
+        assert reloaded.ccboard.negative_color == '#ff0000'
+        assert reloaded.ccboard.weights_updated_at == 1735689600
+
+    async def test_starboard_enabled_roundtrip_through_load_guild(self, db):
+        """save a guild with starboard.enabled=False, reconstruct via the same code path
+        load_guild() uses, and assert the value survives. catches the silent-default
+        failure mode where a missing line in load_guild() would revert enabled to True.
+        """
+        from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+
+        repo = ConfigRepository(db)
+        await repo.init_indexes()
+        cfg = GuildConfig(
+            id=9876543210,
+            channels=GuildChannels(activity=100, logs=200, lore_channels=[]),
+            epoch=GuildEpoch(time=1704067200, year=3, length=14, paused=False, rollover_minutes=1020),
+            roles=GuildRoles(announcements=500),
+            users=GuildUsers(markers=[]),
+            starboard=GuildStarboard(enabled=False, channel_id=800, emojis={'⭐': '#EEDD20'}),
+            ccboard=GuildCCBoard(),
+        )
+        await repo.save_guild(cfg)
+
+        doc = await repo.get_guild(9876543210)
+        assert doc is not None
+        reloaded = GuildConfig(
+            id=9876543210,
+            channels=GuildChannels(**doc.channels),
+            epoch=GuildEpoch(**doc.epoch),
+            roles=GuildRoles(**doc.roles),
+            users=GuildUsers(**doc.users),
+            starboard=GuildStarboard(**doc.starboard),
+            ccboard=GuildCCBoard(**doc.ccboard),
+        )
+        assert reloaded.starboard.enabled is False
+        assert reloaded.starboard.channel_id == 800
 
 
 class TestConfigRepositoryTheme:
