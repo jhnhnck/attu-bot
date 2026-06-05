@@ -284,9 +284,15 @@ class TestGuildStarboardForm:
     def test_default_values(self):
         """test default starboard form values"""
         form = GuildStarboardForm()
+        assert form.enabled is True
         assert form.channel_id == 0
         assert form.emojis == {}
         assert form.valid_bots == []
+
+    def test_enabled_false_accepted(self):
+        """enabled=False should pass validation and not silently revert to True"""
+        form = GuildStarboardForm(enabled=False)
+        assert form.enabled is False
 
     def test_valid_bots_as_list(self):
         """test valid_bots as a list of ints"""

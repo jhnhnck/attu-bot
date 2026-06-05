@@ -79,6 +79,7 @@ class GuildUsersForm(BaseModel):
 class GuildStarboardForm(BaseModel):
     """Form validation for guild starboard configuration"""
 
+    enabled: bool = Field(default=True)
     channel_id: int = Field(default=0, ge=0)
     emojis: dict[str, str] = Field(default_factory=dict)  # emoji_str -> '#RRGGBB'
     valid_bots: list[int] = Field(default_factory=list)

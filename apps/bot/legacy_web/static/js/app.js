@@ -333,6 +333,7 @@ async function loadGuildConfig(guildId) {
 
         // starboard
         if (data.starboard) {
+            populateField('starboard.enabled', data.starboard.enabled);
             populateField('starboard.channel_id', data.starboard.channel_id);
             if (data.starboard.emojis) {
                 emojiMap = Object.assign({}, data.starboard.emojis);

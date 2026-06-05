@@ -475,6 +475,18 @@
           </div>
           <div class="card-body">
             <div class="row">
+              <div class="col-md-12 mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="starboard_enabled" name="starboard.enabled" />
+                  <label class="form-check-label" for="starboard_enabled">Legacy Starboard Enabled</label>
+                </div>
+                <small class="text-muted">Uncheck to silence the legacy starboard for this guild.</small>
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label" for="starboard_channel_id">Starboard Channel</label>
                 <select class="form-select discord-channel-select" id="starboard_channel_id" name="starboard.channel_id">

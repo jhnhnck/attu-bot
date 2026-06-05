@@ -597,6 +597,54 @@ class TestPatchCCBoardWeightsBump:
         assert config.guilds[test_guild].ccboard.weights_updated_at > 1700000000
 
 
+# ========== Starboard Enabled Roundtrip ==========
+
+
+class TestPatchStarboardEnabled:
+    """web-layer roundtrip for starboard.enabled.
+
+    guards the silent-drop failure mode: if GuildStarboardForm omitted the
+    enabled field, every save would silently revert enabled to its default True
+    regardless of what was submitted.
+    """
+
+    @pytest.mark.asyncio
+    async def test_starboard_enabled_false_persists(self, client):
+        """PATCH starboard with enabled=False; assert in-memory config reflects False."""
+        from doom_bot.web.app import config
+
+        guild = config.guilds[test_guild]
+        payload = {
+            'enabled': False,
+            'channel_id': guild.starboard.channel_id,
+            'emojis': guild.starboard.emojis,
+            'valid_bots': guild.starboard.valid_bots,
+        }
+        response = await client.patch(f'/api/guilds/{test_guild}/starboard', json=payload)
+        assert response.status_code == 200
+        data = await response.get_json()
+        assert data['success'] is True
+
+        assert config.guilds[test_guild].starboard.enabled is False
+
+    @pytest.mark.asyncio
+    async def test_starboard_enabled_true_persists(self, client):
+        """PATCH starboard with enabled=True roundtrips correctly."""
+        from doom_bot.web.app import config
+
+        guild = config.guilds[test_guild]
+        payload = {
+            'enabled': True,
+            'channel_id': guild.starboard.channel_id,
+            'emojis': guild.starboard.emojis,
+            'valid_bots': guild.starboard.valid_bots,
+        }
+        response = await client.patch(f'/api/guilds/{test_guild}/starboard', json=payload)
+        assert response.status_code == 200
+
+        assert config.guilds[test_guild].starboard.enabled is True
+
+
 # ========== SSR Helper Tests ==========
 
 
