@@ -330,7 +330,7 @@ class MessageRepository:
         self.db = db
 
     async def init_indexes(self):
-        # no unique=True: ferretdb uses accessexclusivelock for exclude constraints, locking the table for hours on large collections; deduplication via upsert(filter=message_id)
+        # no unique=True: FerretDB uses accessexclusivelock for exclude constraints, locking the table for hours on large collections; deduplication via upsert(filter=message_id)
         await self.db[self.COLLECTION].create_index(
             [('guild_id', ASCENDING), ('channel_id', ASCENDING), ('message_id', ASCENDING)],
         )
@@ -1158,8 +1158,8 @@ class ReloadSignalRepository:
         self.db = db
 
     async def init_indexes(self):
-        # no unique=True: ferretdb uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead.
-        # the legacy (signal_type, guild_id) index is dropped by the 2.5.5 migration; recover from a leftover conflict (code 86) just in case.
+        # no unique=True: FerretDB uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead
+        # the legacy (signal_type, guild_id) index is dropped by the 2.5.5 migration; recover from a leftover conflict (code 86) just in case
         from pymongo.errors import OperationFailure
 
         try:

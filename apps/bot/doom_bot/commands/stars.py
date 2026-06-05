@@ -50,7 +50,7 @@ def _get_cc_reaction_repo():
 
 
 async def _show_ccboard_random(ctx: ApplicationContext, guild_id: int, guild_config, *, min_positive: int, max_positive: int | None = None) -> None:
-    """ccboard path for /stars random and /stars lost — per-guild config gate."""
+    """ccboard path for /stars random and /stars lost - per-guild config gate."""
     from doom_bot.ccboard.builder import build_embeds as cc_build_embeds
 
     try:

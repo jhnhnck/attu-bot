@@ -1,25 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """doom_bot.ccboard.auditor | discovery / reconciliation / orphan-cleanup task.
 
-phases shipped so far:
-  * 2.0 walking skeleton — task registered with manual-only schedule; every
-    pass returns a structured PassResult
-  * 2.2 per-entry reconcile — diffs ccboard_reactions against live discord
-    state; dry_run=True default; degrades to add+refresh-only when discord
-    pagination is partial; uses ccboard.get_lock and the watcher's
-    _safe_remove_reaction so echo-suppression keeps working
-  * 2.3 per-entry recount with re-snapshot (option B+ from phase 2.1:
-    ReactionDocument.last_recounted_at + GuildCCBoard.weights_updated_at,
-    targeted via staleness predicate)
-  * 2.4 guild-wide reconcile (reconcile_guild), scoped discovery
-    (discover_guild scoped to channels with existing entries — never
-    unbounded), and show_reactions last_recounted_at display
-
-  * 2.5 orphan-post cleanup with grace period (cleanup_orphans: scans the
-    ccboard channel for bot-authored posts with no BoardEntryDocument twin,
-    respects a grace period so freshly-failed manager writes get a retry window)
-
-design notes from the phase 2 pre-mortem (notes/plans/ccboard.md):
+design notes (see notes/features/ccboard.md for the full correctness invariants):
   * every mutating pass takes ccboard.get_lock(message_id) just like the
     watcher and manager
   * any bot-initiated reaction removal goes through the watcher's

@@ -1,11 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""doom_bot.commands.cc_stars | placeholder /cc stars surface for ccboard.
-
-phase 2.0 walking-skeleton stub. registers a `/cc stars test` slash command so
-that the user-facing layer's seam is wireable without colliding with the legacy
-`/stars` group. the real `/stars random/lost/recheck/leaderboard ...` against
-ccboard land in phases 2.6-2.8; the legacy-vs-ccboard routing decision and
-eventual rename to `/stars` are phase 2.9-2.10.
+"""doom_bot.commands.cc_stars | deprecated walking-skeleton stub for /cc stars.
 
 the group is named `cc` (not `cc_stars`) so that the subgroup is `stars`,
 mirroring the legacy `/stars` shape under a distinct top-level name.

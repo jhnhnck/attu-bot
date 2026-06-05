@@ -518,7 +518,7 @@ class TestPatchRolesAPI:
 
 
 class TestPatchCCBoardWeightsBump:
-    """phase 2.3: PATCH /api/guilds/<id>/ccboard bumps weights_updated_at when
+    """PATCH /api/guilds/<id>/ccboard bumps weights_updated_at when
     emojis or super_bonus actually change, and preserves the existing value
     otherwise. drives the auditor's recount staleness predicate.
     """

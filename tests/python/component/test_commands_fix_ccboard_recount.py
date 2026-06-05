@@ -204,7 +204,7 @@ class TestFixCCBoardRecount:
         assert entry.is_dirty is True
 
     async def test_apply_path_recounts_stale_record_with_fresh_point_value(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
-        """phase 2.3: a record predating cfg.weights_updated_at is re-snapshotted with current cfg point_value and stamped"""
+        """a record predating cfg.weights_updated_at is re-snapshotted with current cfg point_value and stamped"""
         from doom_bot.ccboard import auditor as auditor_mod
         from doom_bot.ccboard import watcher as watcher_mod
         from doom_bot.commands.fix import fix_ccboard_recount

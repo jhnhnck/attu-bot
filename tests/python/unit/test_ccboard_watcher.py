@@ -268,14 +268,14 @@ async def test_same_emoji_re_react_phantom_recovery(make_guild_ccboard, entry_do
     refreshed = reaction_repo.upsert_active.call_args.args[0]
     assert refreshed.emoji_str == emoji_star
     assert refreshed.user_id == reactor_id
-    # phase 2.3: stamp last_recounted_at so the auditor's recount staleness predicate sees this fresh
+    # stamp last_recounted_at so the auditor's staleness predicate sees this as fresh
     assert refreshed.last_recounted_at is not None
     assert refreshed.last_recounted_at == refreshed.reacted_at
 
 
 @pytest.mark.asyncio
 async def test_same_emoji_refresh_re_snapshots_point_value_after_weight_change(make_guild_ccboard, cfg, entry_doc, reaction_repo, _stub_remove_reaction):
-    """phase 2.3: when cfg weights changed after the original reaction, the same-emoji
+    """when cfg weights changed after the original reaction, the same-emoji
     refresh path re-snapshots point_value from current cfg and stamps last_recounted_at
     so the auditor's staleness predicate skips this record on the next recount pass."""
     existing = ReactionDocument(

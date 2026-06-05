@@ -1,13 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""tests.python.unit.test_ccboard_auditor | unit tests for the ccboard auditor task.
-
-phase 2.2 covered `_compute_diff` (pure) and `reconcile_entry` (mocked
-end-to-end). phase 2.3 layered the recount staleness predicate (`_is_stale`),
-the `to_recount` bucket on `_ReconcileDiff`, and `recount_entry` as a thin
-wrapper. phase 2.4 added `reconcile_guild` (per-entry iteration + time budget)
-and `discover_guild` (scoped channel-history scan). phase 2.5 added
-`cleanup_orphans` (bot-post scan with grace period; replaces the old stub).
-"""
+"""tests.python.unit.test_ccboard_auditor | unit tests for the ccboard auditor task."""
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
