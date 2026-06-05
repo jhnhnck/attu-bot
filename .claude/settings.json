@@ -14,7 +14,8 @@
       "Bash(ruff format:*)",
       "Bash(git apply:*)",
       "Bash(git add:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Read(//home/jhn/.claude/skills/**)"
     ]
   },
   "hooks": {
