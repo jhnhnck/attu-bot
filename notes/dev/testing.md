@@ -55,7 +55,12 @@ docker compose run --build --rm --quiet-build tests scripts/run_tests.py
 
 The mock compensation rule, the three standing cases (extension loading, permission checks, migrations), and the general principle now live in the `mock-compensation` skill (`.claude/skills/mock-compensation/SKILL.md`). The skill is canonical; update it rather than this file.
 
-## Next improvements
+## known gotchas
+
+- **discord enforces a 100-char hard limit on slash command and option descriptions**. the limit is checked at extension import time by py-cord — `TestExtensionImports.test_extension_imports_cleanly` catches overruns immediately. if the test fails with a `ValueError` from within py-cord's command registration, check the description length of any recently added or edited command/option.
+- **`isinstance(channel, discord.abc.Messageable)` fails for `MagicMock`** — mock objects don't satisfy ABC `__instancecheck__`. use a real `_FakeChannel(discord.abc.Messageable)` subclass in tests that need to pass through the isinstance gate (e.g., `auditor.py`'s channel-walking logic). see `tests/python/unit/test_ccboard_auditor.py` for the established pattern.
+
+## next improvements
 
 - Expand integration coverage by spinning up each Quart route group behind mocked dependencies instead of patching internals. The startup integration test currently covers the overall bot/web ready path and can serve as a template.
 - Consolidate any remaining heavy mocks into fixtures so additional suites can share them without duplicating setup code.
