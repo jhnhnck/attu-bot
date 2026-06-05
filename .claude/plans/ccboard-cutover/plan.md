@@ -91,7 +91,7 @@ leave. tests stay.
 
 ## phase 2 — migration runbook + gap audit
 
-**status:** open
+**status:** pending merge
 
 **definition of done:**
 - `notes/dev/ccboard-migration.md` exists and covers all three steps with config, commands,

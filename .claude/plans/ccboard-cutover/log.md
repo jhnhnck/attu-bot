@@ -63,6 +63,38 @@ working in `.claude/worktrees/ccboard/` (branch `feat/ccboard`); same slot as ph
 ### residual debt
 - none.
 
+## starting phase 2 — 2026-06-05
+
+working in `.claude/worktrees/ccboard/` (branch `feat/ccboard`).
+
+**gap audit decision:** step (b) is a short verification period; expected entry volume
+is ~5-30 messages. per-entry `/fix ccboard purge <link>` is practical at that scale.
+no bulk-purge command needed. phase 2 is doc-only.
+
+**confirmed dod:**
+- `notes/dev/ccboard-migration.md` covers all three steps with config, commands, expected
+  outcome, and gaps.
+- keep-vs-wipe decision documented; doc-only (no purge-guild command added).
+
+## phase 2 retro — 2026-06-05
+
+### spec delta
+- delivered: `notes/dev/ccboard-migration.md` covering all three steps; keep-vs-wipe
+  decision documented; gap audit decision (doc-only, no bulk-purge command).
+- missed / deferred: none.
+- extra: none.
+
+### surprises
+- nothing. phase was pure doc; no unknowns materialized.
+
+### residual debt
+- none. all three gaps called out in the pre-mortem (orphaned posts, display_message_ids
+  orphan, bulk-purge tooling gap) are documented explicitly in the runbook.
+
+## revision after phase 2 — 2026-06-05
+
+- no downstream phases. all three phases closed. plan complete.
+
 ## revision after phase 1 — 2026-06-05
 
 - phase 2 (migration runbook + gap audit): valid — no new gaps; spec unchanged.
