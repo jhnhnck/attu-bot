@@ -71,7 +71,7 @@ leave. tests stay.
 
 ## phase 1 — web UI toggle for `starboard.enabled`
 
-**status:** open
+**status:** pending merge
 
 **definition of done:**
 - guild config web UI has a "legacy starboard enabled" toggle in the starboard section.

@@ -32,6 +32,41 @@ worktree — this plan is a side plan inside an already-isolated worktree.
 ### residual debt
 - none. all guards are additive; config field is backward-compatible; no workarounds accepted.
 
+## starting phase 1 — 2026-06-05
+
+working in `.claude/worktrees/ccboard/` (branch `feat/ccboard`); same slot as phase 0.
+
+**confirmed dod:**
+- guild config web UI has a "legacy starboard enabled" toggle in the starboard section.
+- saving persists the value; loading the page reflects the persisted value.
+- form, template, and js all wired.
+- web roundtrip test: PATCH `starboard.enabled=false`, assert `config.guilds[id].starboard.enabled is False`.
+
+## phase 1 retro — 2026-06-05
+
+### spec delta
+- delivered: all four dod items (forms.py enabled field, html toggle, js populateField,
+  web roundtrip tests — two tests: enabled=False and enabled=True paths).
+- missed / deferred: none.
+- extra: added `enabled is True` assertion to the existing `test_default_values` in
+  `TestGuildStarboardForm` (natural place since the default changed).
+
+### surprises
+- assets live under `apps/bot/legacy_web/` not at repo root — plan scope listed
+  `assets/templates/` and `assets/static/js/`, actual paths are
+  `apps/bot/legacy_web/templates/` and `apps/bot/legacy_web/static/js/`. trivial
+  repath; no design impact.
+- the starboard PATCH handler already does `GuildStarboard(**validated.model_dump())`
+  so enabled flows through automatically once the form field exists — no route code
+  needed beyond the form field.
+
+### residual debt
+- none.
+
+## revision after phase 1 — 2026-06-05
+
+- phase 2 (migration runbook + gap audit): valid — no new gaps; spec unchanged.
+
 ## revision after phase 0 — 2026-06-05
 
 - phase 1 (web ui toggle): valid — `GuildStarboard.enabled` field is now in place; web
