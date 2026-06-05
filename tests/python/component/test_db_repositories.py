@@ -241,6 +241,40 @@ class TestConfigRepositoryGuild:
         assert reloaded.ccboard.negative_color == '#ff0000'
         assert reloaded.ccboard.weights_updated_at == 1735689600
 
+    async def test_starboard_enabled_roundtrip_through_load_guild(self, db):
+        """save a guild with starboard.enabled=False, reconstruct via the same code path
+        load_guild() uses, and assert the value survives. catches the silent-default
+        failure mode where a missing line in load_guild() would revert enabled to True.
+        """
+        from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+
+        repo = ConfigRepository(db)
+        await repo.init_indexes()
+        cfg = GuildConfig(
+            id=9876543210,
+            channels=GuildChannels(activity=100, logs=200, lore_channels=[]),
+            epoch=GuildEpoch(time=1704067200, year=3, length=14, paused=False, rollover_minutes=1020),
+            roles=GuildRoles(announcements=500),
+            users=GuildUsers(markers=[]),
+            starboard=GuildStarboard(enabled=False, channel_id=800, emojis={'⭐': '#EEDD20'}),
+            ccboard=GuildCCBoard(),
+        )
+        await repo.save_guild(cfg)
+
+        doc = await repo.get_guild(9876543210)
+        assert doc is not None
+        reloaded = GuildConfig(
+            id=9876543210,
+            channels=GuildChannels(**doc.channels),
+            epoch=GuildEpoch(**doc.epoch),
+            roles=GuildRoles(**doc.roles),
+            users=GuildUsers(**doc.users),
+            starboard=GuildStarboard(**doc.starboard),
+            ccboard=GuildCCBoard(**doc.ccboard),
+        )
+        assert reloaded.starboard.enabled is False
+        assert reloaded.starboard.channel_id == 800
+
 
 class TestConfigRepositoryTheme:
     async def test_theme_roundtrip(self, db):

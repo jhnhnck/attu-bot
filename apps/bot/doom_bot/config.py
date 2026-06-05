@@ -172,6 +172,7 @@ class TreesConfig(BaseModel):
 
 
 class GuildStarboard(BaseModel):
+    enabled: bool = True  # set False to silence the legacy starboard for a guild without removing code
     channel_id: int = 0  # channel where starboard posts are sent
     emojis: dict[str, str] = {}  # emoji_str -> hex color (e.g. '⭐' -> '#EEDD20')
     valid_bots: list[int] = []  # bot IDs allowed to contribute legacy stars

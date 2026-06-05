@@ -455,3 +455,39 @@ def test_extension_imports_cleanly_with_ccboard_wiring():
     assert hasattr(events_mod, '_ccboard_enabled')
     # ccboard watcher is importable
     importlib.import_module('doom_bot.ccboard.watcher')
+
+
+# --- _starboard_enabled unit tests ---
+
+
+def test_starboard_enabled_returns_false_when_config_disabled(monkeypatch):
+    """_starboard_enabled returns False when guild config has starboard.enabled=False"""
+    import importlib
+    from unittest.mock import MagicMock
+
+    events_mod = importlib.import_module('doom_bot.client.events')
+
+    mock_starboard = MagicMock()
+    mock_starboard.enabled = False
+    mock_guild = MagicMock()
+    mock_guild.starboard = mock_starboard
+    mock_config = MagicMock()
+    mock_config.guild.return_value = mock_guild
+
+    monkeypatch.setattr(events_mod, 'config', mock_config)
+    assert events_mod._starboard_enabled(12345) is False
+
+
+def test_starboard_enabled_returns_true_on_config_exception(monkeypatch):
+    """_starboard_enabled fails open — returns True when config.guild() raises so a
+    config error never silently suppresses legacy starboard reactions"""
+    import importlib
+    from unittest.mock import MagicMock
+
+    events_mod = importlib.import_module('doom_bot.client.events')
+
+    mock_config = MagicMock()
+    mock_config.guild.side_effect = Exception('config not loaded')
+
+    monkeypatch.setattr(events_mod, 'config', mock_config)
+    assert events_mod._starboard_enabled(12345) is True

@@ -296,7 +296,7 @@ class TestCCBoardLeaderboards:
 
         await stars_top_messages(ctx)
 
-        assert 'only available when ccboard is enabled' in ctx._responses[0]['args'][0]
+        assert 'coming soon' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
 

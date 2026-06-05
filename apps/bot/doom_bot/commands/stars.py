@@ -430,7 +430,7 @@ async def stars_top_messages(ctx: ApplicationContext):
         return
 
     if not guild_config.ccboard.enabled:
-        await ctx.respond('top-messages is only available when ccboard is enabled for this server', ephemeral=True)
+        await ctx.respond('this feature is coming soon', ephemeral=True)
         return
 
     try:

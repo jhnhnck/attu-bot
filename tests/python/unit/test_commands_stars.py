@@ -634,7 +634,7 @@ class TestLeaderboardCCBoardRouting:
 
         await stars_top_messages(ctx)
 
-        assert 'only available when ccboard is enabled' in ctx._responses[0]['args'][0]
+        assert 'coming soon' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_top_messages_calls_entry_repo_when_enabled(self, mock_ctx_factory, make_guild):
