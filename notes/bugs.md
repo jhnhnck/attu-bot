@@ -29,6 +29,10 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 - ⭕ `bug` `discord/client.py:250` pycord `DeprecationWarning` on python 3.13 — `asyncio.get_event_loop()` called without a running loop; will break on a future python version; may need a pycord upgrade or workaround
 
+### deploy
+
+- ⭕ `smell` `scripts/deploy.py:37-44` the attu-year epoch snapshot (`_epoch_toml`) is hardcoded inline and manually re-pasted from `/fix epoch` whenever it changes. tree-editor's `publish-package.zsh` (attu-standalone-packaging plan) now reads the same epoch from a shared `~/.attu-epoch.toml` file on the host instead of duplicating the snapshot a third time. `deploy.py` should migrate `compute_attu_year()` to read that same file instead of `_epoch_toml`, so there's one canonical epoch copy on the host, not two independently-updated ones (from cross-repo work in tree-editor, not yet actioned here)
+
 ---
 
 ## triaged
