@@ -67,6 +67,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `future idea` `high effort` switch ingestor vector store to hybrid search with BM25 sparse; requires collection schema migration (`ingestor/vector_store.py:51`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
+- ⭕ `future idea` `medium effort` discord oauth login for wiki apps (trees editor, other external tools); was previously wired through the deleted webauthn/passkey web admin flow; revisit when building the new web layer
 
 ### code audits
 

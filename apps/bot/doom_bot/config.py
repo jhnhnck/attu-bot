@@ -59,16 +59,6 @@ class DatabaseConfig(BaseModel):
     name: str = 'doombot'
 
 
-class WebConfig(BaseModel):
-    secret_key: str
-
-
-class WebAuthnConfig(BaseModel):
-    rp_id: str = 'localhost'
-    rp_name: str = 'AttuBot Configurator'
-    origin: str = 'http://localhost:5000'
-
-
 class BotTheme(BaseModel):
     rotation: float = 0.0
     max_rate: float = 0.5
@@ -320,8 +310,6 @@ class NovaConfig:
         # Config sections loaded from TOML
         self.paths: PathsConfig = None
         self.database: DatabaseConfig = None
-        self.web: WebConfig = None
-        self.webauthn: WebAuthnConfig = None
         self.hatch: HatchConfig = None
         self.trees: TreesConfig = None
 
@@ -343,7 +331,7 @@ class NovaConfig:
 
     # --- Event Calls ---
 
-    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915, PLR0912 - sequential config section loading with try/except per section
+    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915 - sequential config section loading with try/except per section
         logger.info('starting initial config loading stage')
 
         if not self.path.exists():
@@ -381,18 +369,6 @@ class NovaConfig:
         except ValidationError as err:
             logger.error(f'failed to validate database configuration: {err!s}')
             raise ConfigLoadError('invalid database configuration')
-
-        try:
-            self.web = WebConfig(**self._raw['auth']['web'])
-        except (KeyError, ValidationError) as err:
-            logger.error(f'failed to validate web auth configuration: {err!s}')
-            raise ConfigLoadError('invalid web auth configuration (missing [auth.web] section?)')
-
-        try:
-            self.webauthn = WebAuthnConfig(**self._raw['auth'].get('webauthn', {}))
-        except ValidationError as err:
-            logger.error(f'failed to validate webauthn configuration: {err!s}')
-            raise ConfigLoadError('invalid webauthn configuration')
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
