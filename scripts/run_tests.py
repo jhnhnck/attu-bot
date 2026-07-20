@@ -100,7 +100,6 @@ if __name__ == '__main__':
         ('unit tests', ['coverage', 'run', '-m', 'pytest', *exit_flags, 'tests/python/unit/']),
         ('component tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_flags, 'tests/python/component/']),
         ('integration tests', ['coverage', 'run', '--append', '-m', 'pytest', *exit_flags, 'tests/python/integration/']),
-        ('javascript tests', ['npm', 'test']),
     ]
     total = len(suites)
     results: list[tuple[str, bool, float, str | None]] = []

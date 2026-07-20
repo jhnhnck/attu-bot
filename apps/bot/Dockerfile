@@ -70,7 +70,6 @@ RUN --mount=type=cache,target=$DOOM_HOME/.cache/,uid=1000,gid=1000 \
 COPY --chown=doom:doom ./LICENSE ./README.md $DOOM_HOME/
 COPY --chown=doom:doom ./apps/bot/doom-bot.py $DOOM_HOME/apps/bot/doom-bot.py
 COPY --chown=doom:doom ./apps/bot/doom_bot $DOOM_HOME/apps/bot/doom_bot
-COPY --chown=doom:doom ./apps/bot/legacy_web $DOOM_HOME/apps/bot/legacy_web
 COPY --chown=doom:doom ./apps/bot/assets/hatch.toml $DOOM_HOME/apps/bot/assets/hatch.toml
 COPY --chown=doom:doom ./apps/bot/assets/static $DOOM_HOME/apps/bot/assets/static
 COPY --chown=doom:doom ./packages/shared-models/attu_models $DOOM_HOME/packages/shared-models/attu_models
@@ -83,21 +82,7 @@ COPY --from=git-info --chown=doom:doom /src/apps/bot/doom_bot/__init__.py $DOOM_
 FROM doombox AS tester
 USER root
 
-# Install Node.js for JavaScript tests
-# repeat TODO: hardcoded version; keep updated
-RUN --mount=type=cache,target=/var/lib/apt \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg; \
-    printf 'Types: deb\nURIs: https://deb.nodesource.com/node_22.x\nSuites: nodistro\nComponents: main\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/nodesource.gpg\n' > /etc/apt/sources.list.d/nodesource.sources; \
-    apt-get update -qq; \
-    apt-get install -qq nodejs;
-
 # copy extra needed files (as root so scripts can be chmod'd)
-COPY --chown=doom:doom \
-    ./package.json \
-    ./eslint.config.js \
-    ./vitest.config.js \
-    $DOOM_HOME/
-
 COPY --chown=doom:doom ./tests $DOOM_HOME/tests
 COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
 
@@ -110,8 +95,5 @@ RUN --mount=type=cache,target=/root/.cache/ \
 
 USER doom
 WORKDIR /home/doom
-
-# Install npm dependencies
-RUN npm install > /dev/null;
 
 CMD ["python", "/home/doom/scripts/run_tests.py"]
