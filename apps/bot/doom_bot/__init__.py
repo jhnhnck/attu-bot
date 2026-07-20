@@ -26,6 +26,5 @@ from doom_bot.client import (  # noqa: F401
     command_ping,
     extensions_list,
     start_bot_loop,
-    start_bot_loop_web,
 )
 from doom_bot.client.core import bot, config, db  # noqa: F401

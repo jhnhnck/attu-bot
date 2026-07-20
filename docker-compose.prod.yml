@@ -29,32 +29,6 @@ services:
       retries: 20
       start_period: 30s
 
-  legacy-web:
-    build:
-      context: .
-      dockerfile: apps/bot/Dockerfile
-      target: doombox
-    command: python -u apps/bot/doom-bot.py web
-    environment:
-      ATTU_CONFIG_FILE: /home/doom/.secrets/attu-bot.toml
-    logging:
-      driver: journald
-    ports:
-      - "127.0.1.6:8080:5000"
-    restart: always
-    user: doom:doom
-    volumes:
-      - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml
-    depends_on:
-      ferret:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
-      interval: 10s
-      timeout: 5s
-      retries: 100
-      start_period: 10s
-
   ferret:
     image: ghcr.io/ferretdb/ferretdb:latest
     restart: always

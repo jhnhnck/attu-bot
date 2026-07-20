@@ -7,7 +7,6 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 Usage:
     python doom-bot.py bot       # Launch the Discord bot (default)
-    python doom-bot.py web       # Launch the web interface
 """
 
 # configure logging before any repo import so module-level loggers see the right
@@ -40,8 +39,8 @@ else:
 # Determine mode from CLI args (default: bot)
 mode = sys.argv[1] if len(sys.argv) > 1 else 'bot'
 
-if mode not in ('bot', 'web'):
-    logger.error(f'Unknown mode: "{mode}". Valid options: bot, web')
+if mode != 'bot':
+    logger.error(f'Unknown mode: "{mode}". Valid options: bot')
     sys.exit(1)
 
 try:
@@ -49,11 +48,6 @@ try:
         from doom_bot import start_bot_loop
 
         start_bot_loop()
-
-    elif mode == 'web':
-        from doom_bot.web.app import start_web
-
-        start_web()
 
 except Exception as error:
     tb_str = ''.join(traceback.format_exception(error))

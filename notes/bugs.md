@@ -25,6 +25,10 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 - ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `doom_bot.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken (verified by structlog phase 1 cross-phase check) but the type-hint coupling means shared-models still knows about `doom_bot.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro)
 
+### linting
+
+- ⭕ `nit` `scripts/coverage_report.py:52,54,111,171` four pre-existing ruff errors (PTH120, PLC0206, PTH123 x2) — `os.path.dirname` and `open()` calls that should use `Path`; auto-fixable with `ruff check --fix scripts/coverage_report.py` (spotted during drop-legacy-web slice)
+
 ### upstream / dependencies
 
 - ⭕ `bug` `discord/client.py:250` pycord `DeprecationWarning` on python 3.13 — `asyncio.get_event_loop()` called without a running loop; will break on a future python version; may need a pycord upgrade or workaround

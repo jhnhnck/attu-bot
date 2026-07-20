@@ -8,10 +8,9 @@ Guidance for AI coding agents working in this repository.
 
 **AttuBot** (repo name: `doom-bot`) is a Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related utilities. It is written in **Python 3.13** and ships as a Docker container.
 
-There are two runnable modes, both launched from `apps/bot/doom-bot.py`:
+There is one runnable mode, launched from `apps/bot/doom-bot.py`:
 
 - `bot` - the Discord bot (pycord)
-- `web` - a Quart-based admin web interface
 
 ---
 
@@ -160,9 +159,6 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `admin.py` | `AdminApi` - user block with retry logic |
 | `models.py` | Pydantic models - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail` |
 
-### package: `apps/bot/doom_bot/web/`
-Quart application with route registration, WebAuthn passkey auth, Discord OAuth integration, and an audit logger. templates and static assets it serves live in `apps/bot/legacy_web/{templates,static}/` (the names reflect the in-progress migration to `apps/server/`).
-
 ---
 
 ## configuration system (three tiers)
@@ -197,9 +193,6 @@ missing any of these steps causes the field to silently use its default in produ
 - `packages/shared-models/attu_models/documents.py` - add to `GuildConfigDocument` with a default; `extra='ignore'` means keys not listed here are never read from MongoDB. the bot reaches it via the `doom_bot.database.models` shim, so existing import sites stay valid
 - `apps/bot/doom_bot/config.py` (`GuildConfig`) - add to the runtime model with the same default
 - `apps/bot/doom_bot/config.py` (`NovaConfig.load_guild()`) - pass the value explicitly when constructing `GuildConfig` from the document; missing this causes the field to silently use its default in production
-- `apps/bot/doom_bot/web/forms.py` (`GuildConfigForm`) - add the field so saves from the web UI don't silently drop it
-- `apps/bot/legacy_web/templates/guild_config.html` - add the form control
-- `apps/bot/legacy_web/static/js/app.js` (`loadGuildConfig()`) - add a `populateField('field_name', data.field_name)` call so the control reflects the saved value on load
 - **roundtrip test** - save a document with the field set to a non-default value, reload via `load_guild()`, assert the value survives; this directly catches the hydration failure mode
 
 **if the field gates an extension**
@@ -266,13 +259,6 @@ levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `
 - Use `upsert=True` (`$set`) for saves; never assume a document exists
 - Index creation happens in `init_indexes()` on each repository; call this at extension load time
 - Discord snowflake IDs are stored as `int` in MongoDB
-
-### web (quart)
-- all routes are registered in `routes.py` via `register_routes(app: Quart)`
-- API routes return `jsonify(...)` with standard shapes: `{'error': '...'}` on failure, `{'success': True, 'message': '...'}` on success
-- Discord IDs in JSON responses are serialized as **strings** to avoid JavaScript precision loss
-- Validation uses Pydantic form models from `web/forms.py`; return `400` with `e.errors()` on `ValidationError`
-- mutations go through the audit logger (`web_app.audit_logger.log_change(...)`)
 
 ### javascript
 - ES modules (`"type": "module"` in `package.json`)
@@ -349,7 +335,6 @@ Notes in `notes/` with relevant implementation details:
 - [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`reminders.md`](notes/features/reminders.md) - in-universe date reminders, fire time computation, storage, commands
 - [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
-- [`web.md`](notes/features/web.md) - web interface structure, routes, auth, signals, audit logging, and how to extend it
 - [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions (currently dormant; lives at `apps/chat/`)
 
 **`notes/dev/`** - development guides
@@ -368,11 +353,11 @@ prescriptive, auto-loaded reference cards live in `.claude/skills/`. each loads 
 |---|---|---|
 | `commit-style` | commit format, types, scope, what belongs in one commit | drafting commit messages; `git commit` / `git status` / `git diff` |
 | `comment-style` | python comment case/punctuation, section dividers, todo tags, noqa reasons | any python edit |
-| `message-style` | log tone, discord response voice, error format (`Failed:`), custom emojis, ephemeral rule | edits in `commands/` / `client/` / `tasks/` / `web/`; `logger.*`; `ctx.respond` / `interaction.response` |
+| `message-style` | log tone, discord response voice, error format (`Failed:`), custom emojis, ephemeral rule | edits in `commands/` / `client/` / `tasks/`; `logger.*`; `ctx.respond` / `interaction.response` |
 | `feature-completion` | end-of-task checklist (tests, docs, config plumbing, web, lint) | wrap-up signals; `pytest`, `ruff`, drafting a commit |
 | `mock-compensation` | the mock compensation rule and three standing cases | edits in `tests/python/`; new files in `commands/`; new predicates; new migrations |
 | `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `apps/bot/doom_bot/commands/` / `apps/bot/doom_bot/client/`; imports of `discord.*` |
-| `pydantic` | pydantic v2 idioms, document/runtime split, six-step tier-3 plumbing checklist | `packages/shared-models/attu_models/documents.py`, `apps/bot/doom_bot/config.py`, `apps/bot/doom_bot/web/forms.py`; `pydantic` imports |
+| `pydantic` | pydantic v2 idioms, document/runtime split, tier-3 plumbing checklist | `packages/shared-models/attu_models/documents.py`, `apps/bot/doom_bot/config.py`; `pydantic` imports |
 | `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `apps/bot/doom_bot/wiki/`; `apps/bot/doom_bot/commands/wiki.py` (chat ingestor wiki pipeline currently dormant under `apps/chat/`) |
 | `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `apps/bot/doom_bot/database/`, `packages/shared-models/attu_models/`; `apps/bot/doom_bot/client/migrations.py`; `scripts/ferret_init.sh` |
 
@@ -384,18 +369,16 @@ uv + pnpm workspace; member packages live under `apps/` and `packages/`.
 
 ```
 apps/
-  bot/                       # discord bot + admin web
-    doom-bot.py              # entrypoint - selects bot or web mode
+  bot/                       # discord bot
+    doom-bot.py              # entrypoint - bot mode only
     doom_bot/                # main package
       client/                # discord-specific runtime (singletons, events, features)
       commands/              # slash command extensions (one group per file)
       database/              # init_database() + shims re-exporting attu_models
       eggs/                  # egg game core logic
       tasks/                 # background task scheduler and task implementations
-      web/                   # Quart web app (routes, forms, auth, audit)
       wiki/                  # mediawiki api client
     assets/                  # TOML config, hatch.toml, static/emoji, doombot-seed
-    legacy_web/              # templates/ and static/ served by doom_bot.web (transitional name)
     Dockerfile
     pyproject.toml
   chat/                      # extracted llm/rag stack; dormant (see notes/features/attu_chat.md)
@@ -434,5 +417,5 @@ wip/                         # work-in-progress scratch space (excluded from lin
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 20 July 2026
 ```

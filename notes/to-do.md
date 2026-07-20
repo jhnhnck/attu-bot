@@ -41,7 +41,6 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` partial-pagination degradation not verified on real discord: `_collect_live_reactions` sets `partial=True` on any pagination failure; `_compute_diff` globally suppresses removes. path is unit-tested and conservative; production-against-flaky-stream codepath not smoke-tested. 🎯 carried in from plan: ccboard #15 (2026-06-05)
 - ⭕ `low priority` `low effort` per-emoji partial isolation: a single flaky emoji sets `partial=True` on the whole entry, suppressing removes for every emoji — including healthy ones. conservative; sharpen to per-emoji flags if production shows it bites. 🎯 carried in from plan: ccboard #16 (2026-06-05)
 - ⭕ `low priority` `low effort` per-record `point_value` delta logging missing: `_apply_diff` logs only the aggregate `recount=N` line; add a debug-log line per record showing before/after `point_value` whenever a recount changes it. land as a small standalone patch anytime. 🎯 carried in from plan: ccboard #17 (2026-06-05)
-- ⭕ `low priority` `low effort` web save bump logic duplicated: the `weights_updated_at` preserve-or-bump block (≈6 lines) appears in both `PATCH /api/guilds/<id>/ccboard` and the whole-config endpoint. extract a helper if a third user-hidden field needs the same dance. 🎯 carried in from plan: ccboard #20 (2026-06-05)
 - ⭕ `low priority` `low effort` pre-existing import-sort error in `tests/python/unit/test_run_tests.py` fails `ruff check` on the whole repo. auto-fixable: `ruff check --fix tests/python/unit/test_run_tests.py`. land as a standalone `chore: ruff` commit. 🎯 carried in from plan: ccboard #21 (2026-06-05)
 
 ### wiki
@@ -75,12 +74,6 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 - ⭕ `medium priority` `medium effort` add kick, ban, and timeout commands
 
-### web interface
-
-see `notes/plans/archived/web_improvement.md` for the original 7-step restructure plan (superseded; web direction is moving to API-only) and `notes/reports/web_interface_audit.md` for the current state audit.
-
-- ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes
-
 ### maintenance
 
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
@@ -104,17 +97,12 @@ see `notes/plans/archived/web_improvement.md` for the original 7-step restructur
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)
 - ⭕ `medium priority` `medium effort` add tests for client/migrations.py (33%) - schema migration runner and version logic
 - ⭕ `medium priority` `medium effort` add tests for client/starboard.py (69%) - 168 missed statements; reaction cascade and embed rendering paths
-- ⭕ `medium priority` `medium effort` add tests for web/auth.py (69%) - 80 missed statements in login/session/oauth flow
-- ⭕ `medium priority` `medium effort` add tests for web/helpers.py (56%) - 37 missed statements in shared route helpers
 - ⭕ `medium priority` `medium effort` add tests for client/markers.py (68%) - 39 missed statements in marker parsing/validation
 - ⭕ `medium priority` `medium effort` add tests for shared-models/attu_models/repositories.py (69%) - 167 missed statements across repository methods
-- ⭕ `low priority` `high effort` add tests for web/routes.py (67%) - 217 missed statements across guild config endpoints
 - ⭕ `low priority` `medium effort` add tests for client/modlog.py (77%) - 62 missed statements in mod log embed/event paths
 - ⭕ `low priority` `medium effort` add tests for tasks/message_backfill.py (71%) - 49 missed statements in batched fetch loop
 - ⭕ `low priority` `medium effort` add tests for commands/wiki.py (69%) - 42 missed statements in lookup pagination view
 - ⭕ `low priority` `medium effort` add tests for commands/trees.py (73%) - 65 missed statements across link/share/unshare paths
-- ⭕ `low priority` `low effort` add tests for web/forms.py (78%) - 26 missed statements in form validation
-- ⭕ `low priority` `low effort` add tests for web/audit.py (71%) - 21 missed statements in audit log writer
 - ⭕ `low priority` `low effort` add tests for config.py (65%) - 135 missed statements; gaps mostly in error paths and toml round-tripping
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `medium effort` add tests for wiki/pages.py (21%) - page fetch and parsing
@@ -167,8 +155,9 @@ see `notes/plans/archived/web_improvement.md` for the original 7-step restructur
 
 ### web interface
 
-- 🔴 `26 April 2026` implement web improvement plan — sidebar layout, guild toggle, session-based active guild, split guild config pages (channels/epoch/roles/users/starboard) with per-section PATCH endpoints, SSR helpers, save manager with dirty tracking, legacy redirects
 - 🔴 `11 April 2026` enforce web audit logging — replaced optional `if web_app.audit_logger:` guards with `log_audit()` helper; added error-path and missing-route audit coverage
+- 🔴 `26 April 2026` implement web improvement plan — sidebar layout, guild toggle, session-based active guild, split guild config pages (channels/epoch/roles/users/starboard) with per-section PATCH endpoints, SSR helpers, save manager with dirty tracking, legacy redirects
+- 🔴 `20 July 2026` feat(web): drop legacy quart web interface — deleted `doom_bot/web/`, `legacy_web/`, 7 web unit/integration test files; removed `legacy-web` service from both compose files; dropped quart/quart-rate-limiter/hypercorn/webauthn from pyproject.toml
 
 ### maintenance
 
@@ -235,6 +224,6 @@ bugs go in `notes/bugs.md`, not here. this file is for features, refactors, audi
 ### metadata
 
 ```yaml
-last_updated: 9 May 2026
-total_completed: 72
+last_updated: 20 July 2026
+total_completed: 73
 ```

@@ -101,13 +101,3 @@ def start_bot_loop():
         return  # defensive; stops execution when sys.exit is mocked in tests
     logger.info('starting bot')
     bot.run(config.bot_token)
-
-
-# --- Web Entry Point ---
-
-
-def start_bot_loop_web():
-    """alias for web process use; not intended to be called directly"""
-    from doom_bot.web.app import start_web
-
-    start_web()
