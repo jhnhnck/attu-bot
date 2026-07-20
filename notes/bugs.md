@@ -25,9 +25,14 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 - ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `doom_bot.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken (verified by structlog phase 1 cross-phase check) but the type-hint coupling means shared-models still knows about `doom_bot.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro)
 
+### chat
+
+- ⭕ `bug` `apps/chat/attu_chat/web/routes.py` imports `from doom_bot.web.app import config` and `from doom_bot.web.audit import compare_configs, log_audit` — both modules were deleted in `feat(web): drop legacy quart web interface`. `apps/chat` is currently dormant and not in any test path so this doesn't fail now, but it will `ImportError` immediately on any attempt to run `attu_chat` (spotted during drop-legacy-web slice)
+
 ### linting
 
 - ⭕ `nit` `scripts/coverage_report.py:52,54,111,171` four pre-existing ruff errors (PTH120, PLC0206, PTH123 x2) — `os.path.dirname` and `open()` calls that should use `Path`; auto-fixable with `ruff check --fix scripts/coverage_report.py` (spotted during drop-legacy-web slice)
+- ⭕ `nit` `.claude/plans/structlog/plan.md` pre-existing `ruff format --check` violation (trailing whitespace or line-length in the markdown file); ruff flags it in the workspace check; auto-fixable with `ruff format .claude/plans/structlog/plan.md` (spotted during drop-legacy-web slice)
 
 ### upstream / dependencies
 
@@ -98,6 +103,6 @@ the skill reads every entry in full, assigns severity + disposition, and surface
 ### metadata
 
 ```yaml
-last_updated: 10 May 2026
+last_updated: 20 July 2026
 total_resolved: 0
 ```
