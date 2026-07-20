@@ -40,16 +40,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash /srv/services/doom-bot-dev/.claude/hooks/stop-time-check.sh"
-          }
-        ]
-      }
     ]
   }
 }
