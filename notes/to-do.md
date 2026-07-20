@@ -77,7 +77,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### web interface
 
-see `notes/plans/web_improvement.md` for the full 7-step restructure plan and `notes/reports/web_interface_audit.md` for the current state audit.
+see `notes/plans/archived/web_improvement.md` for the original 7-step restructure plan (superseded; web direction is moving to API-only) and `notes/reports/web_interface_audit.md` for the current state audit.
 
 - ⭕ `medium priority` `medium effort` fix everywhere we're currently displaying raw snowflakes
 
