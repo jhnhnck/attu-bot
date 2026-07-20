@@ -14,9 +14,6 @@ from pymongo.asynchronous.database import AsyncDatabase
 
 from .documents import (
     BoardEntryDocument,
-    ChatCharacterDocument,
-    ChatConfigDocument,
-    ChatSourceDocument,
     EggDocument,
     EggUserDocument,
     FamilyDocument,
@@ -1228,112 +1225,6 @@ class FamilyRepository:
         cursor = self.db[self.COLLECTION].find({'guild_id': guild_id})
         docs = await cursor.to_list(length=None)
         return [FamilyDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
-
-
-class ChatConfigRepository:
-    """Repository for runtime chat/RAG configuration stored in global_config collection"""
-
-    COLLECTION = 'global_config'
-
-    def __init__(self, db: AsyncDatabase):
-        self.db = db
-
-    async def get(self) -> ChatConfigDocument | None:
-        """Fetch the chat config document"""
-        doc = await self.db[self.COLLECTION].find_one({'config_type': 'chat'})
-        if doc:
-            doc.pop('_id', None)
-            return ChatConfigDocument(**doc)
-        return None
-
-    async def save(self, doc: ChatConfigDocument) -> None:
-        """Upsert the chat config document"""
-        await self.db[self.COLLECTION].update_one(
-            {'config_type': 'chat'},
-            {'$set': doc.model_dump()},
-            upsert=True,
-        )
-
-
-class ChatSourceRepository:
-    """Repository for tracking all ingested content (wiki, discord, documents, images)"""
-
-    COLLECTION = 'chat_sources'
-
-    def __init__(self, db: AsyncDatabase):
-        self.db = db
-
-    async def init_indexes(self) -> None:
-        """Create required indexes"""
-        await self.db[self.COLLECTION].create_index('source_id', unique=True)
-        await self.db[self.COLLECTION].create_index('source_type')
-
-    async def get(self, source_id: str) -> ChatSourceDocument | None:
-        """Fetch a source record by source_id"""
-        doc = await self.db[self.COLLECTION].find_one({'source_id': source_id})
-        if doc:
-            doc.pop('_id', None)
-            return ChatSourceDocument(**doc)
-        return None
-
-    async def upsert(self, doc: ChatSourceDocument) -> None:
-        """Save or update a source record keyed by source_id"""
-        await self.db[self.COLLECTION].update_one(
-            {'source_id': doc.source_id},
-            {'$set': doc.model_dump()},
-            upsert=True,
-        )
-
-    async def flag_incorrect(self, source_id: str) -> None:
-        """Mark a source as incorrect - prevents re-ingestion on next scheduled run"""
-        await self.db[self.COLLECTION].update_one(
-            {'source_id': source_id},
-            {'$set': {'flagged_incorrect': True}},
-        )
-
-    async def get_by_type(self, source_type: str) -> list[ChatSourceDocument]:
-        """Fetch all source records of a given type"""
-        cursor = self.db[self.COLLECTION].find({'source_type': source_type})
-        docs = await cursor.to_list(length=None)
-        return [ChatSourceDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
-
-
-class ChatCharacterRepository:
-    """Repository for dynamically discovered character records from the character log channel"""
-
-    COLLECTION = 'chat_characters'
-
-    def __init__(self, db: AsyncDatabase):
-        self.db = db
-
-    async def init_indexes(self) -> None:
-        """Create required indexes"""
-        await self.db[self.COLLECTION].create_index(
-            [('user_id', ASCENDING), ('character_name', ASCENDING)],
-            unique=True,
-        )
-
-    async def get_all(self) -> list[ChatCharacterDocument]:
-        """Fetch all known character records"""
-        cursor = self.db[self.COLLECTION].find()
-        docs = await cursor.to_list(length=None)
-        return [ChatCharacterDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
-
-    async def upsert(self, doc: ChatCharacterDocument) -> None:
-        """Insert or update a character record; first_seen_* fields are set only on insert"""
-        await self.db[self.COLLECTION].update_one(
-            {'user_id': doc.user_id, 'character_name': doc.character_name},
-            {
-                '$set': {'source_channel_id': doc.source_channel_id, 'notes': doc.notes},
-                '$setOnInsert': {
-                    'user_id': doc.user_id,
-                    'character_name': doc.character_name,
-                    'first_seen_timestamp': doc.first_seen_timestamp,
-                    'first_seen_message_id': doc.first_seen_message_id,
-                },
-            },
-            upsert=True,
-        )
 
 
 class EggRepository:

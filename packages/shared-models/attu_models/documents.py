@@ -232,7 +232,7 @@ class ReloadSignalDocument(BaseModel):
 
     model_config = ConfigDict(extra='ignore')
 
-    signal_type: Literal['guild', 'theme', 'system', 'chat']
+    signal_type: Literal['guild', 'theme', 'system']
     guild_id: int | None = None
     timestamp: int = 0
     target: Literal['bot', 'ingestor'] = 'bot'
@@ -240,72 +240,11 @@ class ReloadSignalDocument(BaseModel):
     @classmethod
     def make(
         cls,
-        signal_type: Literal['guild', 'theme', 'system', 'chat'],
+        signal_type: Literal['guild', 'theme', 'system'],
         guild_id: int | None = None,
         target: Literal['bot', 'ingestor'] = 'bot',
     ) -> 'ReloadSignalDocument':
         return cls(signal_type=signal_type, guild_id=guild_id, timestamp=int(time.time()), target=target)
-
-
-class ChatChannelConfig(BaseModel):
-    """Per-channel config for the chat/RAG ingestor"""
-
-    model_config = ConfigDict(extra='ignore')
-
-    name: str
-    description: str = ''
-    channel_type: str = 'discussion'  # 'roleplay' | 'discussion' | 'shitpost' | 'forum'
-    ingest: bool = True
-
-
-class ChatConfigDocument(BaseModel):
-    """MongoDB document for runtime chat/RAG configuration (config_type: 'chat')"""
-
-    model_config = ConfigDict(extra='ignore')
-
-    config_type: Literal['chat'] = 'chat'
-    discord_lookback_hours: int = 6
-    discord_window_minutes: int = 30
-    noise_filter_min_tokens: int = 20
-    ignored_user_ids: list[int] = []
-    ingest_discord: bool = True
-    ingest_wiki: bool = True
-    ingest_documents: bool = True
-    wiki_namespaces: list[str] = ['0']
-    character_log_channel_id: int | None = None
-    chat_channels: dict[str, ChatChannelConfig] = {}
-    user_nations: dict[str, str] = {}
-    retrieval_top_k_wiki: int = 5
-    retrieval_top_k_discord: int = 5
-    retrieval_top_k_documents: int = 3
-    retrieval_top_k_images: int = 2
-
-
-class ChatSourceDocument(BaseModel):
-    """MongoDB document tracking all ingested content in chat_sources collection"""
-
-    model_config = ConfigDict(extra='ignore')
-
-    source_id: str
-    source_type: str  # 'wiki_section' | 'discord_window' | 'document_chunk' | 'image'
-    content_hash: str
-    last_ingested: int  # unix timestamp
-    qdrant_point_ids: list[str] = []
-    flagged_incorrect: bool = False
-    metadata: dict = {}
-
-
-class ChatCharacterDocument(BaseModel):
-    """MongoDB document tracking dynamically discovered characters from the character log channel"""
-
-    model_config = ConfigDict(extra='ignore')
-
-    user_id: int
-    character_name: str
-    first_seen_timestamp: int  # unix timestamp of the source message
-    first_seen_message_id: int
-    source_channel_id: int
-    notes: str = ''  # e.g. "abdicated in favor of X"
 
 
 class EggDocument(BaseModel):

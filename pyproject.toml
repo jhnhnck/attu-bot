@@ -12,7 +12,7 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["apps/bot", "apps/chat", "apps/server", "packages/shared-models", "packages/attu-logging"]
+members = ["apps/bot", "apps/server", "packages/shared-models", "packages/attu-logging"]
 
 [tool.uv.sources]
 doom-bot = { workspace = true }

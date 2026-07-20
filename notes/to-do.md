@@ -48,24 +48,6 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
 
-### chat / ask
-
-- ⭕ `high priority` `low effort` remove `is_bot_owner` guard on `/ask` before public release (`commands/chat.py:109`)
-- ⭕ `high priority` `medium effort` add Qdrant + ingestor services to docker-compose; deploy Phase 1 foundation
-- ⭕ `high priority` `medium effort` complete wiki ingestion pipeline and validate retrieval quality before moving to Phase 2
-- ⭕ `medium priority` `high effort` implement Discord ingestion pipeline - reply chain traversal, time-window grouping, and Claude Haiku summarization (Phase 2)
-- ⭕ `medium priority` `medium effort` add option to ignore specific time periods for the discord ingestor
-- ⭕ `medium priority` `low effort` add `llm_api_key` to `ChatConfig`; wire as Bearer token in `LLMClient` for both llama-server instances (Phase 2)
-- ⭕ `medium priority` `high effort` implement PDF/DOCX document ingestion pipeline with shared volume watching (Phase 3)
-- ⭕ `medium priority` `high effort` implement image captioning pipeline via Claude Haiku vision (Phase 3)
-- ⭕ `medium priority` `medium effort` add `/fix chat forget` - chunk search, confirmation embed, Qdrant hard delete, `chat_sources` flagging (Phase 4)
-- ⭕ `medium priority` `low effort` add `/debug chat status` - Qdrant collection sizes, last ingest times, pending queue depth (Phase 4)
-- ⭕ `medium priority` `medium effort` wire LLM failover - 30s timeout then failover from desktop GPU to server CPU (Phase 4)
-- ⭕ `low priority` `medium effort` wire `/wiki lookup` to query Qdrant in addition to MediaWiki search
-- ⭕ `low priority` `low effort` wire `on_raw_message_delete` to mark the owning `chat_sources` record as stale
-- ⭕ `low priority` `medium effort` split up `command_ask` into smaller functions - currently flagged by PLR0912/PLR0915 (`commands/chat.py:112`)
-- ⭕ `future idea` `low effort` display image URLs in `/ask` responses; `file_path` already stored in Qdrant payload, ready to swap in
-
 ### debug commands
 
 - ⭕ `low priority` `low effort` audit debug commands for embed/theme consistency — `/debug version` already uses `make_embed` and bot theme; several others (message_stats, dump_config, dump_starboard, eggs_show, previews) respond with plain text

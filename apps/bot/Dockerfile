@@ -57,7 +57,6 @@ USER doom
 # workspace manifests and lockfile (need every member's pyproject for uv sync to resolve)
 COPY --chown=doom:doom ./pyproject.toml ./uv.lock $DOOM_HOME/
 COPY --chown=doom:doom ./apps/bot/pyproject.toml $DOOM_HOME/apps/bot/pyproject.toml
-COPY --chown=doom:doom ./apps/chat/pyproject.toml $DOOM_HOME/apps/chat/pyproject.toml
 COPY --chown=doom:doom ./apps/server/pyproject.toml $DOOM_HOME/apps/server/pyproject.toml
 COPY --chown=doom:doom ./packages/shared-models/pyproject.toml $DOOM_HOME/packages/shared-models/pyproject.toml
 COPY --chown=doom:doom ./packages/attu-logging/pyproject.toml $DOOM_HOME/packages/attu-logging/pyproject.toml

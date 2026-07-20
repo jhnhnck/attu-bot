@@ -993,8 +993,8 @@ class TestReloadSignalRepository:
         """signals addressed to different targets do not steal each other's docs"""
         repo = ReloadSignalRepository(db)
         await repo.init_indexes()
-        await repo.send('chat', target='bot')
-        await repo.send('chat', target='ingestor')
+        await repo.send('system', target='bot')
+        await repo.send('system', target='ingestor')
 
         bot_signals = await repo.consume_all(target='bot')
         ingestor_signals = await repo.consume_all(target='ingestor')
