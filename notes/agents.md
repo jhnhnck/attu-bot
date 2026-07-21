@@ -26,7 +26,7 @@ There is one runnable mode, launched from `apps/bot/doom-bot.py`:
 
 when operating as a sub-agent (spawned via the agent tool), assume other agents may be working concurrently in the same repository:
 
-- **work off the `dev` branch** — the dev worktree lives at `/srv/services/doom-bot-dev`; when isolated in a worktree, ensure it is based on `dev`, not `trunk`
+- **work off the `trunk` branch** — the main checkout lives at `/home/jhn/Projects/doom-bot`; when isolated in a worktree, ensure it is based on `trunk`, not `prod`
 - do not run git operations that modify shared state (`checkout`, `reset`, `merge`, `rebase`, `stash`) unless isolated in a worktree
 - do not assume exclusive access to any file or the working directory
 - prefer additive changes; avoid deleting or overwriting files without checking for concurrent edits
@@ -38,10 +38,10 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 
 ## architecture
 
-the bot package, its assets, and the legacy web templates/static all live under `apps/bot/`. mongo document and repository classes are factored out into the workspace package `packages/shared-models/attu_models/`; `doom_bot.database` re-exports them so existing import sites keep working. paths in the per-package tables below are relative to each section header.
+the bot package and its assets live under `apps/bot/`. a fastapi server lives under `apps/server/`. mongo document and repository classes are factored out into the workspace package `packages/shared-models/attu_models/`; `doom_bot.database` re-exports them so existing import sites keep working. paths in the per-package tables below are relative to each section header.
 
 ### entry point
-- `apps/bot/doom-bot.py` - CLI dispatcher; selects `bot` or `web` mode via `sys.argv[1]`
+- `apps/bot/doom-bot.py` - CLI entry point; launches `bot` mode
 
 ### package: `apps/bot/doom_bot/`
 | File | Role |
@@ -80,13 +80,13 @@ bot-side init wiring; the actual document/repository/storage source lives in `pa
 | `repositories.py` | shim re-exporting all repository classes from `attu_models.repositories` |
 
 ### package: `packages/shared-models/attu_models/`
-canonical source of every mongo document, repository, and the `MongoStorage` singleton. import-only; never calls `init_indexes()` on import. used by both the bot and the dormant `apps/chat/`; designed so a future fastapi server can read and write the same collections without depending on pycord.
+canonical source of every mongo document, repository, and the `MongoStorage` singleton. import-only; never calls `init_indexes()` on import. used by both the bot (`apps/bot/`) and the server (`apps/server/`) so shared collections work without depending on pycord.
 
 | File | Role |
 |---|---|
 | `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
 | `documents.py` | Pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, `ChatConfigDocument`, etc. |
-| `repositories.py` | async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository`, chat repos, etc. |
+| `repositories.py` | async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository`, etc. |
 
 ### package: `apps/bot/doom_bot/eggs/`
 Egg collection mini-game.
@@ -117,19 +117,30 @@ Each file is a pycord extension (`setup(bot)` function) that registers a `SlashC
 | `eggs.py` | `/eggs` | Egg collection game - hatch, view, give, progress |
 | `remind.py` | `/remind` | In-universe date reminders - add, list, cancel; fires when haracalnde date arrives |
 
-### package: `apps/chat/` (dormant)
-the LLM/RAG ingestor, `/ask` slash command, chat web admin, and chat config schema were extracted from the bot in 78.x. the package still ships in the workspace but is not loaded:
-- `apps/chat/attu_chat/ingestor/` - DiscordIngestTask, WikiIngestTask, embedder, reranker, llm client, vector store, summarizer, query expander, pipelines (was `doom_bot/ingestor/`)
-- `apps/chat/attu_chat/commands/ask.py` - `/ask` slash command (was `doom_bot/commands/chat.py`)
-- `apps/chat/attu_chat/tasks/chat_init.py` - one-shot startup loader for chat subsystems
-- `apps/chat/attu_chat/web/{routes,forms}.py` - `/chat` admin page and `/api/chat` endpoints, mounted via `register_chat_routes(app)`
-- `apps/chat/attu_chat/config.py` - `[chat]` TOML schema
-- `apps/chat/assets/prompts/` - chat-system, discord-summarization, character-extraction, query-expansion prompts
-- `apps/chat/legacy_web/` - chat_config.html and pages/chat-config.js
-- `apps/chat/compose.yml` - dormant `ingestor`, `qdrant`, `llama-server` services; root compose adds `include:` to revive
-- `apps/chat/attu-chat.py ingestor` - process entrypoint (was `doom-bot.py ingestor`)
+### package: `apps/bot/doom_dot/bridge/`
+small http server (uvicorn, port 5050) running inside the bot process. the fastapi server calls it to trigger live bot actions (guild lookups, etc.). secured with HMAC-SHA256 per request.
 
-mongo collections `chat_sources`, `chat_characters`, and the `global_config` doc with `config_type='chat'` remain in place as orphan data. the document and repository classes (`ChatConfigDocument`, `ChatSourceDocument`, `ChatCharacterDocument`, `ChatConfigRepository`, `ChatSourceRepository`, `ChatCharacterRepository`) stay in `packages/shared-models/attu_models/` so revival doesn't need a migration. the `[chat]` block in `assets/attu-bot.toml` stays dormant - the bot's config loader no longer reads it. revival = bot registers the slash command + root compose `include: [apps/chat/compose.yml]`.
+| File | Role |
+|---|---|
+| `__init__.py` | package init; exports the bridge fastapi app |
+| `hmac.py` | signing and verification - `sign(secret, method, path, body, timestamp)` returns `t=<ts>,v1=<hex_digest>`; `verify()` fastapi dependency that checks the replay window and digest |
+| `router.py` | fastapi routers (signed + unsigned paths); `launch_bridge(config)` starts uvicorn as an asyncio task alongside the bot |
+| `discord_integration.py` | guild/channel/role lookups via pycord; used by bridge route handlers |
+
+the signing payload is `ts\nMETHOD\npath\nbody`. the `x-bridge-signature` request header carries `t=<ts>,v1=<hex_digest>`. see `apps/server/attu_server/bridge_client.py` for the client side. `scripts/bridge_curl.py` is a CLI for manual signed bridge calls.
+
+### package: `apps/server/attu_server/`
+fastapi server providing the external API and future SPA entry point. reads `attu-bot.toml` directly (same file as the bot) and calls the bridge for live bot operations.
+
+| File | Role |
+|---|---|
+| `main.py` | fastapi app factory + lifespan + gzip middleware |
+| `config.py` | `ServerConfig`, `BridgeConfig`, `DatabaseConfig`, `WebConfig`, `WebAuthnConfig` - loaded from `attu-bot.toml` |
+| `bridge_client.py` | async httpx client for calling the bridge; uses the identical HMAC signing scheme |
+| `deps.py` | fastapi dependency providers (db, config, current user) |
+| `preflight.py` | startup checks (bridge reachable, db connected) |
+| `webauthn_store.py` | webauthn ceremony state storage |
+| `api/me.py` | `/api/me` - current user endpoint |
 
 ### package: `apps/bot/doom_bot/tasks/`
 Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_start`, `next_run`, `run`).
@@ -143,7 +154,7 @@ Background tasks managed by `TaskScheduler`. Each task extends `BaseTask` (`on_s
 | `logo_update.py` | `LogoUpdateTask` - refreshes the bot's avatar on a schedule |
 | `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
-| `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent from the web process |
+| `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent via `doom_bot.signals` |
 | `presence.py` | `PresenceUpdateTask` - updates bot presence to reflect hatched egg count; 30-minute schedule, also triggered after each hatch |
 | `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads on a configurable interval |
 | `reminder.py` | `ReminderTask` - dynamic scheduling; delivers in-universe date reminders when haracalnde dates arrive |
@@ -197,7 +208,7 @@ missing any of these steps causes the field to silently use its default in produ
 
 **if the field gates an extension**
 - in the task that auto-activates it: call `bot.reload_extension()` + `bot.sync_commands()` on the `False → True` transition
-- in `tasks/reload_watcher.py`: diff old vs. new value after `config.load_guild()` and reload or unload the extension so web-triggered changes take effect without a restart
+- in `tasks/reload_watcher.py`: diff old vs. new value after `config.load_guild()` and reload or unload the extension so signal-triggered changes take effect without a restart
 
 ---
 
@@ -243,7 +254,7 @@ levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `
 ### async
 - All I/O (Discord API, MongoDB) is async; use `asyncio.gather()` for parallel operations
 - Bot extensions initialize synchronously inside `setup(bot)` by calling `loop.run_until_complete()`
-- The web layer uses Quart (async Flask); route handlers are `async def`
+- The server (`apps/server/`) is FastAPI with uvicorn; route handlers are `async def`
 
 ### discord (pycord)
 - Slash commands use `@discord.slash_command()` or `SlashCommandGroup`
@@ -259,12 +270,6 @@ levels available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `alert`. `
 - Use `upsert=True` (`$set`) for saves; never assume a document exists
 - Index creation happens in `init_indexes()` on each repository; call this at extension load time
 - Discord snowflake IDs are stored as `int` in MongoDB
-
-### javascript
-- ES modules (`"type": "module"` in `package.json`)
-- Linted with ESLint 10; run `npm run lint`
-- Tested with Vitest; test files follow `*.test.js` naming
-- no transpilation - targets the runtime directly
 
 ---
 
@@ -283,7 +288,6 @@ docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 ```bash
 ruff check .           # Python lint
 ruff format --check .  # Python format check
-npm run lint           # JS lint
 ```
 ---
 
@@ -331,11 +335,10 @@ Notes in `notes/` with relevant implementation details:
 - [`eggs.md`](notes/features/eggs.md) - egg game behavior rules, storage schema, key functions, commands, and setup
 - [`starboard.md`](notes/features/starboard.md) - starboard feature spec and embed structure reference
 - [`ccboard.md`](notes/features/ccboard.md) - ccboard (replacement reaction-board) behavior rules, attribution, embed pipeline, sweeps, and commands
-- [`markers.md`](notes/features/markers.md) - marker system spec (resolution order, storage, commands, web API)
+- [`markers.md`](notes/features/markers.md) - marker system spec (resolution order, storage, commands)
 - [`timekeeping.md`](notes/features/timekeeping.md) - in-universe calendar system, epoch math, year spans, rollover
 - [`reminders.md`](notes/features/reminders.md) - in-universe date reminders, fire time computation, storage, commands
 - [`tasks.md`](notes/features/tasks.md) - task scheduler overview, BaseTask lifecycle, naming scheme, and how to add tasks
-- [`attu_chat.md`](notes/features/attu_chat.md) - chat/RAG system full architecture and design decisions (currently dormant; lives at `apps/chat/`)
 
 **`notes/dev/`** - development guides
 - [`testing.md`](notes/dev/testing.md) - test layout, fixtures, conventions (mock compensation rule moved to its skill)
@@ -358,20 +361,21 @@ prescriptive, auto-loaded reference cards live in `.claude/skills/`. each loads 
 | `mock-compensation` | the mock compensation rule and three standing cases | edits in `tests/python/`; new files in `commands/`; new predicates; new migrations |
 | `pycord` | py-cord 2.x reference, the `commands` modules split, extensions, slash commands, embeds, views | `apps/bot/doom_bot/commands/` / `apps/bot/doom_bot/client/`; imports of `discord.*` |
 | `pydantic` | pydantic v2 idioms, document/runtime split, tier-3 plumbing checklist | `packages/shared-models/attu_models/documents.py`, `apps/bot/doom_bot/config.py`; `pydantic` imports |
-| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `apps/bot/doom_bot/wiki/`; `apps/bot/doom_bot/commands/wiki.py` (chat ingestor wiki pipeline currently dormant under `apps/chat/`) |
+| `mediawiki-api` | mediawiki action api + mwparserfromhell reference | `apps/bot/doom_dot/wiki/`; `apps/bot/doom_bot/commands/wiki.py` |
 | `ferretdb-quirks` | ferretdb v2 + documentdb postgres divergences from real mongo | `apps/bot/doom_bot/database/`, `packages/shared-models/attu_models/`; `apps/bot/doom_bot/client/migrations.py`; `scripts/ferret_init.sh` |
 
 ---
 
 ## file & directory layout
 
-uv + pnpm workspace; member packages live under `apps/` and `packages/`.
+uv workspace; member packages live under `apps/` and `packages/`.
 
 ```
 apps/
   bot/                       # discord bot
     doom-bot.py              # entrypoint - bot mode only
     doom_bot/                # main package
+      bridge/                # hmac-authenticated http server (uvicorn, port 5050) for bot→server IPC
       client/                # discord-specific runtime (singletons, events, features)
       commands/              # slash command extensions (one group per file)
       database/              # init_database() + shims re-exporting attu_models
@@ -381,14 +385,9 @@ apps/
     assets/                  # TOML config, hatch.toml, static/emoji, doombot-seed
     Dockerfile
     pyproject.toml
-  chat/                      # extracted llm/rag stack; dormant (see notes/features/attu_chat.md)
-    attu_chat/               # ingestor, /ask command, chat web admin, chat config
-    assets/prompts/          # chat-system, summarization, character-extraction prompts
-    legacy_web/              # chat_config.html and pages/chat-config.js
-    compose.yml              # dormant qdrant / llama-server / ingestor services
+  server/                    # fastapi server + future svelte SPA entry point
+    attu_server/             # server package (config, bridge client, api routes, webauthn)
     Dockerfile
-    pyproject.toml
-  server/                    # planned fastapi root for the web redesign (placeholder)
     pyproject.toml
 packages/
   shared-models/
@@ -396,7 +395,7 @@ packages/
     pyproject.toml
 config/                      # sample/reference config files (not used at runtime)
 scripts/                     # utility scripts (backup, migration, test runner)
-tests/                       # pytest + vitest test suites
+tests/                       # pytest test suites
 notes/                       # project notes (not code); subdirs: style/, features/, dev/, plans/, reports/
 wip/                         # work-in-progress scratch space (excluded from lint)
 ```
@@ -417,5 +416,5 @@ wip/                         # work-in-progress scratch space (excluded from lin
 ## metadata
 
 ```yaml
-last_updated: 20 July 2026
+last_updated: 21 July 2026
 ```
