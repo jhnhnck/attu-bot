@@ -193,7 +193,7 @@ lives in `apps/casino/` with its own entry point and toml. shares `nova_core` in
 **casino-specific engineering constraints:**
 
 - banking requires atomic debit/credit; use mongodb multi-document sessions in the banking repository. current repository pattern does not use sessions; add session support to `BaseRepository` before building the banking feature
-- casino games require cryptographically secure randomness; use `secrets.SystemRandom()`, not `random`. document this in the banking/casino feature's pitfalls section
+- casino games require cryptographically secure randomness; use `secrets.choice()` / `secrets.randbelow()`, never `import random`. document this in the casino feature's pitfalls section
 
 casino features are built manifest-native from day one; no legacy coupling to clean up.
 
