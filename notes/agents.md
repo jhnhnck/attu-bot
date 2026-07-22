@@ -346,6 +346,7 @@ Notes in `notes/` with relevant implementation details:
 
 **`notes/`**
 - [`to-do.md`](notes/to-do.md) - active project to-do list, test coverage table, and completed task history
+- [`nova-core.md`](notes/nova-core.md) - architectural contract for the nova_core modularization: feature taxonomy, manifest design, config restructure, workstreams, cutover gate
 - [`.meta.md`](.meta.md) - guide for recreating this agents.md and notes/ system in another repository
 
 ## skills
