@@ -34,6 +34,7 @@ RUN useradd --home-dir /home/doom --uid 1000 doom; \
 
 # install system dependencies
 RUN --mount=type=cache,target=/var/lib/apt \
+    --mount=type=cache,target=/var/cache/apt \
     set -eux; \
     apt-get update -qq; \
     apt-get install -qq \
