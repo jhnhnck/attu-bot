@@ -209,6 +209,27 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 - flatten guild config from `primary`/`secondary` named keys to `[[guilds]]` array with `role` field
 - remove `doom_bot`-named strings from all user-facing responses in core
 
+**bridge bug fixes** (absorbed from cleanup-bridge phase 0; fix in-flight during restructure):
+
+| bug | fix |
+|---|---|
+| hmac bypass: empty secret accepted | `secret: str = Field(min_length=1)` on `BridgeConfig` |
+| startup lockout on uvicorn crash | set `_bridge_started` only after `_serve()` completes; clear on crash |
+| health race: `bot.is_ready()` before `init_database()` | `bot._bot_initialized` flag set at end of `_do_ready_init()`; health reads that |
+| `config_version` hard gate with stale sample toml | bump sample toml to `2.6.0`; add `[bridge]` section |
+| `avatar_url` null for ~40% of users | use `user.display_avatar.url` unconditionally |
+| `get_guild_roles` silent 200 on error | return `None` on exception; router raises 502 matching `get_guild_channels` |
+| `DiscordCache.clear` prefix collision | append `':'` to prefix before `startswith` comparison |
+| `_register_bridge_startup` missing from test mock | add to `_patch_all_startup()` and all inline patch blocks |
+
+**attu_logging migration** (absorbed from cleanup-bridge phase 1; 46 call sites):
+
+- `attu_logging/config.py`: add `webhook_url: str | None = None` to `configure()`; store module-level
+- `attu_logging/webhook.py`: read `webhook_url` from module store; remove all `doom_bot` imports; inline `break_at_newline` (last newline before char limit)
+- bot startup: pass `webhook_url=config.error_hook` into `attu_logging.configure()`
+- per call site: `from doom_bot.logging import get_logger` → `import structlog` + `logger = structlog.stdlib.get_logger(__name__)`; `logger.warn` → `logger.warning`; `logger.fatal` → `logger.critical`; `logger.trace`/`logger.alert` → `logger.debug`; `logger.send_to_webhook(err)` → `await attu_logging.webhook.send_to_webhook(err)`
+- delete `apps/bot/doom_bot/logging.py` once all sites migrated
+
 ### workstream 2 - feature manifest system
 
 - define `FeatureManifest` dataclass and `FeatureContext` loader
@@ -225,6 +246,15 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 - remaining features in dependency order: modlog, wiki, reminders, trees, starboard (last; deprecated)
 - each migration: manifest declared, documents owned by feature, tasks through manifest, events through manifest, migrations attached to feature, existing tests passing
 
+**wiki extraction specifics** (absorbed from cleanup-bridge phase 2):
+
+- new package `packages/attu-wiki/attu_wiki/`: move `auth.py`, `pages.py`, `search.py`, `admin.py`, `models.py`, `client.py` from `apps/bot/doom_bot/wiki/`
+- `WikiClient.__init__` gains `user_agent: str` param; removes `doom_bot.__email__/__title__/__version__` imports
+- all modules replace `doom_bot.logging` with `structlog.stdlib.get_logger(__name__)`
+- bot shim `apps/bot/doom_bot/wiki/__init__.py`: constructs user-agent from `nova_core` metadata; `get_wiki()` singleton remains; `setup(bot)` remains; under 30 lines total
+- workspace wiring: add `attu-wiki` to `apps/bot/pyproject.toml` and root `[tool.uv.workspace]`
+- walking skeleton first: create package + empty `__init__.py` and verify `uv sync` before moving any code
+
 ### workstream 4 - casino bot scaffold
 
 - `apps/casino/` entry point with its own toml
@@ -239,6 +269,14 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 - server exposes: guild/channel/role listing with slugs, config get/set, feature enable/disable, reload triggers, fix/debug operations
 - server calls bridge internally for bot operations; admin layer is clean http only
 - `scripts/nova_admin.py`: `cmd.Cmd` repl, `httpx` calls, guild/channel/role name resolution, no snowflakes as arguments
+
+### parallel: dependency updates
+
+runs independently of all workstreams; no ordering constraint.
+
+- python: bump `aiohttp` to latest (`uv lock --upgrade-package aiohttp`); `urllib3` resolves transitively
+- npm: `pnpm update vite undici brace-expansion` in the js workspace; verify `npm run lint` passes
+- codeql: investigate "incomplete url substring sanitization" alerts in `test_eggs.py` (lines 142, 246, 480, 530, 834, 879) and `test_commands_wiki.py` (line 108); almost certainly false positives in test code; dismiss with rationale or fix if real
 
 ## cutover gate
 
@@ -266,3 +304,5 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 ```yaml
 last_updated: 22 July 2026
 ```
+
+absorbed: `.claude/plans/cleanup-bridge/` (all four phases; plan archived)
