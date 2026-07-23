@@ -1,14 +1,6 @@
 {
   "lastUpdated": "2026-07-23",
   "plans": [
-    { "plan": "structlog", "phase": 0, "state": "closed", "gate": null, "note": "configure + webhook; merged 2026-05-10" },
-    { "plan": "structlog", "phase": 1, "state": "closed", "gate": null, "note": "shared-models flip; merged 2026-05-10" },
-    { "plan": "structlog", "phase": 2, "state": "ready",  "gate": null, "note": "TRACE/ALERT removal — next up" },
-    { "plan": "structlog", "phase": 3, "state": "queued", "gate": "structlog ph2", "note": "send_to_webhook free function" },
-    { "plan": "structlog", "phase": 4, "state": "queued", "gate": "structlog ph3", "note": "bulk import-site conversion (8 directory commits)" },
-    { "plan": "structlog", "phase": 5, "state": "queued", "gate": "structlog ph4", "note": "delete the wrapper" },
-    { "plan": "structlog", "phase": 6, "state": "queued", "gate": "structlog ph5", "note": "f-string sweep (optional)" },
-
     { "plan": "nova-w1", "phase": 0, "state": "closed", "gate": null, "note": "nova_core/__init__.py walking skeleton; closed in 56e78e1" },
     { "plan": "nova-w1", "phase": 1, "state": "ready",  "gate": null, "note": "package rename doom_bot -> nova_core" },
     { "plan": "nova-w1", "phase": 2, "state": "queued", "gate": "nova-w1 ph1", "note": "attu_logging migration" },
