@@ -14,7 +14,7 @@
 - `nova_core/__init__.py` created with all 10 metadata constants; zero doom_bot imports; DoD check passes
 - `nova_core.__version__` resolves to `80.0-dev` live in container (base file: `80.0`; git-info stage appends `-{commit}` at build time; confirmed by integration-check)
 - doom_bot unchanged; bot entrypoint unaffected; 180 component tests passed with no new failures
-- ruff `known-first-party` and coverage `source` updated in root `pyproject.toml`; basedpyright required no change (apps/bot already in extraPaths, nova_core auto-discovered)
+- ruff `known-first-party` and coverage `source` updated in root `pyproject.toml`; basedpyright and pytest required no change (apps/bot already in extraPaths/pythonpath respectively, nova_core auto-discovered by both)
 - Dockerfile: nova_core COPY and stamp lines added alongside existing doom_bot lines (additive; doom_bot lines remain intact for phase 0 constraint)
 
 **what surprised us**
