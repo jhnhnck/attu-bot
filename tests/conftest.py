@@ -311,7 +311,7 @@ def mock_db():
 
     Example:
         def test_something(mock_db):
-            with patch('nova_core.db.get_db', return_value=mock_db):
+            with patch('nova_core.client.core.db.get_db', return_value=mock_db):
                 # Your test code
                 pass
     """
@@ -332,7 +332,7 @@ def mock_db_and_repos():
     """
     mock_database = MagicMock()
 
-    with patch('nova_core.db.get_db', return_value=mock_database), patch('nova_core.client.years._year_repo', None), patch('nova_core.client.markers._marker_repo', None):
+    with patch('nova_core.client.core.db.get_db', return_value=mock_database), patch('nova_core.client.years._year_repo', None), patch('nova_core.client.markers._marker_repo', None):
         yield mock_database
 
 
