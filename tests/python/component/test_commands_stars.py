@@ -270,7 +270,7 @@ class TestStarsRecheck:
         stored_doc = _msg_doc(message_id)
 
         with (
-            patch('nova_core.bot') as mock_bot,
+            patch('nova_core.client.core.bot') as mock_bot,
             patch('nova_core.client.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
             patch('nova_core.client.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
         ):

@@ -1066,7 +1066,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
         mock_message_repo.update_author_name = AsyncMock(return_value=3)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user('GlobalName'))
             await job_fix_author_names(test_guild)
 
@@ -1078,7 +1078,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
         mock_message_repo.update_author_name = AsyncMock(return_value=1)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user(global_name=None, name='rawname'))
             await job_fix_author_names(test_guild)
 
@@ -1089,7 +1089,7 @@ class TestJobFixAuthorNames:
 
         mock_message_repo.update_author_name = AsyncMock(return_value=2)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
             await job_fix_author_names(test_guild, user_id=test_user)
 
@@ -1102,7 +1102,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=None)
             await job_fix_author_names(test_guild)
 
@@ -1114,7 +1114,7 @@ class TestJobFixAuthorNames:
         mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
         mock_message_repo.update_author_name = AsyncMock(return_value=0)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(side_effect=Exception('api error'))
             # should not raise
             await job_fix_author_names(test_guild)
@@ -1132,7 +1132,7 @@ class TestJobFixAuthorNames:
         status_msg = AsyncMock()
         status_msg.edit = AsyncMock(return_value=status_msg)
 
-        with patch('nova_core.bot') as mock_bot:
+        with patch('nova_core.client.core.bot') as mock_bot:
             mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
             await job_fix_author_names(test_guild, status_msg=status_msg)
 

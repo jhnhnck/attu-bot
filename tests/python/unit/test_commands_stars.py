@@ -399,7 +399,7 @@ class TestResolveRecheckTarget:
         with (
             patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
             patch('nova_core.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('nova_core.bot') as mock_bot,
+            patch('nova_core.client.core.bot') as mock_bot,
             patch('nova_core.client.messages.build_message_doc', new_callable=AsyncMock, return_value=_msg_doc(7001)),
         ):
             mock_bot.get_channel.return_value = orig_channel
@@ -463,7 +463,7 @@ class TestResolveRecheckTarget:
 
         with (
             patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('nova_core.bot') as mock_bot,
+            patch('nova_core.client.core.bot') as mock_bot,
         ):
             mock_bot.get_channel.return_value = None
             mock_bot.fetch_channel = AsyncMock(side_effect=Exception('channel not found'))

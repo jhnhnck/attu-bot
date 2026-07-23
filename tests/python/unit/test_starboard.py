@@ -230,7 +230,7 @@ async def test_build_embeds_merges_link_preview_with_empty_content(monkeypatch):
     mock_avatar = MagicMock()
     mock_avatar.__str__.return_value = 'avatar_url'
     mock_user.display_avatar = mock_avatar
-    monkeypatch.setattr('nova_core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+    monkeypatch.setattr('nova_core.client.core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
     embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].description == 'preview text'
@@ -243,7 +243,7 @@ async def test_build_embeds_forwarded_sets_footer(monkeypatch):
     mock_avatar = MagicMock()
     mock_avatar.__str__.return_value = 'avatar_url'
     mock_user.display_avatar = mock_avatar
-    monkeypatch.setattr('nova_core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+    monkeypatch.setattr('nova_core.client.core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
     embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].footer.text == 'forwarded message'
@@ -256,7 +256,7 @@ async def test_build_embeds_not_forwarded_no_footer(monkeypatch):
     mock_avatar = MagicMock()
     mock_avatar.__str__.return_value = 'avatar_url'
     mock_user.display_avatar = mock_avatar
-    monkeypatch.setattr('nova_core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
+    monkeypatch.setattr('nova_core.client.core.bot', MagicMock(get_user=MagicMock(return_value=mock_user)))
 
     embeds = await build_embeds(msg_doc, test_guild, 0xEEDD20)
     assert embeds[0].footer is None
@@ -844,7 +844,7 @@ class TestRecountStarboard:
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         # bot and _sync_starboard_post are imported inside the function, so patch at source
-        with patch('nova_core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)
 
@@ -875,7 +875,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('nova_core.bot') as mock_bot, patch('nova_core.commands.fix._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.commands.fix._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)
 
@@ -898,7 +898,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
 
-        with patch('nova_core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)  # must not raise
 
@@ -962,7 +962,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('nova_core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)
 
