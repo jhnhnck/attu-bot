@@ -35,7 +35,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 ### phase 0 — walking skeleton
 
-**status:** open
+**status:** closed in 62ba559
 
 **dod:** `python -c "import nova_core; print(nova_core.__version__)"` exits 0 with the expected version string; Dockerfile sed path references `nova_core/__init__.py`; all tool configs (ruff, basedpyright, coverage, pytest) list `nova_core` as a known package; `doom_bot/__init__.py` is unchanged; bot runnable via doom_bot (bridge excluded)
 
@@ -49,7 +49,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 **dod:** `grep -rn 'doom_bot' apps/ packages/ tests/ scripts/ config/ --include="*.py"` returns zero lines; same grep over Dockerfiles, `*.yml`, `*.sh` returns zero lines; `ruff check` passes; `basedpyright` passes; Dockerfile sed target uses `nova_core/__init__.py`; bot runnable (bridge excluded — `config.bridge` not yet defined)
 
-**scope:** move all source files from `doom_bot/` into `nova_core/` — client/, bridge/, commands/, database/, tasks/, eggs/, wiki/, ccboard/, config.py, signals.py, webhook.py; `logging.py` moves too but is NOT deleted here (phase 2 handles it). update all 422+ `from doom_bot.*` → `from nova_core.*` across `apps/bot/`, `tests/`, `scripts/`. update `attu_logging/webhook.py`: `from doom_bot import config` → `from nova_core import config`; `from doom_bot.client.util import break_at_newline` → `from nova_core.client.util import break_at_newline` — this bridges the package reference so doom_bot can be fully deleted without breaking error reporting. update root `pyproject.toml`: workspace name from `doom-bot` to `nova-core`, isort `known-first-party`, coverage `source`, pytest `pythonpath`. delete `apps/bot/doom_bot/` entirely including the phase 0 nova_core metadata shim. note: `nova_core/logging.py` exists after this phase and is still imported; phase 2 deletes it.
+**scope:** move all source files from `doom_bot/` into `nova_core/` — client/, bridge/, commands/, database/, tasks/, eggs/, wiki/, ccboard/, config.py, signals.py, webhook.py; `logging.py` moves too but is NOT deleted here (phase 2 handles it). update all 422+ `from doom_bot.*` → `from nova_core.*` across `apps/bot/`, `tests/`, `scripts/`. update `attu_logging/webhook.py`: `from doom_bot import config` → `from nova_core import config`; `from doom_bot.client.util import break_at_newline` → `from nova_core.client.util import break_at_newline` — this bridges the package reference so doom_bot can be fully deleted without breaking error reporting. update root `pyproject.toml`: workspace name from `doom-bot` to `nova-core`, isort `known-first-party`, coverage `source`, pytest `pythonpath`. delete `apps/bot/doom_bot/` entirely including the phase 0 nova_core metadata shim. update `apps/bot/Dockerfile`: remove the three doom_bot lines left by the phase 0 additive approach - the two `sed` commands in the git-info stage (`sed -i ... apps/bot/doom_bot/__init__.py`), the `COPY --chown=doom:doom ./apps/bot/doom_bot ...` line in the doombox stage, and the `COPY --from=git-info ... doom_bot/__init__.py ...` stamp line; only nova_core lines should remain after this phase. note: `nova_core/logging.py` exists after this phase and is still imported; phase 2 deletes it.
 
 **merge gate:** phase 0 merged to trunk
 
@@ -89,7 +89,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | in progress |
+| 0 — walking skeleton | closed in 62ba559 |
 | 1 — package rename | not started |
 | 2 — attu_logging migration | not started |
 | 3 — bridge bug fixes | not started |
