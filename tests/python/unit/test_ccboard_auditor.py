@@ -15,10 +15,10 @@ from attu_models import (
     MessageRefs,
     ReactionDocument,
 )
-from doom_bot import ccboard
-from doom_bot.ccboard import auditor as auditor_mod
-from doom_bot.ccboard import watcher as watcher_mod
-from doom_bot.ccboard.auditor import (
+from nova_core import ccboard
+from nova_core.ccboard import auditor as auditor_mod
+from nova_core.ccboard import watcher as watcher_mod
+from nova_core.ccboard.auditor import (
     AuditorTask,
     PassResult,
     _compute_diff,
@@ -26,7 +26,7 @@ from doom_bot.ccboard.auditor import (
     _LiveReaction,
     auditor_task,
 )
-from doom_bot.config import GuildCCBoard
+from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 
 
@@ -823,7 +823,7 @@ class TestDiscoverGuild:
             ensure_calls.append(kwargs)
             return created_entry
 
-        import doom_bot.ccboard.watcher as watcher_mod_ref
+        import nova_core.ccboard.watcher as watcher_mod_ref
 
         monkeypatch.setattr(watcher_mod_ref, '_ensure_entry', fake_ensure_entry)
 
@@ -966,8 +966,8 @@ class TestCleanupOrphans:
 
 
 def test_register_bot_tasks_includes_auditor():
-    from doom_bot.tasks import register_bot_tasks
-    from doom_bot.tasks.scheduler import TaskScheduler
+    from nova_core.tasks import register_bot_tasks
+    from nova_core.tasks.scheduler import TaskScheduler
 
     scheduler = TaskScheduler()
     register_bot_tasks(scheduler)
@@ -976,8 +976,8 @@ def test_register_bot_tasks_includes_auditor():
 
 
 def test_register_bot_tasks_is_idempotent_for_auditor():
-    from doom_bot.tasks import register_bot_tasks
-    from doom_bot.tasks.scheduler import TaskScheduler
+    from nova_core.tasks import register_bot_tasks
+    from nova_core.tasks.scheduler import TaskScheduler
 
     scheduler = TaskScheduler()
     register_bot_tasks(scheduler)

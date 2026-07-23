@@ -11,7 +11,7 @@ Usage:
 
 # configure logging before any repo import so module-level loggers see the right
 # handlers/processors. structlog caches logger config on first emit, so anything
-# that imports doom_bot.* before this line could end up bound to the default
+# that imports nova_core.* before this line could end up bound to the default
 # console renderer instead of ours.
 from attu_logging import configure as _configure_logging
 
@@ -23,8 +23,8 @@ import time  # noqa: E402 - configure must run before any other import
 import traceback  # noqa: E402 - configure must run before any other import
 from os import environ  # noqa: E402 - configure must run before any other import
 
-from doom_bot import __build_time__  # noqa: E402 - configure must run before any repo import
-from doom_bot.logging import get_logger  # noqa: E402 - configure must run before any repo import
+from nova_core import __build_time__  # noqa: E402 - configure must run before any repo import
+from nova_core.logging import get_logger  # noqa: E402 - configure must run before any repo import
 
 
 logger = get_logger(__name__)
@@ -45,7 +45,7 @@ if mode != 'bot':
 
 try:
     if mode == 'bot':
-        from doom_bot import start_bot_loop
+        from nova_core import start_bot_loop
 
         start_bot_loop()
 

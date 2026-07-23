@@ -33,7 +33,7 @@ class TestTimeAdvanceCommand:
         has .id, not .guild); we mock config.guild() to return a MagicMock so
         the attribute chain resolves without error.
         """
-        from doom_bot.commands.time import time_advance
+        from nova_core.commands.time import time_advance
 
         mock_year = MagicMock()
         mock_year.year = 5
@@ -42,7 +42,7 @@ class TestTimeAdvanceCommand:
         mock_cfg = MagicMock()
         mock_cfg.guild.id = test_guild
 
-        with patch('doom_bot.commands.time.Year') as mock_year_cls, patch('doom_bot.commands.time.get_year_status', return_value=(10, 5)), patch('doom_bot.commands.time.scheduler') as mock_scheduler, patch('doom_bot.commands.time.nova_year_task') as mock_nova, patch('doom_bot.commands.time.config') as mock_config:
+        with patch('nova_core.commands.time.Year') as mock_year_cls, patch('nova_core.commands.time.get_year_status', return_value=(10, 5)), patch('nova_core.commands.time.scheduler') as mock_scheduler, patch('nova_core.commands.time.nova_year_task') as mock_nova, patch('nova_core.commands.time.config') as mock_config:
             mock_config.guild.return_value = mock_cfg
             mock_year_cls.get_latest = AsyncMock(return_value=mock_year)
             mock_scheduler.add_job = MagicMock()
@@ -68,13 +68,13 @@ class TestTimeAdvanceCommand:
     @pytest.mark.asyncio
     async def test_advance_with_no_existing_year(self, mock_ctx, guild):
         """test /time advance when no year exists in db starts from year 1"""
-        from doom_bot.commands.time import time_advance
+        from nova_core.commands.time import time_advance
 
         mock_coro = AsyncMock()()
         mock_cfg = MagicMock()
         mock_cfg.guild.id = test_guild
 
-        with patch('doom_bot.commands.time.Year') as mock_year_cls, patch('doom_bot.commands.time.get_year_status', return_value=(0, 1)), patch('doom_bot.commands.time.scheduler') as mock_scheduler, patch('doom_bot.commands.time.nova_year_task') as mock_nova, patch('doom_bot.commands.time.config') as mock_config:
+        with patch('nova_core.commands.time.Year') as mock_year_cls, patch('nova_core.commands.time.get_year_status', return_value=(0, 1)), patch('nova_core.commands.time.scheduler') as mock_scheduler, patch('nova_core.commands.time.nova_year_task') as mock_nova, patch('nova_core.commands.time.config') as mock_config:
             mock_config.guild.return_value = mock_cfg
             mock_year_cls.get_latest = AsyncMock(return_value=None)
             mock_scheduler.add_job = MagicMock()
@@ -97,9 +97,9 @@ class TestTimePauseCommand:
     @pytest.mark.asyncio
     async def test_pause(self, mock_ctx, guild):
         """test /time pause pauses the epoch"""
-        from doom_bot.commands.time import time_pause
+        from nova_core.commands.time import time_pause
 
-        with patch('doom_bot.config.GuildConfig.pause_time', new_callable=AsyncMock) as mock_pause:
+        with patch('nova_core.config.GuildConfig.pause_time', new_callable=AsyncMock) as mock_pause:
             await time_pause(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -110,7 +110,7 @@ class TestTimePauseCommand:
     @pytest.mark.asyncio
     async def test_pause_response_before_action(self, mock_ctx, guild):
         """test /time pause responds to user before pausing"""
-        from doom_bot.commands.time import time_pause
+        from nova_core.commands.time import time_pause
 
         call_order = []
 
@@ -122,7 +122,7 @@ class TestTimePauseCommand:
 
         mock_ctx.respond = AsyncMock(side_effect=track_respond)
 
-        with patch('doom_bot.config.GuildConfig.pause_time', new_callable=AsyncMock, side_effect=track_pause):
+        with patch('nova_core.config.GuildConfig.pause_time', new_callable=AsyncMock, side_effect=track_pause):
             await time_pause(mock_ctx)
 
         assert call_order == ['respond', 'pause']
@@ -135,9 +135,9 @@ class TestTimeResumeCommand:
     @pytest.mark.asyncio
     async def test_resume(self, mock_ctx, guild):
         """test /time resume resumes the epoch and responds with year info"""
-        from doom_bot.commands.time import time_resume
+        from nova_core.commands.time import time_resume
 
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock) as mock_move, patch('doom_bot.config.GuildConfig.resume_time', new_callable=AsyncMock) as mock_resume:
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock) as mock_move, patch('nova_core.config.GuildConfig.resume_time', new_callable=AsyncMock) as mock_resume:
             await time_resume(mock_ctx)
 
         mock_move.assert_called_once()
@@ -156,7 +156,7 @@ class TestTimeResumeCommand:
     @pytest.mark.asyncio
     async def test_resume_calls_move_epoch_before_respond(self, mock_ctx, guild):
         """test /time resume calls move_epoch before responding"""
-        from doom_bot.commands.time import time_resume
+        from nova_core.commands.time import time_resume
 
         call_order = []
 
@@ -171,7 +171,7 @@ class TestTimeResumeCommand:
 
         mock_ctx.respond = AsyncMock(side_effect=track_respond)
 
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock, side_effect=track_move), patch('doom_bot.config.GuildConfig.resume_time', new_callable=AsyncMock, side_effect=track_resume):
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock, side_effect=track_move), patch('nova_core.config.GuildConfig.resume_time', new_callable=AsyncMock, side_effect=track_resume):
             await time_resume(mock_ctx)
 
         assert call_order == ['move_epoch', 'respond', 'resume']
@@ -184,7 +184,7 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_not_divisible_by_7(self, mock_ctx, guild):
         """test /time dilate rejects values not divisible by 7"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
         await time_dilate(mock_ctx, days=10)
 
@@ -196,7 +196,7 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_not_divisible_by_7_other_values(self, mock_ctx, guild):
         """test /time dilate rejects various non-divisible-by-7 inputs"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
         for bad_days in [1, 2, 3, 8, 13, 15, 20, 22]:
             mock_ctx._responses.clear()
@@ -211,11 +211,11 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_valid_paused(self, mock_ctx, make_guild):
         """test /time dilate with valid input when time is paused sets year length"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
         make_guild(paused=True)
 
-        with patch('doom_bot.config.GuildConfig.set_year_length', new_callable=AsyncMock) as mock_set:
+        with patch('nova_core.config.GuildConfig.set_year_length', new_callable=AsyncMock) as mock_set:
             await time_dilate(mock_ctx, days=21)
 
         mock_set.assert_called_once_with(21)
@@ -226,9 +226,9 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_valid_not_paused(self, mock_ctx, guild):
         """test /time dilate with valid input when time is not paused calls move_epoch"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock) as mock_move:
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock) as mock_move:
             await time_dilate(mock_ctx, days=28)
 
         mock_move.assert_called_once_with(28, guild=test_guild)
@@ -240,9 +240,9 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_7_days(self, mock_ctx, guild):
         """test /time dilate with minimum valid input of 7 days"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock):
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock):
             await time_dilate(mock_ctx, days=7)
 
         mock_ctx.respond.assert_called_once()
@@ -252,11 +252,11 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_zero_days_skips_validation(self, mock_ctx, guild):
         """test /time dilate with 0 days bypasses the divisible-by-7 check"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
         # days=0 is not > 0, so it skips the mod-7 guard
         # but epoch is not paused, so it goes to move_epoch branch
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock):
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock):
             await time_dilate(mock_ctx, days=0)
 
         mock_ctx.respond.assert_called_once()
@@ -267,10 +267,10 @@ class TestTimeDilateCommand:
     @pytest.mark.asyncio
     async def test_dilate_negative_days_skips_validation(self, mock_ctx, guild):
         """test /time dilate with negative days bypasses the divisible-by-7 check"""
-        from doom_bot.commands.time import time_dilate
+        from nova_core.commands.time import time_dilate
 
         # negative days are not > 0, so they skip the mod-7 guard
-        with patch('doom_bot.commands.time.move_epoch', new_callable=AsyncMock):
+        with patch('nova_core.commands.time.move_epoch', new_callable=AsyncMock):
             await time_dilate(mock_ctx, days=-7)
 
         mock_ctx.respond.assert_called_once()

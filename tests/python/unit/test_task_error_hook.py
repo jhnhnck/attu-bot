@@ -7,7 +7,7 @@ This file is licensed under the Apache License, Version 2.0; See LICENSE for ful
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from doom_bot.tasks.error_hook import ErrorHookTask, error_hook_refresh
+from nova_core.tasks.error_hook import ErrorHookTask, error_hook_refresh
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ class TestOnStart:
         mock_cfg = _make_config()
         mock_bot = _make_bot()
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot):
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot):
             await task.on_start()
 
         mock_cfg.wait_for_load.assert_awaited_once()
@@ -98,7 +98,7 @@ class TestRunTestMode:
         mock_cfg = _make_config(test_mode=True)
         mock_bot = _make_bot()
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -122,7 +122,7 @@ class TestRunHappyPath:
         channel = mock_bot.get_guild.return_value.get_channel.return_value
         channel.webhooks = AsyncMock(return_value=[existing_webhook])
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -149,7 +149,7 @@ class TestRunWebhookMissing:
         new_hook.url = 'https://discord.com/api/webhooks/new-hook'
         channel.create_webhook = AsyncMock(return_value=new_hook)
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -181,7 +181,7 @@ class TestRunWebhookCreationWithAvatar:
 
         icon_bytes = b'\x89PNG-icon-data'
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=icon_bytes) as mock_png, patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=icon_bytes) as mock_png, patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -210,7 +210,7 @@ class TestRunOldWebhookCleanup:
         channel = mock_bot.get_guild.return_value.get_channel.return_value
         channel.webhooks = AsyncMock(return_value=[old_webhook, current_webhook])
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -232,7 +232,7 @@ class TestRunOldWebhookCleanup:
         channel = mock_bot.get_guild.return_value.get_channel.return_value
         channel.webhooks = AsyncMock(return_value=[other_webhook, current_webhook])
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -254,7 +254,7 @@ class TestRunOldWebhookCleanupFails:
         channel = mock_bot.get_guild.return_value.get_channel.return_value
         channel.webhooks = AsyncMock(return_value=[old_webhook, current_webhook])
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -279,7 +279,7 @@ class TestRunDiscordApiError:
         channel.webhooks = AsyncMock(return_value=[])
         channel.create_webhook = AsyncMock(side_effect=Exception('rate limited'))
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -302,7 +302,7 @@ class TestRunOuterException:
         mock_bot = _make_bot()
         mock_bot.get_guild = MagicMock(side_effect=Exception('guild not found'))
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -330,7 +330,7 @@ class TestRunConfigPersistence:
         new_hook.url = 'https://discord.com/api/webhooks/persisted'
         channel.create_webhook = AsyncMock(return_value=new_hook)
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -349,7 +349,7 @@ class TestStandaloneFunction:
         mock_cfg = _make_config(test_mode=True)
         mock_bot = _make_bot()
 
-        with patch('doom_bot.tasks.error_hook.config', mock_cfg), patch('doom_bot.tasks.error_hook.bot', mock_bot), patch('doom_bot.tasks.error_hook.logger') as mock_logger:
+        with patch('nova_core.tasks.error_hook.config', mock_cfg), patch('nova_core.tasks.error_hook.bot', mock_bot), patch('nova_core.tasks.error_hook.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await error_hook_refresh()
 
@@ -364,7 +364,7 @@ class TestStandaloneFunction:
 class TestSingleton:
     def test_module_level_singleton_exists(self):
         """the module exposes an error_hook_task singleton instance."""
-        from doom_bot.tasks.error_hook import error_hook_task
+        from nova_core.tasks.error_hook import error_hook_task
 
         assert isinstance(error_hook_task, ErrorHookTask)
         assert error_hook_task.name == 'ErrorHookRefresh'

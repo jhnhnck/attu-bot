@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 
-from doom_bot import config
+from nova_core.client.core import config
 from tests.conftest import test_user
 
 
@@ -61,8 +61,8 @@ class TestComingSoonGate:
         ctx = mock_ctx_factory(user_id=test_user, is_owner=False)
         config.owner_ids = set()
 
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees._api_call', AsyncMock()):
-            from doom_bot.commands.trees import trees_link
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees._api_call', AsyncMock()):
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -76,11 +76,11 @@ class TestComingSoonGate:
 
         mock_resp = _make_response(200, {'display_name': 'Test User'})
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -95,8 +95,8 @@ class TestComingSoonGate:
         ctx.interaction.user.id = test_user
         ctx.value = ''
 
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _tree_autocomplete
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _tree_autocomplete
 
             result = await _tree_autocomplete(ctx)
 
@@ -111,34 +111,34 @@ class TestRouteFor:
         config.trees = _make_trees_config()
 
     def test_x_routes_to_dev(self):
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _route_for
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _route_for
 
             assert _route_for('AX-123456') == _DEV_URL
 
     def test_z_routes_to_dev(self):
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _route_for
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _route_for
 
             assert _route_for('AZ-123456') == _DEV_URL
 
     def test_other_letter_routes_to_prod(self):
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _route_for
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _route_for
 
             for letter in 'ABCDEFGHJKLMNPQRSTUVWY':  # 22 prod chars (not I/O/X/Z)
                 assert _route_for(f'A{letter}-000000') == _PROD_URL
 
     def test_malformed_short_code_routes_to_prod(self):
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _route_for
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _route_for
 
             assert _route_for('A') == _PROD_URL
             assert _route_for('') == _PROD_URL
 
     def test_lowercase_code_handled(self):
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _route_for
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _route_for
 
             assert _route_for('ax-123456') == _DEV_URL
             assert _route_for('ab-123456') == _PROD_URL
@@ -151,8 +151,8 @@ class TestSignRequest:
     def test_signature_format(self):
         config.trees = _make_trees_config()
 
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _sign
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _sign
 
             body = b'{"code": "AB-123456"}'
             ts, sig = _sign(body)
@@ -163,8 +163,8 @@ class TestSignRequest:
     def test_signature_verifiable(self):
         config.trees = _make_trees_config()
 
-        with patch('doom_bot.commands.trees.config', config):
-            from doom_bot.commands.trees import _sign
+        with patch('nova_core.commands.trees.config', config):
+            from nova_core.commands.trees import _sign
 
             body = b'{"test": true}'
             ts, sig = _sign(body)
@@ -202,8 +202,8 @@ class TestExtractRoles:
 
     def test_admin_role_match(self):
         mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID))
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -211,8 +211,8 @@ class TestExtractRoles:
 
     def test_user_role_match(self):
         mock_bot = self._make_bot(self._make_member(_USER_ROLE_ID))
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -220,8 +220,8 @@ class TestExtractRoles:
 
     def test_both_roles_match(self):
         mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID, _USER_ROLE_ID))
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -229,8 +229,8 @@ class TestExtractRoles:
 
     def test_neither_role_match(self):
         mock_bot = self._make_bot(self._make_member(999999999))
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -239,8 +239,8 @@ class TestExtractRoles:
     def test_roles_unconfigured(self):
         config.guild = MagicMock(return_value=SimpleNamespace(roles=_make_guild_roles(trees_admin_role=0, trees_user_role=0)))
         mock_bot = self._make_bot(self._make_member(_ADMIN_ROLE_ID, _USER_ROLE_ID))
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -252,8 +252,8 @@ class TestExtractRoles:
         mock_bot = MagicMock()
         mock_bot.get_guild = MagicMock(return_value=guild)
 
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -263,8 +263,8 @@ class TestExtractRoles:
         mock_bot = MagicMock()
         mock_bot.get_guild = MagicMock(return_value=None)
 
-        with patch('doom_bot.commands.trees.config', config), patch('doom_bot.commands.trees.bot', mock_bot):
-            from doom_bot.commands.trees import _extract_roles
+        with patch('nova_core.commands.trees.config', config), patch('nova_core.commands.trees.bot', mock_bot):
+            from nova_core.commands.trees import _extract_roles
 
             result = _extract_roles(test_user)
 
@@ -285,11 +285,11 @@ class TestTreesLink:
         mock_resp = _make_response(200, {'display_name': 'Haradar Karn'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -303,11 +303,11 @@ class TestTreesLink:
         mock_resp = _make_response(422, {'detail': 'code_expired'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -319,11 +319,11 @@ class TestTreesLink:
         mock_resp = _make_response(422, {'detail': 'code_already_used'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -334,11 +334,11 @@ class TestTreesLink:
         mock_resp = _make_response(422, {'detail': 'code_not_found'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -348,11 +348,11 @@ class TestTreesLink:
         ctx = mock_ctx_factory(user_id=test_user)
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(side_effect=httpx.TimeoutException('timeout'))),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(side_effect=httpx.TimeoutException('timeout'))),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -362,11 +362,11 @@ class TestTreesLink:
         ctx = mock_ctx_factory(user_id=test_user)
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -377,11 +377,11 @@ class TestTreesLink:
         mock_resp = _make_response(401, {})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -397,12 +397,12 @@ class TestTreesLink:
         mock_logger.alert = MagicMock()
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
-            patch('doom_bot.commands.trees.logger', mock_logger),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.logger', mock_logger),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -420,11 +420,11 @@ class TestTreesLink:
             return mock_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=capture_call),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=capture_call),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AX-123456')
 
@@ -440,11 +440,11 @@ class TestTreesLink:
             return mock_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=capture_call),
-            patch('doom_bot.commands.trees._extract_roles', return_value=['user']),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=capture_call),
+            patch('nova_core.commands.trees._extract_roles', return_value=['user']),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -454,10 +454,10 @@ class TestTreesLink:
         ctx = mock_ctx_factory(user_id=test_user)
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._extract_roles', return_value=None),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._extract_roles', return_value=None),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -468,10 +468,10 @@ class TestTreesLink:
         ctx = mock_ctx_factory(user_id=test_user)
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._extract_roles', return_value=[]),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._extract_roles', return_value=[]),
         ):
-            from doom_bot.commands.trees import trees_link
+            from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
@@ -493,10 +493,10 @@ class TestTreesShow:
         mock_resp = _make_response(404, {'detail': 'user_not_linked'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
         ):
-            from doom_bot.commands.trees import trees_show
+            from nova_core.commands.trees import trees_show
 
             await trees_show(ctx)
 
@@ -507,10 +507,10 @@ class TestTreesShow:
         mock_resp = _make_response(200, {'trees': []})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
         ):
-            from doom_bot.commands.trees import trees_show
+            from nova_core.commands.trees import trees_show
 
             await trees_show(ctx)
 
@@ -525,10 +525,10 @@ class TestTreesShow:
         mock_resp = _make_response(200, {'trees': trees_data})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
         ):
-            from doom_bot.commands.trees import TreesShowView, trees_show
+            from nova_core.commands.trees import TreesShowView, trees_show
 
             await trees_show(ctx)
 
@@ -541,10 +541,10 @@ class TestTreesShow:
         ctx = mock_ctx_factory(user_id=test_user)
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
         ):
-            from doom_bot.commands.trees import trees_show
+            from nova_core.commands.trees import trees_show
 
             await trees_show(ctx)
 
@@ -588,10 +588,10 @@ class TestTreesShare:
             return list_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=multi_resp),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=multi_resp),
         ):
-            from doom_bot.commands.trees import trees_share
+            from nova_core.commands.trees import trees_share
 
             await trees_share(ctx, tree='uuid-1', user=target, role='editor')
 
@@ -604,10 +604,10 @@ class TestTreesShare:
         mock_resp = _make_response(403, {'detail': 'not_owner'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
         ):
-            from doom_bot.commands.trees import trees_share
+            from nova_core.commands.trees import trees_share
 
             await trees_share(ctx, tree='uuid-1', user=target, role='editor')
 
@@ -620,10 +620,10 @@ class TestTreesShare:
         mock_resp = _make_response(404, {'detail': 'tree_not_found'})
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
         ):
-            from doom_bot.commands.trees import trees_share
+            from nova_core.commands.trees import trees_share
 
             await trees_share(ctx, tree='uuid-1', user=target, role='editor')
 
@@ -634,10 +634,10 @@ class TestTreesShare:
         target = self._make_target()
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', AsyncMock(side_effect=httpx.ConnectError('refused'))),
         ):
-            from doom_bot.commands.trees import trees_share
+            from nova_core.commands.trees import trees_share
 
             await trees_share(ctx, tree='uuid-1', user=target, role='editor')
 
@@ -674,10 +674,10 @@ class TestTreesUnshare:
             return list_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=multi_resp),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=multi_resp),
         ):
-            from doom_bot.commands.trees import trees_unshare
+            from nova_core.commands.trees import trees_unshare
 
             await trees_unshare(ctx, tree='uuid-1', user=target)
 
@@ -698,10 +698,10 @@ class TestTreesUnshare:
             return list_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=multi_resp),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=multi_resp),
         ):
-            from doom_bot.commands.trees import trees_unshare
+            from nova_core.commands.trees import trees_unshare
 
             await trees_unshare(ctx, tree='uuid-1', user=target)
 
@@ -720,10 +720,10 @@ class TestTreesUnshare:
             return list_resp
 
         with (
-            patch('doom_bot.commands.trees.config', config),
-            patch('doom_bot.commands.trees._api_call', side_effect=multi_resp),
+            patch('nova_core.commands.trees.config', config),
+            patch('nova_core.commands.trees._api_call', side_effect=multi_resp),
         ):
-            from doom_bot.commands.trees import trees_unshare
+            from nova_core.commands.trees import trees_unshare
 
             await trees_unshare(ctx, tree='uuid-1', user=target)
 

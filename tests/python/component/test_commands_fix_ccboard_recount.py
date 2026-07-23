@@ -14,8 +14,8 @@ from attu_models import (
     MessageRefs,
     ReactionDocument,
 )
-from doom_bot.config import GuildCCBoard
-from doom_bot.database.repositories import EntryRepository, ReactionRepository
+from nova_core.config import GuildCCBoard
+from nova_core.database.repositories import EntryRepository, ReactionRepository
 
 
 pytestmark = pytest.mark.component
@@ -115,7 +115,7 @@ async def fix_cc_repos(component_db, make_guild):
         threshold=2,
     )
 
-    import doom_bot.ccboard as _ccboard
+    import nova_core.ccboard as _ccboard
 
     _ccboard._reaction_repo = reaction_repo
     _ccboard._entry_repo = entry_repo
@@ -129,7 +129,7 @@ async def fix_cc_repos(component_db, make_guild):
 class TestFixCCBoardRecount:
     async def test_invalid_link_responds_with_failure(self, fix_cc_repos, mock_ctx_factory):
         """malformed message link short-circuits before touching any repo"""
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.commands.fix import fix_ccboard_recount
 
         ctx = mock_ctx_factory(guild_id=test_guild)
         await fix_ccboard_recount(ctx, message_link='not-a-link', confirm=False)
@@ -138,7 +138,7 @@ class TestFixCCBoardRecount:
 
     async def test_link_from_other_guild_rejected(self, fix_cc_repos, mock_ctx_factory):
         """recount refuses links targeting a different guild"""
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.commands.fix import fix_ccboard_recount
 
         ctx = mock_ctx_factory(guild_id=test_guild)
         other_link = f'https://discord.com/channels/{test_guild + 1}/{msg_channel}/{msg_id}'
@@ -148,8 +148,8 @@ class TestFixCCBoardRecount:
 
     async def test_dry_run_reports_diff_without_mutating(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """live discord shows reactor_a/star, db is empty: dry-run reports add=1 and writes nothing"""
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.commands.fix import fix_ccboard_recount
 
         await fix_cc_repos['entry'].upsert(_entry())
 
@@ -173,9 +173,9 @@ class TestFixCCBoardRecount:
 
     async def test_apply_path_writes_reaction_and_marks_dirty(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """confirm=True applies the diff: reactor_a gets a ReactionDocument, entry net_points reflects it"""
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.ccboard import watcher as watcher_mod
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.ccboard import watcher as watcher_mod
+        from nova_core.commands.fix import fix_ccboard_recount
 
         await fix_cc_repos['entry'].upsert(_entry())
 
@@ -205,9 +205,9 @@ class TestFixCCBoardRecount:
 
     async def test_apply_path_recounts_stale_record_with_fresh_point_value(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """a record predating cfg.weights_updated_at is re-snapshotted with current cfg point_value and stamped"""
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.ccboard import watcher as watcher_mod
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.ccboard import watcher as watcher_mod
+        from nova_core.commands.fix import fix_ccboard_recount
 
         # seed: existing reaction snapshotted with the old weight, weights_updated_at later than the seed's reacted_at
         await fix_cc_repos['entry'].upsert(_entry())
@@ -241,9 +241,9 @@ class TestFixCCBoardRecount:
 
     async def test_guild_wide_reconcile_reports_per_entry_results(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """no message_link path: calls reconcile_guild, response includes processed count"""
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.ccboard import watcher as watcher_mod
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.ccboard import watcher as watcher_mod
+        from nova_core.commands.fix import fix_ccboard_recount
 
         await fix_cc_repos['entry'].upsert(_entry())
 
@@ -283,9 +283,9 @@ class TestFixCCBoardRecount:
 
     async def test_apply_path_strips_self_and_bot_via_safe_remove(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
         """author and bot reactors trigger _safe_remove_reaction during apply, never get added to the db"""
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.ccboard import watcher as watcher_mod
-        from doom_bot.commands.fix import fix_ccboard_recount
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.ccboard import watcher as watcher_mod
+        from nova_core.commands.fix import fix_ccboard_recount
 
         await fix_cc_repos['entry'].upsert(_entry())
 
@@ -328,8 +328,8 @@ class TestFixCCBoardCleanup:
 
         import discord
 
-        from doom_bot.ccboard import auditor as auditor_mod
-        from doom_bot.commands.fix import fix_ccboard_cleanup
+        from nova_core.ccboard import auditor as auditor_mod
+        from nova_core.commands.fix import fix_ccboard_cleanup
 
         orphan_msg_id = msg_id + 500
 

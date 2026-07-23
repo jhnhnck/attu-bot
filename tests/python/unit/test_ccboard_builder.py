@@ -4,8 +4,8 @@
 import pytest
 
 from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
-from doom_bot.ccboard.builder import build_embeds
-from doom_bot.config import GuildCCBoard
+from nova_core.ccboard.builder import build_embeds
+from nova_core.config import GuildCCBoard
 
 
 # --- Constants ---
@@ -30,7 +30,7 @@ reply_color_int = 0x2B2D31
 
 @pytest.fixture(autouse=True)
 def _stub_bot(monkeypatch):
-    """stub doom_bot.client.core.bot so rule_base / rule_reply_context don't hit a live bot.
+    """stub nova_core.client.core.bot so rule_base / rule_reply_context don't hit a live bot.
 
     the builder calls bot.get_user(...) for avatar resolution; under unit tests the bot
     singleton may be a real bot that hasn't connected. returning None makes the avatar
@@ -41,7 +41,7 @@ def _stub_bot(monkeypatch):
         def get_user(self, _user_id):
             return None
 
-    import doom_bot.client.core as core_module
+    import nova_core.client.core as core_module
 
     monkeypatch.setattr(core_module, 'bot', _StubBot(), raising=False)
 

@@ -11,8 +11,8 @@ import pytest
 import pytest_asyncio
 
 from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
-from doom_bot.config import GuildCCBoard
-from doom_bot.database.repositories import EntryRepository, ReactionRepository
+from nova_core.config import GuildCCBoard
+from nova_core.database.repositories import EntryRepository, ReactionRepository
 
 
 pytestmark = pytest.mark.component
@@ -75,7 +75,7 @@ async def cc_repos(component_db, make_guild):
         points_label='stars',
     )
 
-    import doom_bot.ccboard as _ccboard
+    import nova_core.ccboard as _ccboard
 
     _ccboard._reaction_repo = reaction_repo
     _ccboard._entry_repo = entry_repo
@@ -93,7 +93,7 @@ class TestCCBoardStarsRandom:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -106,7 +106,7 @@ class TestCCBoardStarsRandom:
         """ccboard random: empty db → 'no messages found' ephemeral."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -121,7 +121,7 @@ class TestCCBoardStarsRandom:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -135,7 +135,7 @@ class TestCCBoardStarsRandom:
         ctx = mock_ctx_factory(guild_id=test_guild)
         ctx.interaction.original_response = AsyncMock(return_value=type('M', (), {'id': response_msg_id})())
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -150,7 +150,7 @@ class TestCCBoardStarsRandom:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_lost
+        from nova_core.commands.stars import stars_lost
 
         await stars_lost(ctx)
 
@@ -163,7 +163,7 @@ class TestCCBoardStarsRandom:
         """ccboard lost: no entries with positive_points=1 → 'no messages found'."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_lost
+        from nova_core.commands.stars import stars_lost
 
         await stars_lost(ctx)
 
@@ -178,8 +178,8 @@ class TestCCBoardStarsRandom:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
-            from doom_bot.commands.stars import stars_random
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+            from nova_core.commands.stars import stars_random
 
             await stars_random(ctx)
 
@@ -196,7 +196,7 @@ class TestCCBoardLeaderboards:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_stars
+        from nova_core.commands.stars import stars_most_stars
 
         await stars_most_stars(ctx)
 
@@ -215,7 +215,7 @@ class TestCCBoardLeaderboards:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_starred
+        from nova_core.commands.stars import stars_most_starred
 
         await stars_most_starred(ctx)
 
@@ -249,7 +249,7 @@ class TestCCBoardLeaderboards:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_given
+        from nova_core.commands.stars import stars_most_given
 
         await stars_most_given(ctx)
 
@@ -265,7 +265,7 @@ class TestCCBoardLeaderboards:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_top_messages
+        from nova_core.commands.stars import stars_top_messages
 
         await stars_top_messages(ctx)
 
@@ -280,7 +280,7 @@ class TestCCBoardLeaderboards:
         """all leaderboards respond ephemeral with 'no data yet' when db is empty."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_stars
+        from nova_core.commands.stars import stars_most_stars
 
         await stars_most_stars(ctx)
 
@@ -292,7 +292,7 @@ class TestCCBoardLeaderboards:
         cc_repos['cfg'].ccboard.enabled = False
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_top_messages
+        from nova_core.commands.stars import stars_top_messages
 
         await stars_top_messages(ctx)
 
@@ -305,7 +305,7 @@ class TestCCBoardStarsRecheck:
         """no db entry → auditor returns 'Failed: no ccboard entry' in response."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_recheck
+        from nova_core.commands.stars import stars_recheck
 
         link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
         await stars_recheck(ctx, link)
@@ -323,8 +323,8 @@ class TestCCBoardStarsRecheck:
         fake_msg = MagicMock()
         fake_msg.reactions = []
 
-        with patch('doom_bot.ccboard.auditor._fetch_discord_message', new_callable=AsyncMock, return_value=fake_msg):
-            from doom_bot.commands.stars import stars_recheck
+        with patch('nova_core.ccboard.auditor._fetch_discord_message', new_callable=AsyncMock, return_value=fake_msg):
+            from nova_core.commands.stars import stars_recheck
 
             link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
             await stars_recheck(ctx, link)
@@ -341,8 +341,8 @@ class TestCCBoardStarsRecheck:
 
         link = f'https://discord.com/channels/{test_guild}/{msg_channel}/{msg_id_a}'
 
-        with patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb:
-            from doom_bot.commands.stars import stars_recheck
+        with patch('nova_core.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb:
+            from nova_core.commands.stars import stars_recheck
 
             await stars_recheck(ctx, link)
 

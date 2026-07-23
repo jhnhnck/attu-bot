@@ -51,8 +51,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_no_results(self, mock_ctx, guild):
         """test /query pins with no pin_add messages found"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         mock_channel = MagicMock()
         mock_channel.id = 6666666666
@@ -61,7 +61,7 @@ class TestQueryPinsCommand:
 
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)), patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span), patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)):
+        with patch('nova_core.commands.query.get_year_status', return_value=(7, 1)), patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span), patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)):
             await query_pins(mock_ctx, channel=mock_channel)
 
         # should respond with header but no year sections
@@ -74,8 +74,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_single_pin_found(self, mock_ctx, guild):
         """test /query pins with one pin_add message"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         # create a mock pin_add message
         mock_message = MagicMock()
@@ -94,10 +94,10 @@ class TestQueryPinsCommand:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with (
-            patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)),
-            patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
-            patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
-            patch('doom_bot.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
+            patch('nova_core.commands.query.get_year_status', return_value=(7, 1)),
+            patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
+            patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
+            patch('nova_core.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
         ):
             await query_pins(mock_ctx, channel=mock_channel)
 
@@ -116,8 +116,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_multiple_pins_found(self, mock_ctx, guild):
         """test /query pins with multiple pin_add messages in one year"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         # create multiple mock pin_add messages
         mock_messages = []
@@ -139,10 +139,10 @@ class TestQueryPinsCommand:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with (
-            patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)),
-            patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
-            patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
-            patch('doom_bot.commands.query.format_message_link', side_effect=[f'https://discord.com/channels/123/456/{100 + i}' for i in range(3)]),
+            patch('nova_core.commands.query.get_year_status', return_value=(7, 1)),
+            patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
+            patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
+            patch('nova_core.commands.query.format_message_link', side_effect=[f'https://discord.com/channels/123/456/{100 + i}' for i in range(3)]),
         ):
             await query_pins(mock_ctx, channel=mock_channel)
 
@@ -156,8 +156,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_mixed_message_types(self, mock_ctx, guild):
         """test /query pins filters only pin_add messages from mixed history"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         # create a mix of message types
         pin_msg = MagicMock()
@@ -182,10 +182,10 @@ class TestQueryPinsCommand:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with (
-            patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)),
-            patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
-            patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
-            patch('doom_bot.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
+            patch('nova_core.commands.query.get_year_status', return_value=(7, 1)),
+            patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
+            patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
+            patch('nova_core.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
         ):
             await query_pins(mock_ctx, channel=mock_channel)
 
@@ -197,8 +197,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_multiple_years(self, mock_ctx, guild):
         """test /query pins iterates over multiple years"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         # pin in year 1 only, none in year 2
         pin_msg = MagicMock()
@@ -226,10 +226,10 @@ class TestQueryPinsCommand:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with (
-            patch('doom_bot.commands.query.get_year_status', return_value=(7, 2)),
-            patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
-            patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
-            patch('doom_bot.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
+            patch('nova_core.commands.query.get_year_status', return_value=(7, 2)),
+            patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
+            patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
+            patch('nova_core.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/100'),
         ):
             await query_pins(mock_ctx, channel=mock_channel)
 
@@ -243,8 +243,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_message_reference_without_id(self, mock_ctx, guild):
         """test /query pins handles message_id being None (falls back to 0)"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         pin_msg = MagicMock()
         pin_msg.type = MessageType.pins_add
@@ -262,10 +262,10 @@ class TestQueryPinsCommand:
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with (
-            patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)),
-            patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
-            patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
-            patch('doom_bot.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/0') as mock_format,
+            patch('nova_core.commands.query.get_year_status', return_value=(7, 1)),
+            patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span),
+            patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)),
+            patch('nova_core.commands.query.format_message_link', return_value='https://discord.com/channels/123/456/0') as mock_format,
         ):
             await query_pins(mock_ctx, channel=mock_channel)
 
@@ -275,8 +275,8 @@ class TestQueryPinsCommand:
     @pytest.mark.asyncio
     async def test_pins_channel_header_format(self, mock_ctx, guild):
         """test /query pins initial response includes channel mention"""
-        from doom_bot.client.calendar import AttuYearSpan
-        from doom_bot.commands.query import query_pins
+        from nova_core.client.calendar import AttuYearSpan
+        from nova_core.commands.query import query_pins
 
         mock_channel = MagicMock()
         mock_channel.id = 6666666666
@@ -285,7 +285,7 @@ class TestQueryPinsCommand:
 
         mock_span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('doom_bot.commands.query.get_year_status', return_value=(7, 1)), patch('doom_bot.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span), patch('doom_bot.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)):
+        with patch('nova_core.commands.query.get_year_status', return_value=(7, 1)), patch('nova_core.commands.query.get_year_span', new_callable=AsyncMock, return_value=mock_span), patch('nova_core.commands.query.snowflake_time', return_value=datetime(2020, 1, 1)):
             await query_pins(mock_ctx, channel=mock_channel)
 
         response = mock_ctx._responses[0]['args'][0]

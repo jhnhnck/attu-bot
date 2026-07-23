@@ -17,14 +17,14 @@ import pytest
 import pytest_asyncio
 import tomlkit
 
-from doom_bot.database.models import (
+from nova_core.database.models import (
     MessageAuthor,
     MessageContent,
     MessageDocument,
     StarredMessageDocument,
     SystemConfigDocument,
 )
-from doom_bot.database.repositories import (
+from nova_core.database.repositories import (
     ConfigRepository,
     MessageRepository,
     ReloadSignalRepository,
@@ -102,7 +102,7 @@ async def db():
 
 def _make_guild_config(guild_id: int = 1111111111):
     """return a minimal GuildConfig-like object for repo tests"""
-    from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+    from nova_core.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 
     return GuildConfig(
         id=guild_id,
@@ -212,7 +212,7 @@ class TestConfigRepositoryGuild:
         silent-default failure mode where a missing line in load_guild() would cause
         ccboard fields to revert to defaults regardless of the saved document.
         """
-        from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+        from nova_core.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -246,7 +246,7 @@ class TestConfigRepositoryGuild:
         load_guild() uses, and assert the value survives. catches the silent-default
         failure mode where a missing line in load_guild() would revert enabled to True.
         """
-        from doom_bot.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
+        from nova_core.config import GuildCCBoard, GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildStarboard, GuildUsers
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -278,7 +278,7 @@ class TestConfigRepositoryGuild:
 
 class TestConfigRepositoryTheme:
     async def test_theme_roundtrip(self, db):
-        from doom_bot.config import BotTheme
+        from nova_core.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -290,7 +290,7 @@ class TestConfigRepositoryTheme:
         assert doc.bot_color == '#ff0000'
 
     async def test_theme_roundtrip_ui_emojis(self, db):
-        from doom_bot.config import BotTheme
+        from nova_core.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()
@@ -302,7 +302,7 @@ class TestConfigRepositoryTheme:
         assert doc.ui_emojis == emojis
 
     async def test_theme_upsert(self, db):
-        from doom_bot.config import BotTheme
+        from nova_core.config import BotTheme
 
         repo = ConfigRepository(db)
         await repo.init_indexes()

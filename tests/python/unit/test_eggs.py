@@ -15,9 +15,9 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 import discord
 import pytest
 
-import doom_bot.eggs.hatching as hatching_mod
-from doom_bot.database.models import EggDocument, EggUserDocument
-from doom_bot.eggs.hatching import (
+import nova_core.eggs.hatching as hatching_mod
+from nova_core.database.models import EggDocument, EggUserDocument
+from nova_core.eggs.hatching import (
     _egg_emoji_str,
     collect_egg,
     ensure_eggs_ready,
@@ -25,8 +25,8 @@ from doom_bot.eggs.hatching import (
     hatch_egg,
     run_hatch_animation,
 )
-from doom_bot.tasks.egg_cleanup import egg_cleanup_task
-from doom_bot.tasks.scheduler import scheduler as real_scheduler
+from nova_core.tasks.egg_cleanup import egg_cleanup_task
+from nova_core.tasks.scheduler import scheduler as real_scheduler
 
 
 # ---- constants ----
@@ -108,7 +108,7 @@ class TestCollectEgg:
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
         ):
             mock_bot.get_channel.return_value = mock_eggs_channel
             mock_bot.get_guild.return_value = MagicMock()
@@ -128,7 +128,7 @@ class TestCollectEgg:
         mock_guild_cfg = MagicMock()
         mock_guild_cfg.channels.eggs = test_thread
 
-        with patch('doom_bot.eggs.hatching.config') as mock_config:
+        with patch('nova_core.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
             mock_config.hatch.tuning.collect_cooldown_seconds = 600
             mock_config.hatch.rarities = ['common']
@@ -149,7 +149,7 @@ class TestCollectEgg:
         """user collected 60s ago - still within 600s cooldown"""
         self.egg_user_repo.get.return_value = _make_user_doc(last_collected_at=int(time.time()) - 60)
 
-        with patch('doom_bot.eggs.hatching.config') as mock_config:
+        with patch('nova_core.eggs.hatching.config') as mock_config:
             mock_config.hatch.tuning.collect_cooldown_seconds = 600
             result, remaining = await collect_egg(test_guild, test_user, 'testuser')
 
@@ -166,7 +166,7 @@ class TestCollectEgg:
         mock_guild_cfg = MagicMock()
         mock_guild_cfg.channels.eggs = test_thread
 
-        with patch('doom_bot.eggs.hatching.config') as mock_config:
+        with patch('nova_core.eggs.hatching.config') as mock_config:
             mock_config.guild.return_value = mock_guild_cfg
             mock_config.hatch.tuning.collect_cooldown_seconds = 600
             mock_config.hatch.rarities = ['common']
@@ -196,8 +196,8 @@ class TestHatchEgg:
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
             mock_config.hatch.tuning.hatch_cooldown_seconds = 5
@@ -266,8 +266,8 @@ class TestRunHatchAnimation:
             sleep_calls.append(t)
 
         with (
-            patch('doom_bot.eggs.hatching.asyncio') as mock_asyncio,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.asyncio') as mock_asyncio,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_asyncio.sleep = AsyncMock(side_effect=fake_sleep)
             mock_config.hatch.tuning.animation_wait_min = 10
@@ -311,8 +311,8 @@ class TestEnsureEggsReady:
         mock_config_repo = AsyncMock()
 
         with (
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_bot.get_guild.return_value = mock_discord_guild
             mock_config.primary.return_value = mock_guild_cfg
@@ -333,8 +333,8 @@ class TestEnsureEggsReady:
         mock_guild_cfg.channels.eggs = 12345
 
         with (
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_bot.get_guild.return_value = mock_discord_guild
             mock_config.primary.return_value = mock_guild_cfg
@@ -351,13 +351,13 @@ class TestEnsureEggsReady:
 
 class TestEggEmojiStr:
     def test_with_emoji_id_returns_formatted(self):
-        with patch('doom_bot.eggs.hatching.config') as mock_config:
+        with patch('nova_core.eggs.hatching.config') as mock_config:
             mock_config.theme.egg_emojis.get.return_value = 123456789
             result = _egg_emoji_str('common')
         assert result == '<:common_egg:123456789>'
 
     def test_without_emoji_id_returns_fallback(self):
-        with patch('doom_bot.eggs.hatching.config') as mock_config:
+        with patch('nova_core.eggs.hatching.config') as mock_config:
             mock_config.theme.egg_emojis.get.return_value = None
             result = _egg_emoji_str('common')
         assert result == ':common_egg:'
@@ -374,8 +374,8 @@ class TestGetOrCreateUserThread:
         mock_egg_user_repo = AsyncMock()
         with (
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
@@ -384,7 +384,7 @@ class TestGetOrCreateUserThread:
 
     async def test_thread_cache_miss_fetches_from_api(self):
         """thread in user_doc but not in bot cache - fetches via guild api"""
-        from doom_bot.eggs.hatching import get_or_create_user_thread
+        from nova_core.eggs.hatching import get_or_create_user_thread
 
         user_doc = _make_user_doc(thread_id=test_thread)
         self.egg_user_repo.get.return_value = user_doc
@@ -402,7 +402,7 @@ class TestGetOrCreateUserThread:
 
     async def test_thread_deleted_falls_through_to_recreate(self):
         """fetch_channel raises NotFound - falls through and creates a new thread"""
-        from doom_bot.eggs.hatching import get_or_create_user_thread
+        from nova_core.eggs.hatching import get_or_create_user_thread
 
         user_doc = _make_user_doc(thread_id=test_thread)
         self.egg_user_repo.get.return_value = user_doc
@@ -444,8 +444,8 @@ class TestHatchEggCacheMiss:
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
             mock_config.hatch.tuning.hatch_cooldown_seconds = 5
@@ -522,8 +522,8 @@ class TestEggCommands:
         self.ctx = ctx
 
     async def test_egg_command_success(self):
-        with patch('doom_bot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
-            from doom_bot.commands.eggs import egg_command
+        with patch('nova_core.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
+            from nova_core.commands.eggs import egg_command
 
             await egg_command(self.ctx)
 
@@ -531,8 +531,8 @@ class TestEggCommands:
 
     async def test_egg_command_cooldown(self):
         ready_at = time.time() + 300
-        with patch('doom_bot.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('cooldown', ready_at))):
-            from doom_bot.commands.eggs import egg_command
+        with patch('nova_core.commands.eggs.hatching.collect_egg', new=AsyncMock(return_value=('cooldown', ready_at))):
+            from nova_core.commands.eggs import egg_command
 
             await egg_command(self.ctx)
 
@@ -543,28 +543,28 @@ class TestEggCommands:
     async def test_egg_command_unauthorized(self, mock_ctx_factory):
         ctx = mock_ctx_factory()
         ctx.guild_id = 9999999999  # not in authorized_guilds
-        from doom_bot.commands.eggs import egg_command
+        from nova_core.commands.eggs import egg_command
 
         await egg_command(ctx)
         assert ctx._responses[0]['args'][0] == 'not available here'
 
     async def test_eggs_hatch_no_eggs(self):
-        with patch('doom_bot.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('no_eggs', None))):
-            from doom_bot.commands.eggs import eggs_hatch
+        with patch('nova_core.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('no_eggs', None))):
+            from nova_core.commands.eggs import eggs_hatch
 
             await eggs_hatch(self.ctx)
         assert self.ctx._responses[0]['args'][0] == 'you have no eggs'
 
     async def test_eggs_hatch_not_ready(self):
-        with patch('doom_bot.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('', 9999.0))):
-            from doom_bot.commands.eggs import eggs_hatch
+        with patch('nova_core.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('', 9999.0))):
+            from nova_core.commands.eggs import eggs_hatch
 
             await eggs_hatch(self.ctx)
         assert '<t:9999:R>' in self.ctx._responses[0]['args'][0]
 
     async def test_eggs_hatch_ready(self):
-        with patch('doom_bot.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
-            from doom_bot.commands.eggs import eggs_hatch
+        with patch('nova_core.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('https://discord.com/channels/1/2/3', None))):
+            from nova_core.commands.eggs import eggs_hatch
 
             await eggs_hatch(self.ctx)
         assert 'hatching' in self.ctx._responses[0]['args'][0]
@@ -572,7 +572,7 @@ class TestEggCommands:
     async def test_eggs_view_no_thread(self):
         with patch.object(hatching_mod, '_egg_user_repo') as mock_repo:
             mock_repo.get = AsyncMock(return_value=None)
-            from doom_bot.commands.eggs import eggs_view
+            from nova_core.commands.eggs import eggs_view
 
             await eggs_view(self.ctx)
         assert "haven't collected" in self.ctx._responses[0]['args'][0]
@@ -581,7 +581,7 @@ class TestEggCommands:
         user_doc = _make_user_doc(thread_id=test_thread)
         with patch.object(hatching_mod, '_egg_user_repo') as mock_repo:
             mock_repo.get = AsyncMock(return_value=user_doc)
-            from doom_bot.commands.eggs import eggs_view
+            from nova_core.commands.eggs import eggs_view
 
             await eggs_view(self.ctx)
         assert str(test_thread) in self.ctx._responses[0]['args'][0]
@@ -605,14 +605,14 @@ class TestEggsProgress:
         """embed title is "{display_name}'s egg collection" """
         with (
             patch.object(hatching_mod, '_egg_repo') as mock_repo,
-            patch('doom_bot.eggs.emojis.render_progress_bar', return_value='▓▓▓░░░░░░░'),
-            patch('doom_bot.commands.eggs.config') as mock_config,
+            patch('nova_core.eggs.emojis.render_progress_bar', return_value='▓▓▓░░░░░░░'),
+            patch('nova_core.commands.eggs.config') as mock_config,
         ):
             mock_config.authorized_guilds = {test_guild}
             mock_config.hatch.rarities = ['common']
             mock_config.hatch.pools = {'common': ['🐣']}
             mock_repo.get_user_egg_stats = AsyncMock(return_value=(10, 5, {'common': 1}))
-            from doom_bot.commands.eggs import eggs_progress
+            from nova_core.commands.eggs import eggs_progress
 
             await eggs_progress(self.ctx)
 
@@ -636,7 +636,7 @@ class TestEggsLeaderboardHatched:
     async def test_unauthorized_guild(self, mock_ctx_factory):
         ctx = mock_ctx_factory()
         ctx.guild_id = 9999999999
-        from doom_bot.commands.eggs import eggs_leaderboard_hatched
+        from nova_core.commands.eggs import eggs_leaderboard_hatched
 
         await eggs_leaderboard_hatched(ctx)
         assert ctx._responses[0]['args'][0] == 'not available here'
@@ -647,7 +647,7 @@ class TestEggsLeaderboardHatched:
         rows = [{'_id': test_user, 'total': 7}]
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.leaderboard_most_hatched = AsyncMock(return_value=rows)
-            from doom_bot.commands.eggs import eggs_leaderboard_hatched
+            from nova_core.commands.eggs import eggs_leaderboard_hatched
 
             await eggs_leaderboard_hatched(self.ctx)
         embed = self.ctx._responses[0]['kwargs']['embed']
@@ -658,7 +658,7 @@ class TestEggsLeaderboardHatched:
         """repo returns no data - embed description shows 'no data yet'"""
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.leaderboard_most_hatched = AsyncMock(return_value=[])
-            from doom_bot.commands.eggs import eggs_leaderboard_hatched
+            from nova_core.commands.eggs import eggs_leaderboard_hatched
 
             await eggs_leaderboard_hatched(self.ctx)
         embed = self.ctx._responses[0]['kwargs']['embed']
@@ -681,7 +681,7 @@ class TestEggsLeaderboardCollected:
     async def test_unauthorized_guild(self, mock_ctx_factory):
         ctx = mock_ctx_factory()
         ctx.guild_id = 9999999999
-        from doom_bot.commands.eggs import eggs_leaderboard_collected
+        from nova_core.commands.eggs import eggs_leaderboard_collected
 
         await eggs_leaderboard_collected(ctx)
         assert ctx._responses[0]['args'][0] == 'not available here'
@@ -692,7 +692,7 @@ class TestEggsLeaderboardCollected:
         rows = [{'_id': test_user2, 'unique': 3}]
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.leaderboard_most_unique = AsyncMock(return_value=rows)
-            from doom_bot.commands.eggs import eggs_leaderboard_collected
+            from nova_core.commands.eggs import eggs_leaderboard_collected
 
             await eggs_leaderboard_collected(self.ctx)
         embed = self.ctx._responses[0]['kwargs']['embed']
@@ -703,7 +703,7 @@ class TestEggsLeaderboardCollected:
         """repo returns no data - embed description shows 'no data yet'"""
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.leaderboard_most_unique = AsyncMock(return_value=[])
-            from doom_bot.commands.eggs import eggs_leaderboard_collected
+            from nova_core.commands.eggs import eggs_leaderboard_collected
 
             await eggs_leaderboard_collected(self.ctx)
         embed = self.ctx._responses[0]['kwargs']['embed']
@@ -721,11 +721,11 @@ class TestEmojis:
         fake_png = b'fakepng'
         fake_svg = '<svg><g class="common"></g></svg>'
         with (
-            patch('doom_bot.eggs.emojis.svg_to_png', new=AsyncMock(return_value=fake_png)) as mock_svg,
-            patch('doom_bot.client.core.config'),
+            patch('nova_core.eggs.emojis.svg_to_png', new=AsyncMock(return_value=fake_png)) as mock_svg,
+            patch('nova_core.client.core.config'),
             patch('pathlib.Path.read_text', return_value=fake_svg),
         ):
-            from doom_bot.eggs.emojis import render_egg
+            from nova_core.eggs.emojis import render_egg
 
             result = await render_egg('rare')
 
@@ -742,11 +742,11 @@ class TestEmojis:
         mock_guild.create_custom_emoji = AsyncMock(return_value=mock_emoji)
 
         with (
-            patch('doom_bot.eggs.emojis.render_egg', new=AsyncMock(return_value=b'png')),
-            patch('doom_bot.client.core.config') as mock_config,
+            patch('nova_core.eggs.emojis.render_egg', new=AsyncMock(return_value=b'png')),
+            patch('nova_core.client.core.config') as mock_config,
         ):
             mock_config.hatch.rarities = ['common', 'uncommon', 'rare', 'legendary', 'mythical']
-            from doom_bot.eggs.emojis import ensure_egg_emojis
+            from nova_core.eggs.emojis import ensure_egg_emojis
 
             result = await ensure_egg_emojis(mock_guild)
 
@@ -767,9 +767,9 @@ class TestEmojis:
         mock_guild.emojis = existing
         mock_guild.create_custom_emoji = AsyncMock()
 
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.hatch.rarities = rarities
-            from doom_bot.eggs.emojis import ensure_egg_emojis
+            from nova_core.eggs.emojis import ensure_egg_emojis
 
             result = await ensure_egg_emojis(mock_guild)
 
@@ -806,8 +806,8 @@ class TestTransferEgg:
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_bot.get_channel.return_value = mock_thread
             mock_guild_cfg = MagicMock()
@@ -824,7 +824,7 @@ class TestTransferEgg:
 
     async def test_transfer_succeeds(self):
         """happy path: deletes old message, reposts in recipient thread, updates db"""
-        from doom_bot.eggs.hatching import transfer_egg
+        from nova_core.eggs.hatching import transfer_egg
 
         egg = _make_egg(result='🐣', hatched=False)
         self.egg_repo.get.return_value = egg
@@ -837,7 +837,7 @@ class TestTransferEgg:
 
     async def test_transfer_hatched_uses_result_emoji(self):
         """hatched egg reposts the creature emoji, not the egg emoji"""
-        from doom_bot.eggs.hatching import transfer_egg
+        from nova_core.eggs.hatching import transfer_egg
 
         egg = _make_egg(hatched=True, result='🦄')
         self.egg_repo.get.return_value = egg
@@ -849,7 +849,7 @@ class TestTransferEgg:
 
     async def test_transfer_wrong_owner_raises(self):
         """egg belongs to a different user - should raise ValueError"""
-        from doom_bot.eggs.hatching import transfer_egg
+        from nova_core.eggs.hatching import transfer_egg
 
         egg = _make_egg()  # user_id=test_user
         self.egg_repo.get.return_value = egg
@@ -859,7 +859,7 @@ class TestTransferEgg:
 
     async def test_transfer_egg_not_in_db_raises(self):
         """egg not found in db - should raise ValueError"""
-        from doom_bot.eggs.hatching import transfer_egg
+        from nova_core.eggs.hatching import transfer_egg
 
         self.egg_repo.get.return_value = None
 
@@ -868,7 +868,7 @@ class TestTransferEgg:
 
     async def test_transfer_old_message_missing_proceeds(self):
         """original thread message already deleted - should proceed without error"""
-        from doom_bot.eggs.hatching import transfer_egg
+        from nova_core.eggs.hatching import transfer_egg
 
         egg = _make_egg()
         self.egg_repo.get.return_value = egg
@@ -888,11 +888,11 @@ class TestTransferEgg:
 class TestOfferText:
     def test_unhatched_egg_shows_rarity(self):
         """unhatched egg - shows rarity emoji and rarity name"""
-        from doom_bot.commands.eggs import _offer_text
+        from nova_core.commands.eggs import _offer_text
 
         egg = _make_egg(hatched=False, rarity='rare')
 
-        with patch('doom_bot.eggs.hatching._egg_emoji_str', return_value='<:rare_egg:999>'):
+        with patch('nova_core.eggs.hatching._egg_emoji_str', return_value='<:rare_egg:999>'):
             result = _offer_text('<@1>', '<@2>', egg, '')
 
         assert '<:rare_egg:999>' in result
@@ -902,7 +902,7 @@ class TestOfferText:
 
     def test_hatched_egg_shows_creature(self):
         """hatched egg - shows creature emoji directly"""
-        from doom_bot.commands.eggs import _offer_text
+        from nova_core.commands.eggs import _offer_text
 
         egg = _make_egg(hatched=True, result='🦄')
 
@@ -913,7 +913,7 @@ class TestOfferText:
 
     def test_includes_jump_url_when_provided(self):
         """jump url is appended when non-empty"""
-        from doom_bot.commands.eggs import _offer_text
+        from nova_core.commands.eggs import _offer_text
 
         egg = _make_egg(hatched=True, result='🐉')
         url = 'https://discord.com/channels/1/2/3'
@@ -924,7 +924,7 @@ class TestOfferText:
 
     def test_no_jump_url_no_suffix(self):
         """empty jump url - no extra newline or text appended"""
-        from doom_bot.commands.eggs import _offer_text
+        from nova_core.commands.eggs import _offer_text
 
         egg = _make_egg(hatched=True, result='🐉')
 
@@ -950,7 +950,7 @@ def _make_interaction(user_id: int) -> MagicMock:
 
 
 def _make_offer_view(egg: EggDocument | None = None):
-    from doom_bot.commands.eggs import EggGiftOfferView
+    from nova_core.commands.eggs import EggGiftOfferView
 
     if egg is None:
         egg = _make_egg()
@@ -960,12 +960,12 @@ def _make_offer_view(egg: EggDocument | None = None):
 class TestEggGiftOfferView:
     async def test_accept_transfers_egg_and_edits_sent(self):
         """recipient accepts - transfer_egg called, message edited to 'sent!'"""
-        from doom_bot.commands.eggs import EggGiftOfferView
+        from nova_core.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
         interaction = _make_interaction(test_user2)
 
-        with patch('doom_bot.commands.eggs.hatching.transfer_egg', new=AsyncMock(return_value='https://discord.com/1/2/3')):
+        with patch('nova_core.commands.eggs.hatching.transfer_egg', new=AsyncMock(return_value='https://discord.com/1/2/3')):
             await EggGiftOfferView.accept(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
 
         interaction.response.edit_message.assert_called_once()
@@ -975,7 +975,7 @@ class TestEggGiftOfferView:
 
     async def test_accept_wrong_user_gets_ephemeral_error(self):
         """non-recipient clicking Accept gets ephemeral rejection"""
-        from doom_bot.commands.eggs import EggGiftOfferView
+        from nova_core.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
         interaction = _make_interaction(test_user)  # giver, not recipient
@@ -988,12 +988,12 @@ class TestEggGiftOfferView:
 
     async def test_accept_egg_gone_edits_no_longer_available(self):
         """transfer_egg raises ValueError - message edited to 'no longer available'"""
-        from doom_bot.commands.eggs import EggGiftOfferView
+        from nova_core.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
         interaction = _make_interaction(test_user2)
 
-        with patch('doom_bot.commands.eggs.hatching.transfer_egg', new=AsyncMock(side_effect=ValueError('egg not found'))):
+        with patch('nova_core.commands.eggs.hatching.transfer_egg', new=AsyncMock(side_effect=ValueError('egg not found'))):
             await EggGiftOfferView.accept(view, MagicMock(), interaction)  # pyright: ignore[reportCallIssue]
 
         content = interaction.response.edit_message.call_args.kwargs['content']
@@ -1001,7 +1001,7 @@ class TestEggGiftOfferView:
 
     async def test_decline_edits_offer_declined(self):
         """recipient declines - message edited with their mention"""
-        from doom_bot.commands.eggs import EggGiftOfferView
+        from nova_core.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
         interaction = _make_interaction(test_user2)
@@ -1013,7 +1013,7 @@ class TestEggGiftOfferView:
 
     async def test_decline_wrong_user_gets_ephemeral_error(self):
         """non-recipient clicking Decline gets ephemeral rejection"""
-        from doom_bot.commands.eggs import EggGiftOfferView
+        from nova_core.commands.eggs import EggGiftOfferView
 
         view = _make_offer_view()
         interaction = _make_interaction(test_user)  # giver, not recipient
@@ -1048,7 +1048,7 @@ class TestEggGiftOfferView:
 
 
 def _make_select_menu(options: list | None = None):
-    from doom_bot.commands.eggs import _EggSelectMenu
+    from nova_core.commands.eggs import _EggSelectMenu
 
     if options is None:
         options = [discord.SelectOption(label='common egg', value='unhatched:common')]
@@ -1082,7 +1082,7 @@ class TestEggSelectMenu:
         interaction.channel = AsyncMock()
         interaction.channel.send = AsyncMock(return_value=MagicMock())
 
-        with patch('doom_bot.eggs.hatching._egg_emoji_str', return_value='<:common_egg:1>'):
+        with patch('nova_core.eggs.hatching._egg_emoji_str', return_value='<:common_egg:1>'):
             await select.callback(interaction)
 
         self.egg_repo.get_oldest_unhatched_by_rarity.assert_called_once_with(test_guild, test_user, 'common')
@@ -1148,7 +1148,7 @@ def _make_options(count: int) -> list[discord.SelectOption]:
 class TestEggSelectMenuPagination:
     def test_under_page_size_no_more_option(self):
         """fewer than 24 items - no 'more' option appended"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(10)
         menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
@@ -1157,7 +1157,7 @@ class TestEggSelectMenuPagination:
 
     def test_exactly_page_size_no_more_option(self):
         """exactly 24 items - no 'more' option needed"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(24)
         menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
@@ -1166,7 +1166,7 @@ class TestEggSelectMenuPagination:
 
     def test_over_page_size_adds_more_option(self):
         """25+ items - first page has 24 items + 1 'more' option = 25 total"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(30)
         menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
@@ -1176,7 +1176,7 @@ class TestEggSelectMenuPagination:
 
     def test_second_page_remainder(self):
         """30 items starting at offset 24 - second page has 6 items, no 'more'"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(30)
         menu = _EggSelectMenu(options, 24, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
@@ -1185,7 +1185,7 @@ class TestEggSelectMenuPagination:
 
     def test_multi_page_chain(self):
         """49 items - page 1 has 'more:24', page 2 has 'more:48', page 3 has 1 item"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(49)
 
@@ -1206,7 +1206,7 @@ class TestEggSelectMenuPagination:
 
     def test_no_page_exceeds_25_options(self):
         """exhaustive check: for a large list, every page has at most 25 options"""
-        from doom_bot.commands.eggs import _EggSelectMenu
+        from nova_core.commands.eggs import _EggSelectMenu
 
         options = _make_options(100)
         offset = 0
@@ -1225,7 +1225,7 @@ class TestEggSelectMenuPagination:
 
     async def test_more_callback_advances_page(self):
         """selecting 'more:24' edits the message with a new view at offset 24"""
-        from doom_bot.commands.eggs import EggSelectView, _EggSelectMenu
+        from nova_core.commands.eggs import EggSelectView, _EggSelectMenu
 
         options = _make_options(30)
         menu = _EggSelectMenu(options, 0, test_user, f'<@{test_user}>', test_user2, f'<@{test_user2}>', 'user2', test_guild)
@@ -1271,7 +1271,7 @@ class TestEggsGiveCommand:
         ctx.guild_id = 9999999999
         ctx.channel.send = AsyncMock()
 
-        from doom_bot.commands.eggs import eggs_give
+        from nova_core.commands.eggs import eggs_give
 
         await eggs_give(ctx, self.mock_user, None)
         assert ctx._responses[0]['args'][0] == 'not available here'
@@ -1279,7 +1279,7 @@ class TestEggsGiveCommand:
     async def test_give_to_self(self):
         """giving an egg to yourself is rejected"""
         self.ctx.author.id = test_user2  # same as mock_user.id
-        from doom_bot.commands.eggs import eggs_give
+        from nova_core.commands.eggs import eggs_give
 
         await eggs_give(self.ctx, self.mock_user, None)
         assert 'yourself' in self.ctx._responses[0]['args'][0]
@@ -1291,7 +1291,7 @@ class TestEggsGiveCommand:
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.list_unhatched = AsyncMock(return_value=unhatched)
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, 'unhatched')
 
@@ -1305,7 +1305,7 @@ class TestEggsGiveCommand:
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.list_unhatched = AsyncMock(return_value=[])
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, 'unhatched')
 
@@ -1328,7 +1328,7 @@ class TestEggsGiveCommand:
             mock_repo.list_unhatched = AsyncMock(return_value=unhatched)
             mock_repo.list_hatched = AsyncMock(return_value=hatched_eggs)
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, None)
 
@@ -1345,7 +1345,7 @@ class TestEggsGiveCommand:
             mock_repo.list_unhatched = AsyncMock(return_value=[])
             mock_repo.list_hatched = AsyncMock(return_value=[])
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, None)
 
@@ -1364,7 +1364,7 @@ class TestEggsGiveCommand:
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.list_hatched = AsyncMock(return_value=hatched_eggs)
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, 'hatched')
 
@@ -1378,7 +1378,7 @@ class TestEggsGiveCommand:
         with patch.object(hatching_mod, '_egg_repo') as mock_repo:
             mock_repo.list_hatched = AsyncMock(return_value=[])
 
-            from doom_bot.commands.eggs import eggs_give
+            from nova_core.commands.eggs import eggs_give
 
             await eggs_give(self.ctx, self.mock_user, 'hatched')
 
@@ -1399,8 +1399,8 @@ class TestEnsureEggsReadyExtra:
         mock_guild_cfg.id = test_guild
 
         with (
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_bot.get_guild.return_value = None
             mock_config.primary.return_value = mock_guild_cfg
@@ -1421,8 +1421,8 @@ class TestGetOrCreateUserThreadExtra:
         mock_egg_user_repo = AsyncMock()
         with (
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             self.egg_user_repo = mock_egg_user_repo
             self.mock_bot = mock_bot
@@ -1431,7 +1431,7 @@ class TestGetOrCreateUserThreadExtra:
 
     async def test_no_user_doc_creates_thread(self):
         """user has no doc at all - creates thread and stores new EggUserDocument"""
-        from doom_bot.eggs.hatching import get_or_create_user_thread
+        from nova_core.eggs.hatching import get_or_create_user_thread
 
         self.egg_user_repo.get.return_value = None
 
@@ -1455,7 +1455,7 @@ class TestGetOrCreateUserThreadExtra:
 
     async def test_zero_thread_id_falls_through_to_create(self):
         """user_doc exists but thread_id == 0 (falsy) - falls through to create a new thread"""
-        from doom_bot.eggs.hatching import get_or_create_user_thread
+        from nova_core.eggs.hatching import get_or_create_user_thread
 
         user_doc = _make_user_doc(thread_id=0)
         self.egg_user_repo.get.return_value = user_doc
@@ -1477,7 +1477,7 @@ class TestGetOrCreateUserThreadExtra:
 
     async def test_no_eggs_channel_raises(self):
         """eggs channel not in bot cache - raises RuntimeError"""
-        from doom_bot.eggs.hatching import get_or_create_user_thread
+        from nova_core.eggs.hatching import get_or_create_user_thread
 
         self.egg_user_repo.get.return_value = None
 
@@ -1505,8 +1505,8 @@ class TestHatchEggGuards:
         with (
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
-            patch('doom_bot.eggs.hatching.bot') as mock_bot,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.bot') as mock_bot,
+            patch('nova_core.eggs.hatching.config') as mock_config,
         ):
             mock_config.hatch.tuning.hatch_cooldown_seconds = 5
             self.egg_repo = mock_egg_repo
@@ -1564,8 +1564,8 @@ class TestRunHatchAnimationExtra:
         hatching_mod._last_presence_update = 0.0
 
         with (
-            patch('doom_bot.eggs.hatching.asyncio') as mock_asyncio,
-            patch('doom_bot.eggs.hatching.config') as mock_config,
+            patch('nova_core.eggs.hatching.asyncio') as mock_asyncio,
+            patch('nova_core.eggs.hatching.config') as mock_config,
             patch.object(real_scheduler, 'add_job') as mock_add_job,
         ):
             mock_asyncio.sleep = AsyncMock()
@@ -1591,10 +1591,10 @@ class TestEnsureProgressEmojis:
         mock_guild.create_custom_emoji = AsyncMock(return_value=mock_emoji)
 
         with (
-            patch('doom_bot.client.core.config'),
+            patch('nova_core.client.core.config'),
             patch('pathlib.Path.read_bytes', return_value=b'fakepng'),
         ):
-            from doom_bot.eggs.emojis import ensure_progress_emojis
+            from nova_core.eggs.emojis import ensure_progress_emojis
 
             result = await ensure_progress_emojis(mock_guild)
 
@@ -1603,7 +1603,7 @@ class TestEnsureProgressEmojis:
 
     async def test_reuses_existing(self):
         """all 6 progress emojis already on guild - create_custom_emoji never called"""
-        from doom_bot.eggs.emojis import _progress_segments
+        from nova_core.eggs.emojis import _progress_segments
 
         existing = [MagicMock(name=f'progress_{seg}') for seg in _progress_segments]
         for e, seg in zip(existing, _progress_segments):
@@ -1614,8 +1614,8 @@ class TestEnsureProgressEmojis:
         mock_guild.id = test_guild
         mock_guild.create_custom_emoji = AsyncMock()
 
-        with patch('doom_bot.client.core.config'):
-            from doom_bot.eggs.emojis import ensure_progress_emojis
+        with patch('nova_core.client.core.config'):
+            from nova_core.eggs.emojis import ensure_progress_emojis
 
             result = await ensure_progress_emojis(mock_guild)
 
@@ -1642,9 +1642,9 @@ def _progress_emojis_dict() -> dict[str, int]:
 class TestRenderProgressBar:
     def test_with_emoji_ids(self):
         """all progress_emojis configured - output uses <:pb:id> format"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = _progress_emojis_dict()
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             result = render_progress_bar(5, 10)
 
@@ -1652,9 +1652,9 @@ class TestRenderProgressBar:
 
     def test_without_emoji_ids_falls_back(self):
         """progress_emojis empty - falls back to unicode block characters"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = {}
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             result = render_progress_bar(5, 10)
 
@@ -1663,9 +1663,9 @@ class TestRenderProgressBar:
 
     def test_zero_filled(self):
         """filled=0 - all 10 segments are empty"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = {}
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             result = render_progress_bar(0, 10)
 
@@ -1674,9 +1674,9 @@ class TestRenderProgressBar:
 
     def test_fully_filled(self):
         """filled=total - all 10 segments are full"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = {}
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             result = render_progress_bar(10, 10)
 
@@ -1685,9 +1685,9 @@ class TestRenderProgressBar:
 
     def test_zero_total_no_division_error(self):
         """total=0 - guard prevents division by zero; all segments empty"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = {}
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             result = render_progress_bar(5, 0)
 
@@ -1695,9 +1695,9 @@ class TestRenderProgressBar:
 
     def test_partial_fill(self):
         """filled=5, total=10 - exactly half filled segments"""
-        with patch('doom_bot.client.core.config') as mock_config:
+        with patch('nova_core.client.core.config') as mock_config:
             mock_config.theme.progress_emojis = {}
-            from doom_bot.eggs.emojis import render_progress_bar
+            from nova_core.eggs.emojis import render_progress_bar
 
             # segments=10: units=round(5/10*10)=5
             # left=full (5>=1), middles i=0..7: full if 5>=i+2 -> i<=3 (4 full, 4 empty)
@@ -1721,8 +1721,8 @@ class TestEggCleanupTask:
         mock_egg_user_repo = AsyncMock()
 
         with (
-            patch('doom_bot.tasks.egg_cleanup.bot') as mock_bot,
-            patch('doom_bot.tasks.egg_cleanup.config') as mock_config,
+            patch('nova_core.tasks.egg_cleanup.bot') as mock_bot,
+            patch('nova_core.tasks.egg_cleanup.config') as mock_config,
             patch.object(hatching_mod, '_egg_repo', mock_egg_repo),
             patch.object(hatching_mod, '_egg_user_repo', mock_egg_user_repo),
         ):
@@ -1747,7 +1747,7 @@ class TestEggCleanupTask:
         cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
         old_created_at = dt.datetime(2026, 4, 5, 0, 0, 0)  # naive utc, 15h before cutoff
 
-        with patch('doom_bot.tasks.egg_cleanup.datetime') as mock_dt:
+        with patch('nova_core.tasks.egg_cleanup.datetime') as mock_dt:
             mock_dt.now.return_value = cutoff_dt
 
             mock_guild = MagicMock()
@@ -1783,7 +1783,7 @@ class TestEggCleanupTask:
         cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
         old_created_at = dt.datetime(2026, 4, 5, 0, 0, 0)
 
-        with patch('doom_bot.tasks.egg_cleanup.datetime') as mock_dt:
+        with patch('nova_core.tasks.egg_cleanup.datetime') as mock_dt:
             mock_dt.now.return_value = cutoff_dt
 
             mock_guild = MagicMock()
@@ -1819,7 +1819,7 @@ class TestEggCleanupTask:
 
         cutoff_dt = dt.datetime(2026, 4, 5, 15, 0, 0, tzinfo=dt.UTC)
 
-        with patch('doom_bot.tasks.egg_cleanup.datetime') as mock_dt:
+        with patch('nova_core.tasks.egg_cleanup.datetime') as mock_dt:
             mock_dt.now.return_value = cutoff_dt
 
             mock_guild = MagicMock()

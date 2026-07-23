@@ -10,14 +10,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doom_bot.commands.fix import fix_reconcile, job_reconcile_guild
+from nova_core.commands.fix import fix_reconcile, job_reconcile_guild
 from tests.conftest import test_guild
 
 
 class TestReconcileComponents:
     @pytest.mark.asyncio
     async def test_reconcile_recent_channel_deletes_missing_and_replays_messages(self):
-        from doom_bot.tasks.message_backfill import MessageBackfillTask
+        from nova_core.tasks.message_backfill import MessageBackfillTask
 
         task = MessageBackfillTask()
         repo = MagicMock()
@@ -40,7 +40,7 @@ class TestReconcileComponents:
 
         fake_channel.history = history
 
-        with patch('doom_bot.tasks.message_backfill._get_repo', return_value=repo):
+        with patch('nova_core.tasks.message_backfill._get_repo', return_value=repo):
             await task._reconcile_recent_channel(test_guild, fake_channel, lookback=timedelta(days=1))
 
         assert repo.mark_bulk_deleted.call_args[0][0] == [3]
@@ -52,10 +52,10 @@ class TestReconcileComponents:
 
         make_guild(guild_id=test_guild)
         with (
-            patch('doom_bot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=[MagicMock()]),
-            patch('doom_bot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(None, 0)),
-            patch('doom_bot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
-            patch('doom_bot.commands.fix.bot.get_guild', return_value=MagicMock(me=MagicMock())),
+            patch('nova_core.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=[MagicMock()]),
+            patch('nova_core.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(None, 0)),
+            patch('nova_core.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
+            patch('nova_core.commands.fix.bot.get_guild', return_value=MagicMock(me=MagicMock())),
         ):
             await job_reconcile_guild(test_guild, status_msg=status)
 
@@ -68,7 +68,7 @@ async def test_fix_reconcile_requires_repo(mock_ctx_factory):
     """fix_reconcile replies with an error when the message repo is unavailable"""
     ctx = mock_ctx_factory()
 
-    with patch('doom_bot.commands.fix.messages._get_repo', side_effect=RuntimeError('no repo')):
+    with patch('nova_core.commands.fix.messages._get_repo', side_effect=RuntimeError('no repo')):
         await fix_reconcile(ctx)
 
     assert ctx._responses
@@ -83,7 +83,7 @@ async def test_fix_reconcile_schedules_job(mock_ctx_factory):
     ctx = mock_ctx_factory()
 
     ctx.channel.send = AsyncMock(return_value=MagicMock())
-    with patch('doom_bot.client.messages._get_repo', return_value=MagicMock()), patch('doom_bot.commands.fix.job_reconcile_guild', new_callable=AsyncMock) as mock_job, patch('doom_bot.commands.fix.scheduler.add_job') as mock_sched:
+    with patch('nova_core.client.messages._get_repo', return_value=MagicMock()), patch('nova_core.commands.fix.job_reconcile_guild', new_callable=AsyncMock) as mock_job, patch('nova_core.commands.fix.scheduler.add_job') as mock_sched:
         await fix_reconcile(ctx)
 
     mock_sched.assert_called_once()
@@ -103,10 +103,10 @@ async def test_job_reconcile_guild_scans_channels(make_guild):
     fake_guild.me = MagicMock()
 
     with (
-        patch('doom_bot.commands.fix.bot.get_guild', return_value=fake_guild),
-        patch('doom_bot.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=fake_channels) as mock_collect,
-        patch('doom_bot.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(1, 2)) as mock_backfill,
-        patch('doom_bot.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
+        patch('nova_core.commands.fix.bot.get_guild', return_value=fake_guild),
+        patch('nova_core.commands.fix.MessageBackfillTask._collect_channels', new_callable=AsyncMock, return_value=fake_channels) as mock_collect,
+        patch('nova_core.commands.fix.job_backfill_channel', new_callable=AsyncMock, return_value=(1, 2)) as mock_backfill,
+        patch('nova_core.commands.fix._safe_edit', new_callable=AsyncMock, return_value=status) as mock_edit,
     ):
         await job_reconcile_guild(test_guild, status_msg=status)
     mock_collect.assert_called_once()

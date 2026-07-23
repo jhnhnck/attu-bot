@@ -14,10 +14,10 @@ import httpx
 import pytest
 import respx
 
-from doom_bot.wiki.admin import AdminApi
-from doom_bot.wiki.auth import AuthApi
-from doom_bot.wiki.models import SearchResult, SiteInfo
-from doom_bot.wiki.search import SearchApi
+from nova_core.wiki.admin import AdminApi
+from nova_core.wiki.auth import AuthApi
+from nova_core.wiki.models import SearchResult, SiteInfo
+from nova_core.wiki.search import SearchApi
 
 
 pytestmark = pytest.mark.unit

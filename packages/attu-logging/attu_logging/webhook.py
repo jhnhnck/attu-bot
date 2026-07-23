@@ -6,8 +6,8 @@ import traceback
 import structlog
 
 
-# re-implemented rather than imported from doom_bot.webhook to avoid re-introducing
-# the workspace cycle this package is meant to break. doom_bot.webhook remains the
+# re-implemented rather than imported from nova_core.webhook to avoid re-introducing
+# the workspace cycle this package is meant to break. nova_core.webhook remains the
 # source of truth for callers still on the legacy wrapper.
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -32,8 +32,8 @@ async def send_to_webhook(error: Exception, location: str = '', logger_name: str
 
         # imported lazily so attu_logging stays light at import time and so we don't
         # hard-bind to apps/bot's config at module level. config is resolved at call time.
-        from doom_bot import config
-        from doom_bot.client.util import break_at_newline
+        from nova_core.client.core import config
+        from nova_core.client.util import break_at_newline
 
         async with aiohttp.ClientSession() as session:
             webhook = Webhook.from_url(config.error_hook, session=session)

@@ -12,8 +12,8 @@ import time
 
 import pytest
 
-from doom_bot.database.models import ReminderDocument
-from doom_bot.database.repositories import ReminderRepository
+from nova_core.database.models import ReminderDocument
+from nova_core.database.repositories import ReminderRepository
 
 
 pytestmark = pytest.mark.component

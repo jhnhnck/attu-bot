@@ -81,7 +81,7 @@ if __name__ == '__main__':
                 pass
         sys.exit(rc)
 
-    parser = argparse.ArgumentParser(description='run doom_bot test suites')
+    parser = argparse.ArgumentParser(description='run nova_core test suites')
     parser.add_argument('-v', '--verbose', action='store_true', help='show full test output')
     parser.add_argument('-x', action='store_true', dest='exit_early', help='stop pytest on first failure within each suite')
     parser.add_argument('--coverage', action='store_true', help='print coverage report after tests')

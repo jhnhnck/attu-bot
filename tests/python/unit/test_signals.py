@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doom_bot.database.models import ReloadSignalDocument
+from nova_core.database.models import ReloadSignalDocument
 
 
 test_guild = 1234567890
@@ -62,7 +62,7 @@ class TestReloadSignalDocument:
 @pytest.fixture
 def signal_repo():
     """Create a ReloadSignalRepository with a mock async MongoDB collection."""
-    from doom_bot.database.repositories import ReloadSignalRepository
+    from nova_core.database.repositories import ReloadSignalRepository
 
     mock_db = MagicMock()
     repo = ReloadSignalRepository(mock_db)
@@ -144,40 +144,40 @@ class TestReloadSignalRepository:
 
 @pytest.fixture
 def mock_signal_repo():
-    """Patch doom_bot.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
+    """Patch nova_core.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
     repo = AsyncMock()
-    with patch('doom_bot.signals._get_repo', return_value=repo), patch('doom_bot.tasks.reload_watcher._get_repo', return_value=repo):
+    with patch('nova_core.signals._get_repo', return_value=repo), patch('nova_core.tasks.reload_watcher._get_repo', return_value=repo):
         yield repo
 
 
 class TestSendSignalHelper:
     async def test_sends_guild_signal(self, mock_signal_repo):
-        from doom_bot.signals import send_signal
+        from nova_core.signals import send_signal
 
         await send_signal('guild', test_guild)
         mock_signal_repo.send.assert_called_once_with('guild', test_guild, target='bot')
 
     async def test_sends_theme_signal(self, mock_signal_repo):
-        from doom_bot.signals import send_signal
+        from nova_core.signals import send_signal
 
         await send_signal('theme')
         mock_signal_repo.send.assert_called_once_with('theme', None, target='bot')
 
     async def test_sends_system_signal(self, mock_signal_repo):
-        from doom_bot.signals import send_signal
+        from nova_core.signals import send_signal
 
         await send_signal('system')
         mock_signal_repo.send.assert_called_once_with('system', None, target='bot')
 
     async def test_swallows_exception(self, mock_signal_repo):
-        from doom_bot.signals import send_signal
+        from nova_core.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=Exception('db gone'))
         # should not raise - errors are logged but never re-raised
         await send_signal('guild', test_guild)
 
     async def test_swallows_connection_error(self, mock_signal_repo):
-        from doom_bot.signals import send_signal
+        from nova_core.signals import send_signal
 
         mock_signal_repo.send = AsyncMock(side_effect=ConnectionError('mongo down'))
         await send_signal('theme')
@@ -188,19 +188,19 @@ class TestSendSignalHelper:
 
 @pytest.fixture
 def mock_cfg():
-    """Patch doom_bot.tasks.reload_watcher.config with async load methods."""
+    """Patch nova_core.tasks.reload_watcher.config with async load methods."""
     cfg = MagicMock()
     cfg.load_guild = AsyncMock()
     cfg.load_theme = AsyncMock()
     cfg.load_globals = AsyncMock()
     cfg.wait_for_load = AsyncMock()
-    with patch('doom_bot.tasks.reload_watcher.config', cfg):
+    with patch('nova_core.tasks.reload_watcher.config', cfg):
         yield cfg
 
 
 def make_watcher(target: str = 'bot'):
     """Instantiate ReloadWatcherTask without starting the task loop."""
-    from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+    from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
     return ReloadWatcherTask(target=target)
 
@@ -208,7 +208,7 @@ def make_watcher(target: str = 'bot'):
 class TestReloadWatcher:
     async def test_no_signals_is_noop(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(return_value=[])
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_not_called()
@@ -221,7 +221,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=test_guild, timestamp=1000),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_called_once_with(test_guild)
@@ -232,7 +232,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1000),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
@@ -244,7 +244,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='system', guild_id=None, timestamp=1000),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_globals.assert_called_once()
@@ -256,7 +256,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=None, timestamp=1000),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_not_called()
@@ -268,7 +268,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='guild', guild_id=test_guild_2, timestamp=1001),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         assert mock_cfg.load_guild.call_count == 2
@@ -283,7 +283,7 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='system', guild_id=None, timestamp=1002),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_guild.assert_called_once_with(test_guild)
@@ -299,14 +299,14 @@ class TestReloadWatcher:
                 ReloadSignalDocument(signal_type='theme', guild_id=None, timestamp=1001),
             ],
         )
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         await ReloadWatcherTask.run(make_watcher())
         mock_cfg.load_theme.assert_called_once()
 
     async def test_repo_error_is_caught(self, mock_signal_repo, mock_cfg):
         mock_signal_repo.consume_all = AsyncMock(side_effect=Exception('mongo connection lost'))
-        from doom_bot.tasks.reload_watcher import ReloadWatcherTask
+        from nova_core.tasks.reload_watcher import ReloadWatcherTask
 
         # should not raise - error is logged and function returns
         await ReloadWatcherTask.run(make_watcher())

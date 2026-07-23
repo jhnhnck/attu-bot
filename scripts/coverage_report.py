@@ -10,7 +10,7 @@ section used in `notes/to-do.md`. Read from a file path or stdin.
 
 import argparse
 import json
-import os
+import pathlib
 import sys
 from collections import defaultdict
 from datetime import date
@@ -38,7 +38,7 @@ def module_row(path: str, s: dict) -> str:
 
 def package_sort_key(pkg: str) -> tuple[int, str]:
     """sort the bare top-level package first, then alphabetical by path."""
-    # one slash means top-level (e.g. "doom_bot"); deeper paths sort after
+    # one slash means top-level (e.g. "nova_core"); deeper paths sort after
     return (pkg.count('/'), pkg)
 
 
@@ -49,10 +49,10 @@ def group_by_package(files: dict, strip_prefix: str) -> dict[str, list[tuple[str
         path = raw_path
         if strip_prefix and path.startswith(strip_prefix):
             path = path[len(strip_prefix) :]
-        pkg = os.path.dirname(path) or path
+        pkg = str(pathlib.Path(path).parent) if '/' in path else path
         groups[pkg].append((path, entry['summary']))
-    for pkg in groups:
-        groups[pkg].sort(key=lambda item: item[0])
+    for pkg, entries in groups.items():
+        entries.sort(key=lambda item: item[0])
     return groups
 
 
@@ -108,7 +108,7 @@ def load_report(path: str) -> dict:
     """read coverage json from a file path or '-' for stdin."""
     if path == '-':
         return json.load(sys.stdin)
-    with open(path, encoding='utf-8') as f:
+    with pathlib.Path(path).open(encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -168,7 +168,7 @@ def main() -> int:
         sys.stdout.write(report)
     else:
         try:
-            with open(args.output, 'w', encoding='utf-8') as f:
+            with pathlib.Path(args.output).open('w', encoding='utf-8') as f:
                 f.write(report)
         except OSError as e:
             print(f'error: could not write to {args.output}: {e}', file=sys.stderr)

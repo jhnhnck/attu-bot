@@ -14,8 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 
-from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
-from doom_bot.database.repositories import MessageRepository, StarboardRepository
+from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
+from nova_core.database.repositories import MessageRepository, StarboardRepository
 
 
 pytestmark = pytest.mark.component
@@ -72,8 +72,8 @@ async def stars_repos(component_db, make_guild):
     cfg.starboard.channel_id = sb_channel
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
-    import doom_bot.client.messages as _messages
-    import doom_bot.client.starboard as _starboard
+    import nova_core.client.messages as _messages
+    import nova_core.client.starboard as _starboard
 
     _starboard._starboard_repo = sb_repo
     _messages._message_repo = msg_repo
@@ -95,7 +95,7 @@ class TestStarsLeaderboards:
         await sb.upsert(_sb_doc(1002, author_b, {'⭐': [user_1, user_2]}))
         await sb.upsert(_sb_doc(1003, author_c, {'⭐': [user_1]}))
 
-        from doom_bot.commands.stars import stars_most_stars
+        from nova_core.commands.stars import stars_most_stars
 
         await stars_most_stars(ctx)
 
@@ -121,7 +121,7 @@ class TestStarsLeaderboards:
         # this one has no starboard post - excluded from count
         await sb.upsert(_sb_doc(2004, author_b, {'⭐': [user_1]}, starboard_message_id=None))
 
-        from doom_bot.commands.stars import stars_most_starred
+        from nova_core.commands.stars import stars_most_starred
 
         await stars_most_starred(ctx)
 
@@ -138,7 +138,7 @@ class TestStarsLeaderboards:
         await sb.upsert(_sb_doc(3001, author_a, {'⭐': [user_1, user_2]}))
         await sb.upsert(_sb_doc(3002, author_a, {'⭐': [user_1, user_3]}))
 
-        from doom_bot.commands.stars import stars_most_given
+        from nova_core.commands.stars import stars_most_given
 
         await stars_most_given(ctx)
 
@@ -152,7 +152,7 @@ class TestStarsLeaderboards:
         """most-stars responds with 'no data yet' when there are no starred messages"""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_stars
+        from nova_core.commands.stars import stars_most_stars
 
         await stars_most_stars(ctx)
 
@@ -164,7 +164,7 @@ class TestStarsLeaderboards:
         """most-starred responds with 'no data yet' when no messages have a starboard post"""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_starred
+        from nova_core.commands.stars import stars_most_starred
 
         await stars_most_starred(ctx)
 
@@ -175,7 +175,7 @@ class TestStarsLeaderboards:
         """most-given responds with 'no data yet' when there are no starred messages"""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_most_given
+        from nova_core.commands.stars import stars_most_given
 
         await stars_most_given(ctx)
 
@@ -193,9 +193,9 @@ class TestStarsRandom:
         await sb.upsert(_sb_doc(5001, author_a, {'⭐': [user_1, user_2]}, total_reactions=2))
         await msg_repo.upsert(_msg_doc(5001))
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
-        with patch('doom_bot.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('nova_core.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
             await stars_random(ctx)
 
         assert len(ctx._responses) == 1
@@ -207,7 +207,7 @@ class TestStarsRandom:
         ctx = mock_ctx_factory(guild_id=test_guild)
         # repo is empty
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -229,9 +229,9 @@ class TestStarsRandom:
         await sb.upsert(_sb_doc(6002, author_b, {'⭐': [user_1, user_2, user_3]}, total_reactions=3))
         await msg_repo.upsert(_msg_doc(6002, author_b))
 
-        from doom_bot.commands.stars import stars_lost
+        from nova_core.commands.stars import stars_lost
 
-        with patch('doom_bot.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('nova_core.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
             await stars_lost(ctx)
 
         assert len(ctx._responses) == 1
@@ -246,7 +246,7 @@ class TestStarsRandom:
 
         await sb.upsert(_sb_doc(7001, author_a, {'⭐': [user_1]}, total_reactions=1))
 
-        from doom_bot.commands.stars import stars_random
+        from nova_core.commands.stars import stars_random
 
         await stars_random(ctx)
 
@@ -270,13 +270,13 @@ class TestStarsRecheck:
         stored_doc = _msg_doc(message_id)
 
         with (
-            patch('doom_bot.bot') as mock_bot,
-            patch('doom_bot.client.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
-            patch('doom_bot.client.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
+            patch('nova_core.bot') as mock_bot,
+            patch('nova_core.client.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
+            patch('nova_core.client.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
         ):
             mock_bot.get_channel.return_value = fake_channel
 
-            from doom_bot.commands.stars import stars_recheck
+            from nova_core.commands.stars import stars_recheck
 
             await stars_recheck(ctx, message_link=message_link)
 
@@ -293,7 +293,7 @@ class TestStarsRecheck:
         """recheck responds ephemeral when given a non-discord message link"""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_recheck
+        from nova_core.commands.stars import stars_recheck
 
         await stars_recheck(ctx, message_link='not-a-link')
 
@@ -306,7 +306,7 @@ class TestStarsRecheck:
         other_guild = 9999999999
         message_link = f'https://discord.com/channels/{other_guild}/{msg_channel}/8002'
 
-        from doom_bot.commands.stars import stars_recheck
+        from nova_core.commands.stars import stars_recheck
 
         await stars_recheck(ctx, message_link=message_link)
 

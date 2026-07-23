@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from doom_bot.tasks.presence import PresenceUpdateTask
+from nova_core.tasks.presence import PresenceUpdateTask
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ class TestOnStart:
         mock_cfg = MagicMock()
         mock_cfg.wait_for_ready = AsyncMock()
 
-        with patch('doom_bot.tasks.presence.config', mock_cfg):
+        with patch('nova_core.tasks.presence.config', mock_cfg):
             await task.on_start()
 
         mock_cfg.wait_for_ready.assert_awaited_once()
@@ -57,9 +57,9 @@ class TestRunHappyPath:
         mock_egg_repo.count_hatched = AsyncMock(return_value=42)
 
         with (
-            patch('doom_bot.tasks.presence.bot', mock_bot),
-            patch('doom_bot.eggs.hatching._egg_repo', mock_egg_repo),
-            patch('doom_bot.tasks.presence.logger') as mock_logger,
+            patch('nova_core.tasks.presence.bot', mock_bot),
+            patch('nova_core.eggs.hatching._egg_repo', mock_egg_repo),
+            patch('nova_core.tasks.presence.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -84,9 +84,9 @@ class TestRunHappyPath:
         mock_egg_repo.count_hatched = AsyncMock(return_value=0)
 
         with (
-            patch('doom_bot.tasks.presence.bot', mock_bot),
-            patch('doom_bot.eggs.hatching._egg_repo', mock_egg_repo),
-            patch('doom_bot.tasks.presence.logger') as mock_logger,
+            patch('nova_core.tasks.presence.bot', mock_bot),
+            patch('nova_core.eggs.hatching._egg_repo', mock_egg_repo),
+            patch('nova_core.tasks.presence.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -108,9 +108,9 @@ class TestRunRepoNone:
         mock_bot.change_presence = AsyncMock()
 
         with (
-            patch('doom_bot.tasks.presence.bot', mock_bot),
-            patch('doom_bot.eggs.hatching._egg_repo', None),
-            patch('doom_bot.tasks.presence.logger') as mock_logger,
+            patch('nova_core.tasks.presence.bot', mock_bot),
+            patch('nova_core.eggs.hatching._egg_repo', None),
+            patch('nova_core.tasks.presence.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -134,9 +134,9 @@ class TestRunCountError:
         mock_egg_repo.count_hatched = AsyncMock(side_effect=RuntimeError('db timeout'))
 
         with (
-            patch('doom_bot.tasks.presence.bot', mock_bot),
-            patch('doom_bot.eggs.hatching._egg_repo', mock_egg_repo),
-            patch('doom_bot.tasks.presence.logger') as mock_logger,
+            patch('nova_core.tasks.presence.bot', mock_bot),
+            patch('nova_core.eggs.hatching._egg_repo', mock_egg_repo),
+            patch('nova_core.tasks.presence.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -162,9 +162,9 @@ class TestRunPresenceError:
         mock_egg_repo.count_hatched = AsyncMock(return_value=10)
 
         with (
-            patch('doom_bot.tasks.presence.bot', mock_bot),
-            patch('doom_bot.eggs.hatching._egg_repo', mock_egg_repo),
-            patch('doom_bot.tasks.presence.logger') as mock_logger,
+            patch('nova_core.tasks.presence.bot', mock_bot),
+            patch('nova_core.eggs.hatching._egg_repo', mock_egg_repo),
+            patch('nova_core.tasks.presence.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -181,7 +181,7 @@ class TestRunPresenceError:
 class TestSingleton:
     def test_module_level_singleton_exists(self):
         """the module exposes a presence_update_task singleton instance."""
-        from doom_bot.tasks.presence import presence_update_task
+        from nova_core.tasks.presence import presence_update_task
 
         assert isinstance(presence_update_task, PresenceUpdateTask)
         assert presence_update_task.name == 'PresenceUpdate'

@@ -17,7 +17,7 @@ SIGNATURE_HEADER = 'x-bridge-signature'
 def _sign(secret: str, method: str, path: str, body: bytes, timestamp: int | None = None) -> str:
     """produce the bridge signature header value.
 
-    must stay byte-for-byte equivalent to doom_bot.bridge.hmac.sign;
+    must stay byte-for-byte equivalent to nova_core.bridge.hmac.sign;
     a unit test pins both implementations together.
     """
     ts = timestamp if timestamp is not None else int(time.time())

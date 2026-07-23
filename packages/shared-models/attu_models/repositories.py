@@ -32,7 +32,7 @@ from .documents import (
 
 
 if TYPE_CHECKING:
-    from doom_bot.config import BotTheme, GuildConfig
+    from nova_core.config import BotTheme, GuildConfig
 
 logger = structlog.stdlib.get_logger(__name__)
 

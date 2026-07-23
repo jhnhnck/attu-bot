@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from doom_bot.commands.stars import _build_recheck_response, _cc_top_messages_embed, _leaderboard_embed, _resolve_recheck_target, _show_random_message
-from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
+from nova_core.commands.stars import _build_recheck_response, _cc_top_messages_embed, _leaderboard_embed, _resolve_recheck_target, _show_random_message
+from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
 from tests.conftest import test_guild
 
 
@@ -215,11 +215,11 @@ class TestShowRandomMessage:
         mock_msg_repo.upsert = AsyncMock()
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('doom_bot.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]),
-            patch('doom_bot.client.starboard.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
-            patch('doom_bot.client.starboard.dominant_color', return_value=0x5865F2),
+            patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('nova_core.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]),
+            patch('nova_core.client.starboard.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
+            patch('nova_core.client.starboard.dominant_color', return_value=0x5865F2),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -232,7 +232,7 @@ class TestShowRandomMessage:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             await _show_random_message(ctx, min_total=2)
 
         assert len(ctx._responses) == 1
@@ -245,7 +245,7 @@ class TestShowRandomMessage:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             await _show_random_message(ctx, min_total=1, max_total=1)
 
         assert 'exactly 1 star' in ctx._responses[0]['args'][0]
@@ -254,7 +254,7 @@ class TestShowRandomMessage:
         """responds ephemeral when the starboard repo is not initialized."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('no repo')):
+        with patch('nova_core.commands.stars._get_sb_repo', side_effect=RuntimeError('no repo')):
             await _show_random_message(ctx, min_total=2)
 
         assert 'not initialized' in ctx._responses[0]['args'][0]
@@ -267,8 +267,8 @@ class TestShowRandomMessage:
         mock_sb_repo.get_random = AsyncMock(return_value=_sb_doc())
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('doom_bot.commands.stars.config.guild', side_effect=Exception('not found')),
+            patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('nova_core.commands.stars.config.guild', side_effect=Exception('not found')),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -286,8 +286,8 @@ class TestShowRandomMessage:
         mock_msg_repo.get = AsyncMock(return_value=None)
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('nova_core.commands.stars._get_msg_repo', return_value=mock_msg_repo),
         ):
             await _show_random_message(ctx, min_total=2)
 
@@ -303,8 +303,8 @@ class TestStarsLost:
         """stars lost passes min_total=1, max_total=1 to _show_random_message."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('doom_bot.commands.stars._show_random_message', new_callable=AsyncMock) as mock_show:
-            from doom_bot.commands.stars import stars_lost
+        with patch('nova_core.commands.stars._show_random_message', new_callable=AsyncMock) as mock_show:
+            from nova_core.commands.stars import stars_lost
 
             await stars_lost(ctx)
 
@@ -397,10 +397,10 @@ class TestResolveRecheckTarget:
         mock_msg_repo.upsert = AsyncMock()
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('doom_bot.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('doom_bot.bot') as mock_bot,
-            patch('doom_bot.client.messages.build_message_doc', new_callable=AsyncMock, return_value=_msg_doc(7001)),
+            patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('nova_core.commands.stars._get_msg_repo', return_value=mock_msg_repo),
+            patch('nova_core.bot') as mock_bot,
+            patch('nova_core.client.messages.build_message_doc', new_callable=AsyncMock, return_value=_msg_doc(7001)),
         ):
             mock_bot.get_channel.return_value = orig_channel
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
@@ -423,7 +423,7 @@ class TestResolveRecheckTarget:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo):
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo):
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
 
         assert result is None
@@ -462,8 +462,8 @@ class TestResolveRecheckTarget:
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=sb_doc)
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo),
-            patch('doom_bot.bot') as mock_bot,
+            patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
+            patch('nova_core.bot') as mock_bot,
         ):
             mock_bot.get_channel.return_value = None
             mock_bot.fetch_channel = AsyncMock(side_effect=Exception('channel not found'))
@@ -480,14 +480,14 @@ class TestResolveRecheckTarget:
 class TestShowRandomMessageCCBoardRouting:
     async def test_routes_to_ccboard_when_enabled(self, mock_ctx_factory, make_guild):
         """when ccboard.enabled=True, calls _show_ccboard_random instead of legacy path."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('doom_bot.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc, patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
+        with patch('nova_core.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc, patch('nova_core.commands.stars._get_sb_repo') as mock_sb:
             await _show_random_message(ctx, min_total=2)
 
         mock_cc.assert_called_once()
@@ -500,7 +500,7 @@ class TestShowRandomMessageCCBoardRouting:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('doom_bot.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc:
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('nova_core.commands.stars._show_ccboard_random', new_callable=AsyncMock) as mock_cc:
             await _show_random_message(ctx, min_total=2)
 
         mock_cc.assert_not_called()
@@ -508,7 +508,7 @@ class TestShowRandomMessageCCBoardRouting:
 
     async def test_ccboard_random_no_match_responds_ephemeral(self, mock_ctx_factory, make_guild):
         """ccboard path: no matching entry → 'no messages found' response."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
@@ -517,7 +517,7 @@ class TestShowRandomMessageCCBoardRouting:
         mock_entry_repo = AsyncMock()
         mock_entry_repo.get_random = AsyncMock(return_value=None)
 
-        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo):
+        with patch('nova_core.commands.stars._get_entry_repo', return_value=mock_entry_repo):
             await _show_random_message(ctx, min_total=2)
 
         assert 'no messages found' in ctx._responses[0]['args'][0]
@@ -525,14 +525,14 @@ class TestShowRandomMessageCCBoardRouting:
 
     async def test_ccboard_not_initialized_responds_ephemeral(self, mock_ctx_factory, make_guild):
         """ccboard path: entry repo not initialized → 'ccboard not initialized' response."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        with patch('doom_bot.commands.stars._get_entry_repo', side_effect=RuntimeError('not initialized')):
+        with patch('nova_core.commands.stars._get_entry_repo', side_effect=RuntimeError('not initialized')):
             await _show_random_message(ctx, min_total=2)
 
         assert 'ccboard not initialized' in ctx._responses[0]['args'][0]
@@ -574,7 +574,7 @@ class TestCCTopMessagesEmbed:
 class TestLeaderboardCCBoardRouting:
     async def test_most_stars_routes_to_ccboard_entry_repo(self, mock_ctx_factory, make_guild):
         """most-stars uses entry_repo.leaderboard_most_stars when ccboard.enabled=True."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
@@ -583,8 +583,8 @@ class TestLeaderboardCCBoardRouting:
         mock_entry_repo = AsyncMock()
         mock_entry_repo.leaderboard_most_stars = AsyncMock(return_value=[])
 
-        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo), patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
-            from doom_bot.commands.stars import stars_most_stars
+        with patch('nova_core.commands.stars._get_entry_repo', return_value=mock_entry_repo), patch('nova_core.commands.stars._get_sb_repo') as mock_sb:
+            from nova_core.commands.stars import stars_most_stars
 
             await stars_most_stars(ctx)
 
@@ -598,8 +598,8 @@ class TestLeaderboardCCBoardRouting:
         mock_sb_repo = AsyncMock()
         mock_sb_repo.leaderboard_most_stars = AsyncMock(return_value=[])
 
-        with patch('doom_bot.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('doom_bot.commands.stars._get_entry_repo') as mock_entry:
-            from doom_bot.commands.stars import stars_most_stars
+        with patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo), patch('nova_core.commands.stars._get_entry_repo') as mock_entry:
+            from nova_core.commands.stars import stars_most_stars
 
             await stars_most_stars(ctx)
 
@@ -608,7 +608,7 @@ class TestLeaderboardCCBoardRouting:
 
     async def test_most_given_routes_to_reaction_repo(self, mock_ctx_factory, make_guild):
         """most-given uses reaction_repo.leaderboard_most_given when ccboard.enabled=True."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
@@ -617,8 +617,8 @@ class TestLeaderboardCCBoardRouting:
         mock_reaction_repo = AsyncMock()
         mock_reaction_repo.leaderboard_most_given = AsyncMock(return_value=[])
 
-        with patch('doom_bot.commands.stars._get_cc_reaction_repo', return_value=mock_reaction_repo), patch('doom_bot.commands.stars._get_sb_repo') as mock_sb:
-            from doom_bot.commands.stars import stars_most_given
+        with patch('nova_core.commands.stars._get_cc_reaction_repo', return_value=mock_reaction_repo), patch('nova_core.commands.stars._get_sb_repo') as mock_sb:
+            from nova_core.commands.stars import stars_most_given
 
             await stars_most_given(ctx)
 
@@ -630,7 +630,7 @@ class TestLeaderboardCCBoardRouting:
         make_guild(guild_id=test_guild)
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_top_messages
+        from nova_core.commands.stars import stars_top_messages
 
         await stars_top_messages(ctx)
 
@@ -639,7 +639,7 @@ class TestLeaderboardCCBoardRouting:
 
     async def test_top_messages_calls_entry_repo_when_enabled(self, mock_ctx_factory, make_guild):
         """top-messages calls leaderboard_top_messages when ccboard.enabled=True."""
-        from doom_bot.config import GuildCCBoard
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
@@ -648,8 +648,8 @@ class TestLeaderboardCCBoardRouting:
         mock_entry_repo = AsyncMock()
         mock_entry_repo.leaderboard_top_messages = AsyncMock(return_value=[])
 
-        with patch('doom_bot.commands.stars._get_entry_repo', return_value=mock_entry_repo):
-            from doom_bot.commands.stars import stars_top_messages
+        with patch('nova_core.commands.stars._get_entry_repo', return_value=mock_entry_repo):
+            from nova_core.commands.stars import stars_top_messages
 
             await stars_top_messages(ctx)
 
@@ -662,8 +662,8 @@ class TestLeaderboardCCBoardRouting:
 class TestRecheckCCBoardRouting:
     async def test_recheck_routes_to_auditor_when_ccboard_enabled(self, mock_ctx_factory, make_guild):
         """when ccboard.enabled=True, reconcile_entry is called and its summary responded."""
-        from doom_bot.ccboard.auditor import auditor_task
-        from doom_bot.config import GuildCCBoard
+        from nova_core.ccboard.auditor import auditor_task
+        from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
         gc.ccboard = GuildCCBoard(enabled=True, channel_id=sb_channel, emojis={'⭐': 1}, threshold=2, points_label='stars')
@@ -675,7 +675,7 @@ class TestRecheckCCBoardRouting:
         link = f'https://discord.com/channels/{test_guild}/{msg_channel}/5001'
 
         with patch.object(auditor_task, 'reconcile_entry', new_callable=AsyncMock, return_value=mock_result) as mock_reconcile:
-            from doom_bot.commands.stars import stars_recheck
+            from nova_core.commands.stars import stars_recheck
 
             await stars_recheck(ctx, link)
 
@@ -689,13 +689,13 @@ class TestRecheckCCBoardRouting:
         ctx = mock_ctx_factory(guild_id=test_guild)
         link = f'https://discord.com/channels/{test_guild}/{msg_channel}/5001'
 
-        from doom_bot.ccboard.auditor import auditor_task
+        from nova_core.ccboard.auditor import auditor_task
 
         with (
-            patch('doom_bot.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb,
+            patch('nova_core.commands.stars._get_sb_repo', side_effect=RuntimeError('not init')) as mock_sb,
             patch.object(auditor_task, 'reconcile_entry', new_callable=AsyncMock) as mock_reconcile,
         ):
-            from doom_bot.commands.stars import stars_recheck
+            from nova_core.commands.stars import stars_recheck
 
             await stars_recheck(ctx, link)
 
@@ -707,7 +707,7 @@ class TestRecheckCCBoardRouting:
         """invalid link responds ephemeral with 'invalid message link'."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from doom_bot.commands.stars import stars_recheck
+        from nova_core.commands.stars import stars_recheck
 
         await stars_recheck(ctx, 'not-a-link')
 

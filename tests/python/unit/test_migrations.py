@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doom_bot.config import _version_gte
+from nova_core.config import _version_gte
 
 
 # ============================================================
@@ -74,12 +74,12 @@ class TestRunPendingMigrations:
         migration_fn = AsyncMock()
 
         with (
-            patch('doom_bot.client.migrations.load_migration_table', [migration_fn]),
-            patch('doom_bot.client.migrations.config') as patched_config,
+            patch('nova_core.client.migrations.load_migration_table', [migration_fn]),
+            patch('nova_core.client.migrations.config') as patched_config,
         ):
             patched_config.config_repo = mock_config_repo
 
-            from doom_bot.client.migrations import run_pending_migrations
+            from nova_core.client.migrations import run_pending_migrations
 
             await run_pending_migrations(stage='load')
 
@@ -89,25 +89,25 @@ class TestRunPendingMigrations:
         migration_fn = AsyncMock()
 
         with (
-            patch('doom_bot.client.migrations.ready_migration_table', [migration_fn]),
-            patch('doom_bot.client.migrations.config') as patched_config,
+            patch('nova_core.client.migrations.ready_migration_table', [migration_fn]),
+            patch('nova_core.client.migrations.config') as patched_config,
         ):
             patched_config.config_repo = mock_config_repo
 
-            from doom_bot.client.migrations import run_pending_migrations
+            from nova_core.client.migrations import run_pending_migrations
 
             await run_pending_migrations(stage='ready')
 
         migration_fn.assert_awaited_once_with('2.5.3')
 
     async def test_reraises_migration_error(self, mock_config_repo):
-        from doom_bot.client.migrations import MigrationError, run_pending_migrations
+        from nova_core.client.migrations import MigrationError, run_pending_migrations
 
         failing_fn = AsyncMock(side_effect=MigrationError('boom'))
 
         with (
-            patch('doom_bot.client.migrations.load_migration_table', [failing_fn]),
-            patch('doom_bot.client.migrations.config') as patched_config,
+            patch('nova_core.client.migrations.load_migration_table', [failing_fn]),
+            patch('nova_core.client.migrations.config') as patched_config,
         ):
             patched_config.config_repo = mock_config_repo
 
@@ -124,12 +124,12 @@ class TestRunPendingMigrations:
         mock_config_repo.get_system = AsyncMock(return_value=newer_config)
 
         with (
-            patch('doom_bot.client.migrations.load_migration_table', [migration_fn]),
-            patch('doom_bot.client.migrations.config') as patched_config,
+            patch('nova_core.client.migrations.load_migration_table', [migration_fn]),
+            patch('nova_core.client.migrations.config') as patched_config,
         ):
             patched_config.config_repo = mock_config_repo
 
-            from doom_bot.client.migrations import run_pending_migrations
+            from nova_core.client.migrations import run_pending_migrations
 
             await run_pending_migrations(stage='load')
 
@@ -153,12 +153,12 @@ class TestRunPendingMigrations:
         step_2 = AsyncMock(side_effect=capture_version)
 
         with (
-            patch('doom_bot.client.migrations.load_migration_table', [step_1, step_2]),
-            patch('doom_bot.client.migrations.config') as patched_config,
+            patch('nova_core.client.migrations.load_migration_table', [step_1, step_2]),
+            patch('nova_core.client.migrations.config') as patched_config,
         ):
             patched_config.config_repo = mock_config_repo
 
-            from doom_bot.client.migrations import run_pending_migrations
+            from nova_core.client.migrations import run_pending_migrations
 
             await run_pending_migrations(stage='load')
 
@@ -191,10 +191,10 @@ class TestMigrationSeedUiEmojis:
 
     async def test_seeds_when_missing(self, mock_db):
         """ui_emojis is empty or absent — migration inserts the default emojis"""
-        with patch('doom_bot.client.core.db') as mock_core_db:
+        with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
-            from doom_bot.client.migrations import migration_seed_ui_emojis
+            from nova_core.client.migrations import migration_seed_ui_emojis
 
             await migration_seed_ui_emojis('2.5.3')
 
@@ -208,10 +208,10 @@ class TestMigrationSeedUiEmojis:
 
     async def test_takes_backup_before_update(self, mock_db):
         """backup is taken from global_config before the update runs"""
-        with patch('doom_bot.client.core.db') as mock_core_db:
+        with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
-            from doom_bot.client.migrations import migration_seed_ui_emojis
+            from nova_core.client.migrations import migration_seed_ui_emojis
 
             await migration_seed_ui_emojis('2.5.3')
 
@@ -225,12 +225,12 @@ class TestMigrationSeedUiEmojis:
         mock_db.__getitem__.return_value.find.return_value.to_list = AsyncMock(return_value=backup_docs)
 
         with (
-            patch('doom_bot.client.core.db') as mock_core_db,
+            patch('nova_core.client.core.db') as mock_core_db,
             pytest.raises(Exception, match=r'Migration to 2\.5\.4 failed'),
         ):
             mock_core_db.get_db.return_value = mock_db
 
-            from doom_bot.client.migrations import migration_seed_ui_emojis
+            from nova_core.client.migrations import migration_seed_ui_emojis
 
             await migration_seed_ui_emojis('2.5.3')
 
@@ -243,10 +243,10 @@ class TestMigrationSeedUiEmojis:
         """ui_emojis already has values — filter excludes the doc, modified_count is 0"""
         mock_db.global_config.update_one.return_value.modified_count = 0
 
-        with patch('doom_bot.client.core.db') as mock_core_db:
+        with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
-            from doom_bot.client.migrations import migration_seed_ui_emojis
+            from nova_core.client.migrations import migration_seed_ui_emojis
 
             await migration_seed_ui_emojis('2.5.3')
 
@@ -257,8 +257,8 @@ class TestMigrationSeedUiEmojis:
 
     async def test_skipped_when_version_past(self):
         """wrapper bails out when db version != old version"""
-        with patch('doom_bot.client.core.db') as mock_core_db:
-            from doom_bot.client.migrations import migration_seed_ui_emojis
+        with patch('nova_core.client.core.db') as mock_core_db:
+            from nova_core.client.migrations import migration_seed_ui_emojis
 
             await migration_seed_ui_emojis('2.5.4')
 
@@ -291,10 +291,10 @@ class TestMigrationTargetSignals:
 
     async def test_drops_legacy_index_and_purges_untargeted(self, mock_db):
         db_obj, collection = mock_db
-        with patch('doom_bot.client.core.db') as mock_core_db:
+        with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = db_obj
 
-            from doom_bot.client.migrations import migration_target_signals
+            from nova_core.client.migrations import migration_target_signals
 
             await migration_target_signals('2.5.4')
 
@@ -308,10 +308,10 @@ class TestMigrationTargetSignals:
         db_obj, collection = mock_db
         collection.drop_index = AsyncMock(side_effect=OperationFailure('index not found'))
 
-        with patch('doom_bot.client.core.db') as mock_core_db:
+        with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = db_obj
 
-            from doom_bot.client.migrations import migration_target_signals
+            from nova_core.client.migrations import migration_target_signals
 
             await migration_target_signals('2.5.4')
 
@@ -319,8 +319,8 @@ class TestMigrationTargetSignals:
 
     async def test_skipped_when_version_past(self):
         """wrapper bails when db version != old version"""
-        with patch('doom_bot.client.core.db') as mock_core_db:
-            from doom_bot.client.migrations import migration_target_signals
+        with patch('nova_core.client.core.db') as mock_core_db:
+            from nova_core.client.migrations import migration_target_signals
 
             await migration_target_signals('2.5.5')
 

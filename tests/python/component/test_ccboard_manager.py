@@ -7,7 +7,7 @@ import pytest
 import pytest_asyncio
 
 from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
-from doom_bot.database.repositories import EntryRepository
+from nova_core.database.repositories import EntryRepository
 
 
 pytestmark = pytest.mark.component

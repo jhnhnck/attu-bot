@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from doom_bot.client.calendar import AttuYearSpan, seconds_per_day
-from doom_bot.client.years import Year
+from nova_core.client.calendar import AttuYearSpan, seconds_per_day
+from nova_core.client.years import Year
 from tests.conftest import test_guild
 
 

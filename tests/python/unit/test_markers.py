@@ -19,8 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doom_bot.client.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
-from doom_bot.database.models import YearMarkerDocument
+from nova_core.client.markers import ResolvedMarker, YearMarker, has_year_marker, resolve_marker
+from nova_core.database.models import YearMarkerDocument
 from tests.conftest import test_guild
 
 
@@ -87,7 +87,7 @@ def _make_year_marker_doc(channel=test_channel, year=test_year, message=test_msg
 
 
 def _make_year_doc(year=test_year, start_time=1_700_000_000, end_time=1_701_000_000):
-    from doom_bot.database.models import YearDocument
+    from nova_core.database.models import YearDocument
 
     return YearDocument(guild=test_guild, year=year, start_time=start_time, end_time=end_time, duration=1)
 
@@ -98,7 +98,7 @@ class TestResolveMarkerOverride:
     @pytest.mark.asyncio
     async def test_override_found(self):
         doc = _make_year_marker_doc()
-        with patch('doom_bot.client.markers._get_repo') as mock_repo_fn:
+        with patch('nova_core.client.markers._get_repo') as mock_repo_fn:
             repo = AsyncMock()
             repo.get = AsyncMock(return_value=doc)
             mock_repo_fn.return_value = repo
@@ -116,7 +116,7 @@ class TestResolveMarkerOverride:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_repo_fn, patch('doom_bot.client.years.Year') as mock_year_cls:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_repo_fn, patch('nova_core.client.years.Year') as mock_year_cls:
             msg_repo = AsyncMock()
             msg_repo.find_bot_header = AsyncMock(return_value=None)
             msg_repo.find_author_message = AsyncMock(return_value=None)
@@ -128,7 +128,7 @@ class TestResolveMarkerOverride:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
 
             # patch config for marker authors and lore channels
-            with patch('doom_bot.client.markers.config') as mock_cfg:
+            with patch('nova_core.client.markers.config') as mock_cfg:
                 mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
                 result = await resolve_marker(test_guild, test_channel, test_year)
 
@@ -144,7 +144,7 @@ class TestResolveMarkerBotHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
 
@@ -169,11 +169,11 @@ class TestResolveMarkerAuthorHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
-            from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument
+            from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
                 message_id=test_msg_id,
@@ -202,11 +202,11 @@ class TestResolveMarkerAuthorHeader:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[999]), channels=MagicMock(lore_channels=[]))
 
-            from doom_bot.database.models import MessageAuthor, MessageContent, MessageDocument
+            from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument
 
             msg_doc = MessageDocument(
                 message_id=test_msg_id,
@@ -238,7 +238,7 @@ class TestResolveMarkerFirstMessage:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[]))
 
@@ -263,7 +263,7 @@ class TestResolveMarkerPrimaryFallback:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             # target channel has no messages; primary channel is test_channel_2
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[test_channel_2, test_channel]))
@@ -292,7 +292,7 @@ class TestResolveMarkerPrimaryFallback:
         mock_marker_repo.get = AsyncMock(return_value=None)
         mock_marker_repo.get_any_for_guild_year = AsyncMock(return_value=None)
 
-        with patch('doom_bot.client.markers._get_message_repo') as mock_msg_fn, patch('doom_bot.client.years.Year') as mock_year_cls, patch('doom_bot.client.markers.config') as mock_cfg:
+        with patch('nova_core.client.markers._get_message_repo') as mock_msg_fn, patch('nova_core.client.years.Year') as mock_year_cls, patch('nova_core.client.markers.config') as mock_cfg:
             mock_year_cls.get = AsyncMock(return_value=_make_year_doc())
             # target channel is the primary channel
             mock_cfg.guild.return_value = MagicMock(users=MagicMock(markers=[]), channels=MagicMock(lore_channels=[test_channel]))

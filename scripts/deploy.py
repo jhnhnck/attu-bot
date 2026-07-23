@@ -31,7 +31,7 @@ except ImportError:
 # worktree roots
 dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
-version_file = dev_dir / 'apps' / 'bot' / 'doom_bot' / '__init__.py'
+version_file = dev_dir / 'apps' / 'bot' / 'nova_core' / '__init__.py'
 
 # epoch snapshot — paste the output of /fix epoch here when the epoch changes
 _epoch_toml = """\
@@ -80,7 +80,7 @@ def parse_version(content: str) -> tuple[str, str]:
     """extract __version__ value and its full assignment string from file contents."""
     m = re.search(r"__version__ = '([^']+)'", content)
     if not m:
-        abort('could not find __version__ in apps/bot/doom_bot/__init__.py')
+        abort('could not find __version__ in apps/bot/nova_core/__init__.py')
     return m.group(1), m.group(0)
 
 
@@ -280,7 +280,7 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='bump version, tag, and optionally deploy doom_bot')
+    parser = argparse.ArgumentParser(description='bump version, tag, and optionally deploy nova_core')
     parser.add_argument('bump', nargs='?', default=None, choices=['minor', 'patch'], help='version bump type (default: minor)')
     parser.add_argument('--no-tests', action='store_true', help='skip all test runs')
     parser.add_argument('--dry-run', action='store_true', help='print steps without making changes')

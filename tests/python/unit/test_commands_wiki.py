@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 import pytest
 
-from doom_bot.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
+from nova_core.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
 
 
 def _make_mock_view_repo():
@@ -40,9 +40,9 @@ def _patch_wiki_multi(mock_wiki, mock_view_repo=None):
     mock_bot = MagicMock()
     mock_bot.add_view = MagicMock()
     with (
-        patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki),
-        patch('doom_bot.commands.wiki._wiki_view_repo', mock_view_repo),
-        patch('doom_bot.commands.wiki.bot', mock_bot),
+        patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki),
+        patch('nova_core.commands.wiki._wiki_view_repo', mock_view_repo),
+        patch('nova_core.commands.wiki.bot', mock_bot),
     ):
         yield mock_bot
 
@@ -73,12 +73,12 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_single_result(self, mock_ctx):
         """/wiki lookup with single result responds with embed"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Test Page', extract='A description.')
         mock_wiki = _make_mock_wiki([{'title': 'Test Page', 'key': 'Test_Page'}], summary=summary)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         mock_ctx.respond.assert_called_once()
@@ -90,12 +90,12 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_single_result_has_link_button(self, mock_ctx):
         """/wiki lookup with single result includes the open wiki link button"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Test Page', extract='A description.')
         mock_wiki = _make_mock_wiki([{'title': 'Test Page', 'key': 'Test_Page'}], summary=summary)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         call_kwargs = mock_ctx._responses[0]['kwargs']
@@ -110,7 +110,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_multiple_results_has_nav_buttons(self, mock_ctx):
         """/wiki lookup with multiple results includes prev/next nav buttons"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='First Page', extract='text')
         mock_wiki = _make_mock_wiki(
@@ -137,11 +137,11 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_no_results(self, mock_ctx):
         """/wiki lookup with no results sends an error message"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         mock_wiki = _make_mock_wiki([])
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='nonexistent')
 
         mock_ctx.respond.assert_called_once()
@@ -154,12 +154,12 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_always_searches_with_max_limit(self, mock_ctx):
         """/wiki lookup always calls the search api with the hardcoded limit of 11"""
-        from doom_bot.commands.wiki import _SEARCH_LIMIT, wiki_lookup
+        from nova_core.commands.wiki import _SEARCH_LIMIT, wiki_lookup
 
         summary = PageSummary(title='Page 1', extract='text')
         mock_wiki = _make_mock_wiki([{'title': 'Page 1', 'key': 'Page_1'}], summary=summary)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         mock_wiki.search.search.assert_called_once_with('test', _SEARCH_LIMIT)
@@ -167,7 +167,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_fetches_summary_for_first_result(self, mock_ctx):
         """/wiki lookup fetches the page summary for the first result"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Test Page', extract='some text')
         mock_wiki = _make_mock_wiki(
@@ -186,14 +186,14 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_falls_back_when_summary_is_none(self, mock_ctx):
         """/wiki lookup uses search excerpt as fallback when get_summary returns None"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         mock_wiki = _make_mock_wiki(
             [{'title': 'Missing Page', 'key': 'Missing_Page', 'excerpt': 'short excerpt'}],
             summary=None,
         )
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='missing')
 
         call_kwargs = mock_ctx._responses[0]['kwargs']
@@ -205,12 +205,12 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_calls_search_title_with_limit_1(self, mock_ctx):
         """/wiki lookup calls search_title with limit 1"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Page 1', extract='text')
         mock_wiki = _make_mock_wiki([{'title': 'Page 1', 'key': 'Page_1'}], summary=summary)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='test')
 
         mock_wiki.search.search_title.assert_called_once_with('test', 1)
@@ -218,7 +218,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_title_result_is_first(self, mock_ctx):
         """title search result appears before body results"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Title Match', extract='exact match')
         mock_wiki = _make_mock_wiki(
@@ -235,7 +235,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_deduplicates_title_and_body_overlap(self, mock_ctx):
         """pages returned by both searches are not duplicated"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='Shared Page', extract='text')
         mock_wiki = _make_mock_wiki(
@@ -259,7 +259,7 @@ class TestWikiLookupCommand:
     @pytest.mark.asyncio
     async def test_lookup_defers_before_fetch(self, mock_ctx):
         """/wiki lookup defers before hitting the api"""
-        from doom_bot.commands.wiki import wiki_lookup
+        from nova_core.commands.wiki import wiki_lookup
 
         summary = PageSummary(title='T', extract='text')
         mock_wiki = _make_mock_wiki([{'title': 'T', 'key': 'T'}], summary=summary)
@@ -279,7 +279,7 @@ class TestWikiLookupCommand:
         mock_ctx.defer = tracking_defer
         mock_ctx.respond = tracking_respond
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_lookup(mock_ctx, query='t')
 
         assert defer_order[0] == 'defer'
@@ -369,7 +369,7 @@ _SITE_INFO = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1',
 
 class TestBuildWikiEmbed:
     def test_returns_embed_and_url(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='Some Page', extract='A description.')
         result = build_wiki_embed(summary, _SITE_INFO)
@@ -381,7 +381,7 @@ class TestBuildWikiEmbed:
         assert isinstance(url, str)
 
     def test_url_contains_page_key(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='Some Page', extract='A description.')
         _, url = build_wiki_embed(summary, _SITE_INFO)
@@ -390,7 +390,7 @@ class TestBuildWikiEmbed:
 
     def test_no_open_field_in_embed(self):
         """the open url is now returned as a separate value, not an embed field"""
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='Some Page', extract='A description.')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -398,7 +398,7 @@ class TestBuildWikiEmbed:
         assert len(embed.fields) == 0
 
     def test_title_with_spaces_becomes_underscores_in_url(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='Page With Spaces', extract='text')
         _, url = build_wiki_embed(summary, _SITE_INFO)
@@ -406,7 +406,7 @@ class TestBuildWikiEmbed:
         assert 'Page_With_Spaces' in url
 
     def test_description_from_extract(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='T', extract='My extract text.')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -415,7 +415,7 @@ class TestBuildWikiEmbed:
         assert 'My extract text.' in embed.description
 
     def test_empty_extract_shows_fallback(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='T', extract='')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -424,7 +424,7 @@ class TestBuildWikiEmbed:
         assert '_No description available._' in embed.description
 
     def test_long_extract_is_truncated(self):
-        from doom_bot.commands.wiki import _EMBED_DESC_LIMIT, build_wiki_embed
+        from nova_core.commands.wiki import _EMBED_DESC_LIMIT, build_wiki_embed
 
         summary = PageSummary(title='T', extract='x' * (_EMBED_DESC_LIMIT + 100))
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -435,7 +435,7 @@ class TestBuildWikiEmbed:
         assert 'x' * (_EMBED_DESC_LIMIT + 100) not in embed.description
 
     def test_thumbnail_set_when_present(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(
             title='T',
@@ -447,7 +447,7 @@ class TestBuildWikiEmbed:
         assert embed.thumbnail.url == 'https://example.com/img.png'
 
     def test_no_thumbnail_when_absent(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='T', extract='text')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -455,7 +455,7 @@ class TestBuildWikiEmbed:
         assert embed.thumbnail is None
 
     def test_footer_is_site_name(self):
-        from doom_bot.commands.wiki import build_wiki_embed
+        from nova_core.commands.wiki import build_wiki_embed
 
         summary = PageSummary(title='T', extract='text')
         embed, _ = build_wiki_embed(summary, _SITE_INFO)
@@ -470,7 +470,7 @@ class TestWikiRandomCommand:
     @pytest.mark.asyncio
     async def test_random_responds_with_embed(self, mock_ctx):
         """/wiki random sends a discord embed"""
-        from doom_bot.commands.wiki import wiki_random
+        from nova_core.commands.wiki import wiki_random
 
         summary = PageSummary(title='Random Page', extract='Some intro text.')
         site_info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1', sitename='Test Wiki')
@@ -479,7 +479,7 @@ class TestWikiRandomCommand:
         mock_wiki.pages.get_random_summary = AsyncMock(return_value=summary)
         mock_wiki.search.site_info = AsyncMock(return_value=site_info)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_random(mock_ctx)
 
         mock_ctx.respond.assert_called_once()
@@ -493,7 +493,7 @@ class TestWikiRandomCommand:
     @pytest.mark.asyncio
     async def test_random_includes_link_button(self, mock_ctx):
         """/wiki random includes the open wiki link button"""
-        from doom_bot.commands.wiki import wiki_random
+        from nova_core.commands.wiki import wiki_random
 
         summary = PageSummary(title='Random Page', extract='text')
         site_info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1')
@@ -502,7 +502,7 @@ class TestWikiRandomCommand:
         mock_wiki.pages.get_random_summary = AsyncMock(return_value=summary)
         mock_wiki.search.site_info = AsyncMock(return_value=site_info)
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_random(mock_ctx)
 
         call_kwargs = mock_ctx._responses[0]['kwargs']
@@ -515,7 +515,7 @@ class TestWikiRandomCommand:
     @pytest.mark.asyncio
     async def test_random_defers_before_fetch(self, mock_ctx):
         """/wiki random defers the response before hitting the api"""
-        from doom_bot.commands.wiki import wiki_random
+        from nova_core.commands.wiki import wiki_random
 
         summary = PageSummary(title='P', extract='text')
         site_info = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1')
@@ -539,7 +539,7 @@ class TestWikiRandomCommand:
         mock_ctx.defer = tracking_defer
         mock_ctx.respond = tracking_respond
 
-        with patch('doom_bot.commands.wiki.get_wiki', return_value=mock_wiki):
+        with patch('nova_core.commands.wiki.get_wiki', return_value=mock_wiki):
             await wiki_random(mock_ctx)
 
         assert defer_order == ['defer', 'respond']

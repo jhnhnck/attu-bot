@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: Apache-2.0
+"""nova_core.tasks.error_hook | error hook task."""
+
+from datetime import timedelta
+from typing import cast
+
+from discord import TextChannel
+
+from nova_core.client.core import bot, config
+from nova_core.client.logo import generate_png
+from nova_core.client.util import webhook_logging
+from nova_core.logging import get_logger
+from nova_core.tasks.base import BaseTask
+
+
+logger = get_logger(__name__)
+
+
+class ErrorHookTask(BaseTask):
+    """Ensures the error webhook exists and refreshes it if needed.
+
+    Runs once at startup (via run_immediately) and then hourly to ensure the webhook is valid.
+    """
+
+    name: str = 'ErrorHookRefresh'
+    interval = timedelta(hours=1)
+    run_immediately: bool = True
+
+    async def on_start(self) -> None:
+        await config.wait_for_load()
+        await bot.wait_until_ready()
+
+    @webhook_logging(scope=logger)
+    async def run(self) -> None:
+        """Ensure error webhook exists."""
+        if config.test_mode:
+            logger.debug('application in test mode; skipping error hook refresh')
+            return
+
+        try:
+            guild = bot.get_guild(config.error_log[0])
+            error_log = cast(TextChannel, guild.get_channel(config.error_log[1]))
+
+            webhooks = await error_log.webhooks()
+            webhook_urls = [hook.url for hook in webhooks]
+
+            # cleanup old urls
+            for old in webhooks:
+                if old.user == bot.user and old.url != config.error_hook:
+                    try:
+                        await old.delete()
+                        logger.warn(f'deleted old webhook: {old.name}-{old.id}')
+                    except Exception as del_err:
+                        logger.warn(f'failed to delete old webhook {old.name}-{old.id}: {del_err}')
+
+            if config.error_hook in webhook_urls:
+                logger.debug('existing error hook found; skipping refresh')
+                return
+
+            try:
+                icon = await generate_png(45, '#ff4941')
+                hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
+                logger.info(f'created new webhook: {hook.name}-{hook.id}')
+                config.error_hook = hook.url
+                await config.config_repo.update_system_field('error_hook', hook.url)
+            except Exception as create_err:
+                logger.error(f'failed to create new webhook for error log: {create_err}')
+
+        except Exception as err:
+            logger.error(f'failed acquiring new webhook for error log: {err}')
+
+
+# singleton for backwards compatibility - standalone function too
+error_hook_task = ErrorHookTask()
+
+
+# backwards compatible standalone function
+async def error_hook_refresh() -> None:
+    """Standalone function for running error hook refresh (used by core.py)."""
+    task = ErrorHookTask()
+    await task.run()

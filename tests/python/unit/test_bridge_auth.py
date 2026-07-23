@@ -20,9 +20,9 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def bridge_config():
-    """install a minimal BridgeConfig on the doom_bot config singleton for the test."""
-    from doom_bot import config
-    from doom_bot.config import BridgeConfig
+    """install a minimal BridgeConfig on the nova_core config singleton for the test."""
+    from nova_core.client.core import config
+    from nova_core.config import BridgeConfig
 
     config.bridge = BridgeConfig(secret='unit-test-secret', bot_port=5050, replay_window=60)
     yield config.bridge
@@ -32,10 +32,10 @@ def bridge_config():
 @pytest.fixture
 def client(bridge_config):
     """build the bridge fastapi app with discord lookups patched out."""
-    from doom_bot.bridge.router import build_app
+    from nova_core.bridge.router import build_app
 
     # discord_integration calls would touch pycord; not exercised here
-    with patch('doom_bot.bridge.router.di'):
+    with patch('nova_core.bridge.router.di'):
         app = build_app()
         with TestClient(app) as tc:
             yield tc

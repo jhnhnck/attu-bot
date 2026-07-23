@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from doom_bot.tasks.logo_update import LogoUpdateTask
+from nova_core.tasks.logo_update import LogoUpdateTask
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class TestOnStart:
         mock_cfg = _make_config()
         mock_bot = _make_bot()
 
-        with patch('doom_bot.tasks.logo_update.config', mock_cfg), patch('doom_bot.tasks.logo_update.bot', mock_bot), patch('doom_bot.tasks.logo_update.asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
+        with patch('nova_core.tasks.logo_update.config', mock_cfg), patch('nova_core.tasks.logo_update.bot', mock_bot), patch('nova_core.tasks.logo_update.asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
             await task.on_start()
 
         mock_cfg.wait_for_load.assert_awaited_once()
@@ -139,12 +139,12 @@ class TestRunHappyPath:
         year_span = _make_year_span(start_time=int((datetime.now().astimezone() - timedelta(days=7)).timestamp()), duration=14)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.get_year_status', return_value=(100, 5)),
-            patch('doom_bot.tasks.logo_update.get_year_span', new_callable=AsyncMock, return_value=year_span),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG') as mock_png,
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.get_year_status', return_value=(100, 5)),
+            patch('nova_core.tasks.logo_update.get_year_span', new_callable=AsyncMock, return_value=year_span),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG') as mock_png,
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -171,12 +171,12 @@ class TestRunHappyPath:
         year_span = _make_year_span(start_time=start_ts, duration=14)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.get_year_status', return_value=(100, 5)),
-            patch('doom_bot.tasks.logo_update.get_year_span', new_callable=AsyncMock, return_value=year_span),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.get_year_status', return_value=(100, 5)),
+            patch('nova_core.tasks.logo_update.get_year_span', new_callable=AsyncMock, return_value=year_span),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -199,11 +199,11 @@ class TestRunEpochPaused:
         mock_bot = _make_bot()
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.8),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.8),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -260,11 +260,11 @@ class TestColorMath:
 
         # force random() to return 0 so new_rotation = 50.0 + 0 = 50.0
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG') as mock_png,
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG') as mock_png,
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -304,7 +304,7 @@ class TestRunGuildAvatarUpdate:
             call_count += 1
             return bot_avatar_bytes if call_count == 1 else guild_icon_bytes
 
-        with patch('doom_bot.tasks.logo_update.config', mock_cfg), patch('doom_bot.tasks.logo_update.bot', mock_bot), patch('doom_bot.tasks.logo_update.random', return_value=0.0), patch('doom_bot.tasks.logo_update.generate_png', side_effect=fake_generate_png), patch('doom_bot.tasks.logo_update.logger') as mock_logger:
+        with patch('nova_core.tasks.logo_update.config', mock_cfg), patch('nova_core.tasks.logo_update.bot', mock_bot), patch('nova_core.tasks.logo_update.random', return_value=0.0), patch('nova_core.tasks.logo_update.generate_png', side_effect=fake_generate_png), patch('nova_core.tasks.logo_update.logger') as mock_logger:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
@@ -324,11 +324,11 @@ class TestRunBotAvatarUpdate:
         mock_bot = _make_bot()
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -356,11 +356,11 @@ class TestRunEmojiUpdate:
         guild.emojis = [old_emoji]
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -383,11 +383,11 @@ class TestRunEmojiUpdate:
         guild.emojis = []  # no existing emojis
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -412,11 +412,11 @@ class TestRunRoleColorUpdate:
 
         # force rotation to 0 -> hue=0 -> red
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -444,11 +444,11 @@ class TestRunGuildEditFails:
         guild.edit = AsyncMock(side_effect=Exception('forbidden'))
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -473,11 +473,11 @@ class TestRunBotEditFails:
         guild = mock_bot.get_guild.return_value
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -505,11 +505,11 @@ class TestRunEmojiUpdateFails:
         guild.get_role = MagicMock(return_value=mock_role)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -535,11 +535,11 @@ class TestRunRoleUpdateFails:
         guild.get_role = MagicMock(return_value=mock_role)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -564,11 +564,11 @@ class TestRunNoRoleId:
         guild = mock_bot.get_guild.return_value
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -586,11 +586,11 @@ class TestRunNoRoleId:
         guild.get_role = MagicMock(return_value=None)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -616,11 +616,11 @@ class TestRunThemePersistence:
 
         # random()=0.5 -> new_rotation = 200.0 + (0.5 * 0.5) = 200.25
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.5),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.5),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -659,11 +659,11 @@ class TestRunGuildFetchFallback:
         mock_bot.fetch_guild = AsyncMock(return_value=fallback_guild)
 
         with (
-            patch('doom_bot.tasks.logo_update.config', mock_cfg),
-            patch('doom_bot.tasks.logo_update.bot', mock_bot),
-            patch('doom_bot.tasks.logo_update.random', return_value=0.0),
-            patch('doom_bot.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
-            patch('doom_bot.tasks.logo_update.logger') as mock_logger,
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', new_callable=AsyncMock, return_value=b'\x89PNG'),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
         ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
@@ -680,7 +680,7 @@ class TestRunGuildFetchFallback:
 class TestSingleton:
     def test_module_level_singleton_exists(self):
         """the module exposes a logo_update_task singleton instance."""
-        from doom_bot.tasks.logo_update import logo_update_task
+        from nova_core.tasks.logo_update import logo_update_task
 
         assert isinstance(logo_update_task, LogoUpdateTask)
         assert logo_update_task.name == 'LogoUpdateEvent'

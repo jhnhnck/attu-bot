@@ -184,15 +184,15 @@ class TestPyprojectVersionBump:
     _pattern = r'^version = "[^"]+"'
 
     def test_replaces_version_line(self):
-        content = '[project]\nname = "doom_bot"\nversion = "1.2"\ndescription = "a bot"\n'
+        content = '[project]\nname = "nova_core"\nversion = "1.2"\ndescription = "a bot"\n'
         result = re.sub(self._pattern, 'version = "1.3"', content, count=1, flags=re.MULTILINE)
         assert 'version = "1.3"' in result
         assert 'version = "1.2"' not in result
 
     def test_preserves_other_lines(self):
-        content = '[project]\nname = "doom_bot"\nversion = "1.2"\ndescription = "a bot"\n'
+        content = '[project]\nname = "nova_core"\nversion = "1.2"\ndescription = "a bot"\n'
         result = re.sub(self._pattern, 'version = "1.3"', content, count=1, flags=re.MULTILINE)
-        assert 'name = "doom_bot"' in result
+        assert 'name = "nova_core"' in result
         assert 'description = "a bot"' in result
 
     def test_only_replaces_first_match(self):
@@ -289,7 +289,7 @@ class TestDeployOnlyRun:
             self._exit(patches)
 
     def test_dirty_trunk_aborts_before_any_action(self):
-        patches = self._patches(dirty=' M doom_bot/foo.py\n')
+        patches = self._patches(dirty=' M nova_core/foo.py\n')
         mocks = self._enter(patches)
         try:
             _, run_cmd_mock, subprocess_mock, sleep_mock, _ = mocks

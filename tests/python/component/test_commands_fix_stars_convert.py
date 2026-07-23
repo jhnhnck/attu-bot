@@ -6,15 +6,15 @@ import time
 import pytest
 import pytest_asyncio
 
-from doom_bot.config import GuildCCBoard
-from doom_bot.database.models import (
+from nova_core.config import GuildCCBoard
+from nova_core.database.models import (
     MessageAuthor,
     MessageContent,
     MessageDocument,
     MessageRefs,
     StarredMessageDocument,
 )
-from doom_bot.database.repositories import (
+from nova_core.database.repositories import (
     EntryRepository,
     MessageRepository,
     ReactionRepository,
@@ -93,9 +93,9 @@ async def convert_repos(component_db, make_guild):
         threshold=2,
     )
 
-    import doom_bot.ccboard as _ccboard
-    import doom_bot.client.messages as _messages
-    import doom_bot.client.starboard as _starboard
+    import nova_core.ccboard as _ccboard
+    import nova_core.client.messages as _messages
+    import nova_core.client.starboard as _starboard
 
     _starboard._starboard_repo = sb_repo
     _messages._message_repo = msg_repo
@@ -113,7 +113,7 @@ async def convert_repos(component_db, make_guild):
 class TestConvertMigration:
     async def test_creates_entry_and_reactions(self, convert_repos):
         """one starred message with three regular star reactions migrates to one entry and three reaction docs"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1, user_2, user_3]}))
         await convert_repos['msg'].upsert(_message(msg_id))
@@ -142,7 +142,7 @@ class TestConvertMigration:
 
     async def test_super_reaction_carries_bonus_and_overrides_regular(self, convert_repos):
         """user in both reactions and super_reactions for same emoji gets the super (higher-value) record"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         starred = _starred(
             msg_id,
@@ -169,7 +169,7 @@ class TestConvertMigration:
 
     async def test_negative_emoji_reduces_net_but_not_positive(self, convert_repos):
         """💀 has weight -1; net drops, positive stays at the ⭐ count"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1, user_2], '💀': [user_3]}))
         await convert_repos['msg'].upsert(_message(msg_id))
@@ -183,7 +183,7 @@ class TestConvertMigration:
 
     async def test_bot_reply_attribution_credits_user(self, convert_repos):
         """starred message authored by a bot that replies to a user is credited to that user via effective_author_id"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['msg'].upsert(_message(reply_target_msg_id, author_id=reply_target_user))
         await convert_repos['msg'].upsert(_message(msg_id_bot_reply, author_id=author_bot, bot=True, reply_to=reply_target_msg_id))
@@ -204,12 +204,12 @@ class TestConvertMigration:
 
         import discord
 
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1]}))
         # no message inserted; bot.get_channel returns None and fetch_channel raises NotFound
 
-        with patch('doom_bot.ccboard.migration.bot.get_channel', return_value=None), patch('doom_bot.ccboard.migration.bot.fetch_channel', side_effect=discord.NotFound(MagicMock(), 'not found')):
+        with patch('nova_core.ccboard.migration.bot.get_channel', return_value=None), patch('nova_core.ccboard.migration.bot.fetch_channel', side_effect=discord.NotFound(MagicMock(), 'not found')):
             stats = await job_convert_starboard_to_ccboard(test_guild)
 
         assert stats['placeholder'] == 1
@@ -220,7 +220,7 @@ class TestConvertMigration:
 
     async def test_idempotent(self, convert_repos):
         """running the migration twice yields the same final state"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1, user_2]}))
         await convert_repos['msg'].upsert(_message(msg_id))
@@ -247,7 +247,7 @@ class TestConvertMigration:
 
     async def test_skips_unweighted_emojis(self, convert_repos):
         """reactions on emojis not in ccboard.emojis are skipped (counted in stats), not weighted as 0"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1], '🦄': [user_2, user_3]}))
         await convert_repos['msg'].upsert(_message(msg_id))
@@ -263,7 +263,7 @@ class TestConvertMigration:
 
     async def test_no_emojis_configured_short_circuits(self, convert_repos):
         """guild with empty ccboard.emojis returns early without writing anything"""
-        from doom_bot.ccboard.migration import job_convert_starboard_to_ccboard
+        from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         convert_repos['cfg'].ccboard.emojis = {}
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1]}))

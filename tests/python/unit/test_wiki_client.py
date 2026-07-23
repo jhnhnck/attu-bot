@@ -9,11 +9,11 @@ from unittest.mock import AsyncMock
 
 import httpx
 
-from doom_bot.wiki.admin import AdminApi
-from doom_bot.wiki.auth import AuthApi
-from doom_bot.wiki.client import WikiClient
-from doom_bot.wiki.pages import PagesApi
-from doom_bot.wiki.search import SearchApi
+from nova_core.wiki.admin import AdminApi
+from nova_core.wiki.auth import AuthApi
+from nova_core.wiki.client import WikiClient
+from nova_core.wiki.pages import PagesApi
+from nova_core.wiki.search import SearchApi
 
 
 endpoint = 'https://wiki.example.test'
@@ -33,7 +33,7 @@ class TestInit:
 
     def test_sets_user_agent_header(self):
         """the user-agent header includes the bot title, version, and httpx version."""
-        from doom_bot import __email__, __title__, __version__
+        from nova_core import __email__, __title__, __version__
 
         wiki = WikiClient(endpoint)
         ua = wiki._http.headers['user-agent']

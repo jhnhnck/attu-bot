@@ -20,8 +20,8 @@ from zoneinfo import ZoneInfo
 import pytest
 from freezegun import freeze_time
 
-from doom_bot.client.calendar import AttuYearSpan, format_year_line, get_next_year, get_year_status, haracalnde_date
-from doom_bot.config import GuildEpoch
+from nova_core.client.calendar import AttuYearSpan, format_year_line, get_next_year, get_year_status, haracalnde_date
+from nova_core.config import GuildEpoch
 from tests.conftest import test_guild
 
 
@@ -288,7 +288,7 @@ class TestHaracalndeDate:
     @pytest.mark.asyncio
     async def test_epoch_start(self, guild):
         """Exact epoch rollover timestamp maps to 1-1 1 PC"""
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(self.EPOCH_ROLLOVER, test_guild)
         assert result == '1-1 1 PC'
@@ -296,7 +296,7 @@ class TestHaracalndeDate:
     @pytest.mark.asyncio
     async def test_mid_year(self, guild):
         """Jan 8 18:00 utc: 7d 1h into year 1 → proportional position in month 7"""
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(1704736800, test_guild)
         assert result == '2-7 1 PC'
@@ -304,7 +304,7 @@ class TestHaracalndeDate:
     @pytest.mark.asyncio
     async def test_year_boundary_after_rollover(self, guild):
         """Jan 15 18:00 utc: just past year 2 rollover → early month 1 of year 2"""
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR2_SPAN
             result = await haracalnde_date(1705341600, test_guild)
         assert result == '2-1 2 PC'
@@ -312,7 +312,7 @@ class TestHaracalndeDate:
     @pytest.mark.asyncio
     async def test_year_boundary_before_rollover(self, guild):
         """Jan 15 12:00 utc: boundary correction → still year 1, near end"""
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(1705320000, test_guild)
         assert result == '25-12 1 PC'
@@ -339,7 +339,7 @@ class TestHaracalndeDate:
     async def test_uses_year_span_not_epoch_length(self, guild):
         """When year_span covers 30 real-world days, position scales to that length"""
         span_30d = AttuYearSpan(start_time=1704128400, end_time=1706720400, duration=30)
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = span_30d
             # Jan 8 17:00 utc: exactly 7 days after epoch rollover
             result = await haracalnde_date(1704733200, test_guild)
@@ -350,7 +350,7 @@ class TestHaracalndeDate:
     async def test_no_db_record_fallback(self, guild):
         """When year_span has no data, fall back to epoch.length scaling"""
         empty_span = AttuYearSpan(start_time=0, end_time=0, duration=0)
-        with patch('doom_bot.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
+        with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = empty_span
             # Jan 8 18:00 utc: day_of_year=7, int(7*360/14)=180 → 1-7
             result = await haracalnde_date(1704736800, test_guild)

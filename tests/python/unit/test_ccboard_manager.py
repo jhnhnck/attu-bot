@@ -7,8 +7,8 @@ import discord
 import pytest
 
 from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
-from doom_bot.ccboard.manager import ManagerTask, _lowest_positive_emoji, _sweep_message
-from doom_bot.config import GuildCCBoard
+from nova_core.ccboard.manager import ManagerTask, _lowest_positive_emoji, _sweep_message
+from nova_core.config import GuildCCBoard
 
 
 # --- Constants ---
@@ -27,7 +27,7 @@ author_id = 573360359566737409
 
 @pytest.fixture(autouse=True)
 def _stub_bot(monkeypatch):
-    """stub doom_bot.client.core.bot for builder + manager"""
+    """stub nova_core.client.core.bot for builder + manager"""
 
     class _StubBot:
         def get_user(self, _user_id):
@@ -39,7 +39,7 @@ def _stub_bot(monkeypatch):
         async def fetch_channel(self, _channel_id):
             return None
 
-    import doom_bot.client.core as core_module
+    import nova_core.client.core as core_module
 
     monkeypatch.setattr(core_module, 'bot', _StubBot(), raising=False)
 
@@ -167,7 +167,7 @@ async def test_below_threshold_with_post_deletes_and_clears():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     partial.delete.assert_awaited_once()
@@ -185,7 +185,7 @@ async def test_below_threshold_no_post_does_nothing():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     repo.set_starboard_message.assert_not_called()
@@ -209,7 +209,7 @@ async def test_above_threshold_no_post_creates_post():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     channel.send.assert_awaited_once()
@@ -232,7 +232,7 @@ async def test_above_threshold_post_exists_edits_in_place():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     partial.edit.assert_awaited_once()
@@ -261,7 +261,7 @@ async def test_edit_not_found_clears_and_recreates():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     # cleared once for the not-found, set again on create
@@ -289,7 +289,7 @@ async def test_create_db_write_failure_deletes_orphan():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot), pytest.raises(RuntimeError):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot), pytest.raises(RuntimeError):
         await task._sync_post(entry, cfg)
 
     sent.delete.assert_awaited_once()
@@ -315,7 +315,7 @@ async def test_edit_forbidden_sends_reply():
     bot = _stub_get_channel(channel)
     task = ManagerTask()
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._sync_post(entry, cfg)
 
     channel.send.assert_awaited_once()
@@ -340,7 +340,7 @@ async def test_sweep_at_3_sends_announcement():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     # one send for the sweep embed
@@ -363,7 +363,7 @@ async def test_sweep_at_5_sends_announcement():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     channel.send.assert_awaited_once()
@@ -379,7 +379,7 @@ async def test_sweep_at_11_sends_announcement():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     channel.send.assert_awaited_once()
@@ -396,7 +396,7 @@ async def test_sweep_at_4_does_not_send():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     channel.send.assert_not_called()
@@ -414,7 +414,7 @@ async def test_sweep_streak_interrupted_no_announcement():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     channel.send.assert_not_called()
@@ -431,7 +431,7 @@ async def test_sweep_swallows_exceptions():
     task = ManagerTask()
     bot = _stub_get_channel(channel)
 
-    with patch('doom_bot.ccboard.manager._get_entry_repo', return_value=repo), patch('doom_bot.client.core.bot', bot):
+    with patch('nova_core.ccboard.manager._get_entry_repo', return_value=repo), patch('nova_core.client.core.bot', bot):
         await task._announce_sweep(entry, cfg, channel)
 
     channel.send.assert_not_called()
@@ -444,8 +444,8 @@ async def test_sweep_swallows_exceptions():
 
 def test_register_bot_tasks_includes_manager():
     """register_bot_tasks must add ccboard_manager_task to the scheduler"""
-    from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
-    from doom_bot.tasks import register_bot_tasks
+    from nova_core.ccboard.manager import manager_task as ccboard_manager_task
+    from nova_core.tasks import register_bot_tasks
 
     scheduler = MagicMock()
     scheduler.registered_tasks = MagicMock(return_value=[])
@@ -459,8 +459,8 @@ def test_register_bot_tasks_includes_manager():
 
 def test_register_bot_tasks_idempotent():
     """calling twice doesn't re-register the manager"""
-    from doom_bot.ccboard.manager import manager_task as ccboard_manager_task
-    from doom_bot.tasks import register_bot_tasks
+    from nova_core.ccboard.manager import manager_task as ccboard_manager_task
+    from nova_core.tasks import register_bot_tasks
 
     scheduler = MagicMock()
     scheduler.registered_tasks = MagicMock(return_value=[ccboard_manager_task])

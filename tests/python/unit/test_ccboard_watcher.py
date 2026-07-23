@@ -13,9 +13,9 @@ from attu_models import (
     MessageRefs,
     ReactionDocument,
 )
-from doom_bot import ccboard
-from doom_bot.ccboard import watcher
-from doom_bot.config import GuildCCBoard
+from nova_core import ccboard
+from nova_core.ccboard import watcher
+from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 
 
@@ -444,17 +444,17 @@ async def test_stale_echo_rejected_by_emoji_mismatch(make_guild_ccboard, entry_d
 def test_extension_imports_cleanly_with_ccboard_wiring():
     """compensation: the existing TestExtensionImports test mocks load_extension; this
     test verifies that the new ccboard listener wiring on events.py is *additive* (not
-    replacing the legacy starboard handlers) and that doom_bot.client.events still
+    replacing the legacy starboard handlers) and that nova_core.client.events still
     imports cleanly with both systems registered.
     """
     import importlib
 
-    events_mod = importlib.import_module('doom_bot.client.events')
+    events_mod = importlib.import_module('nova_core.client.events')
     # both legacy handlers still imported via local imports inside listeners; the
     # ccboard-enabled gate function is exposed at module scope as a sanity check
     assert hasattr(events_mod, '_ccboard_enabled')
     # ccboard watcher is importable
-    importlib.import_module('doom_bot.ccboard.watcher')
+    importlib.import_module('nova_core.ccboard.watcher')
 
 
 # --- _starboard_enabled unit tests ---
@@ -465,7 +465,7 @@ def test_starboard_enabled_returns_false_when_config_disabled(monkeypatch):
     import importlib
     from unittest.mock import MagicMock
 
-    events_mod = importlib.import_module('doom_bot.client.events')
+    events_mod = importlib.import_module('nova_core.client.events')
 
     mock_starboard = MagicMock()
     mock_starboard.enabled = False
@@ -484,7 +484,7 @@ def test_starboard_enabled_returns_true_on_config_exception(monkeypatch):
     import importlib
     from unittest.mock import MagicMock
 
-    events_mod = importlib.import_module('doom_bot.client.events')
+    events_mod = importlib.import_module('nova_core.client.events')
 
     mock_config = MagicMock()
     mock_config.guild.side_effect = Exception('config not loaded')

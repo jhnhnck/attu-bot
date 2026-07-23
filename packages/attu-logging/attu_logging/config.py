@@ -104,10 +104,10 @@ def configure(*, json: bool | None = None, level: str | None = None) -> None:
     """
     root = logging.getLogger()
 
-    # idempotent: skip if either marker is already attached. the `_doom_bot_owned`
-    # check lets the legacy wrapper's _configure() see our handlers and bail too -
-    # temporary coexistence hack for dual-consumer compatibility.
-    if any(getattr(h, '_attu_owned', False) or getattr(h, '_doom_bot_owned', False) for h in root.handlers):
+    # idempotent: skip if either marker is already attached. the `_nova_core_owned`
+    # check lets nova_core.logging._configure() see our handlers and bail too -
+    # dual-consumer compatibility for processes that import both logging setups.
+    if any(getattr(h, '_attu_owned', False) or getattr(h, '_nova_core_owned', False) for h in root.handlers):
         return
 
     log_format = ('json' if json else 'console') if json is not None else environ.get('LOG_FORMAT', 'console').lower()
@@ -119,13 +119,13 @@ def configure(*, json: bool | None = None, level: str | None = None) -> None:
     stdout_h.setFormatter(formatter)
     stdout_h.addFilter(_MaxLevelFilter(logging.WARNING))
     stdout_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stdout_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker for dual-consumer compatibility
+    stdout_h._nova_core_owned = True  # type: ignore[attr-defined]  # cross-package marker for dual-consumer compatibility
 
     stderr_h = logging.StreamHandler(sys.stderr)
     stderr_h.setFormatter(formatter)
     stderr_h.setLevel(logging.WARNING)
     stderr_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stderr_h._doom_bot_owned = True  # type: ignore[attr-defined]  # legacy marker for dual-consumer compatibility
+    stderr_h._nova_core_owned = True  # type: ignore[attr-defined]  # cross-package marker for dual-consumer compatibility
 
     root.addHandler(stdout_h)
     root.addHandler(stderr_h)

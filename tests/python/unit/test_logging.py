@@ -1,5 +1,5 @@
 """
-AttuBot - doom_bot.logging Unit Tests
+AttuBot - nova_core.logging Unit Tests
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
@@ -12,7 +12,7 @@ import logging
 
 import pytest
 
-from doom_bot.logging import ALERT, TRACE, AttubotLogger, _configure, _MaxLevelFilter, _resolve_pycord_bucket
+from nova_core.logging import ALERT, TRACE, AttubotLogger, _configure, _MaxLevelFilter, _resolve_pycord_bucket
 
 
 pytestmark = pytest.mark.unit
@@ -53,7 +53,7 @@ class TestAttubotLogger:
     def test_trace_silent_without_debug_env(self, monkeypatch, capture_structlog):
         monkeypatch.delenv('DEBUG', raising=False)
         # the gate is read at module import; rebind the module flag for this test
-        import doom_bot.logging as logging_mod
+        import nova_core.logging as logging_mod
 
         monkeypatch.setattr(logging_mod, '_DEBUG_MODE', False)
 
@@ -64,7 +64,7 @@ class TestAttubotLogger:
         assert capture_structlog == []
 
     def test_trace_emits_when_debug_set(self, monkeypatch, capture_structlog):
-        import doom_bot.logging as logging_mod
+        import nova_core.logging as logging_mod
 
         monkeypatch.setattr(logging_mod, '_DEBUG_MODE', True)
         # capture_logs intercepts structlog calls but not stdlib direct calls; trace/alert
@@ -116,7 +116,7 @@ class TestResolvePycordBucket:
         assert '{message_id}' not in out['event']
 
     def test_skips_non_discord_records(self):
-        ev = {'logger': 'doom_bot.client.events', 'event': 'unrelated'}
+        ev = {'logger': 'nova_core.client.events', 'event': 'unrelated'}
         out = _resolve_pycord_bucket(None, None, ev)
         assert out is ev  # unchanged
 
@@ -168,14 +168,14 @@ class TestDiscordHttpLevelGating:
     """unit: _setup_discord_logging respects the DEBUG env var"""
 
     def _reset_discord_http(self):
-        from doom_bot.logging import PycordBridgeHandler
+        from nova_core.logging import PycordBridgeHandler
 
         log = logging.getLogger('discord.http')
         log.setLevel(logging.NOTSET)
         log.handlers = [h for h in log.handlers if not isinstance(h, PycordBridgeHandler)]
 
     def test_pinned_to_warning_when_debug_unset(self, monkeypatch):
-        from doom_bot.client import _setup_discord_logging
+        from nova_core.client import _setup_discord_logging
 
         monkeypatch.delenv('DEBUG', raising=False)
         self._reset_discord_http()
@@ -183,7 +183,7 @@ class TestDiscordHttpLevelGating:
         assert logging.getLogger('discord.http').level == logging.WARNING
 
     def test_set_to_debug_when_debug_present(self, monkeypatch):
-        from doom_bot.client import _setup_discord_logging
+        from nova_core.client import _setup_discord_logging
 
         monkeypatch.setenv('DEBUG', '1')
         self._reset_discord_http()
@@ -201,13 +201,13 @@ class TestConfigureIdempotent:
 
     def test_repeated_calls_do_not_duplicate_handlers(self):
         root = logging.getLogger()
-        before = [h for h in root.handlers if getattr(h, '_doom_bot_owned', False)]
+        before = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
 
         _configure()
         _configure()
         _configure()
 
-        after = [h for h in root.handlers if getattr(h, '_doom_bot_owned', False)]
+        after = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
         assert len(after) == len(before), f'expected handler count unchanged, was {len(before)} now {len(after)}'
 
     def test_owned_handlers_split_stdout_and_stderr(self):
@@ -215,7 +215,7 @@ class TestConfigureIdempotent:
 
         _configure()
         root = logging.getLogger()
-        owned = [h for h in root.handlers if getattr(h, '_doom_bot_owned', False)]
+        owned = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
         streams = {h.stream for h in owned if isinstance(h, logging.StreamHandler)}
         assert sys.stdout in streams
         assert sys.stderr in streams

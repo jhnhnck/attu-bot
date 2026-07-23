@@ -8,7 +8,7 @@ members = [
     "attu-logging",
     "attu-models",
     "attu-server",
-    "doom-bot",
+    "nova-core",
 ]
 
 [[package]]
@@ -123,7 +123,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "attu-logging" },
     { name = "attu-models" },
-    { name = "doom-bot" },
+    { name = "nova-core" },
 ]
 
 [package.dev-dependencies]
@@ -145,7 +145,7 @@ dev = [
 requires-dist = [
     { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "attu-models", virtual = "packages/shared-models" },
-    { name = "doom-bot", virtual = "apps/bot" },
+    { name = "nova-core", virtual = "apps/bot" },
 ]
 
 [package.metadata.requires-dev]
@@ -456,39 +456,6 @@ wheels = [
 ]
 
 [[package]]
-name = "doom-bot"
-version = "80.0"
-source = { virtual = "apps/bot" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "anyio" },
-    { name = "attu-logging" },
-    { name = "attu-models" },
-    { name = "httpx" },
-    { name = "mwparserfromhell" },
-    { name = "py-cord", extra = ["speed"] },
-    { name = "pydantic" },
-    { name = "pymongo" },
-    { name = "structlog" },
-    { name = "tomlkit" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp" },
-    { name = "anyio", specifier = ">=4.12.0" },
-    { name = "attu-logging", virtual = "packages/attu-logging" },
-    { name = "attu-models", virtual = "packages/shared-models" },
-    { name = "httpx" },
-    { name = "mwparserfromhell" },
-    { name = "py-cord", extras = ["speed"], specifier = "<3" },
-    { name = "pydantic" },
-    { name = "pymongo", specifier = ">=4.6.0" },
-    { name = "structlog", specifier = ">=24.0.0" },
-    { name = "tomlkit" },
-]
-
-[[package]]
 name = "filelock"
 version = "3.25.2"
 source = { registry = "https://pypi.org/simple" }
@@ -746,6 +713,39 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8c/a6/d581996827b9d1133094dc347f1c4e3d2a70557973ce7a427a03337b1427/nodejs_wheel_binaries-24.14.1-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:810a48ce096925ead0690f7d143e48fb902ebfc9212097e8f6cb3ac6cbe8f314", size = 62069740, upload-time = "2026-03-31T14:07:17.006Z" },
     { url = "https://files.pythonhosted.org/packages/27/da/396d1a48cbf3d5899461bda12fa97ae4010d7e4013e7f28230cb04af5818/nodejs_wheel_binaries-24.14.1-py2.py3-none-win_amd64.whl", hash = "sha256:7a087b6a727fb9242d1cc83c8b121711bd0e9686408d27de48b34b23dfb26ac5", size = 41400067, upload-time = "2026-03-31T14:07:20.513Z" },
     { url = "https://files.pythonhosted.org/packages/13/b7/adb21cf549934579e98934531e7f9b038d583fc9c2dd4b82ea01cc31bdd2/nodejs_wheel_binaries-24.14.1-py2.py3-none-win_arm64.whl", hash = "sha256:978fdfe76624c48111ab99ed0f99f9d4c1c682e420b0212ac9e1daee52f20283", size = 39096873, upload-time = "2026-03-31T14:07:23.977Z" },
+]
+
+[[package]]
+name = "nova-core"
+version = "80.0"
+source = { virtual = "apps/bot" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "anyio" },
+    { name = "attu-logging" },
+    { name = "attu-models" },
+    { name = "httpx" },
+    { name = "mwparserfromhell" },
+    { name = "py-cord", extra = ["speed"] },
+    { name = "pydantic" },
+    { name = "pymongo" },
+    { name = "structlog" },
+    { name = "tomlkit" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp" },
+    { name = "anyio", specifier = ">=4.12.0" },
+    { name = "attu-logging", virtual = "packages/attu-logging" },
+    { name = "attu-models", virtual = "packages/shared-models" },
+    { name = "httpx" },
+    { name = "mwparserfromhell" },
+    { name = "py-cord", extras = ["speed"], specifier = "<3" },
+    { name = "pydantic" },
+    { name = "pymongo", specifier = ">=4.6.0" },
+    { name = "structlog", specifier = ">=24.0.0" },
+    { name = "tomlkit" },
 ]
 
 [[package]]
