@@ -7,6 +7,8 @@
 
 - [defer] `tests/python/unit/test_start_bot_loop.py::TestSetupDiscordLogging::test_sets_discord_http_logger_to_debug` asserts `discord.http` level is unconditionally `DEBUG` but `_setup_discord_logging()` has been conditional (`DEBUG in environ`) since at least d16d1b2 (pre-phase-2); test predates the conditional and was already failing before the migration; `TestDiscordHttpLevelGating` in `test_logging.py` covers both branches correctly with monkeypatch; fix is to update the stale test or delete it in favor of the better coverage in test_logging.py
 - [defer] vestigial `mock_logger.send_to_webhook = AsyncMock()` assignments in `test_task_error_hook.py`, `test_task_logo_update.py`, `test_scheduler.py`, and `test_task_presence.py`; these mocked a method that no longer exists on `structlog.stdlib.BoundLogger`; no assertion checks the attribute so the lines are dead but harmless; correct fix is to delete the dead assignments or replace with `patch('attu_logging.webhook.send_to_webhook', ...)` if the call is meaningful to the test
+- [defer] `nova_core/client/events.py` `_do_ready_init()`: add explanatory comment at the `set_webhook_url` call site noting that if `on_load()` raises before reaching this line, the except-clause `send_to_webhook()` silently no-ops (url unset); behavior unchanged from pre-migration; non-blocking comment-only fix
+- [defer] `_break_at_newline` inlined into `attu_logging/webhook.py` creates drift risk vs `nova_core/client/util.py`; real fix is moving to a shared-models package; out of scope for nova-w1; track in workstream 3
 
 ## closed
 - em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (plan.md edited for plan-revise, triggering the deferred condition)

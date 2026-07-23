@@ -55,7 +55,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 ### phase 2 - attu_logging migration
 
-**status:** open
+**status:** pending merge
 
 **dod:** `grep -rn 'nova_core\.logging\|doom_bot\.logging' . --include="*.py"` returns zero; `nova_core/logging.py` is absent from the filesystem; `attu_logging/webhook.py` contains no bot package imports; `attu_logging.set_webhook_url()` exists and is called from `on_load()` after `config.error_hook` is available; inlined `break_at_newline` in `attu_logging/webhook.py` matches `nova_core/client/util.py` implementation; bot runnable (bridge excluded)
 
@@ -69,7 +69,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 **dod:** all 8 bugs from the contract addressed at code level; sample TOML has `[bridge]` section; `__config_version__` in `nova_core/__init__.py` bumped to `2.6.0`; `ruff check` passes; bot runnable with bridge now included (`config.bridge` defined; bridge starts on on_ready)
 
-**scope:** first, read `nova_core/client/events.py` `_do_ready_init()` at line 102 to confirm where `start_bridge_task()` is called and whether its error is swallowed - this determines whether the bridge crash in phases 0-2 was silent or fatal; document the finding in the commit message. then fix all 8 bugs: (1) hmac bypass - add `Field(min_length=1)` to `BridgeConfig.secret` and add `BridgeConfig` model to `nova_core/config.py` with `secret: str = Field(min_length=1)`, `bind_host: str = '127.0.0.1'`, `bot_port: int = 5050`, `replay_window: int = 60`; wire into `NovaConfig.on_init()` from `[bridge]` TOML section; add `[bridge]` section to `config/attu-bot.sample.toml`; bump `__config_version__` to `2.6.0`. (2) startup lockout - in `router.py` `start_bridge_task()`: move `bot._bridge_started = True` to AFTER `await server.serve()` returns; set to `False` on exception. (3) health race - add `bot._bot_initialized: bool = False` on the bot singleton in `nova_core/client/core.py`; set `True` at the end of `_do_ready_init()`; health endpoint reads `bot._bot_initialized` not `bot.is_ready()`. (4) config_version gate - covered by sample toml bump above. (5) avatar_url null - `discord_integration.py` `get_user_info()`: `user.display_avatar.url` unconditionally (remove `if user.avatar else None` guard). (6) `get_guild_roles` silent 200 - match `get_guild_channels` error-handling pattern: `return None` on exception; router endpoint raises 502. (7) `DiscordCache.clear` prefix collision - `k.startswith(prefix + ':')` instead of `k.startswith(prefix)`. (8) `_register_bridge_startup` test mock - apply mock-compensation skill before touching bridge tests; add `_register_bridge_startup` to `_patch_all_startup()` and all inline patch blocks.
+**scope:** first, read `nova_core/client/events.py` `_do_ready_init()` at line 102 to confirm where `start_bridge_task()` is called and whether its error is swallowed - this determines whether the bridge crash in phases 0-2 was silent or fatal; document the finding in the commit message. then fix all 8 bugs: (1) hmac bypass - add `Field(min_length=1)` to `BridgeConfig.secret` and add `BridgeConfig` model to `nova_core/config.py` with `secret: str = Field(min_length=1)`, `bind_host: str = '127.0.0.1'`, `bot_port: int = 5050`, `replay_window: int = 60`; wire into `NovaConfig.on_init()` from `[bridge]` TOML section; add `[bridge]` section to `config/attu-bot.sample.toml`; bump `__config_version__` to `2.6.0`. (2) startup lockout - in `router.py` `start_bridge_task()`: move `bot._bridge_started = True` to AFTER `await server.serve()` returns; set to `False` on exception. (3) health race - add `bot._bot_initialized: bool = False` on the bot singleton in `nova_core/client/core.py`; set `True` at the end of `_do_ready_init()`; health endpoint reads `bot._bot_initialized` not `bot.is_ready()`. (4) config_version gate - covered by sample toml bump above. (5) avatar_url null - `discord_integration.py` `get_user_info()`: `user.display_avatar.url` unconditionally (remove `if user.avatar else None` guard). (6) `get_guild_roles` silent 200 - match `get_guild_channels` error-handling pattern: `return None` on exception; router endpoint raises 502. (7) `DiscordCache.clear` prefix collision - `k.startswith(prefix + ':')` instead of `k.startswith(prefix)`. (8) `_register_bridge_startup` test mock - apply mock-compensation skill before touching bridge tests; add `_register_bridge_startup` to `_patch_all_startup()` and all inline patch blocks. also address the now-visible `test_bridge_sign.py` pre-existing unit failures (5 tests; unmasked in phase 2; mechanism documented in bugs.md).
 
 **merge gate:** phase 2 merged to trunk
 
@@ -91,6 +91,6 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 |---|---|
 | 0 - walking skeleton | closed in 56e78e1 |
 | 1 - package rename | closed in 3ae889a |
-| 2 - attu_logging migration | in progress |
+| 2 - attu_logging migration | pending merge |
 | 3 - bridge bug fixes | not started |
 | 4 - config restructure and string cleanup | not started |

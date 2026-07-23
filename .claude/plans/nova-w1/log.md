@@ -86,3 +86,26 @@ cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item close
 - branch: `phase/nova-w1`
 - parent: `trunk`
 - dod: `grep -rn 'nova_core\.logging\|doom_bot\.logging' . --include="*.py"` returns zero; `nova_core/logging.py` absent; `attu_logging/webhook.py` has no bot imports; `attu_logging.set_webhook_url()` exists and called from `on_load()` after `config.error_hook` available; inlined `break_at_newline` matches `nova_core/client/util.py`; bot runnable (bridge excluded)
+
+## phase 2 retro - 2026-07-23
+
+**what landed vs spec**
+- `nova_core/logging.py` deleted; all 46+ `nova_core.logging` / `doom_bot.logging` import sites migrated to structlog; dod grep returns zero
+- `attu_logging/webhook.py` has no bot package imports; `_break_at_newline` inlined from `nova_core/client/util.py`; webhook url read lazily from module-level store at call time
+- `attu_logging.set_webhook_url()` added and called from `_do_ready_init()` after db connect; `attu_logging.configure()` receives `DEBUG` env var for backward-compat level behavior
+- `PycordBridgeHandler` moved inline to `nova_core/client/__init__.py`; `Logger` type alias usages in `util.py` replaced with `structlog.stdlib.BoundLogger`
+- 180 component tests pass; ruff check + ruff format --check clean; bot runnable (bridge excluded)
+
+**what surprised us**
+- 3 post-implement regression fixes: (1) `logger.debug(*pages)` varargs call in `commands/wiki.py` unsupported by structlog; fixed to `logger.debug('wiki search results', results=[str(p) for p in pages])`; (2) `mock_logger.warn` in `test_scheduler.py` updated to `warning`; (3) `mock_logger.warn` in `test_task_error_hook.py` updated to `warning`
+- 5 newly-visible `test_bridge_sign.py` unit failures are pre-existing (masked by `test_bridge_auth.py` collection stop in phases 0-1); visible now because integration-check ran with `--ignore=test_bridge_auth.py`; see bugs.md
+- `set_webhook_url` called inside `try` block in `_do_ready_init()`; if `on_load()` raises before reaching the call, the except-clause `send_to_webhook()` fires before the url is set and silently no-ops; same behavior as pre-migration; timing gap is an accepted risk from the plan
+
+**what residual debt remains**
+- explanatory comment at `set_webhook_url` call site in `_do_ready_init()` (timing gap clarification); behavior unchanged; deferred to bugs.md
+- `_break_at_newline` drift risk between `attu_logging/webhook.py` and `nova_core/client/util.py`; real fix requires shared-models; deferred to bugs.md (workstream 3)
+
+## revision after phase 2 - 2026-07-23
+
+- phase 3: revised - scope updated to note that `test_bridge_sign.py` pre-existing failures are now visible and must be addressed in this phase; they were masked in phases 0-1 by `test_bridge_auth.py` collection stop; mechanism documented in bugs.md
+- phase 4: valid - premises unchanged; no scope changes needed
