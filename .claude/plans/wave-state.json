@@ -4,10 +4,10 @@
     { "plan": "nova-w1", "phase": 0, "state": "closed", "gate": null, "note": "nova_core/__init__.py walking skeleton; closed in 56e78e1" },
     { "plan": "nova-w1", "phase": 1, "state": "closed", "gate": null, "note": "doom_bot -> nova_core rename complete; closed in 3ae889a" },
     { "plan": "nova-w1", "phase": 2, "state": "closed", "gate": null, "note": "attu_logging migration; structlog + webhook refactor; closed in 17785e5" },
-    { "plan": "nova-w1", "phase": 3, "state": "active", "gate": null, "note": "bridge bug fixes (8 bugs) + test_bridge_sign.py failures; in progress" },
-    { "plan": "nova-w1", "phase": 4, "state": "queued", "gate": "nova-w1 ph3", "note": "config restructure and string cleanup" },
+    { "plan": "nova-w1", "phase": 3, "state": "closed", "gate": null, "note": "bridge bug fixes (8 bugs + test_bridge_sign.py); closed in 7d98a7b" },
+    { "plan": "nova-w1", "phase": 4, "state": "closed", "gate": null, "note": "[[guilds]] array, BotConfig, string cleanup, primary_guild removed; closed in 5a5d3f3; plan archived" },
 
-    { "plan": "nova-w2", "phase": 0, "state": "queued", "gate": "nova-w1 all",  "note": "walking skeleton: FeatureManifest, FeatureContext, loader" },
+    { "plan": "nova-w2", "phase": 0, "state": "ready",  "gate": null,           "note": "walking skeleton: FeatureManifest, FeatureContext, loader (nova-w1 gate cleared)" },
     { "plan": "nova-w2", "phase": 1, "state": "queued", "gate": "nova-w2 ph0", "note": "full manifest API, TOML feature selection, migration ordering" },
     { "plan": "nova-w2", "phase": 2, "state": "queued", "gate": "nova-w2 ph1", "note": "base package explicit declaration" },
 
