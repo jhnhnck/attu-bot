@@ -89,7 +89,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | not started |
+| 0 — walking skeleton | in progress |
 | 1 — package rename | not started |
 | 2 — attu_logging migration | not started |
 | 3 — bridge bug fixes | not started |
