@@ -5,17 +5,17 @@ import time
 from datetime import timedelta
 
 import discord
+import structlog
 
 from attu_models import BoardEntryDocument, EntryRepository
 from nova_core.ccboard.builder import build_embeds
 from nova_core.client.core import config
 from nova_core.client.util import format_message_link, theme_color
 from nova_core.config import GuildCCBoard, UnauthorizedGuild
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 # --- Constants ---
@@ -141,7 +141,7 @@ class ManagerTask(BaseTask):
                 try:
                     channel = await bot.fetch_channel(cfg.channel_id)
                 except Exception as err:
-                    logger.warn(f'ccboard manager: channel {cfg.channel_id} unavailable: {err}')
+                    logger.warning(f'ccboard manager: channel {cfg.channel_id} unavailable: {err}')
                     return
             try:
                 old = channel.get_partial_message(entry.starboard_message_id)
@@ -150,7 +150,7 @@ class ManagerTask(BaseTask):
             except discord.NotFound:
                 logger.debug(f'ccboard manager: post {entry.starboard_message_id} already gone')
             except Exception as err:
-                logger.warn(f'ccboard manager: could not delete post {entry.starboard_message_id}: {err}')
+                logger.warning(f'ccboard manager: could not delete post {entry.starboard_message_id}: {err}')
             await entry_repo.set_starboard_message(entry.message_id, None)
             return
 
@@ -160,7 +160,7 @@ class ManagerTask(BaseTask):
             try:
                 channel = await bot.fetch_channel(cfg.channel_id)
             except Exception as err:
-                logger.warn(f'ccboard manager: channel {cfg.channel_id} unavailable: {err}')
+                logger.warning(f'ccboard manager: channel {cfg.channel_id} unavailable: {err}')
                 return
 
         embeds = build_embeds(entry, cfg)
@@ -178,7 +178,7 @@ class ManagerTask(BaseTask):
             return
         except discord.NotFound:
             # post was deleted externally; clear the reference and fall through to recreate
-            logger.warn(f'ccboard manager: post {entry.starboard_message_id} not found, recreating')
+            logger.warning(f'ccboard manager: post {entry.starboard_message_id} not found, recreating')
             await entry_repo.set_starboard_message(entry.message_id, None)
             entry.starboard_message_id = None
             await self._create_post(entry, cfg, channel, content, embeds)
@@ -188,7 +188,7 @@ class ManagerTask(BaseTask):
             if entry.reply_created:
                 logger.debug(f'ccboard manager: skipping repeat reply for uneditable post {entry.starboard_message_id}')
                 return
-            logger.warn(f'ccboard manager: cannot edit post {entry.starboard_message_id}, sending reply')
+            logger.warning(f'ccboard manager: cannot edit post {entry.starboard_message_id}, sending reply')
             try:
                 try:
                     old = channel.get_partial_message(entry.starboard_message_id)
@@ -202,7 +202,7 @@ class ManagerTask(BaseTask):
                     try:
                         await new_msg.add_reaction(emoji)
                     except Exception as react_err:
-                        logger.warn(f'ccboard manager: failed to add reaction {emoji} to replacement post: {react_err}')
+                        logger.warning(f'ccboard manager: failed to add reaction {emoji} to replacement post: {react_err}')
                 logger.info(f'ccboard manager: replaced uneditable post {entry.starboard_message_id} with {new_msg.id} for message {entry.message_id}')
             except Exception as err:
                 logger.error(f'ccboard manager: failed to send replacement for post {entry.starboard_message_id}: {err}')
@@ -241,7 +241,7 @@ class ManagerTask(BaseTask):
             try:
                 await new_msg.add_reaction(emoji)
             except Exception as err:
-                logger.warn(f'ccboard manager: failed to add reaction {emoji} to post {new_msg.id}: {err}')
+                logger.warning(f'ccboard manager: failed to add reaction {emoji} to post {new_msg.id}: {err}')
 
         logger.info(f'ccboard manager: created post {new_msg.id} for message {entry.message_id} ({entry.positive_points} positive)')
         await self._announce_sweep(entry, cfg, channel)

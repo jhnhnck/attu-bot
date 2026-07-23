@@ -4,13 +4,13 @@
 from datetime import UTC, datetime, timedelta
 
 import discord
+import structlog
 
 from nova_core.client.core import bot, config
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class EggCleanupTask(BaseTask):
@@ -33,7 +33,7 @@ class EggCleanupTask(BaseTask):
         guild_cfg = config.primary()
         guild = bot.get_guild(guild_cfg.id)
         if guild is None:
-            logger.warn('egg cleanup: primary guild not in cache')
+            logger.warning('egg cleanup: primary guild not in cache')
             return
 
         # local imports to avoid circular deps with tasks/__init__.py

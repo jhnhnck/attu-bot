@@ -202,7 +202,7 @@ class TestBotReadyPath:
             _bot_patched(),
             patch('nova_core.database.init_database', new_callable=AsyncMock, side_effect=Exception('db down')),
             patch('nova_core.client.events._shutdown', mock_shutdown),
-            patch.object(__import__('nova_core.client.events', fromlist=['logger']).logger, 'send_to_webhook', new_callable=AsyncMock),
+            patch('attu_logging.webhook.send_to_webhook', new_callable=AsyncMock),
         ):
             await _do_ready_init()
 

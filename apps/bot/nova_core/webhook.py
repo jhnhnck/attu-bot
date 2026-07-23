@@ -3,10 +3,10 @@
 
 import traceback
 
-from nova_core.logging import get_logger
+import structlog
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def send_to_webhook(error: Exception, location: str = '', logger_name: str = '?') -> None:

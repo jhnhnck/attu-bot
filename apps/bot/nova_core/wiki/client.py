@@ -4,16 +4,16 @@
 from platform import python_version
 
 import httpx
+import structlog
 
 from nova_core import __email__, __title__, __version__
-from nova_core.logging import get_logger
 from nova_core.wiki.admin import AdminApi
 from nova_core.wiki.auth import AuthApi
 from nova_core.wiki.pages import PagesApi
 from nova_core.wiki.search import SearchApi
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class WikiClient:

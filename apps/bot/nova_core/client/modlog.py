@@ -5,15 +5,15 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import discord
+import structlog
 from discord import Guild, GuildEmoji, Member, Role, User
 
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import make_embed
 from nova_core.client.util import event_log_context
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def _get_logs_channel(guild_id: int) -> discord.TextChannel | None:

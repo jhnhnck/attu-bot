@@ -4,17 +4,17 @@
 from datetime import UTC, datetime, timedelta
 
 import discord
+import structlog
 from discord import Object
 from discord.utils import time_snowflake
 
 from nova_core.client.core import bot, config
 from nova_core.client.messages import _get_repo, build_message_doc
 from nova_core.client.starboard import backfill_message_reactions
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class MessageBackfillTask(BaseTask):
@@ -63,7 +63,7 @@ class MessageBackfillTask(BaseTask):
                     continue
                 channels.append(thread)
         except Exception as err:
-            logger.warn(f'backfill: could not fetch active threads for guild {guild.id}: {err}')
+            logger.warning(f'backfill: could not fetch active threads for guild {guild.id}: {err}')
 
         return channels
 
@@ -76,7 +76,7 @@ class MessageBackfillTask(BaseTask):
         for guild_id in config.valid_guilds:
             guild = bot.get_guild(guild_id)
             if guild is None:
-                logger.warn(f'backfill: guild {guild_id} not in cache, skipping')
+                logger.warning(f'backfill: guild {guild_id} not in cache, skipping')
                 continue
 
             try:
@@ -115,7 +115,7 @@ class MessageBackfillTask(BaseTask):
         try:
             latest_id = await repo.get_latest_in_channel(guild_id, channel.id)
         except Exception as err:
-            logger.warn(f'backfill: could not query latest message for channel {channel.id}: {err}')
+            logger.warning(f'backfill: could not query latest message for channel {channel.id}: {err}')
             return 0
 
         if latest_id is not None:
@@ -140,12 +140,12 @@ class MessageBackfillTask(BaseTask):
                     if message.reactions:
                         await backfill_message_reactions(message, guild_id)
                 except Exception as err:
-                    logger.warn(f'backfill: failed to store message {message.id} in channel {channel.id}: {err}')
+                    logger.warning(f'backfill: failed to store message {message.id} in channel {channel.id}: {err}')
 
         except discord.Forbidden:
             logger.debug(f'backfill: no permission to read history in {channel_label}')
         except Exception as err:
-            logger.warn(f'backfill: error reading {channel_label}: {err}')
+            logger.warning(f'backfill: error reading {channel_label}: {err}')
 
         if count > 0:
             logger.debug(f'backfill: stored {count} new messages from {channel_label}')
@@ -176,7 +176,7 @@ class MessageBackfillTask(BaseTask):
         except discord.Forbidden:
             logger.debug(f'backfill: no permission to read recent history in {channel_label}')
         except Exception as err:
-            logger.warn(f'backfill: error reconciling {channel_label}: {err}')
+            logger.warning(f'backfill: error reconciling {channel_label}: {err}')
 
         stored_window_ids = await repo.get_message_ids_in_window(guild_id, channel.id, int(since.timestamp()), int(datetime.now(tz=UTC).timestamp()))
         missing = [mid for mid in stored_window_ids if mid not in seen_ids]
@@ -197,7 +197,7 @@ class MessageBackfillTask(BaseTask):
             await backfill_message_reactions(message, guild_id)
             return True
         except Exception as err:
-            logger.warn(f'backfill: failed to reconcile message {message.id} in channel {message.channel.id}: {err}')
+            logger.warning(f'backfill: failed to reconcile message {message.id} in channel {message.channel.id}: {err}')
             return False
 
     async def _reconcile_pending_starred_docs(self, guild_id: int) -> None:
@@ -210,7 +210,7 @@ class MessageBackfillTask(BaseTask):
             sb_repo = _get_sb_repo()
             pending = await sb_repo.get_all_pending(guild_id)
         except Exception as err:
-            logger.warn(f'backfill: could not fetch pending starred docs for guild {guild_id}: {err}')
+            logger.warning(f'backfill: could not fetch pending starred docs for guild {guild_id}: {err}')
             return
 
         if not pending:
@@ -237,7 +237,7 @@ class MessageBackfillTask(BaseTask):
                 await sb_repo.mark_source_deleted(starred_doc.message_id)
                 logger.info(f'backfill: marked starred doc {starred_doc.message_id} as stale (original message deleted)')
             except Exception as err:
-                logger.warn(f'backfill: failed to reconcile pending starred doc {starred_doc.message_id}: {err}')
+                logger.warning(f'backfill: failed to reconcile pending starred doc {starred_doc.message_id}: {err}')
 
 
 # singleton instance for registration

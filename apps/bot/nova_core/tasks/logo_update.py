@@ -7,16 +7,16 @@ from datetime import datetime, timedelta
 from random import random
 
 import discord
+import structlog
 
 from nova_core.client.calendar import get_year_span, get_year_status
 from nova_core.client.core import bot, config
 from nova_core.client.logo import generate_png
 from nova_core.client.util import webhook_logging
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class LogoUpdateTask(BaseTask):

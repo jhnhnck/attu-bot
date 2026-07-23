@@ -8,14 +8,15 @@ import time
 from typing import TYPE_CHECKING
 
 import discord
+import structlog
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
+import attu_logging
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import make_embed, ui_emoji
 from nova_core.client.util import is_authorized_guild
 from nova_core.database.models import WikiViewDocument
-from nova_core.logging import get_logger
 from nova_core.wiki import get_wiki
 from nova_core.wiki.models import PageSummary, SearchResult, SiteInfo
 
@@ -156,7 +157,7 @@ class WikiLookupView(discord.ui.View):
         await self._fetch_and_update(interaction)
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Wiki Commands ---
 
@@ -267,7 +268,7 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
 
     if not success:
         await ctx.edit(content=f'Failed: could not block user [{user}] after 3 attempts')
-        await logger.send_to_webhook(Exception(f'wiki.admin.block() failed for user "{user}" after 3 retries'))
+        await attu_logging.webhook.send_to_webhook(Exception(f'wiki.admin.block() failed for user "{user}" after 3 retries'))
 
 
 # --- Extension Def ---

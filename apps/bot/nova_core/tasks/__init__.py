@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.tasks | tasks package."""
 
-from nova_core.logging import get_logger
+import structlog
+
 from nova_core.tasks.base import BaseTask
 from nova_core.tasks.db_backup import DatabaseBackupTask, db_backup_task
 from nova_core.tasks.egg_cleanup import EggCleanupTask, egg_cleanup_task
@@ -15,7 +16,7 @@ from nova_core.tasks.reminder import ReminderTask, reminder_task
 from nova_core.tasks.scheduler import TaskScheduler, scheduler
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def register_bot_tasks(s: TaskScheduler) -> None:

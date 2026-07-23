@@ -5,15 +5,15 @@ import re
 import time
 from dataclasses import dataclass
 
+import structlog
 from discord.utils import snowflake_time
 from pydantic import BaseModel
 
 from nova_core.client.core import config, db
 from nova_core.database.repositories import MessageRepository, YearMarkerRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # Module-level repository instances
 _marker_repo: YearMarkerRepository | None = None

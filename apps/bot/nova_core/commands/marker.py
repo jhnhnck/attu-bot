@@ -2,6 +2,7 @@
 """nova_core.commands.marker | marker commands."""
 
 import discord
+import structlog
 from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
@@ -11,10 +12,9 @@ from nova_core.client.core import config
 from nova_core.client.markers import YearMarker
 from nova_core.client.util import format_message_link, is_authorized_guild
 from nova_core.config import UnauthorizedGuild
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Marker Commands ---
 

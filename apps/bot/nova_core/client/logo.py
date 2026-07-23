@@ -3,11 +3,12 @@
 
 import asyncio
 
+import structlog
+
 from nova_core.client.core import config
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def svg_to_png(svg_data: str, height: int, width: int) -> bytes:

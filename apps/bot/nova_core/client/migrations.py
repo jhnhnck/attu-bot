@@ -3,11 +3,12 @@
 
 from collections.abc import Awaitable, Callable
 
+import structlog
+
 from nova_core.client.core import config
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # decorated migrations always take the current db version string; the original
 # `async def step():` body is invoked by the wrapper after the version match.
@@ -36,7 +37,7 @@ async def run_pending_migrations(*, stage: str = 'load') -> None:
             await fn(system_config.version)
             system_config = await config.config_repo.get_system()
     except MigrationError as e:
-        logger.fatal(f'{stage}-stage migration failed; refusing to continue: {e}')
+        logger.critical(f'{stage}-stage migration failed; refusing to continue: {e}')
         raise
 
     system_config = await config.config_repo.get_system()
@@ -159,7 +160,7 @@ async def migration_backfill_years():
         for yr in range(1, current_year + 1):
             start_ts = await YearMarker.timestamp(yr, guild_id)
             if start_ts is None:
-                logger.warn(f'no marker for year {yr} in guild {guild_id}, skipping')
+                logger.warning(f'no marker for year {yr} in guild {guild_id}, skipping')
                 continue
 
             end_ts = await YearMarker.timestamp(yr + 1, guild_id) or 0 if yr < current_year else 0
@@ -276,7 +277,7 @@ async def migration_add_guild_to_markers():
                 updated += 1
 
             else:
-                logger.warn(f'marker channel={channel} year={doc.get("year")} not found in any guild config, skipping')
+                logger.warning(f'marker channel={channel} year={doc.get("year")} not found in any guild config, skipping')
                 skipped += 1
 
         logger.info(f'migration 2.2.5 complete: updated={updated} deleted={deleted} skipped={skipped}')
@@ -410,7 +411,7 @@ async def migration_fix_thread_parent_ids_archived():
     for guild_id in config.authorized_guilds:
         discord_guild = bot.get_guild(guild_id)
         if discord_guild is None:
-            logger.warn(f'guild {guild_id} not in bot cache, skipping')
+            logger.warning(f'guild {guild_id} not in bot cache, skipping')
             continue
 
         # active threads - always available from cache after on_ready
@@ -426,7 +427,7 @@ async def migration_fix_thread_parent_ids_archived():
                 async for thread in parent_ch.archived_threads(limit=None):
                     thread_to_parent[thread.id] = parent_ch.id
             except (_discord.Forbidden, _discord.HTTPException) as e:
-                logger.warn(f'could not fetch public archived threads for channel {parent_ch.id}: {e}')
+                logger.warning(f'could not fetch public archived threads for channel {parent_ch.id}: {e}')
 
             # private archived threads (requires MANAGE_THREADS)
             try:

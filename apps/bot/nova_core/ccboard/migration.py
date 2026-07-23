@@ -4,6 +4,7 @@
 import time
 
 import discord
+import structlog
 
 from attu_models import (
     BoardEntryDocument,
@@ -16,10 +17,9 @@ from attu_models import (
 from nova_core.client.core import bot, config
 from nova_core.client.messages import _get_repo as _get_message_repo
 from nova_core.client.starboard import _get_repo as _get_starboard_repo
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def _get_reaction_repo():
@@ -222,7 +222,7 @@ async def job_convert_starboard_to_ccboard(guild_id: int, status_msg: discord.Me
 
     cfg = config.guild(guild_id).ccboard
     if not cfg.emojis:
-        logger.warn(f'convert: guild {guild_id} has no ccboard.emojis configured; cannot weight reactions')
+        logger.warning(f'convert: guild {guild_id} has no ccboard.emojis configured; cannot weight reactions')
         stats = _empty_stats()
         stats['skipped_no_config'] = 1
         return stats
@@ -268,6 +268,6 @@ async def job_convert_starboard_to_ccboard(guild_id: int, status_msg: discord.Me
         try:
             await status_msg.edit(content=(f'Done! Migrated {stats["entries_processed"]:,} entries with {stats["reactions_migrated"]:,} reactions; {stats["discord_fetched"]:,} fetched from discord, {stats["placeholder"]:,} placeholders, {stats["skipped_unweighted_emojis"]:,} skipped reactions on unweighted emojis'))
         except discord.HTTPException as err:
-            logger.warn(f'convert: status edit failed: {err}')
+            logger.warning(f'convert: status edit failed: {err}')
 
     return stats

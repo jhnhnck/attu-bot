@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 import anyio
 import discord
+import structlog
 from discord import Message, RawBulkMessageDeleteEvent, RawMessageDeleteEvent, RawMessageUpdateEvent, Thread
 from pymongo.errors import AutoReconnect
 
@@ -14,10 +15,9 @@ from nova_core.client.core import bot, config
 from nova_core.client.embeds import make_embed
 from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from nova_core.database.repositories import MessageRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
 _message_repo: MessageRepository | None = None
@@ -81,7 +81,7 @@ async def _save_attachment(attachment: discord.Attachment, message_id: int, guil
         meta['saved_path'] = str(dest_file.relative_to(base))
         logger.debug(f'saved attachment: {meta["saved_path"]}')
     except Exception as err:
-        logger.warn(f'failed to save attachment {attachment.filename} for message {message_id}: {err}')
+        logger.warning(f'failed to save attachment {attachment.filename} for message {message_id}: {err}')
 
     return meta
 
@@ -318,7 +318,7 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
                 author_avatar_url=avatar_url,
             )
     except Exception as err:
-        logger.warn(f'could not retrieve old message {payload.message_id} for edit log: {err}')
+        logger.warning(f'could not retrieve old message {payload.message_id} for edit log: {err}')
 
     # not in db; fall back to payload author info
     author_bot = payload.data.get('author', {}).get('bot', False)
@@ -386,7 +386,7 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
         await _get_repo().mark_edited(payload.message_id, new_content, now)
         logger.debug(f'log_edit: marked message {payload.message_id} as edited in db')
     except Exception as err:
-        logger.warn(f'failed to update edited message {payload.message_id}: {err}')
+        logger.warning(f'failed to update edited message {payload.message_id}: {err}')
 
     # skip log embed for bot-authored messages
     if ctx.author_bot:
@@ -435,7 +435,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, 
     try:
         stored = await _get_repo().get(payload.message_id)
     except Exception as err:
-        logger.warn(f'failed to fetch message {payload.message_id}: {err}')
+        logger.warning(f'failed to fetch message {payload.message_id}: {err}')
 
     # skip bot-authored messages (consistent with log_edit behavior)
     if stored and stored.author.bot:
@@ -472,14 +472,14 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, 
                 try:
                     await _get_repo().mark_deleted(payload.message_id, now)
                 except Exception as err:
-                    logger.warn(f'failed to mark message {payload.message_id} as deleted: {err}')
+                    logger.warning(f'failed to mark message {payload.message_id} as deleted: {err}')
                 return
 
     # always update the stored record, even if we can't post to logs
     try:
         await _get_repo().mark_deleted(payload.message_id, now)
     except Exception as err:
-        logger.warn(f'failed to mark message {payload.message_id} as deleted: {err}')
+        logger.warning(f'failed to mark message {payload.message_id} as deleted: {err}')
 
     channel = await _get_logs_channel(payload.guild_id)
     if channel is None:
@@ -527,7 +527,7 @@ async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
     try:
         await _get_repo().mark_bulk_deleted(ids, now)
     except Exception as err:
-        logger.warn(f'failed to bulk-delete {len(ids)} messages: {err}')
+        logger.warning(f'failed to bulk-delete {len(ids)} messages: {err}')
 
     embed = make_embed('Bulk Message Delete', footer=f'guild: {payload.guild_id}')
     embed.add_field(name='Channel', value=f'<#{payload.channel_id}>', inline=True)

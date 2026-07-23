@@ -392,22 +392,22 @@ class TestTreesLink:
         mock_resp = _make_response(500, {})
 
         mock_logger = MagicMock()
-        mock_logger.send_to_webhook = AsyncMock()
         mock_logger.error = MagicMock()
-        mock_logger.alert = MagicMock()
+        mock_logger.debug = MagicMock()
 
         with (
             patch('nova_core.commands.trees.config', config),
             patch('nova_core.commands.trees._api_call', AsyncMock(return_value=mock_resp)),
             patch('nova_core.commands.trees._extract_roles', return_value=['user']),
             patch('nova_core.commands.trees.logger', mock_logger),
+            patch('attu_logging.webhook.send_to_webhook', new_callable=AsyncMock) as mock_webhook,
         ):
             from nova_core.commands.trees import trees_link
 
             await trees_link(ctx, code='AB-123456')
 
         assert mock_logger.error.called
-        assert mock_logger.send_to_webhook.called
+        assert mock_webhook.called
         assert any('proper authorities' in str(r['args']) for r in ctx._responses)
 
     async def test_dev_url_used_for_x_code(self, mock_ctx_factory):

@@ -6,6 +6,7 @@ import time
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
@@ -13,10 +14,9 @@ from nova_core.client.core import bot, config
 from nova_core.client.families import get_family, get_viewer_url, is_family_file, list_families, save_family
 from nova_core.client.util import has_announcements_role
 from nova_core.database.models import FamilyDocument
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # parses https://discord.com/channels/{guild}/{channel}/{message}
 _MESSAGE_LINK_RE = re.compile(r'https://discord\.com/channels/(\d+)/(\d+)/(\d+)')
@@ -83,7 +83,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
         msg = await channel.fetch_message(message_id)  # type: ignore[union-attr]
     except Exception as err:
-        logger.warn(f'family_set: could not fetch message {message_id} from channel {channel_id}: {err}')
+        logger.warning(f'family_set: could not fetch message {message_id} from channel {channel_id}: {err}')
         await ctx.respond('Failed: could not fetch that message; check the link and that I have access to that channel', ephemeral=True)
         return
 
@@ -97,7 +97,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         raw = await family_attachments[0].read()
         content = raw.decode('utf-8')
     except Exception as err:
-        logger.warn(f'family_set: failed to read attachment: {err}')
+        logger.warning(f'family_set: failed to read attachment: {err}')
         await ctx.respond('Failed: could not read the file from that message', ephemeral=True)
         return
 
@@ -139,7 +139,7 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         raw = await file.read()
         content = raw.decode('utf-8')
     except Exception as err:
-        logger.warn(f'family_upload: failed to read attachment: {err}')
+        logger.warning(f'family_upload: failed to read attachment: {err}')
         await ctx.respond('Failed: could not read the attached file', ephemeral=True)
         return
 

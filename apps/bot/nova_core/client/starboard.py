@@ -8,13 +8,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import discord
+import structlog
 
 from nova_core.database.models import MessageDocument, StarredMessageDocument
 from nova_core.database.repositories import StarboardRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
 _starboard_repo: StarboardRepository | None = None
@@ -401,7 +401,7 @@ async def _fetch_store_and_backfill(
             channel = await bot.fetch_channel(channel_id)
         discord_msg = await channel.fetch_message(message_id)
     except Exception as err:
-        logger.warn(f'starboard: could not fetch message {message_id} from channel {channel_id}: {err}')
+        logger.warning(f'starboard: could not fetch message {message_id} from channel {channel_id}: {err}')
         return None
 
     try:
@@ -409,7 +409,7 @@ async def _fetch_store_and_backfill(
         await _get_msg_repo().upsert(doc)
         logger.info(f'starboard: stored missing message {message_id}')
     except Exception as err:
-        logger.warn(f'starboard: could not store fetched message {message_id}: {err}')
+        logger.warning(f'starboard: could not store fetched message {message_id}: {err}')
         return None
 
     # backfill any existing star reactions, excluding the one the caller is about to process
@@ -807,12 +807,12 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         try:
             channel = await bot.fetch_channel(sb.channel_id)
         except Exception as err:
-            logger.warn(f'starboard: channel {sb.channel_id} not found for guild {guild_id}: {err}')
+            logger.warning(f'starboard: channel {sb.channel_id} not found for guild {guild_id}: {err}')
             return
 
     msg_doc = await _get_msg_repo().get(doc.message_id)
     if msg_doc is None:
-        logger.warn(f'starboard: original message {doc.message_id} not found in db')
+        logger.warning(f'starboard: original message {doc.message_id} not found in db')
         return
 
     jump_url = f'https://discord.com/channels/{guild_id}/{msg_doc.channel_id}/{msg_doc.message_id}'
@@ -856,7 +856,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                 try:
                     await sb_msg.add_reaction(emoji)
                 except Exception as err:
-                    logger.warn(f'starboard: failed to add reaction {emoji} to post: {err}')
+                    logger.warning(f'starboard: failed to add reaction {emoji} to post: {err}')
         # edit to final content with retry so notification preview doesn't persist
         for attempt in range(3):
             try:
@@ -864,7 +864,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                 break
             except discord.HTTPException as err:
                 if attempt == 2:
-                    logger.warn(f'starboard: failed to edit notification post {sb_msg.id} to final content after 3 attempts: {err}')
+                    logger.warning(f'starboard: failed to edit notification post {sb_msg.id} to final content after 3 attempts: {err}')
                 else:
                     await asyncio.sleep(2**attempt)
         logger.info(f'starboard: created post {sb_msg.id} for message {doc.message_id} ({doc.total_reactions} reactions)')
@@ -887,7 +887,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         except discord.NotFound:
             logger.debug(f'starboard: post {doc.starboard_message_id} already gone')
         except Exception as err:
-            logger.warn(f'starboard: could not delete post {doc.starboard_message_id}: {err}')
+            logger.warning(f'starboard: could not delete post {doc.starboard_message_id}: {err}')
         with contextlib.suppress(Exception):
             await repo.set_starboard_message(doc.message_id, None)
         return
@@ -897,7 +897,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         logger.debug(f'starboard: updated post {doc.starboard_message_id} ({doc.total_reactions} reactions)')
     except discord.NotFound:
         # old post was deleted; clear the reference so we can create a new one
-        logger.warn(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
+        logger.warning(f'starboard: post {doc.starboard_message_id} not found, clearing reference')
         await repo.set_starboard_message(doc.message_id, None)
     except discord.Forbidden:
         # not our message (old bot); send a reply to the old post so it's easy to jump to
@@ -905,7 +905,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             # already sent a reply once; don't stack more replies if it also becomes uneditable
             logger.debug(f'starboard: skipping repeat reply for uneditable post {doc.starboard_message_id}')
             return
-        logger.warn(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
+        logger.warning(f'starboard: cannot edit post {doc.starboard_message_id} (not our message), sending reply')
         try:
             try:
                 old_msg = channel.get_partial_message(doc.starboard_message_id)
@@ -919,7 +919,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                     try:
                         await new_msg.add_reaction(emoji)
                     except Exception as react_err:
-                        logger.warn(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
+                        logger.warning(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
             logger.info(f'starboard: replaced uneditable post {doc.starboard_message_id} with {new_msg.id} for message {doc.message_id}')
         except Exception as err:
             logger.error(f'starboard: failed to send replacement for post {doc.starboard_message_id}: {err}')

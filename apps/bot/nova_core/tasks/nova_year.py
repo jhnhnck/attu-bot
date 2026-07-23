@@ -4,18 +4,19 @@
 import re
 from datetime import datetime
 
+import structlog
+
 from nova_core.client.calendar import format_year_line, get_next_year, get_year_status
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import ui_emoji
 from nova_core.client.util import webhook_logging
 from nova_core.client.years import Year
 from nova_core.config import GuildConfig
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 from nova_core.wiki import get_wiki
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def job_construct_year_links(guild_id: int):
@@ -69,13 +70,13 @@ async def job_construct_year_links(guild_id: int):
         block = await generate_links_block(year_idx)
 
         if message.content != block:
-            logger.warn(f'index {year_idx} is wrong for {message.jump_url}; replacing block')
+            logger.warning(f'index {year_idx} is wrong for {message.jump_url}; replacing block')
             await message.edit(content=block)
 
         year_idx += 1
 
     while year_idx <= current_year:
-        logger.warn(f'index {year_idx} is missing; sending new block')
+        logger.warning(f'index {year_idx} is missing; sending new block')
         block = await generate_links_block(year_idx)
         await thread.send(content=block)
         year_idx += 1

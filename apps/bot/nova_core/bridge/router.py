@@ -4,6 +4,7 @@
 import asyncio
 from typing import Any, Literal
 
+import structlog
 import uvicorn
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -12,10 +13,9 @@ from nova_core import __config_version__, __schema__
 from nova_core.bridge import discord_integration as di
 from nova_core.bridge.hmac import verify
 from nova_core.client.core import bot, config
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 # --- request models ---

@@ -131,8 +131,8 @@ def configure(*, json: bool | None = None, level: str | None = None, webhook_url
     root = logging.getLogger()
 
     # idempotent: skip if either marker is already attached. the `_nova_core_owned`
-    # check lets nova_core.logging._configure() see our handlers and bail too -
-    # dual-consumer compatibility for processes that import both logging setups.
+    # check provides backward compatibility for any process that still imports a legacy
+    # nova_core logging setup alongside attu_logging.
     if any(getattr(h, '_attu_owned', False) or getattr(h, '_nova_core_owned', False) for h in root.handlers):
         return
 

@@ -2,16 +2,16 @@
 """nova_core.commands.time | administrative commands."""
 
 import discord
+import structlog
 from discord import ApplicationContext, Bot, Permissions, SlashCommandGroup
 
 from nova_core.client.calendar import get_year_status, move_epoch
 from nova_core.client.core import config
 from nova_core.client.years import Year
-from nova_core.logging import get_logger
 from nova_core.tasks import nova_year_task, scheduler
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Time Commands ---
 

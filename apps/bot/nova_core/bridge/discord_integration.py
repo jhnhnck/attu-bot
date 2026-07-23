@@ -5,12 +5,12 @@ import time
 from typing import Any
 
 import discord
+import structlog
 
 from nova_core.client.core import bot
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class DiscordCache:

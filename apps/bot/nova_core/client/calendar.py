@@ -3,16 +3,16 @@
 
 from datetime import date, datetime, timedelta
 
+import structlog
 from pydantic import BaseModel
 
 from nova_core.client.core import config
 from nova_core.config import GuildEpoch
-from nova_core.logging import get_logger
 
 
 # --- Initialization ---
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 seconds_per_day = 86400
 
 # --- Components ---

@@ -10,15 +10,16 @@ from typing import cast
 
 import discord
 import httpx
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
+import attu_logging
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import ui_emoji
 from nova_core.client.util import is_bot_owner
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Coming Soon Gate ---
 
@@ -208,11 +209,11 @@ async def trees_link(ctx: ApplicationContext, code: str):
         else:
             await ctx.respond("i don't recognize that code. double-check it in the editor.", ephemeral=True)
     elif resp.status_code == 401:
-        logger.alert('trees_link: hmac rejected by server (401); check DISCORD_BOT_HMAC_SECRET')
+        logger.debug('trees_link: hmac rejected by server (401); check DISCORD_BOT_HMAC_SECRET')
         await ctx.respond(f"the bot's keys aren't lining up; this is on us, not you {ui_emoji('rockball_player')}", ephemeral=True)
     else:
         logger.error('trees_link non-2xx', status=resp.status_code, base_url=base_url)
-        await logger.send_to_webhook(Exception(f'trees_link: unexpected status {resp.status_code} from {base_url}'))
+        await attu_logging.webhook.send_to_webhook(Exception(f'trees_link: unexpected status {resp.status_code} from {base_url}'))
         await ctx.respond(f'the trees returned something weird; the proper authorities have been pinged {ui_emoji("rockball_player")}', ephemeral=True)
 
 

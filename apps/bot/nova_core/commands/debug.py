@@ -11,21 +11,22 @@ from random import randrange, sample
 from typing import Never, cast
 
 import discord
+import structlog
 import tomlkit
 from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
+import attu_logging
 from nova_core import __build_time__, __schema__, __title__, __version__
 from nova_core.client.calendar import get_year_span, get_year_status
 from nova_core.client.core import config
 from nova_core.client.embeds import make_embed, ui_emoji
 from nova_core.client.util import is_bot_owner
-from nova_core.logging import get_logger
 from nova_core.tasks import scheduler
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Fun Commands ---
 
@@ -72,7 +73,7 @@ async def command_test(ctx: ApplicationContext):
         pass
 
     except Exception as err:
-        await logger.send_to_webhook(err)
+        await attu_logging.webhook.send_to_webhook(err)
 
         await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
         return

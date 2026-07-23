@@ -4,13 +4,13 @@
 import re
 
 import httpx
+import structlog
 
 from nova_core.database.models import FamilyDocument
 from nova_core.database.repositories import FamilyRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level singleton seeded by database/__init__.py
 _family_repo: FamilyRepository | None = None

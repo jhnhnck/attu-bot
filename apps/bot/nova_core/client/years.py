@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.client.years | year model for calendar data storage."""
 
+import structlog
 from pydantic import BaseModel
 
 from nova_core.client.calendar import seconds_per_day
 from nova_core.client.core import config, db
 from nova_core.database.repositories import YearRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # Module-level repository instance
 _year_repo: YearRepository | None = None

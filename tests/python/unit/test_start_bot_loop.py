@@ -51,7 +51,7 @@ class TestSetupDiscordLogging:
         """a PycordBridgeHandler is added to the discord.http stdlib logger"""
         import logging as _logging
 
-        from nova_core.logging import PycordBridgeHandler
+        from nova_core.client import PycordBridgeHandler
 
         discord_http_logger = _logging.getLogger('discord.http')
         initial_count = len(discord_http_logger.handlers)
@@ -79,7 +79,7 @@ class TestSetupDiscordLogging:
 
         # cleanup
         discord_http_logger.setLevel(original_level)
-        from nova_core.logging import PycordBridgeHandler
+        from nova_core.client import PycordBridgeHandler
 
         for h in list(discord_http_logger.handlers):
             if isinstance(h, PycordBridgeHandler):
@@ -89,17 +89,17 @@ class TestSetupDiscordLogging:
         """structlog config installs one stdout (< WARNING) and one stderr (>= WARNING) handler on root.
 
         compensates for PycordBridgeHandler no longer routing records itself; the real stdout/stderr
-        split now lives on the root logger via nova_core.logging._configure().
+        split now lives on the root logger via attu_logging.configure().
         """
         import logging as _logging
         import sys
 
-        import nova_core.logging  # noqa: F401 - imported for side effect of _configure()
+        import attu_logging  # noqa: F401 - imported for side effect; configure() called in conftest
 
         root = _logging.getLogger()
-        owned = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
+        owned = [h for h in root.handlers if getattr(h, '_attu_owned', False)]
 
-        assert len(owned) >= 2, f'expected at least 2 nova_core-owned handlers, got {len(owned)}'
+        assert len(owned) >= 2, f'expected at least 2 attu_logging-owned handlers, got {len(owned)}'
 
         streams = {h.stream for h in owned if isinstance(h, _logging.StreamHandler)}
         assert sys.stdout in streams

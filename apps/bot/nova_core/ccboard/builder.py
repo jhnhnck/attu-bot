@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import discord
+import structlog
 
 from attu_models import BoardEntryDocument, MessageDocument
 from nova_core.client.starboard import (
@@ -16,10 +17,9 @@ from nova_core.client.starboard import (
 )
 from nova_core.client.util import format_message_link
 from nova_core.config import GuildCCBoard
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 # color used for the "replying to" reply-context embed (discord dark background)

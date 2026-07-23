@@ -2,11 +2,10 @@
 """nova_core.wiki.auth | wiki authentication."""
 
 import httpx
+import structlog
 
-from nova_core.logging import get_logger
 
-
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class AuthApi:

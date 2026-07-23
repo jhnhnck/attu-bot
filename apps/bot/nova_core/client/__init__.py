@@ -2,21 +2,39 @@
 """nova_core.client | discord client entry point."""
 
 import importlib
+import logging
 import pkgutil
 import shutil
 import sys
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext
 
 import nova_core.commands
 from nova_core.client.core import bot, config, db  # noqa: F401 - re-exported as client API
 from nova_core.client.embeds import ui_emoji
-from nova_core.logging import PycordBridgeHandler, get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
+
+
+# --- Pycord Bridge Handler ---
+
+
+class PycordBridgeHandler(logging.Handler):
+    """marker handler kept for compatibility; routing happens via the dual root handlers in attu_logging.
+
+    pycord's `discord.http` logger gets this attached in _setup_discord_logging() so the
+    bridge symbol stays addressable for tests; records still propagate to the root handlers
+    (stdout < WARNING, stderr >= WARNING) via the standard stdlib propagation chain.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        pass
+
+
 logger.info('initializing')
 
 
@@ -52,7 +70,7 @@ def _setup_discord_logging():
 
     structlog's root handlers (stdout < WARNING, stderr >= WARNING) handle rendering;
     PycordBridgeHandler is a marker so the existing test surface keeps working, and the
-    bucket-resolution logic now lives as a foreign_pre_chain processor in nova_core.logging.
+    bucket-resolution logic now lives as a foreign_pre_chain processor in attu_logging.
     """
     import logging as _logging
     from os import environ
@@ -96,7 +114,7 @@ def start_bot_loop():
     try:
         _load_extensions()
     except Exception as e:
-        logger.fatal(f'failed to load extensions, cannot start bot: {e}')
+        logger.critical(f'failed to load extensions, cannot start bot: {e}')
         sys.exit(1)
         return  # defensive; stops execution when sys.exit is mocked in tests
     logger.info('starting bot')

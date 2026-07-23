@@ -6,6 +6,7 @@ import uuid
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
@@ -13,11 +14,10 @@ from nova_core.client.core import config
 from nova_core.client.embeds import make_embed
 from nova_core.client.util import is_authorized_guild
 from nova_core.database.models import ReminderDocument
-from nova_core.logging import get_logger
 from nova_core.tasks.reminder import _get_repo, compute_fire_time, format_attu_date, reminder_task
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 remind_group = SlashCommandGroup('remind', description='set reminders for in-universe haracalnde dates')
 

@@ -10,13 +10,13 @@ import discord
 import structlog
 from discord.ext.commands import Context
 
+import attu_logging
 from nova_core.client.core import config
-from nova_core.logging import Logger, get_logger
 
 
 # --- Initialization ---
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Permissions Check ---
 
@@ -47,7 +47,7 @@ def has_announcements_role(ctx: Context) -> bool:
 # --- Decorators ---
 
 
-def webhook_logging(scope: Logger) -> Callable:
+def webhook_logging(scope: structlog.stdlib.BoundLogger) -> Callable:
     """Catch exceptions and forward them to the error webhook.
 
     Intentionally does not re-raise; the scheduler's own handler is not needed
@@ -61,7 +61,7 @@ def webhook_logging(scope: Logger) -> Callable:
 
             except Exception as error:
                 scope.error('decorated function raised', exc_info=True, func=func.__name__)
-                await scope.send_to_webhook(error)
+                await attu_logging.webhook.send_to_webhook(error)
 
         return wrapper
 

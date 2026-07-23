@@ -3,14 +3,15 @@
 
 from datetime import timedelta
 
+import structlog
+
 from nova_core.client.core import config, db
 from nova_core.client.util import webhook_logging
 from nova_core.database.repositories import ReloadSignalRepository
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 _repo: ReloadSignalRepository | None = None
 
@@ -61,7 +62,7 @@ class ReloadWatcherTask(BaseTask):
             try:
                 if signal.signal_type == 'guild':
                     if signal.guild_id is None:
-                        logger.warn('received guild reload signal with no guild_id; skipping')
+                        logger.warning('received guild reload signal with no guild_id; skipping')
                         continue
                     logger.info(f'reloading guild config for {signal.guild_id} (web-triggered)')
                     await config.load_guild(signal.guild_id)
@@ -80,7 +81,7 @@ class ReloadWatcherTask(BaseTask):
                     await config.load_globals()
 
                 else:
-                    logger.warn(f'unknown reload signal type: {signal.signal_type!r}')
+                    logger.warning(f'unknown reload signal type: {signal.signal_type!r}')
 
             except Exception as e:
                 logger.error(f'error processing reload signal {signal.signal_type}: {e}')

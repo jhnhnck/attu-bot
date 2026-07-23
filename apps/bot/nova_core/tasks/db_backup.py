@@ -7,12 +7,13 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import structlog
+
 from nova_core.client.core import config
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 _RETENTION_DAYS = 90
 
@@ -56,7 +57,7 @@ class DatabaseBackupTask(BaseTask):
             return
 
         if not shutil.which('mongodump'):
-            logger.warn('mongodump not found in PATH; database backup task disabled')
+            logger.warning('mongodump not found in PATH; database backup task disabled')
             return
 
         self._enabled = True

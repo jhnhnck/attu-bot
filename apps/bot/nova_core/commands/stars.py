@@ -4,15 +4,15 @@
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from nova_core.client.core import config
 from nova_core.client.embeds import ui_emoji
 from nova_core.client.util import theme_color
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # page size for leaderboard commands
 _PAGE_SIZE = 10
@@ -81,7 +81,7 @@ async def _show_ccboard_random(ctx: ApplicationContext, guild_id: int, guild_con
         response_msg = await interaction.original_response()
         await entry_repo.append_display_message_id(entry.message_id, response_msg.id)
     except Exception as err:
-        logger.warn(f'ccboard: could not store /stars display_message_id: {err}')
+        logger.warning(f'ccboard: could not store /stars display_message_id: {err}')
 
 
 async def _show_random_message(ctx: ApplicationContext, min_total: int, max_total: int | None = None) -> None:
@@ -139,7 +139,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
         response_doc.refs.starboard_post = doc.message_id
         await msg_repo.upsert(response_doc)
     except Exception as err:
-        logger.warn(f'starboard: could not store random response message - {err}')
+        logger.warning(f'starboard: could not store random response message - {err}')
 
 
 @stars_group.command(name='random', description='Shows a random message with 2 or more stars')
@@ -291,7 +291,7 @@ async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PL
         msg_doc = await build_message_doc(discord_msg)
         await _get_msg_repo().upsert(msg_doc)
     except Exception as err:
-        logger.warn(f'recheck: failed to store message {message_id}: {err}')
+        logger.warning(f'recheck: failed to store message {message_id}: {err}')
 
     resolved = await _resolve_recheck_target(ctx, guild_config, channel_id, message_id, discord_msg)
     if resolved is None:

@@ -4,6 +4,7 @@
 from datetime import datetime, timedelta
 
 import discord
+import structlog
 
 from nova_core.client.calendar import get_year_span
 from nova_core.client.core import bot, config
@@ -12,11 +13,10 @@ from nova_core.client.util import format_message_link, webhook_logging
 from nova_core.config import UnauthorizedGuild
 from nova_core.database.models import ReminderDocument
 from nova_core.database.repositories import ReminderRepository
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level repo singleton; wired by database/__init__.py
 _reminder_repo: ReminderRepository | None = None
@@ -76,7 +76,7 @@ async def _deliver_reminder(reminder: ReminderDocument) -> None:
     """Send the reminder notification in the original channel, falling back to meta_chat."""
     guild = bot.get_guild(reminder.guild_id)
     if guild is None:
-        logger.warn(f'reminder {reminder.reminder_id}: guild {reminder.guild_id} not found')
+        logger.warning(f'reminder {reminder.reminder_id}: guild {reminder.guild_id} not found')
         return
 
     channel = guild.get_channel_or_thread(reminder.channel_id)
@@ -91,7 +91,7 @@ async def _deliver_reminder(reminder: ReminderDocument) -> None:
             pass
 
     if channel is None:
-        logger.warn(f'reminder {reminder.reminder_id}: no valid channel found for delivery')
+        logger.warning(f'reminder {reminder.reminder_id}: no valid channel found for delivery')
         return
 
     date_str = format_attu_date(reminder)

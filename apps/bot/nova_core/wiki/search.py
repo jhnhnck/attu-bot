@@ -2,12 +2,12 @@
 """nova_core.wiki.search | wiki search."""
 
 import httpx
+import structlog
 
-from nova_core.logging import get_logger
 from nova_core.wiki.models import SearchResult, SiteInfo
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class SearchApi:

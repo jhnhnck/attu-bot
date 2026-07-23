@@ -4,14 +4,14 @@
 from datetime import timedelta
 
 import discord
+import structlog
 
 from nova_core.client.core import bot, config
 from nova_core.client.util import webhook_logging
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class PresenceUpdateTask(BaseTask):

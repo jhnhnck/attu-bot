@@ -1,85 +1,22 @@
 """
-AttuBot - nova_core.logging Unit Tests
+AttuBot - attu_logging Unit Tests
 Author(s): @jhnhnck <john@jhnhnck.com>
 
 This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
 
-Covers the AttubotLogger wrapper, _resolve_pycord_bucket processor, _MaxLevelFilter,
-and _configure idempotency. Uses structlog.testing.capture_logs to assert event_dicts.
+Covers _resolve_pycord_bucket, _MaxLevelFilter, and configure() idempotency.
+AttubotLogger tests removed in phase 2 (logger migrated to structlog.stdlib directly).
 """
 
 import logging
 
 import pytest
 
-from nova_core.logging import ALERT, TRACE, AttubotLogger, _configure, _MaxLevelFilter, _resolve_pycord_bucket
+from attu_logging.config import _MaxLevelFilter, _resolve_pycord_bucket
+from attu_logging.config import configure as _configure
 
 
 pytestmark = pytest.mark.unit
-
-
-# ============================================================
-# AttubotLogger wrapper
-# ============================================================
-
-
-class TestAttubotLogger:
-    """unit: legacy method names route to the right structlog level"""
-
-    def test_warn_routes_to_warning(self, capture_structlog):
-        AttubotLogger('test.warn').warn('something off')
-
-        assert len(capture_structlog) == 1
-        assert capture_structlog[0]['event'] == 'something off'
-        assert capture_structlog[0]['log_level'] == 'warning'
-
-    def test_fatal_routes_to_critical(self, capture_structlog):
-        AttubotLogger('test.fatal').fatal('terminal')
-
-        assert capture_structlog[0]['log_level'] == 'critical'
-
-    def test_join_handles_varargs_like_print(self, capture_structlog):
-        """logger.debug(*pages) at commands/wiki.py joins args with spaces"""
-        AttubotLogger('test.varargs').error('a', 'b', 'c')
-
-        assert capture_structlog[0]['event'] == 'a b c'
-
-    def test_kwargs_pass_through_as_event_fields(self, capture_structlog):
-        AttubotLogger('test.kw').info('hello', user_id=42, guild_id=99)
-
-        assert capture_structlog[0]['user_id'] == 42
-        assert capture_structlog[0]['guild_id'] == 99
-
-    def test_trace_silent_without_debug_env(self, monkeypatch, capture_structlog):
-        monkeypatch.delenv('DEBUG', raising=False)
-        # the gate is read at module import; rebind the module flag for this test
-        import nova_core.logging as logging_mod
-
-        monkeypatch.setattr(logging_mod, '_DEBUG_MODE', False)
-
-        AttubotLogger('test.trace').trace('should not appear')
-        AttubotLogger('test.trace').alert('should not appear')
-        AttubotLogger('test.trace').debug('should not appear')
-
-        assert capture_structlog == []
-
-    def test_trace_emits_when_debug_set(self, monkeypatch, capture_structlog):
-        import nova_core.logging as logging_mod
-
-        monkeypatch.setattr(logging_mod, '_DEBUG_MODE', True)
-        # capture_logs intercepts structlog calls but not stdlib direct calls; trace/alert
-        # route through stdlib because TRACE/ALERT are outside structlog's level table.
-        # use stdlib caplog-style assertion via the structured testing handler instead.
-        with pytest.MonkeyPatch.context() as mp:
-            recorded: list[tuple[int, str]] = []
-            mp.setattr(
-                logging_mod.logging.getLogger('test.trace'),
-                'log',
-                lambda level, msg, **kw: recorded.append((level, msg)),
-            )
-            AttubotLogger('test.trace').trace('hello trace')
-
-        assert recorded == [(TRACE, 'hello trace')]
 
 
 # ============================================================
@@ -153,10 +90,11 @@ class TestMaxLevelFilter:
         assert f.filter(self._make_record(logging.ERROR)) is False
         assert f.filter(self._make_record(logging.CRITICAL)) is False
 
-    def test_admits_custom_levels_below(self):
+    def test_admits_sub_debug_levels(self):
+        """levels below DEBUG (e.g. custom trace=5, alert=15) still pass the filter"""
         f = _MaxLevelFilter(logging.WARNING)
-        assert f.filter(self._make_record(TRACE)) is True
-        assert f.filter(self._make_record(ALERT)) is True
+        assert f.filter(self._make_record(5)) is True   # former TRACE
+        assert f.filter(self._make_record(15)) is True  # former ALERT
 
 
 # ============================================================
@@ -168,7 +106,7 @@ class TestDiscordHttpLevelGating:
     """unit: _setup_discord_logging respects the DEBUG env var"""
 
     def _reset_discord_http(self):
-        from nova_core.logging import PycordBridgeHandler
+        from nova_core.client import PycordBridgeHandler
 
         log = logging.getLogger('discord.http')
         log.setLevel(logging.NOTSET)
@@ -192,22 +130,22 @@ class TestDiscordHttpLevelGating:
 
 
 # ============================================================
-# _configure idempotency
+# configure() idempotency
 # ============================================================
 
 
 class TestConfigureIdempotent:
-    """unit: re-importing or re-calling _configure() does not duplicate handlers"""
+    """unit: re-importing or re-calling configure() does not duplicate handlers"""
 
     def test_repeated_calls_do_not_duplicate_handlers(self):
         root = logging.getLogger()
-        before = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
+        before = [h for h in root.handlers if getattr(h, '_attu_owned', False)]
 
         _configure()
         _configure()
         _configure()
 
-        after = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
+        after = [h for h in root.handlers if getattr(h, '_attu_owned', False)]
         assert len(after) == len(before), f'expected handler count unchanged, was {len(before)} now {len(after)}'
 
     def test_owned_handlers_split_stdout_and_stderr(self):
@@ -215,7 +153,7 @@ class TestConfigureIdempotent:
 
         _configure()
         root = logging.getLogger()
-        owned = [h for h in root.handlers if getattr(h, '_nova_core_owned', False)]
+        owned = [h for h in root.handlers if getattr(h, '_attu_owned', False)]
         streams = {h.stream for h in owned if isinstance(h, logging.StreamHandler)}
         assert sys.stdout in streams
         assert sys.stderr in streams

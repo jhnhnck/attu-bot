@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, Permissions, SlashCommandGroup
 from discord.ext import commands
 
@@ -14,13 +15,12 @@ from nova_core.client.core import bot, config
 from nova_core.client.starboard import _get_repo as _get_sb_repo
 from nova_core.client.starboard import _sync_starboard_post
 from nova_core.client.util import is_bot_owner
-from nova_core.logging import get_logger
 from nova_core.tasks import LogoUpdateTask, scheduler
 from nova_core.tasks.message_backfill import MessageBackfillTask
 from nova_core.tasks.nova_year import job_construct_year_links
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def _safe_edit(status_msg: discord.Message | None, content: str) -> discord.Message | None:
@@ -31,7 +31,7 @@ async def _safe_edit(status_msg: discord.Message | None, content: str) -> discor
         await status_msg.edit(content=content)
         return status_msg
     except discord.HTTPException as err:
-        logger.warn(f'fix: status message edit failed ({err}), further updates disabled')
+        logger.warning(f'fix: status message edit failed ({err}), further updates disabled')
         return None
 
 
@@ -69,7 +69,7 @@ async def job_backfill_channel(
         try:
             reconciled = await backfill_task._reconcile_recent_channel(guild_id, channel, lookback=reconcile_lookback)  # pyright: ignore[reportArgumentType]
         except Exception as err:
-            logger.warn(f'fix messages: recent reconcile failed for {channel_id}: {err}')
+            logger.warning(f'fix messages: recent reconcile failed for {channel_id}: {err}')
 
     summary = f'Done! Backfilled {backfilled:,} messages in <#{channel_id}>'
     if reconcile_recent:
@@ -102,7 +102,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
             user = await bot.get_or_fetch(discord.User, author_id)
             if user is None:
                 not_found += 1
-                logger.warn(f'fix author_names: could not resolve user {author_id}: user not found')
+                logger.warning(f'fix author_names: could not resolve user {author_id}: user not found')
                 continue
             name = _global_username(user)
             count = await repo.update_author_name(author_id, name)
@@ -110,7 +110,7 @@ async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None
             resolved += 1
         except Exception as err:
             not_found += 1
-            logger.warn(f'fix author_names: could not resolve user {author_id}: {err}')
+            logger.warning(f'fix author_names: could not resolve user {author_id}: {err}')
 
         if (i + 1) % 50 == 0:
             status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(author_ids)} users processed...')
@@ -237,7 +237,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
                 skipped += 1
                 continue
             except Exception as err:
-                logger.warn(f'recount_starboard: failed to fetch original message {doc.message_id}: {err}')
+                logger.warning(f'recount_starboard: failed to fetch original message {doc.message_id}: {err}')
                 errors += 1
                 continue
 
@@ -257,7 +257,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
                 except (discord.NotFound, discord.Forbidden):
                     pass  # starboard post gone or unreadable - skip but don't fail the entry
                 except Exception as err:
-                    logger.warn(f'recount_starboard: failed to fetch starboard post {doc.starboard_message_id}: {err}')
+                    logger.warning(f'recount_starboard: failed to fetch starboard post {doc.starboard_message_id}: {err}')
 
             reactions_dict = {emoji: sorted(users) for emoji, users in new_reactions.items() if users}
             total = sum(len(v) for v in reactions_dict.values())
@@ -285,7 +285,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
             updated += 1
 
         except Exception as err:
-            logger.warn(f'recount_starboard: unexpected error for message {doc.message_id}: {err}')
+            logger.warning(f'recount_starboard: unexpected error for message {doc.message_id}: {err}')
             errors += 1
         finally:
             # runs on every iteration including those that hit `continue`
@@ -328,7 +328,7 @@ async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None 
             await _sync_starboard_post(guild_id, doc, guild_config)
             processed += 1
         except Exception as err:
-            logger.warn(f'regen_starboard: failed for message {doc.message_id}: {err}')
+            logger.warning(f'regen_starboard: failed for message {doc.message_id}: {err}')
             errors += 1
         finally:
             if (i + 1) % 25 == 0:
@@ -525,10 +525,10 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
 
             except (discord.NotFound, discord.Forbidden):
                 errors += 1
-                logger.warn(f'recover_starboard: could not access original message {orig_message_id}')
+                logger.warning(f'recover_starboard: could not access original message {orig_message_id}')
             except Exception as err:
                 errors += 1
-                logger.warn(f'recover_starboard: error processing starboard post {sb_msg.id}: {err}')
+                logger.warning(f'recover_starboard: error processing starboard post {sb_msg.id}: {err}')
 
     except discord.Forbidden:
         await _safe_edit(status_msg, 'No permission to read starboard channel history')
@@ -629,7 +629,7 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         except discord.NotFound:
             pass  # post already gone
         except Exception as err:
-            logger.warn(f'fix starboard purge: could not delete starboard post {doc.starboard_message_id}: {err}')
+            logger.warning(f'fix starboard purge: could not delete starboard post {doc.starboard_message_id}: {err}')
 
     deleted = await sb_repo.delete(message_id)
 
@@ -722,7 +722,7 @@ async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
         except discord.NotFound:
             pass
         except Exception as err:
-            logger.warn(f'fix ccboard purge: could not delete ccboard post {entry.starboard_message_id}: {err}')
+            logger.warning(f'fix ccboard purge: could not delete ccboard post {entry.starboard_message_id}: {err}')
 
     now = int(__import__('time').time())
     await ccboard._reaction_repo.soft_delete_all_for_message(entry.message_id, now=now)

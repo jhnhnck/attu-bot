@@ -7,12 +7,11 @@ mirroring the legacy `/stars` shape under a distinct top-level name.
 
 from typing import cast
 
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
-from nova_core.logging import get_logger
 
-
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 cc_group = SlashCommandGroup('cc', description='ccboard browsing and leaderboards (phase 2 stub)')

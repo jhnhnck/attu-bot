@@ -34,7 +34,6 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
     returns (fake_wiki, fake_announce, lore_channels_map) after the call completes.
     the caller is responsible for setting nova_core.years._year_repo before calling this.
     """
-    import nova_core.tasks.nova_year as nova_year_mod
     from nova_core.tasks.nova_year import NovaYearTask
     from nova_core.tasks.scheduler import scheduler as _scheduler
 
@@ -81,7 +80,7 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
         patch('nova_core.tasks.nova_year.get_wiki', return_value=fake_wiki),
         patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
         patch.object(_scheduler, 'add_job', side_effect=lambda coro, name: coro.close()),
-        patch.object(nova_year_mod.logger, 'send_to_webhook', AsyncMock()),
+        patch('attu_logging.webhook.send_to_webhook', AsyncMock()),
     ):
         mock_bot.get_guild.return_value = fake_guild
         task = NovaYearTask()
@@ -174,7 +173,6 @@ class TestAdvanceYear:
 
         cfg = make_guild(guild_id=test_guild, year=1, time=1704067200, length=14)
         import nova_core.client.years as _years
-        import nova_core.tasks.nova_year as nova_year_mod
         from nova_core.tasks.nova_year import NovaYearTask
         from nova_core.tasks.scheduler import scheduler as _scheduler
 
@@ -213,7 +211,7 @@ class TestAdvanceYear:
                 patch('nova_core.tasks.nova_year.get_wiki', return_value=fake_wiki),
                 patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
                 patch.object(_scheduler, 'add_job', side_effect=_capture),
-                patch.object(nova_year_mod.logger, 'send_to_webhook', AsyncMock()),
+                patch('attu_logging.webhook.send_to_webhook', AsyncMock()),
             ):
                 mock_bot.get_guild.return_value = fake_guild
                 task = NovaYearTask()

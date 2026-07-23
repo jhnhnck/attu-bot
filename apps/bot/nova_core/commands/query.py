@@ -4,16 +4,16 @@
 from datetime import datetime
 
 import discord
+import structlog
 from discord import ApplicationContext, Bot, MessageType, Permissions, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import snowflake_time
 
 from nova_core.client.calendar import format_year_line, get_year_span, get_year_status
 from nova_core.client.util import format_message_link, is_bot_owner
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Query Commands ---
 

@@ -2,13 +2,13 @@
 """nova_core.wiki.pages | wiki page operations."""
 
 import httpx
+import structlog
 
-from nova_core.logging import get_logger
 from nova_core.wiki.auth import AuthApi
 from nova_core.wiki.models import PageSummary
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class PagesApi:

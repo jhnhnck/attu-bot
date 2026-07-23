@@ -7,11 +7,13 @@ import time
 from collections.abc import Coroutine
 from datetime import datetime
 
-from nova_core.logging import get_logger
+import structlog
+
+import attu_logging
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class TaskScheduler:
@@ -51,7 +53,7 @@ class TaskScheduler:
                 await coro
             except Exception as e:
                 logger.error('job raised', exc_info=True, job=name)
-                await logger.send_to_webhook(e, location=f'job: {name}')
+                await attu_logging.webhook.send_to_webhook(e, location=f'job: {name}')
 
         logger.info(f'starting task: {name}')
         task = asyncio.create_task(run_and_forget(), name=name)
@@ -69,7 +71,7 @@ class TaskScheduler:
     async def start_all(self) -> None:
         """Start all registered recurring tasks."""
         if self._running:
-            logger.warn('scheduler already running')
+            logger.warning('scheduler already running')
             return
 
         self._running = True
@@ -97,14 +99,14 @@ class TaskScheduler:
             try:
                 await asyncio.wait_for(asyncio.gather(*self._loop_tasks, return_exceptions=True), timeout=10.0)
             except TimeoutError:
-                logger.warn('scheduler: timed out waiting for loop tasks to stop')
+                logger.warning('scheduler: timed out waiting for loop tasks to stop')
 
         # wait for fire-and-forget jobs to finish
         if self._jobs:
             try:
                 await asyncio.wait_for(asyncio.gather(*self._jobs, return_exceptions=True), timeout=10.0)
             except TimeoutError:
-                logger.warn('scheduler: timed out waiting for jobs to stop')
+                logger.warning('scheduler: timed out waiting for jobs to stop')
 
     async def _sleep_until(self, when: datetime, wake_event: asyncio.Event | None = None) -> None:
         """Sleep until a specific datetime, waking early if cancelled or wake_event is set."""
@@ -133,7 +135,7 @@ class TaskScheduler:
                 return
             except Exception as e:
                 logger.error('error in task (immediate run)', exc_info=True, task=task.name)
-                await logger.send_to_webhook(e, location=f'recurring task: {task.name} (immediate run)')
+                await attu_logging.webhook.send_to_webhook(e, location=f'recurring task: {task.name} (immediate run)')
 
             if task.run_once:
                 await task.on_stop()
@@ -165,7 +167,7 @@ class TaskScheduler:
                     break
 
                 if elapsed_ms >= 5000:
-                    logger.warn(f'slow task: {task.name} took {elapsed_ms:.0f}ms')
+                    logger.warning(f'slow task: {task.name} took {elapsed_ms:.0f}ms')
                 else:
                     logger.debug(f'task timing: {task.name} took {elapsed_ms:.0f}ms')
 
@@ -173,7 +175,7 @@ class TaskScheduler:
                 break
             except Exception as e:
                 logger.error('error in task', exc_info=True, task=task.name)
-                await logger.send_to_webhook(e, location=f'recurring task: {task.name}')
+                await attu_logging.webhook.send_to_webhook(e, location=f'recurring task: {task.name}')
 
         await task.on_stop()
         logger.info(f'task {task.name} stopped')

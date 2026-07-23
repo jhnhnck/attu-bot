@@ -58,7 +58,7 @@ async def ensure_eggs_ready() -> None:
     guild_cfg = config.primary()
     guild = bot.get_guild(guild_cfg.id)
     if guild is None:
-        logger.warn('primary guild not in cache during ensure_eggs_ready')
+        logger.warning('primary guild not in cache during ensure_eggs_ready')
         return
 
     if guild_cfg.channels.eggs == 0:

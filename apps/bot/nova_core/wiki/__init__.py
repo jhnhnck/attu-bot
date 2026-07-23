@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.wiki | wiki package."""
 
+import structlog
 from discord import Bot
 
 from nova_core.client.core import config
-from nova_core.logging import get_logger
 from nova_core.wiki.client import WikiClient
 from nova_core.wiki.models import SearchResult, SiteInfo
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # module-level singleton - initialized by setup()
 _wiki: WikiClient | None = None

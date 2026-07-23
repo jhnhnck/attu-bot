@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.signals | Cross-Process config reload signaling."""
 
+import structlog
+
 from nova_core.client.core import db
 from nova_core.database.repositories import ReloadSignalRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 _repo: ReloadSignalRepository | None = None
 

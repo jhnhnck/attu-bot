@@ -9,15 +9,15 @@ from typing import Any, Literal, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
 import anyio
+import structlog
 import tomlkit
 from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
 
 from nova_core import __config_version__, __schema__
 from nova_core.database.repositories import ConfigRepository
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def _version_gte(version: str, minimum: str) -> bool:
@@ -203,7 +203,7 @@ class GuildConfig(BaseModel):
 
     async def set_epoch(self, time, year: int):
         # Updates epoch start time and year number, persisting to database
-        logger.warn(f'[{self.id}] epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
+        logger.warning(f'[{self.id}] epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
         self.epoch.time = int(time)
         self.epoch.year = year
         await _config.config_repo.update_guild_field(self.id, 'epoch.time', int(time))
@@ -211,19 +211,19 @@ class GuildConfig(BaseModel):
 
     async def set_year_length(self, length: int):
         # Updates the duration of each in-game year, persisting to database
-        logger.warn(f'[{self.id}] epoch length changed: old={self.epoch.length} new={length}')
+        logger.warning(f'[{self.id}] epoch length changed: old={self.epoch.length} new={length}')
         self.epoch.length = length
         await _config.config_repo.update_guild_field(self.id, 'epoch.length', length)
 
     async def pause_time(self):
         # Freezes time progression, persisting to database
-        logger.warn(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=True')
+        logger.warning(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=True')
         self.epoch.paused = True
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', True)
 
     async def resume_time(self):
         # Resumes time progression, persisting to database
-        logger.warn(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=False')
+        logger.warning(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=False')
         self.epoch.paused = False
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', False)
 
@@ -345,7 +345,7 @@ class NovaConfig:
 
         # validate config file format version
         if not _version_gte(self._raw['config_version'], __config_version__):
-            logger.fatal(f'incompatible config version: file={self._raw["config_version"]} required>={__config_version__}')
+            logger.critical(f'incompatible config version: file={self._raw["config_version"]} required>={__config_version__}')
             raise ConfigLoadError(f'config file version {self._raw["config_version"]} is below required {__config_version__}')
         else:
             logger.info(f'config file version {self._raw["config_version"]} satisfies >={__config_version__}')
@@ -420,7 +420,7 @@ class NovaConfig:
         if system_config:
             logger.info(f'current schema version: {system_config.version}')
         else:
-            logger.warn('no system config found; creating defaults')
+            logger.warning('no system config found; creating defaults')
             from nova_core.database.models import SystemConfigDocument
 
             system_config = SystemConfigDocument(
@@ -457,7 +457,7 @@ class NovaConfig:
         # Log any failures
         for guild_id, success in results:
             if not success:
-                logger.warn(f'guild {guild_id} failed to load properly')
+                logger.warning(f'guild {guild_id} failed to load properly')
 
         # Run migrations after guild configs are loaded (migrations may need guild data)
         if system_config.version != self.config_version:
@@ -587,7 +587,7 @@ class NovaConfig:
 
             doc = await self.config_repo.get_guild(guild)
             if not doc:
-                logger.warn(f'no config found for guild {guild}, using defaults')
+                logger.warning(f'no config found for guild {guild}, using defaults')
                 # Create default config
                 default_config = GuildConfig(
                     id=guild,

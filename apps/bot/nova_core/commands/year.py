@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationContext, Bot, SlashCommandGroup, TextChannel
 from discord.enums import ChannelType
 
@@ -13,10 +14,9 @@ from nova_core.client.core import config
 from nova_core.client.markers import resolve_marker
 from nova_core.client.util import format_message_link
 from nova_core.client.years import Year
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # --- Year Commands ---
 

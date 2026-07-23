@@ -4,12 +4,12 @@
 import asyncio
 
 import httpx
+import structlog
 
-from nova_core.logging import get_logger
 from nova_core.wiki.auth import AuthApi
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class AdminApi:

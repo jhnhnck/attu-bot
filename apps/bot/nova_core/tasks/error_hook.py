@@ -4,16 +4,16 @@
 from datetime import timedelta
 from typing import cast
 
+import structlog
 from discord import TextChannel
 
 from nova_core.client.core import bot, config
 from nova_core.client.logo import generate_png
 from nova_core.client.util import webhook_logging
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class ErrorHookTask(BaseTask):
@@ -49,9 +49,9 @@ class ErrorHookTask(BaseTask):
                 if old.user == bot.user and old.url != config.error_hook:
                     try:
                         await old.delete()
-                        logger.warn(f'deleted old webhook: {old.name}-{old.id}')
+                        logger.warning(f'deleted old webhook: {old.name}-{old.id}')
                     except Exception as del_err:
-                        logger.warn(f'failed to delete old webhook {old.name}-{old.id}: {del_err}')
+                        logger.warning(f'failed to delete old webhook {old.name}-{old.id}: {del_err}')
 
             if config.error_hook in webhook_urls:
                 logger.debug('existing error hook found; skipping refresh')

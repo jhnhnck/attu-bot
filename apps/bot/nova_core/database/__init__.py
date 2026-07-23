@@ -9,6 +9,8 @@ repo wiring stay here - the bot is the index-creation leader.
 
 import asyncio
 
+import structlog
+
 from attu_models import (
     BoardEntryDocument,
     ConfigRepository,
@@ -40,10 +42,9 @@ from attu_models import (
     YearMarkerRepository,
     YearRepository,
 )
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0) -> None:
@@ -56,9 +57,9 @@ async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0)
         await asyncio.wait_for(repo.init_indexes(), timeout=timeout_sec)  # type: ignore[union-attr]
         logger.debug(f'{label} indexes ready')
     except TimeoutError:
-        logger.warn(f'{label} index init timed out after {timeout_sec:.0f}s (indexes may still be building in db)')
+        logger.warning(f'{label} index init timed out after {timeout_sec:.0f}s (indexes may still be building in db)')
     except Exception as e:
-        logger.warn(f'{label} index init failed (indexes may still be building): {e!s}')
+        logger.warning(f'{label} index init failed (indexes may still be building): {e!s}')
 
 
 def _wire_repos(

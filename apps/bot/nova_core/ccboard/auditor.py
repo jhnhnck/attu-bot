@@ -15,16 +15,16 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 import discord
+import structlog
 
 from attu_models import ReactionDocument
 from nova_core import ccboard
 from nova_core.client.core import config
 from nova_core.config import UnauthorizedGuild
-from nova_core.logging import get_logger
 from nova_core.tasks.base import BaseTask
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 # --- Result type ---
@@ -114,14 +114,14 @@ async def _collect_live_reactions(
         try:
             users_iter = reaction.users()
         except Exception as err:
-            logger.warn(f'ccboard auditor: reaction.users() failed for {emoji} on {discord_msg.id}: {err}; treating as partial')
+            logger.warning(f'ccboard auditor: reaction.users() failed for {emoji} on {discord_msg.id}: {err}; treating as partial')
             partial = True
             continue
         try:
             async for user in users_iter:
                 rows.append(_LiveReaction(user_id=user.id, emoji_str=emoji, is_super=is_super, is_bot_reactor=bool(getattr(user, 'bot', False))))
         except Exception as err:
-            logger.warn(f'ccboard auditor: pagination failed mid-stream for {emoji} on {discord_msg.id}: {err}; treating as partial')
+            logger.warning(f'ccboard auditor: pagination failed mid-stream for {emoji} on {discord_msg.id}: {err}; treating as partial')
             partial = True
             continue
     return rows, partial

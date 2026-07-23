@@ -4,16 +4,16 @@
 from typing import cast
 
 import discord
+import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGroup
 
 from nova_core.client.core import config
 from nova_core.client.embeds import make_embed, ui_emoji
 from nova_core.database.models import EggDocument
 from nova_core.eggs import hatching
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 eggs_group = SlashCommandGroup('eggs', description='egg collection game')
 leaderboard_group = eggs_group.create_subgroup('leaderboard', 'Egg leaderboards')

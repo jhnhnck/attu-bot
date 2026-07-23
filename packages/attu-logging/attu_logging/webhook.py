@@ -14,7 +14,7 @@ logger = structlog.stdlib.get_logger(__name__)
 def _break_at_newline(text: str, maximum: int, end: str = '...\n') -> str:
     """trim `text` to `maximum` chars, breaking only at newline boundaries.
 
-    inlined from nova_core.client.util to keep attu_logging free of bot-package imports.
+    inlined verbatim from the bot's client/util.py to keep attu_logging free of bot imports.
     """
     if len(text) <= maximum:
         return text
