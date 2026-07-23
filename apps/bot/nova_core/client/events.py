@@ -13,14 +13,14 @@ from discord import ApplicationContext, Member, Message, RawBulkMessageDeleteEve
 from discord.errors import CheckFailure
 from discord.ext.commands import MissingPermissions
 
+import attu_logging
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import ui_emoji
 from nova_core.client.util import event_log_context, shift_hue
 from nova_core.config import UnauthorizedGuild
-from nova_core.logging import get_logger
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 slow_command_threshold_ms = 500
 _cmd_start_times: dict[int, float] = {}
@@ -96,7 +96,7 @@ async def _restore_wiki_views():
     except RuntimeError:
         pass  # repo not initialized (should not happen here)
     except Exception as err:
-        logger.warn(f'wiki view restore failed: {err}')
+        logger.warning(f'wiki view restore failed: {err}')
 
 
 async def _do_ready_init():
@@ -109,22 +109,23 @@ async def _do_ready_init():
 
         logger.info('loading configuration from database')
         await config.on_load()
+        attu_logging.set_webhook_url(config.error_hook)
     except Exception as err:
-        logger.fatal('exception caught initializing database; exiting', exc_info=True)
-        await logger.send_to_webhook(err)
+        logger.critical('exception caught initializing database; exiting', exc_info=True)
+        await attu_logging.webhook.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
 
     try:
         await config.on_ready()
     except Exception as err:
-        logger.fatal('exception caught in on_ready() event; exiting', exc_info=True)
-        await logger.send_to_webhook(err)
+        logger.critical('exception caught in on_ready() event; exiting', exc_info=True)
+        await attu_logging.webhook.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
 
     if config.test_mode:
-        logger.fatal('reached ready state')
+        logger.critical('reached ready state')
         await _shutdown(exit_code=0)
         return
 
@@ -137,8 +138,8 @@ async def _do_ready_init():
         register_bot_tasks(scheduler)
         await scheduler.start_all()
     except Exception as err:
-        logger.fatal('exception caught starting task scheduler; exiting', exc_info=True)
-        await logger.send_to_webhook(err)
+        logger.critical('exception caught starting task scheduler; exiting', exc_info=True)
+        await attu_logging.webhook.send_to_webhook(err)
         await _shutdown(exit_code=1)
         return
 
@@ -149,7 +150,7 @@ async def _do_ready_init():
     try:
         await anyio.Path(_READY_SENTINEL).write_text('ready\n')
     except Exception as err:
-        logger.warn(f'could not write ready sentinel: {err}')
+        logger.warning(f'could not write ready sentinel: {err}')
 
     logger.info('pushing commands to discord')
     await bot.sync_commands()
@@ -185,7 +186,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
         else:
             link = '`fuck idk man`'
 
-        await logger.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
+        await attu_logging.webhook.send_to_webhook(error, location=f'triggered by `{ctx.user.global_name}` at {link}')
 
 
 @bot.event
@@ -336,7 +337,7 @@ async def on_member_join(member: Member):
                 return
             channel = member.guild.get_channel(channel_id)
             if channel is None:
-                logger.warn(f'general channel {channel_id} not found in guild {member.guild.id}')
+                logger.warning(f'general channel {channel_id} not found in guild {member.guild.id}')
                 return
             await channel.send(f'welcome to the archipelago {member.mention}')
 
@@ -365,7 +366,7 @@ async def on_application_command_complete(ctx: ApplicationContext):
     if start is not None:
         elapsed_ms = (time.perf_counter() - start) * 1000
         if elapsed_ms >= slow_command_threshold_ms:
-            logger.warn(f'slow command: /{ctx.command} took {elapsed_ms:.0f}ms')
+            logger.warning(f'slow command: /{ctx.command} took {elapsed_ms:.0f}ms')
         else:
             logger.debug(f'command timing: /{ctx.command} took {elapsed_ms:.0f}ms')
 
@@ -374,7 +375,7 @@ async def on_application_command_complete(ctx: ApplicationContext):
         try:
             await config.theme.save()
         except Exception as err:
-            logger.warn(f'failed to save theme after hue shift: {err}')
+            logger.warning(f'failed to save theme after hue shift: {err}')
 
     structlog.contextvars.clear_contextvars()
 

@@ -13,21 +13,23 @@ Usage:
 # handlers/processors. structlog caches logger config on first emit, so anything
 # that imports nova_core.* before this line could end up bound to the default
 # console renderer instead of ours.
+from os import environ  # must precede configure so DEBUG detection works
+
 from attu_logging import configure as _configure_logging
 
 
-_configure_logging()
+_configure_logging(level='DEBUG' if 'DEBUG' in environ else None)
 
 import sys  # noqa: E402 - configure must run before any other import
 import time  # noqa: E402 - configure must run before any other import
 import traceback  # noqa: E402 - configure must run before any other import
-from os import environ  # noqa: E402 - configure must run before any other import
+
+import structlog  # noqa: E402 - configure must run before any other import
 
 from nova_core import __build_time__  # noqa: E402 - configure must run before any repo import
-from nova_core.logging import get_logger  # noqa: E402 - configure must run before any repo import
 
 
-logger = get_logger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 logger.info(f'Container Build Time: {__build_time__}')
 
@@ -54,7 +56,7 @@ except Exception as error:
     logger.error(f'{error!s}\n{tb_str}')
 
     if 'TEST_MODE' not in environ:
-        logger.fatal('Fatal error encountered; will exit/restart in 60 secs')
+        logger.critical('Fatal error encountered; will exit/restart in 60 secs')
         time.sleep(60)
 
     sys.exit(1)
