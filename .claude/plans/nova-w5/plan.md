@@ -138,9 +138,9 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 class _AdminSession:
     api_key: str
     server_url: str
-    current_guild: dict | None = None      # {id, name, slug, role}
-    channels: list[dict] = field(default_factory=list)   # [{id, name, slug, type}]
-    roles: list[dict] = field(default_factory=list)      # [{id, name, slug}]
+    current_guild: dict | None = None  # {id, name, slug, role}
+    channels: list[dict] = field(default_factory=list)  # [{id, name, slug, type}]
+    roles: list[dict] = field(default_factory=list)  # [{id, name, slug}]
 ```
 
 **commands:**

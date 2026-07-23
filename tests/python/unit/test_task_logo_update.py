@@ -304,7 +304,13 @@ class TestRunGuildAvatarUpdate:
             call_count += 1
             return bot_avatar_bytes if call_count == 1 else guild_icon_bytes
 
-        with patch('nova_core.tasks.logo_update.config', mock_cfg), patch('nova_core.tasks.logo_update.bot', mock_bot), patch('nova_core.tasks.logo_update.random', return_value=0.0), patch('nova_core.tasks.logo_update.generate_png', side_effect=fake_generate_png), patch('nova_core.tasks.logo_update.logger') as mock_logger:
+        with (
+            patch('nova_core.tasks.logo_update.config', mock_cfg),
+            patch('nova_core.tasks.logo_update.bot', mock_bot),
+            patch('nova_core.tasks.logo_update.random', return_value=0.0),
+            patch('nova_core.tasks.logo_update.generate_png', side_effect=fake_generate_png),
+            patch('nova_core.tasks.logo_update.logger') as mock_logger,
+        ):
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 

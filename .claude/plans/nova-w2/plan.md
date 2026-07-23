@@ -72,6 +72,7 @@ wire `FeatureContext` into `nova_core/client/events.py` `_do_ready_init()`: afte
 
 ```python
 from nova_core.loader import FeatureContext
+
 _loader = FeatureContext(bot=bot, scheduler=scheduler, config=config, db=db)
 _loader.load_base([])  # stub; populated in phase 2
 _feature_list = getattr(config, 'features_enabled', None) or []

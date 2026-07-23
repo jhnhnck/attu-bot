@@ -65,12 +65,12 @@ manifest = FeatureManifest(
         'on_raw_reaction_clear': handle_reaction_clear,
         'on_raw_reaction_clear_emoji': handle_reaction_clear_emoji,
     },
-    setup=setup,                      # existing pycord setup(bot) fn for slash commands
+    setup=setup,  # existing pycord setup(bot) fn for slash commands
     guild_config_key='ccboard',
     guild_config_model=GuildCCBoard,
     document_classes=[ReactionDocument, BoardEntryDocument],
     repository_classes=[ReactionRepository, EntryRepository],
-    migrations=[...],                 # feature-owned migration list
+    migrations=[...],  # feature-owned migration list
 )
 ```
 
@@ -131,7 +131,7 @@ class GuildConfig(BaseModel):
     epoch: GuildEpoch
     roles: GuildRoles
     users: GuildUsers
-    features: dict[str, BaseModel] = {}   # keyed by feature name; value validated by feature's model
+    features: dict[str, BaseModel] = {}  # keyed by feature name; value validated by feature's model
 ```
 
 `GuildConfigDocument` in the shared package already stores feature config as `dict` blobs (`starboard: dict = {}`, `ccboard: dict = {}`); the document layer requires no change.

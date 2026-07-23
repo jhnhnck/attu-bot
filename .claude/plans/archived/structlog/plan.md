@@ -55,6 +55,7 @@ packages/attu-logging/
 ```python
 # apps/bot/doom-bot.py — first lines
 from attu_logging import configure
+
 configure()
 
 # everything else after this point can safely create module-level loggers
@@ -63,12 +64,14 @@ configure()
 ```python
 # packages/shared-models/attu_models/connection.py
 import structlog
+
 logger = structlog.stdlib.get_logger(__name__)
 ```
 
 ```python
 # packages/shared-models/attu_models/repositories.py — webhook usage
 from attu_logging.webhook import send_to_webhook
+
 await send_to_webhook(err, location='reconcile')
 ```
 

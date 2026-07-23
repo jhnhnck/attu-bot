@@ -67,6 +67,7 @@ result = some_coroutine()
 
 # if you suspect this, check:
 import inspect
+
 print(inspect.iscoroutine(result))  # True means you forgot await
 ```
 
