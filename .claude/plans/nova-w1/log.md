@@ -1,4 +1,4 @@
-# log — nova-w1: structural prerequisites
+# log - nova-w1: structural prerequisites
 (append per-phase entries here; chronological)
 
 ## starting phase 0 - 2026-07-23
@@ -51,3 +51,31 @@ see `.claude/conflicts.md` for the full conflict record.
 - branch: `phase/nova-w1`
 - parent: `trunk`
 - dod: `grep -rn 'doom_bot' apps/ packages/ tests/ scripts/ config/ --include="*.py"` returns zero lines; same grep over Dockerfiles, `*.yml`, `*.sh` returns zero lines; `ruff check` passes; `basedpyright` passes; Dockerfile sed target uses `nova_core/__init__.py`; bot runnable (bridge excluded - `config.bridge` not yet defined)
+
+## phase 1 retro - 2026-07-23
+
+**what landed vs spec**
+- all `doom_bot` -> `nova_core` import sites updated across apps/, packages/, tests/, scripts/ (422+ sites confirmed by dod grep returning zero)
+- `attu_logging/webhook.py` updated to import from `nova_core` instead of `doom_bot`; bridges package reference as scoped
+- `doom_bot/` directory fully deleted including the phase 0 nova_core metadata shim
+- `nova_core/` contains all moved modules: client/, bridge/, commands/, database/, tasks/, eggs/, wiki/, ccboard/, config.py, signals.py, webhook.py, logging.py
+- `nova_core/logging.py` intentionally preserved; phase 2 deletes it (by design)
+- Dockerfile doom_bot lines removed: two `sed` in git-info stage, one `COPY` in doombox stage, one stamp copy in git-info stage; only nova_core lines remain
+- `pyproject.toml` workspace name changed to `nova-core`; isort known-first-party, coverage source, pytest pythonpath all updated
+- 180 component tests pass; ruff check and basedpyright pass; dod grep returns zero; integration-check passes
+
+**what surprised us**
+- three regression-fix commits followed the initial rename before all checks passed: `48ed318` (entrypoint `doom-bot.py` had `from doom_bot.client import start_bot_loop` missing the `.client` segment after rename); `e37062d` (test fixture `mock_db_and_repos` patched `doom_bot.db` which was a re-export that no longer exists after deletion); `cab68f3` (test mocks in test_commands_stars, test_messages, test_starboard targeted `nova_core.bot` via `nova_core.__init__` which doesn't re-export `bot`; correct path is `nova_core.client.core.bot`)
+- the `nova_core.bot` attribute issue confirmed a broader pattern: `test_start_bot_loop.py` and `test_startup.py` have the same `patch.object(nova_core.bot, ...)` and `isinstance(nova_core.bot, ...)` patterns but were not fixed in this phase (they are in the pre-existing unit/integration baseline, not the 180 component tests; deferred as bug #4)
+
+**what residual debt remains**
+- `test_start_bot_loop.py` and `test_startup.py` `nova_core.bot` mock-patch patterns confirmed still present; part of pre-existing baseline; see bugs.md for classification
+
+## revision after phase 1 - 2026-07-23
+
+phases 2-4: valid - all premises hold.
+- phase 2: `nova_core/logging.py` present as expected; all nova_core import sites updated; no scope changes needed.
+- phase 3: `_do_ready_init()` confirmed at line 102 in `nova_core/client/events.py` after the rename; scope's line pointer is still accurate; no changes needed.
+- phase 4: premise unchanged; no scope changes needed.
+
+cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item closed); no downstream phase impact.
