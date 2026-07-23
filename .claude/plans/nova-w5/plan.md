@@ -32,7 +32,7 @@ the pre-mortem (`pre-mortem.md`) flagged three material risks. `ServerConfig` cu
 
 ---
 
-## phase 0 — walking skeleton
+### phase 0 — walking skeleton
 
 **status:** not started
 
@@ -52,7 +52,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 ---
 
-## phase 1 — auth gate + guild listing endpoints
+### phase 1 — auth gate + guild listing endpoints
 
 **status:** not started
 
@@ -78,7 +78,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 ---
 
-## phase 2 — config get/set endpoints
+### phase 2 — config get/set endpoints
 
 **status:** not started
 
@@ -100,7 +100,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 ---
 
-## phase 3 — feature/reload/fix endpoints
+### phase 3 — feature/reload/fix endpoints
 
 **status:** not started
 
@@ -125,7 +125,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 ---
 
-## phase 4 — repl client
+### phase 4 — repl client
 
 **status:** not started
 

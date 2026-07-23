@@ -31,7 +31,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 0 — eggs (walking skeleton)
+### phase 0 — eggs (walking skeleton)
 
 **status:** open
 
@@ -46,7 +46,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - remove `egg_cleanup_task` and `presence_update_task` from `tasks/__init__.py register_bot_tasks()`
 - clean up any `doom_bot.logging` remnants in eggs files (nova-w1 should have handled these; fix stragglers here)
 
-**definition of done:**
+**dod:**
 - nova-w2 repo injection mechanism documented and confirmed before coding starts (pre-mortem high risk)
 - `doom_bot/eggs/__init__.py` exports `manifest: FeatureManifest`
 - `EggDocument`, `EggUserDocument`, `EggRepository`, `EggUserRepository` importable only from `doom_bot.eggs.*`
@@ -58,7 +58,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 1 — ccboard
+### phase 1 — ccboard
 
 **status:** open
 
@@ -72,7 +72,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - remove ccboard event handlers and `_ccboard_enabled` from `client/events.py`
 - remove `ccboard_manager_task`, `ccboard_auditor_task` from `register_bot_tasks()`
 
-**definition of done:**
+**dod:**
 - `doom_bot/ccboard/__init__.py` exports `manifest: FeatureManifest`
 - `client/events.py` contains no ccboard imports or `_ccboard_enabled`
 - `register_bot_tasks()` contains no reference to ccboard tasks
@@ -84,7 +84,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 2 — modlog
+### phase 2 — modlog
 
 **status:** open
 
@@ -97,7 +97,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - delete `doom_bot/client/modlog.py`
 - note: `on_member_join` will have two active handlers after this phase (welcome message stays in `client/events.py`; modlog embed moves to manifest); both must fire — pycord supports multiple `bot.listen()` registrations on the same event
 
-**definition of done:**
+**dod:**
 - `doom_bot/modlog/__init__.py` exports `manifest: FeatureManifest`
 - `doom_bot/client/modlog.py` deleted; `doom_bot/client/__init__.py` has no modlog import
 - `on_member_join` fires both welcome message (events.py) and modlog embed (manifest handler) — confirmed in tests or startup smoke
@@ -107,7 +107,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 3 — wiki (package extraction)
+### phase 3 — wiki (package extraction)
 
 **status:** open
 
@@ -130,7 +130,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - `_restore_wiki_views` startup hook: check nova-w2 spec for a `startup` field on `FeatureManifest`; if present, move restore logic into manifest; if absent, keep `_restore_wiki_views` in `client/events.py` and import from `doom_bot.wiki` — document the choice in phase log
 - declare `manifest` in `doom_bot/wiki/__init__.py`: `setup=commands.wiki.setup`, `startup=_restore_wiki_views` (if supported) or note omission, `document_classes=[WikiViewDocument]`, `repository_classes=[WikiViewRepository]`
 
-**definition of done:**
+**dod:**
 - `packages/attu-wiki/attu_wiki/` importable; `uv sync` clean on clean virtualenv after skeleton step (before any code moved)
 - `doom_bot/wiki/__init__.py` under 30 lines
 - no `doom_bot` imports anywhere in `packages/attu-wiki/`
@@ -142,7 +142,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 4 — reminders
+### phase 4 — reminders
 
 **status:** open
 
@@ -156,7 +156,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - remove `ReminderDocument`, `ReminderRepository` from `attu_models`; remove from `doom_bot/database/__init__.py`
 - remove `reminder_task` from `register_bot_tasks()`
 
-**definition of done:**
+**dod:**
 - `doom_bot/reminders/__init__.py` exports `manifest: FeatureManifest`
 - `ReminderDocument`, `ReminderRepository` live in `doom_bot/reminders/`
 - `reminder_task` removed from `register_bot_tasks()`
@@ -166,7 +166,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 5 — trees
+### phase 5 — trees
 
 **status:** open
 
@@ -180,7 +180,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - remove `FamilyDocument`, `FamilyRepository` from `attu_models`; remove from `doom_bot/database/__init__.py`
 - update all import sites (`commands/trees.py` and any callers of `doom_bot.client.families`)
 
-**definition of done:**
+**dod:**
 - `doom_bot/trees/__init__.py` exports `manifest: FeatureManifest`
 - `FamilyDocument`, `FamilyRepository` live in `doom_bot/trees/`
 - `doom_bot/client/families.py` deleted; no reference to it in `doom_bot/client/`
@@ -190,7 +190,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 ---
 
-## phase 6 — starboard
+### phase 6 — starboard
 
 **status:** open
 
@@ -203,7 +203,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - remove starboard event handlers and `_starboard_enabled` from `client/events.py`
 - remove `StarredMessageDocument`, `StarboardRepository` from `attu_models`; remove from `doom_bot/database/__init__.py`
 
-**definition of done:**
+**dod:**
 - `doom_bot/starboard/__init__.py` exports `manifest: FeatureManifest`
 - `client/events.py` contains no starboard imports or `_starboard_enabled`
 - `attu_models/documents.py` and `attu_models/repositories.py` contain no feature-specific classes: grep for `Egg`, `Reaction`, `Entry`, `Family`, `Reminder`, `WikiView`, `StarredMessage` returns zero hits
@@ -211,6 +211,20 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - `docker compose run tests` passes
 
 **merge gate:** phase 5 closed on trunk; ccboard confirmed stable in primary guild; `attu_models/__init__.py` and `doom_bot/database/__init__.py` at trunk HEAD
+
+---
+
+## status
+
+| phase | status |
+|---|---|
+| 0 — eggs (walking skeleton) | not started |
+| 1 — ccboard | not started |
+| 2 — modlog | not started |
+| 3 — wiki (package extraction) | not started |
+| 4 — reminders | not started |
+| 5 — trees | not started |
+| 6 — starboard | not started |
 
 ---
 

@@ -40,7 +40,7 @@ two residual risks from the pre-mortem. first: pycord's `bot.listen()` when call
 
 ---
 
-## phase 0: walking skeleton
+### phase 0 — walking skeleton
 
 **status:** open
 
@@ -84,7 +84,7 @@ _loader.load_all(_feature_list)
 
 unit tests in `tests/python/unit/test_feature_loader.py`: mock bot, scheduler, config, db; create a mock manifest with one of each hook type; call `loader.load_feature(manifest)` and assert `_wire_tasks` called once, `_wire_event_handlers` called once, `_wire_setup` called once; assert loading a module with no `manifest` attribute logs a warning and does not raise; assert loading a non-importable name logs a warning and does not raise.
 
-**definition of done:**
+**dod:**
 - `python -c 'from nova_core.manifest import FeatureManifest; m = FeatureManifest(name="x"); print(m.tasks)'` exits 0 printing `[]`
 - `bot.listen()` programmatic pattern confirmed: unit test asserts the synthetic on_message handler fires; if `bot.listen()(fn)` fails, `bot.add_listener(fn, name='on_message')` is substituted and noted in the commit message
 - `grep -n 'FeatureContext\|load_base\|load_all' nova_core/client/events.py` shows all three calls inside `_do_ready_init()` and after `await init_database(...)`
@@ -97,7 +97,7 @@ unit tests in `tests/python/unit/test_feature_loader.py`: mock bot, scheduler, c
 
 ---
 
-## phase 1: full manifest API, TOML feature selection, migration ordering
+### phase 1 — full manifest API, TOML feature selection, migration ordering
 
 **status:** open
 
@@ -118,7 +118,7 @@ repo injection mechanism: implement and document one of the two candidate patter
 
 write the ccboard manifest body (from `notes/nova-core.md` example) as a type-checked test fixture in `tests/python/unit/test_feature_manifest.py`; instantiate the full manifest with mocked classes; assert all fields round-trip; no runtime wiring: import and instantiation only. this fixture validates that the field types are correct for what nova-w3 will actually declare.
 
-**definition of done:**
+**dod:**
 - `__config_version__` bumped in `nova_core/__init__.py`; `grep '__config_version__' nova_core/__init__.py` shows a version higher than the nova-w1 phase 3 value
 - `[features] enabled = [...]` parses from TOML; `config.features_enabled` returns the list; `config.feature_config('eggs')` returns `{}` when no `[features.eggs]` table exists
 - `startup` field decision documented in plan log and `notes/nova-core.md`; if included, synthetic test feature exercises it with a no-op coroutine
@@ -134,7 +134,7 @@ write the ccboard manifest body (from `notes/nova-core.md` example) as a type-ch
 
 ---
 
-## phase 2: base package explicit declaration
+### phase 2 — base package explicit declaration
 
 **status:** open
 
@@ -166,7 +166,7 @@ add a startup sequence comment block at the top of the `_loader.load_base(...)` 
 
 base tasks (db-backup, error-hook, reload-watcher) must not also appear in `register_bot_tasks()` after this phase: check `nova_core/tasks/__init__.py` and remove any duplicate registrations of base tasks that are now wired by `load_base`.
 
-**definition of done:**
+**dod:**
 - pre-phase audit table produced and committed to plan log before any code is written; no "significant move" items (or they are escalated and approved)
 - `nova_core.loader.BASE_PACKAGE` has exactly 6 items; unit test asserts count and name list: `[spec.name for spec in BASE_PACKAGE] == ['ping', 'version', 'db-backup', 'error-hook', 'reload-watcher', 'bridge-health']`
 - `grep -n 'load_base\|load_all' nova_core/client/events.py` shows `load_base` before `load_all` inside `_do_ready_init()`
@@ -177,6 +177,16 @@ base tasks (db-backup, error-hook, reload-watcher) must not also appear in `regi
 **cross-phase check:** nova-w3 can start phases without modifying `nova_core/client/events.py` or `nova_core/loader.py` for base package items: the base pass is complete and requires only `[features].enabled` TOML edits to add or remove non-base features.
 
 **merge gate:** phase 1 merged to trunk
+
+---
+
+## status
+
+| phase | status |
+|---|---|
+| 0 — walking skeleton | not started |
+| 1 — full manifest API, TOML feature selection, migration ordering | not started |
+| 2 — base package explicit declaration | not started |
 
 ---
 

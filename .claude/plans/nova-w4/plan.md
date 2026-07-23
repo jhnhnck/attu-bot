@@ -51,7 +51,7 @@ each goal is a co-equal, grep-checkable end state. the workstream ships when all
 
 ---
 
-## phase 0 — walking skeleton
+### phase 0 — walking skeleton
 
 thinnest possible casino bot that exercises every layer: workspace wiring, config loading, mongo connection, nova_core bootstrap, feature loader with empty list, ready state.
 
@@ -64,7 +64,7 @@ thinnest possible casino bot that exercises every layer: workspace wiring, confi
 - `apps/casino/Dockerfile`: modeled on `apps/bot/Dockerfile`; add `casino` service to `docker-compose.dev.yml`
 - root `pyproject.toml [tool.ruff.lint.per-file-ignores]`: add `"apps/casino/**" = []` entry that omits `"S311"` from the un-ignored set (re-enables S311 for all casino code from phase 0 onward)
 
-**definition of done:**
+**dod:**
 - `python -c "import nova_core"` succeeds in the dev container; if it fails, nova-w1 is a prerequisite — switch to `import doom_bot` as a stand-in and note it as a TODO
 - `python apps/casino/casino-bot.py bot` against dev mongo logs ready state and does not crash
 - `uv sync` resolves cleanly with `apps/casino` as a workspace member
@@ -78,7 +78,7 @@ thinnest possible casino bot that exercises every layer: workspace wiring, confi
 
 ---
 
-## phase 1 — mongodb session support
+### phase 1 — mongodb session support
 
 adds session capability to the shared storage layer so banking can perform atomic multi-document operations. modifies shared infrastructure; must not break existing call sites.
 
@@ -93,7 +93,7 @@ adds session capability to the shared storage layer so banking can perform atomi
 **pitfalls (continued):**
 - the correct async pymongo transaction pattern is a double `async with`: `async with await client.start_session() as s: async with s.start_transaction(): ...`. this differs from sync pymongo and from standard asyncio context managers. add an inline comment in the component test so future readers don't simplify it incorrectly.
 
-**definition of done:**
+**dod:**
 - `MongoStorage.get_client()` exists; raises on pre-connect call
 - `grep -rn 'get_client' apps/bot/ apps/server/` returns 0 lines
 - `tests/python/component/test_mongo_session.py` passes against dev ferretdb under the `component` marker (write + abort + read-back-empty against the actual dev instance)
@@ -104,7 +104,7 @@ adds session capability to the shared storage layer so banking can perform atomi
 
 ---
 
-## phase 2 — banking feature
+### phase 2 — banking feature
 
 the casino bot's core financial layer. atomic debit/credit is the invariant that drove session support in phase 1. **requires nova-w2 complete.**
 
@@ -121,7 +121,7 @@ the casino bot's core financial layer. atomic debit/credit is the invariant that
 - the `InsufficientFundsError` must distinguish "account not found" from "balance too low": the `find_one_and_update` with `{$gte: amount}` returns no match for both cases. do a follow-up `get()` to distinguish them and set `reason` accordingly.
 - banking has no randomness — `secrets.choice()` etc. are for games (phase 3+). document this in a docstring on `BankAccountRepository` so reviewers don't add a PRNG.
 
-**definition of done:**
+**dod:**
 - `BankAccountRepository.debit()` raises `InsufficientFundsError` with correct `reason` field for both "insufficient_balance" and "account_not_found" cases (unit test)
 - `get_or_create()` creates a 0-balance account for new users (unit test)
 - `/casino register` command wired via manifest
@@ -134,7 +134,7 @@ the casino bot's core financial layer. atomic debit/credit is the invariant that
 
 ---
 
-## phase 3 — first casino game (coin flip)
+### phase 3 — first casino game (coin flip)
 
 establishes the casino game pattern: manifest-native, cryptographic randomness, integrates with banking for bet/payout. coin flip is the reference implementation — subsequent games follow the same shape.
 
@@ -149,7 +149,7 @@ establishes the casino game pattern: manifest-native, cryptographic randomness, 
 - `secrets.choice(['heads', 'tails'])` is the correct call — not `secrets.SystemRandom().choice(...)` (that attribute does not exist) and not `random.choice(...)` (banned). `git grep 'SystemRandom' apps/casino/'` should return 0 lines.
 - the pre-condition check for nova-w2 `FeatureContext` storage access (noted above) must be done before writing the command, not discovered at integration time.
 
-**definition of done:**
+**dod:**
 - nova-w2 `FeatureContext` confirmed to expose a storage handle (or the interface is agreed before code starts)
 - `/flip` command registered by the coin_flip manifest and wired by the nova_core feature loader
 - `git grep 'import random' apps/casino/` returns 0 lines
@@ -161,7 +161,7 @@ establishes the casino game pattern: manifest-native, cryptographic randomness, 
 
 ---
 
-## phase 4 — lottery feature
+### phase 4 — lottery feature
 
 lottery differs from instant games: players buy tickets in advance, a draw runs on a schedule, one winner is selected from the pool. manifest-native; uses banking for ticket purchases and winner payout.
 
@@ -178,7 +178,7 @@ lottery differs from instant games: players buy tickets in advance, a draw runs 
 - an empty ticket pool (no buyers) must be handled — draw_task skips selection and reopens with a log message; do not call `secrets.choice([])` (raises `IndexError`).
 - `secrets.choice(ticket_ids)` — not `secrets.SystemRandom().choice(...)` (that attribute does not exist).
 
-**definition of done:**
+**dod:**
 - `/lottery buy`, `/lottery status`, `/lottery history` commands registered via manifest
 - `draw_task` registered via manifest (not hardcoded in startup)
 - `[features.lottery] draw_interval_hours` key present in example `casino.toml`
@@ -200,3 +200,15 @@ the pre-mortem (`pre-mortem.md`) is the canonical risk record. one risk merits c
 ## minimum viable adoption?
 
 yes. phase 0 alone ships a runnable second bot and proves the workspace can host multiple apps. each subsequent phase is independently mergeable. the workstream does not need to complete in full before the casino bot is useful — banking alone (phases 0-2) is a deployable feature set.
+
+---
+
+## status
+
+| phase | status |
+|---|---|
+| 0 — walking skeleton | not started |
+| 1 — mongodb session support | not started |
+| 2 — banking feature | not started |
+| 3 — first casino game (coin flip) | not started |
+| 4 — lottery feature | not started |
