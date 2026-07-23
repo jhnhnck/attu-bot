@@ -23,7 +23,21 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 ### architecture
 
-- ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `doom_bot.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken (verified by structlog phase 1 cross-phase check) but the type-hint coupling means shared-models still knows about `doom_bot.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro)
+- ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `nova_core.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken but the type-hint coupling means shared-models still knows about `nova_core.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro; import updated to nova_core in nova-w1 phase 1)
+
+### nova-core / bridge
+
+- ⭕ `bug` `nova_core/client/markers.py` `YearMarker.mark()` — `channel` parameter defaults to the primary guild's id (a snowflake) when not provided, but `channel` is supposed to be a channel id; pre-existing logic bug preserved during nova-w1 phase 4 migration; fix requires auditing all callers of `mark()` to determine the intended default. carried from plan: nova-w1 (2026-07-23)
+- ⭕ `nit` `nova_core/bridge/router.py:149-167` — `bot._bridge_started` is only True after `server.serve()` exits (not while running); the duplicate-start guard at line 149 is therefore always False during normal operation; functionally safe because `on_ready.has_run` prevents re-entry; clean fix: set True at task-creation time, clear to False only on exception. carried from plan: nova-w1 (2026-07-23)
+- ⭕ `nit` `nova_core/bridge/hmac.py:47` — lazy `from fastapi import HTTPException` inside `verify()` is redundant now that fastapi is a declared dep; the module-level import via `contextlib.suppress` already covers it. carried from plan: nova-w1 (2026-07-23)
+- ⭕ `nit` `nova_core/bridge/hmac.py:13` — comment "fastapi is absent in unit/component test containers" is stale; fastapi is now a declared dep; real reason for the module-level import is that FastAPI calls `get_type_hints(verify)` at route-registration time and needs `Request` resolvable in globals. carried from plan: nova-w1 (2026-07-23)
+
+### testing
+
+- ⭕ `bug` bridge startup wiring (`start_bridge_task()` called from `_do_ready_init()` after the `test_mode` guard) has zero integration test coverage; all integration tests use `test_mode=True` which returns before the bridge block; compensating test needs `test_mode=False` + mock uvicorn; apply mock-compensation skill. carried from plan: nova-w1 (2026-07-23)
+- ⭕ `nit` `tests/python/unit/test_start_bot_loop.py` and `tests/python/integration/test_startup.py` — use `patch.object(nova_core.bot, ...)` and `isinstance(nova_core.bot, ...)` patterns; `nova_core/__init__.py` does not re-export `bot`; correct path is `nova_core.client.core.bot`; these are pre-existing failures in the unit/integration baseline (not component tests). carried from plan: nova-w1 phase 1 (2026-07-23)
+- ⭕ `nit` `tests/python/unit/test_start_bot_loop.py::TestSetupDiscordLogging::test_sets_discord_http_logger_to_debug` — asserts `discord.http` level is unconditionally `DEBUG` but `_setup_discord_logging()` has been conditional (`DEBUG in environ`) since at least d16d1b2; `TestDiscordHttpLevelGating` in `test_logging.py` covers both branches correctly; fix is to delete the stale test. carried from plan: nova-w1 phase 2 (2026-07-23)
+- ⭕ `nit` vestigial `mock_logger.send_to_webhook = AsyncMock()` in `test_task_error_hook.py`, `test_task_logo_update.py`, `test_scheduler.py`, `test_task_presence.py` — method no longer exists on `structlog.stdlib.BoundLogger`; no assertion checks the attribute; delete or replace with `patch('attu_logging.webhook.send_to_webhook', ...)`. carried from plan: nova-w1 phase 2 (2026-07-23)
 
 ### linting
 

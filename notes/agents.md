@@ -312,7 +312,7 @@ the canonical end-of-task checklist (tests, documentation, configuration plumbin
 
 - **`TEST_MODE` env var**: when set, the bot exits cleanly after reaching ready state without a 60-second restart delay. migrations are also skipped.
 - **`DEBUG` env var**: enables `trace`/`debug`/`alert` log levels.
-- **config singleton**: `bot`, `config`, and `db` singletons are defined in `apps/bot/doom_bot/client/core.py` and re-exported from `doom_bot`. extensions can import them from either path.
+- **config singleton**: `bot`, `config`, and `db` singletons are defined in `apps/bot/nova_core/client/core.py`. always import from `nova_core.client.core` directly; `nova_core/__init__.py` does **not** re-export these (tests that use `patch.object(nova_core, 'bot', ...)` or `isinstance(nova_core.bot, ...)` will fail silently — use `nova_core.client.core.bot` instead).
 - **guild authorization**: always check `guild_id in config.authorized_guilds` before acting. `config.guild(id)` raises `UnauthorizedGuild` for unknown guilds.
 - **snowflake precision**: Discord IDs exceed JavaScript's safe integer range - serialize them as strings in any JSON API response.
 - **rollover time storage**: stored as `rollover_minutes` (int, minutes since midnight) in MongoDB; the legacy string format (`"17:00"`) is handled by a `model_validator` in `GuildEpoch`.

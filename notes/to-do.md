@@ -58,6 +58,9 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### maintenance
 
+- ⭕ `low priority` `low effort` `attu_logging/webhook.py` `_break_at_newline` inlined from `nova_core/client/util.py`; drift risk if either copy diverges; real fix is a shared-models package (workstream 3). carried from plan: nova-w1 (2026-07-23)
+- ⭕ `low priority` `low effort` `nova_core/client/events.py` `_do_ready_init()` — add comment at the `attu_logging.set_webhook_url()` call noting that if `on_load()` raises before reaching this line, the `except`-clause `send_to_webhook()` will silently no-op (url unset); behavior unchanged from pre-migration. carried from plan: nova-w1 (2026-07-23)
+- ⭕ `low priority` `low effort` notes/ docs still reference `apps/bot/doom_bot/` paths in prose descriptions (agents.md, features/*.md, dev/testing.md, style/*.md, nova-core.md); cosmetic accuracy issue; update each doc as it's edited for other reasons. carried from plan: nova-w1 (2026-07-23)
 - ⭕ `medium priority` `medium effort` audit command descriptions and make sure they make sense, match style guide, only say needed/user-facing details; add completions; improve interface, add embeds where it makes sense
 - ⭕ `medium priority` `medium effort` move hard-coded but constant settings into toml config files; load them through `NovaConfig` instead of scattering magic values across the codebase
 - ⭕ `medium priority` `medium effort` trace initialization steps and ensure all data loading flows through `NovaConfig` primarily; reduce branching that makes startup order hard to follow
@@ -74,6 +77,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### testing
 
+- ⭕ `low priority` `low effort` `test_task_logo_update.py` — add test for `LogoUpdateTask.run()` when `get_guild_by_role('primary')` returns `None`: guild icon/emoji/role updates skipped, bot avatar still updated. carried from plan: nova-w1 (2026-07-23)
 - ⭕ `medium priority` `high effort` add tests for commands/fix.py (42%) - 492 statements, 278 missed across the largest command module
 - ⭕ `medium priority` `high effort` add tests for client/events.py (38%) - 264 statements, 156 missed across discord event handlers
 - ⭕ `medium priority` `medium effort` add tests for tasks/nova_year.py (57%)

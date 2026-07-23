@@ -201,7 +201,7 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 
 ### workstream 1 - structural prerequisites
 
-*nothing else starts until this is done*
+*shipped in nova-w1 (2026-07-23); `phase/nova-w1` merged to trunk*
 
 - rename `doom_bot` package to `nova_core`; update all import sites, docker config, entrypoint scripts
 - rename/restructure `attu_models`: shared package becomes connection and storage infrastructure only; document and repo classes move to feature ownership
