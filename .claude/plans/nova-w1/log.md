@@ -29,3 +29,18 @@
 phase 1 revised: added explicit Dockerfile cleanup step to scope (remove doom_bot COPY and git-info stamp lines left by phase 0 additive approach); the DoD grep already requires this, but the scope was silent and an implementer could miss three distinct Dockerfile lines that need removal.
 
 phases 2-4: valid - no scope changes needed; their premises assume nova_core in its phase-1 moved state, which is sequencing, not a phase-0 finding.
+
+## cross-plan dependency note — 2026-07-23
+
+**w1/w5: nova-w1 ph4 `[[guilds]]` format is a downstream constraint for nova-w5**
+
+nova-w5 ph0 adds `GuildEntry(id: int, role: str)` as a stub field on `ServerConfig`
+(`apps/server/attu_server/config.py`). when nova-w5 later wires `ServerConfig.guilds` to read from
+the shared TOML, it must match the `[[guilds]]` format nova-w1 ph4 defines (each entry: `id: int`,
+`role: str`, plus any other fields ph4 adds). nova-w5 is aware of this dependency and defers its
+`load_config` wiring until nova-w1 ph4 closes.
+
+implementer of nova-w1 ph4: the `GuildEntry` fields you settle on in `nova_core/config.py` become
+the canonical shape; coordinate with nova-w5 if fields change from `{id, role}`.
+
+see `.claude/conflicts.md` for the full conflict record.
