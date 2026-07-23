@@ -1,0 +1,43 @@
+{
+  "lastUpdated": "2026-07-23",
+  "plans": [
+    { "plan": "structlog", "phase": 0, "state": "closed", "gate": null, "note": "configure + webhook; merged 2026-05-10" },
+    { "plan": "structlog", "phase": 1, "state": "closed", "gate": null, "note": "shared-models flip; merged 2026-05-10" },
+    { "plan": "structlog", "phase": 2, "state": "ready",  "gate": null, "note": "TRACE/ALERT removal — next up" },
+    { "plan": "structlog", "phase": 3, "state": "queued", "gate": "structlog ph2", "note": "send_to_webhook free function" },
+    { "plan": "structlog", "phase": 4, "state": "queued", "gate": "structlog ph3", "note": "bulk import-site conversion (8 directory commits)" },
+    { "plan": "structlog", "phase": 5, "state": "queued", "gate": "structlog ph4", "note": "delete the wrapper" },
+    { "plan": "structlog", "phase": 6, "state": "queued", "gate": "structlog ph5", "note": "f-string sweep (optional)" },
+
+    { "plan": "nova-w1", "phase": 0, "state": "closed", "gate": null, "note": "nova_core/__init__.py walking skeleton; closed in 56e78e1" },
+    { "plan": "nova-w1", "phase": 1, "state": "ready",  "gate": null, "note": "package rename doom_bot -> nova_core" },
+    { "plan": "nova-w1", "phase": 2, "state": "queued", "gate": "nova-w1 ph1", "note": "attu_logging migration" },
+    { "plan": "nova-w1", "phase": 3, "state": "queued", "gate": "nova-w1 ph2", "note": "bridge bug fixes (8 bugs)" },
+    { "plan": "nova-w1", "phase": 4, "state": "queued", "gate": "nova-w1 ph3", "note": "config restructure and string cleanup" },
+
+    { "plan": "nova-w2", "phase": 0, "state": "queued", "gate": "nova-w1 all",  "note": "walking skeleton: FeatureManifest, FeatureContext, loader" },
+    { "plan": "nova-w2", "phase": 1, "state": "queued", "gate": "nova-w2 ph0", "note": "full manifest API, TOML feature selection, migration ordering" },
+    { "plan": "nova-w2", "phase": 2, "state": "queued", "gate": "nova-w2 ph1", "note": "base package explicit declaration" },
+
+    { "plan": "nova-w3", "phase": 0, "state": "queued", "gate": "nova-w1+w2 all", "note": "eggs (walking skeleton)" },
+    { "plan": "nova-w3", "phase": 1, "state": "queued", "gate": "nova-w3 ph0", "note": "ccboard extraction" },
+    { "plan": "nova-w3", "phase": 2, "state": "queued", "gate": "nova-w3 ph1", "note": "modlog extraction" },
+    { "plan": "nova-w3", "phase": 3, "state": "queued", "gate": "nova-w3 ph2", "note": "wiki extraction" },
+    { "plan": "nova-w3", "phase": 4, "state": "queued", "gate": "nova-w3 ph3", "note": "reminders extraction" },
+    { "plan": "nova-w3", "phase": 5, "state": "queued", "gate": "nova-w3 ph4", "note": "trees extraction" },
+    { "plan": "nova-w3", "phase": 6, "state": "queued", "gate": "nova-w3 ph5", "note": "starboard extraction" },
+
+    { "plan": "nova-w4", "phase": 0, "state": "ready",  "gate": null,           "note": "casino app walking skeleton (doom_bot imports stubbed)" },
+    { "plan": "nova-w4", "phase": 1, "state": "queued", "gate": "nova-w4 ph0",  "note": "mongodb session support" },
+    { "plan": "nova-w4", "phase": 2, "state": "queued", "gate": "nova-w2 all",  "note": "banking feature (requires nova-w2 complete)" },
+    { "plan": "nova-w4", "phase": 3, "state": "queued", "gate": "nova-w4 ph2",  "note": "coin flip game" },
+    { "plan": "nova-w4", "phase": 4, "state": "queued", "gate": "nova-w4 ph3",  "note": "lottery feature" },
+
+    { "plan": "nova-w5", "phase": 0, "state": "ready",  "gate": null,           "note": "admin server walking skeleton (auth stubs with empty defaults)" },
+    { "plan": "nova-w5", "phase": 1, "state": "queued", "gate": "nova-w5 ph0",  "note": "auth gate + guild listing" },
+    { "plan": "nova-w5", "phase": 2, "state": "queued", "gate": "nova-w5 ph1",  "note": "config get/set" },
+    { "plan": "nova-w5", "phase": 3, "state": "queued", "gate": "nova-w5 ph2",  "note": "feature/reload/fix" },
+    { "plan": "nova-w5", "phase": 4, "state": "queued", "gate": "nova-w5 ph3",  "note": "repl client" }
+  ],
+  "artifactUrl": "https://claude.ai/code/artifact/e85ca9cf-7a92-4352-97ad-d510d65765cb"
+}
