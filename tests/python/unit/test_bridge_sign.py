@@ -16,7 +16,7 @@ pytestmark = pytest.mark.unit
 
 def test_sign_symmetry_get():
     """bot's hmac.sign and server's _sign must produce byte-identical headers."""
-    from attu_server.bridge_client import _sign as server_sign
+    attu_bridge = pytest.importorskip('attu_server.bridge_client', reason='attu_server not installed in this environment')
 
     from nova_core.bridge.hmac import sign as bot_sign
 
@@ -24,13 +24,13 @@ def test_sign_symmetry_get():
     ts = 1746000000
 
     bot = bot_sign(secret, 'GET', '/bridge/guilds/123/channels', b'', timestamp=ts)
-    srv = server_sign(secret, 'GET', '/bridge/guilds/123/channels', b'', timestamp=ts)
+    srv = attu_bridge._sign(secret, 'GET', '/bridge/guilds/123/channels', b'', timestamp=ts)
 
     assert bot == srv
 
 
 def test_sign_symmetry_post_with_body():
-    from attu_server.bridge_client import _sign as server_sign
+    attu_bridge = pytest.importorskip('attu_server.bridge_client', reason='attu_server not installed in this environment')
 
     from nova_core.bridge.hmac import sign as bot_sign
 
@@ -39,7 +39,7 @@ def test_sign_symmetry_post_with_body():
     body = b'{"signal_type":"theme"}'
 
     bot = bot_sign(secret, 'POST', '/bridge/reload', body, timestamp=ts)
-    srv = server_sign(secret, 'POST', '/bridge/reload', body, timestamp=ts)
+    srv = attu_bridge._sign(secret, 'POST', '/bridge/reload', body, timestamp=ts)
 
     assert bot == srv
 
