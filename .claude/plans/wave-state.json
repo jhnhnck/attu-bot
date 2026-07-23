@@ -2,7 +2,7 @@
   "lastUpdated": "2026-07-23",
   "plans": [
     { "plan": "nova-w1", "phase": 0, "state": "closed", "gate": null, "note": "nova_core/__init__.py walking skeleton; closed in 56e78e1" },
-    { "plan": "nova-w1", "phase": 1, "state": "ready",  "gate": null, "note": "package rename doom_bot -> nova_core" },
+    { "plan": "nova-w1", "phase": 1, "state": "active", "gate": null, "note": "package rename doom_bot -> nova_core; in progress" },
     { "plan": "nova-w1", "phase": 2, "state": "queued", "gate": "nova-w1 ph1", "note": "attu_logging migration" },
     { "plan": "nova-w1", "phase": 3, "state": "queued", "gate": "nova-w1 ph2", "note": "bridge bug fixes (8 bugs)" },
     { "plan": "nova-w1", "phase": 4, "state": "queued", "gate": "nova-w1 ph3", "note": "config restructure and string cleanup" },
