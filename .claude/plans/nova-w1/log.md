@@ -109,3 +109,35 @@ cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item close
 
 - phase 3: revised - scope updated to note that `test_bridge_sign.py` pre-existing failures are now visible and must be addressed in this phase; they were masked in phases 0-1 by `test_bridge_auth.py` collection stop; mechanism documented in bugs.md
 - phase 4: valid - premises unchanged; no scope changes needed
+
+## starting phase 3 - 2026-07-23
+
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w1
+- branch: phase/nova-w1
+- parent branch: trunk
+- dod: all 8 bugs from the contract addressed at code level; sample TOML has `[bridge]` section; `__config_version__` in `nova_core/__init__.py` bumped to `2.6.0`; `ruff check` passes; bot runnable with bridge included (`config.bridge` defined; bridge starts on on_ready)
+- extension: 5 `test_bridge_sign.py` pre-existing unit failures addressed (uvicorn/attu_server import issue; unmasked in phase 2; documented in bugs.md)
+
+## phase 3 retro — 2026-07-23
+
+**what landed vs spec**
+- all 8 bridge bugs fixed in commit 19c1b32: BridgeConfig model added to config.py with on_init() loading [bridge] TOML section; bridge startup wired into _do_ready_init() after the scheduler block; startup lockout corrected (_bridge_started = True moved inside _serve() after server.serve() returns, False on exception); health race resolved via _bot_initialized flag on the bot singleton; avatar_url null guard removed (display_avatar.url always returns a valid url); get_guild_roles returns None on exception with router raising 502; DiscordCache.clear prefix collision fixed; fastapi/uvicorn lazy-import guards added to hmac.py and router.py
+- sample TOML gains [bridge] section; __config_version__ bumped to 2.6.0
+- 5 pre-existing test_bridge_sign.py failures resolved in d5566a7: 3 pass, 2 skip (attu_server not installed in unit container by design)
+- fastapi and uvicorn added to apps/bot/pyproject.toml; lockfile regenerated in commit 05fd062 — discovered during dod verification; not in original plan scope
+
+**what surprised us**
+- fastapi and uvicorn were entirely absent from apps/bot/pyproject.toml; the lazy-import guards in hmac.py and router.py had masked this from test containers (neither package is installed there by design); runtime bridge startup with [bridge] configured would have thrown ModuleNotFoundError; caught during dod verification, added and lockfile regenerated in commit 05fd062
+- DiscordCache.clear needed `k == prefix or k.startswith(prefix + ':')` — plan spec said `k.startswith(prefix + ':')` only, omitting the exact-key invalidation case; fix is conservative and correct per implementer note
+- bridge startup wiring was entirely absent from _do_ready_init() before this phase; pre-mortem identified this risk; confirmed on inspection that it was missing (not silently swallowed); wired inline after the scheduler block, conditional on `config.bridge is not None`
+
+**what residual debt remains**
+- _bridge_started semantics mismatch: True only after server.serve() exits, not while running; functionally safe due to on_ready.has_run guard; tagged defer in bugs.md
+- `if bridge_raw:` silently disables bridge on empty [bridge] section; tagged fix-in-phase-4 since config.py is already in scope there
+- redundant lazy HTTPException import and stale comment in hmac.py; tagged defer in bugs.md
+- bridge startup wiring has zero integration test coverage (all integration tests use test_mode=True); tagged defer in bugs.md
+
+## revision after phase 3 — 2026-07-23
+
+- phase 4 (config restructure and string cleanup): revised — scope updated to note that __config_version__ bumps from 2.6.0 (phase 3's new baseline); also folds in the `if bridge_raw is not None:` one-liner fix from bugs.md since config.py is already being edited in that phase; all other phase 4 premises unchanged
+- no other downstream phases; phase 4 is the final phase of nova-w1

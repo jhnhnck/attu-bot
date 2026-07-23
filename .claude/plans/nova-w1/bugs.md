@@ -13,18 +13,10 @@
 - [defer] `_break_at_newline` inlined into `attu_logging/webhook.py` creates drift risk vs `nova_core/client/util.py`; real fix is moving to a shared-models package; out of scope for nova-w1; track in workstream 3
 
 - [defer] `router.py:149-167` — `bot._bridge_started` is True only after `server.serve()` exits (not while the bridge is running); the duplicate-start guard at line 149 is therefore bypassed during normal operation; functionally safe because `on_ready.has_run` prevents `start_bridge_task()` from being called twice, but the flag semantics are misleading. clean fix: set `_bridge_started = True` at task-creation time (before the task is scheduled) and only clear it to `False` on exception inside `_serve()`
-- [defer] `config.py:422` — `if bridge_raw:` silently treats an empty `[bridge]` TOML section as "bridge disabled" rather than raising `ConfigLoadError`; `BridgeConfig(**{})` would fail anyway since `secret` is required, but the user-visible error would be "bridge not configured" rather than "invalid bridge configuration". fix: `if bridge_raw is not None:` and let pydantic validation raise normally
+- [fix-in-phase-4] `config.py:422` — `if bridge_raw:` silently treats an empty `[bridge]` TOML section as "bridge disabled" rather than raising `ConfigLoadError`; `BridgeConfig(**{})` would fail anyway since `secret` is required, but the user-visible error would be "bridge not configured" rather than "invalid bridge configuration"; fix: `if bridge_raw is not None:` and let pydantic validation raise normally; fold into phase 4 since config.py is already being heavily edited there (BotConfig, [[guilds]] parser)
 - [defer] `hmac.py:47` — lazy `from fastapi import HTTPException` inside `verify()` is now redundant since fastapi is a declared dep (added in phase 3 commit 3); the module-level import via `contextlib.suppress` already brings it into scope; remove the lazy import in a follow-up
 - [defer] `hmac.py:13` comment "fastapi is absent in unit/component test containers" is stale after phase 3 added fastapi to `apps/bot/pyproject.toml`; update comment to explain the real reason the module-level import is kept in globals (FastAPI calls `get_type_hints(verify)` at route-registration time and needs `Request` resolvable)
 
 ## closed
 - em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (plan.md edited for plan-revise, triggering the deferred condition)
-
-## phase 2 — newly visible pre-existing failures
-
-### test_bridge_sign.py — 5 tests need uvicorn/attu_server (not in unit container)
-
-- **tests:** `test_sign_symmetry_get`, `test_sign_symmetry_post_with_body`, `test_sign_changes_with_body`, `test_sign_changes_with_method`, `test_sign_method_case_insensitive`
-- **root cause:** `nova_core/bridge/router.py` imports `uvicorn` at module level; `test_bridge_sign.py` imports `nova_core.bridge.hmac` and `nova_core.bridge.router`; unit container lacks uvicorn; two tests also import `attu_server` which is server-only
-- **phase 2 relation:** pre-existing; masked in phase 0-1 by `test_bridge_auth.py` collection error stopping the unit suite before reaching `test_bridge_sign.py`; visible now only because integration-check re-ran with `--ignore=test_bridge_auth.py`
-- **classification:** resolved in phase 3: `import uvicorn` made lazy in `router.py`; `bridge/__init__.py` cleared of re-exports to break the import chain; `hmac.py` uses `contextlib.suppress(ImportError)` for fastapi; `test_bridge_sign.py` uses `pytest.importorskip` for the two attu_server symmetry tests. result: 3 pass, 2 skip (attu_server not installed locally -- correct).
+- `test_bridge_sign.py` 5 pre-existing import failures (uvicorn/fastapi at module level; masked by test_bridge_auth.py collection stop in phases 0-1); resolved in phase 3 (d5566a7, 19c1b32): 3 tests pass, 2 skip (attu_server not in unit container by design)
