@@ -20,6 +20,6 @@
 - [defer] `test_task_logo_update.py` — `LogoUpdateTask.run()` new `if primary is None` branch (skip guild icon/emoji/role updates, log warning, still update bot avatar) has no unit test; add a test that sets `get_guild_by_role.return_value = None` and asserts `guild.edit` is never called while `bot.user.edit` still is
 
 ## closed
-- em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (plan.md edited for plan-revise, triggering the deferred condition)
-- `test_bridge_sign.py` 5 pre-existing import failures (uvicorn/fastapi at module level; masked by test_bridge_auth.py collection stop in phases 0-1); resolved in phase 3 (d5566a7, 19c1b32): 3 tests pass, 2 skip (attu_server not in unit container by design)
-- `config.py` `if bridge_raw:` silently disabled bridge on empty `[bridge]` section; fixed in phase 4 to `if bridge_raw is not None:`
+- em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (pruned)
+- `test_bridge_sign.py` 5 pre-existing import failures; resolved in phase 3 d5566a7/19c1b32 (pruned)
+- `config.py` `if bridge_raw:` silent bridge disable; fixed in phase 4 d17e39e (pruned)

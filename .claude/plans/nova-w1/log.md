@@ -149,3 +149,27 @@ cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item close
 - parent branch: trunk
 - dod: sample TOML uses `[[guilds]]` array with `role` field; starting with old `[discord.guilds]` format raises `ConfigLoadError`; `grep -rn 'config\.primary_guild\|config\.secondary_server' . --include="*.py"` returns zero; no hardcoded doom/attu strings in `nova_core/client/` or `attu_logging/webhook.py`; `ruff check` passes; bot runnable
 - note: worktree kept alive from phase 3 per user instruction; all phases accumulate on phase/nova-w1 before trunk merge
+
+## phase 4 retro — 2026-07-23
+
+**what landed vs spec**
+- `[[guilds]]` array format implemented in `nova_core/config.py`; `GuildEntry` model with `id` and `role` fields; `get_guild_by_role()` helper added; old `[discord.guilds]` primary/secondary format raises `ConfigLoadError` naming the old key (d17e39e)
+- `BotConfig` model added with `name` and `welcome_message`; `[bot]` section added to sample TOML with `name = "AttuBot"` and `welcome_message = "welcome to the archipelago {mention}"`
+- all `config.primary_guild` / `config.secondary_server` call sites migrated to `get_guild_by_role()` with `None` guards; DoD grep returns zero across nova_core/; `SystemConfigDocument.primary_guild` at config.py:476 confirmed as a db model write, not a config attribute read
+- `attu_logging.set_bot_name()` added; webhook username now configurable from `[bot].name` instead of hardcoded 'AttuBot' (29cdda9)
+- `logo_update.py` `_update_guild()` extracted; bot avatar update runs unconditionally even when primary guild is `None` (7678393)
+- `if bridge_raw is not None:` fix applied from bugs.md; empty `[bridge]` section now raises pydantic validation error instead of silently disabling bridge
+- `__config_version__` bumped to 2.7.0 for new `[bot]` section and `[[guilds]]` array format
+- integration-check: 1171 unit passed, 2 skipped; 180 component passed; 12 integration passed; 9 pre-existing errors (dev TOML version mismatch 2.6.0 vs 2.7.0 — not a regression)
+
+**what surprised us**
+- `calendar.py` `None` guard required a separate commit (f5e85cf) after the main config restructure; the initial migration missed the case where `get_guild_by_role()` returns `None` inside `calendar.py`
+- `logo_update.py` needed `_update_guild()` extracted as a helper to cleanly separate the primary-`None` skip path (no guild icon/emoji/role updates) from the avatar update path (unconditional); extraction was not in the original scope description
+- `SystemConfigDocument.primary_guild` in attu_models is now an orphaned mongodb field; confirmed no writes from config after migration; intentional per plan accepted-risks; tracked for workstream 3 cleanup
+
+**what residual debt remains**
+- `test_task_logo_update.py` — `LogoUpdateTask.run()` new `if primary is None` branch has no unit test; already tagged defer in bugs.md (added in phase 4 code-review commit 8b20750)
+
+## revision after phase 4 — 2026-07-23
+
+no pending downstream phases; phase 4 is the final phase of nova-w1. plan-revise step is a no-op — 0 phases classified. status row for phase 4 updated to "pending merge"; plan proceeds to shipdown.

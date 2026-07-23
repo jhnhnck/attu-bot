@@ -75,7 +75,7 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 
 ### phase 4 - config restructure and string cleanup
 
-**status:** open
+**status:** pending merge
 
 **dod:** sample TOML uses `[[guilds]]` array with `role` field; starting the bot with the old `[discord.guilds]` format raises `ConfigLoadError` with a message that identifies the old key; `grep -rn 'config\.primary_guild\|config\.secondary_server' . --include="*.py"` returns zero; no hardcoded doom/attu strings in `nova_core/client/` or `attu_logging/webhook.py`; `ruff check` passes; bot runnable
 
@@ -93,4 +93,4 @@ three risks survived the pre-mortem as residue after mitigation. first: the webh
 | 1 - package rename | closed in 3ae889a |
 | 2 - attu_logging migration | closed in 17785e5 |
 | 3 - bridge bug fixes | closed in cf257b8 |
-| 4 - config restructure and string cleanup | in progress |
+| 4 - config restructure and string cleanup | pending merge |
