@@ -93,7 +93,7 @@ class TestMaxLevelFilter:
     def test_admits_sub_debug_levels(self):
         """levels below DEBUG (e.g. custom trace=5, alert=15) still pass the filter"""
         f = _MaxLevelFilter(logging.WARNING)
-        assert f.filter(self._make_record(5)) is True   # former TRACE
+        assert f.filter(self._make_record(5)) is True  # former TRACE
         assert f.filter(self._make_record(15)) is True  # former ALERT
 
 
