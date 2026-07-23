@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 import anyio
 import structlog
 import tomlkit
-from pydantic import BaseModel, PrivateAttr, ValidationError, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, ValidationError, model_validator
 
 from nova_core import __config_version__, __schema__
 from nova_core.database.repositories import ConfigRepository
@@ -159,6 +159,13 @@ class TreesConfig(BaseModel):
     hmac_secret: str
     dev_base_url: str
     prod_base_url: str
+
+
+class BridgeConfig(BaseModel):
+    secret: str = Field(min_length=1)
+    bind_host: str = '127.0.0.1'
+    bot_port: int = 5050
+    replay_window: int = 60
 
 
 class GuildStarboard(BaseModel):
@@ -312,6 +319,7 @@ class NovaConfig:
         self.database: DatabaseConfig = None
         self.hatch: HatchConfig = None
         self.trees: TreesConfig = None
+        self.bridge: BridgeConfig = None
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml')).resolve()
@@ -331,7 +339,7 @@ class NovaConfig:
 
     # --- Event Calls ---
 
-    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915 - sequential config section loading with try/except per section
+    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915, PLR0912 - sequential config section loading with try/except per section
         logger.info('starting initial config loading stage')
 
         if not self.path.exists():
@@ -409,6 +417,14 @@ class NovaConfig:
         except (KeyError, ValidationError) as err:
             logger.error(f'failed to validate trees configuration: {err!s}')
             raise ConfigLoadError('invalid trees configuration (missing [trees] section?)')
+
+        bridge_raw = self._raw.get('bridge')
+        if bridge_raw:
+            try:
+                self.bridge = BridgeConfig(**bridge_raw)
+            except ValidationError as err:
+                logger.error(f'failed to validate bridge configuration: {err!s}')
+                raise ConfigLoadError('invalid bridge configuration (check [bridge] section)')
 
         self._get_event('init').set()
 

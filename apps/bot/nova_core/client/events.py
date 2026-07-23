@@ -143,6 +143,18 @@ async def _do_ready_init():
         await _shutdown(exit_code=1)
         return
 
+    # start bridge http server (optional; only when [bridge] section is present in config)
+    if config.bridge is not None:
+        try:
+            from nova_core.bridge.router import start_bridge_task
+
+            start_bridge_task()
+        except Exception as err:
+            logger.critical('exception caught starting bridge server; exiting', exc_info=True)
+            await attu_logging.webhook.send_to_webhook(err)
+            await _shutdown(exit_code=1)
+            return
+
     # register SIGTERM handler for graceful container shutdown
     asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(_graceful_shutdown()))
 
@@ -154,6 +166,8 @@ async def _do_ready_init():
 
     logger.info('pushing commands to discord')
     await bot.sync_commands()
+
+    bot._bot_initialized = True
 
 
 # --- Events ---

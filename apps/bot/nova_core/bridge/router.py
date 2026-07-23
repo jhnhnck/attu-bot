@@ -5,7 +5,6 @@ import asyncio
 from typing import Any, Literal
 
 import structlog
-import uvicorn
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -50,7 +49,7 @@ async def health() -> dict[str, Any]:
         'status': 'ok',
         'schema': __schema__,
         'config_version': __config_version__,
-        'bot_ready': bot.is_ready(),
+        'bot_ready': getattr(bot, '_bot_initialized', False),
     }
 
 
@@ -64,7 +63,10 @@ async def get_channels(guild_id: int) -> dict[str, Any]:
 
 @signed.get('/guilds/{guild_id}/roles')
 async def get_roles(guild_id: int) -> dict[str, Any]:
-    return {'roles': await di.get_guild_roles(guild_id)}
+    result = await di.get_guild_roles(guild_id)
+    if result is None:
+        raise HTTPException(status_code=502, detail='discord role lookup failed')
+    return {'roles': result}
 
 
 @signed.get('/guilds/{guild_id}/info')
@@ -142,9 +144,10 @@ def start_bridge_task() -> None:
     using bot.loop avoids a second event loop and lets bridge handlers await
     pycord coroutines (fetch_guild, fetch_user) directly.
     """
+    import uvicorn  # lazy: uvicorn is not present in unit/component test containers
+
     if getattr(bot, '_bridge_started', False):
         return
-    bot._bridge_started = True  # guard flag attached to bot singleton
 
     app = build_app()
     server_config = uvicorn.Config(
@@ -158,13 +161,15 @@ def start_bridge_task() -> None:
     server = uvicorn.Server(server_config)
 
     async def _serve() -> None:
-        logger.info(f'starting bridge on 127.0.0.1:{config.bridge.bot_port}')
+        logger.info(f'starting bridge on {config.bridge.bind_host}:{config.bridge.bot_port}')
         try:
             await server.serve()
+            bot._bridge_started = True
         except asyncio.CancelledError:
             logger.info('bridge cancelled; shutting down')
             raise
         except Exception as e:
             logger.error(f'bridge server crashed: {e!s}')
+            bot._bridge_started = False
 
     bot.loop.create_task(_serve())

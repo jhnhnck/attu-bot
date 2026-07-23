@@ -1,4 +1,4 @@
-config_version = "2.5.4"
+config_version = "2.6.0"
 
 [paths]
 # Path to the assets directory (templates, static files, favicon)
@@ -83,4 +83,15 @@ hmac_secret = "CHANGE_ME"
 # backend base urls (docker service names resolve inside the compose network)
 dev_base_url = "http://attu-tree-dev:8000"
 prod_base_url = "http://attu-tree:8000"
+
+[bridge]
+# hmac secret shared between the discord bot and the attu-server web app
+# generate with: python -c "import secrets; print(secrets.token_hex(32))"
+secret = "CHANGE_ME"
+# host the bridge fastapi server binds to (localhost only; not exposed outside the compose network)
+bind_host = "127.0.0.1"
+# port the bridge server listens on; must match DISCORD_BOT_BRIDGE_PORT in the server .env
+bot_port = 5050
+# max age in seconds for accepted request timestamps (replay attack window)
+replay_window = 60
 

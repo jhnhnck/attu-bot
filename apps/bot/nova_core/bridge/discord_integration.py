@@ -33,7 +33,8 @@ class DiscordCache:
 
     def clear(self, prefix: str | None = None):
         if prefix:
-            keys_to_delete = [k for k in self.cache if k.startswith(prefix)]
+            # exact match or hierarchical sub-key (prefix + ':'); prevents guild id 12 matching 123
+            keys_to_delete = [k for k in self.cache if k == prefix or k.startswith(prefix + ':')]
             for k in keys_to_delete:
                 del self.cache[k]
         else:
@@ -100,7 +101,7 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
         return None
 
 
-async def get_guild_roles(guild_id: int) -> list[dict[str, Any]]:
+async def get_guild_roles(guild_id: int) -> list[dict[str, Any]] | None:
     """Fetch all roles for a guild using Pycord"""
     cache_key = f'roles:{guild_id}'
     cached = _cache.get(cache_key)
@@ -130,7 +131,7 @@ async def get_guild_roles(guild_id: int) -> list[dict[str, Any]]:
         return result
     except Exception as e:
         logger.error(f'failed to fetch roles for guild {guild_id} via pycord: {e}')
-        return []
+        return None
 
 
 async def get_user_info(user_id: int) -> dict[str, Any] | None:
@@ -146,7 +147,7 @@ async def get_user_info(user_id: int) -> dict[str, Any] | None:
             'id': str(user.id),
             'name': user.name,
             'global_name': user.global_name,
-            'avatar_url': user.display_avatar.url if user.avatar else None,
+            'avatar_url': user.display_avatar.url,
         }
         _cache.set(cache_key, result)
         return result

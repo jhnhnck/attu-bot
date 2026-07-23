@@ -1,16 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.bridge.hmac | request signing + verification for the bridge."""
 
+from __future__ import annotations
+
+import contextlib
 import hashlib
 import hmac as _hmac
 import time
-
-from fastapi import HTTPException, Request
 
 from nova_core.client.core import config
 
 
 SIGNATURE_HEADER = 'x-bridge-signature'
+
+# fastapi is absent in unit/component test containers; kept in globals so FastAPI's
+# get_type_hints() can resolve the 'Request' annotation in verify() at route-registration time.
+with contextlib.suppress(ImportError):
+    from fastapi import HTTPException, Request  # noqa: F401 - module-global for get_type_hints(); sign() does not need these
 
 
 def sign(secret: str, method: str, path: str, body: bytes, timestamp: int | None = None) -> str:
@@ -35,6 +41,8 @@ def _parse_header(value: str) -> tuple[int, str]:
 
 async def verify(request: Request) -> None:
     """fastapi dependency; rejects requests with missing, stale, or invalid signatures."""
+    from fastapi import HTTPException  # lazy: not needed by sign(); absent in unit/component test containers
+
     header = request.headers.get(SIGNATURE_HEADER)
     if not header:
         raise HTTPException(status_code=401, detail='missing bridge signature')
