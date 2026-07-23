@@ -79,3 +79,10 @@ phases 2-4: valid - all premises hold.
 - phase 4: premise unchanged; no scope changes needed.
 
 cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item closed); no downstream phase impact.
+
+## starting phase 2 - 2026-07-23
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w1`
+- branch: `phase/nova-w1`
+- parent: `trunk`
+- dod: `grep -rn 'nova_core\.logging\|doom_bot\.logging' . --include="*.py"` returns zero; `nova_core/logging.py` absent; `attu_logging/webhook.py` has no bot imports; `attu_logging.set_webhook_url()` exists and called from `on_load()` after `config.error_hook` available; inlined `break_at_newline` matches `nova_core/client/util.py`; bot runnable (bridge excluded)

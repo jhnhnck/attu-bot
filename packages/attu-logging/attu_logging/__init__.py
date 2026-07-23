@@ -2,7 +2,7 @@
 """attu_logging | workspace logging bootstrap and webhook reporter."""
 
 from attu_logging import webhook
-from attu_logging.config import configure
+from attu_logging.config import configure, set_webhook_url
 
 
-__all__ = ['configure', 'webhook']
+__all__ = ['configure', 'set_webhook_url', 'webhook']

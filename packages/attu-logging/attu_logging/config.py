@@ -91,17 +91,43 @@ class _MaxLevelFilter(logging.Filter):
         return record.levelno < self.max_level
 
 
+# --- module-level webhook url store ---
+
+# mutable container avoids `global` while still allowing post-configure mutation.
+# read lazily by attu_logging.webhook at call time so startup-vs-on_load timing is handled.
+_state: dict[str, str | None] = {'webhook_url': None}
+
+
+def _get_webhook_url() -> str | None:
+    return _state['webhook_url']
+
+
 # --- public api ---
 
 
-def configure(*, json: bool | None = None, level: str | None = None) -> None:
+def set_webhook_url(url: str) -> None:
+    """set the discord error webhook url independently of the idempotent configure guard.
+
+    call this from on_load() after config.error_hook is available. configure() runs at
+    startup before the url is known, so this function bridges the timing gap.
+    """
+    _state['webhook_url'] = url
+
+
+def configure(*, json: bool | None = None, level: str | None = None, webhook_url: str | None = None) -> None:
     """one-shot stdlib + structlog config; idempotent across re-imports and re-calls.
 
     args:
         json: force json renderer (true) or console renderer (false). defaults to the
               LOG_FORMAT env var (`json` enables; anything else is console).
         level: root logger level override. defaults to the LOG_LEVEL env var, then INFO.
+        webhook_url: optional discord error webhook url. if provided, stored for later use by
+                     attu_logging.webhook. prefer set_webhook_url() when the url is not
+                     available at startup time.
     """
+    if webhook_url is not None:
+        _state['webhook_url'] = webhook_url
+
     root = logging.getLogger()
 
     # idempotent: skip if either marker is already attached. the `_nova_core_owned`
