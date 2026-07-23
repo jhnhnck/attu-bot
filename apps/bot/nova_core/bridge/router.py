@@ -132,7 +132,7 @@ async def reload_config(req: ReloadRequest) -> dict[str, Any]:
 
 def build_app() -> FastAPI:
     """assemble the fastapi app; exposed for tests + e2e signed-curl scripts."""
-    app = FastAPI(title='attubot bridge', docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title='nova bridge', docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(unsigned)
     app.include_router(signed)
     return app
