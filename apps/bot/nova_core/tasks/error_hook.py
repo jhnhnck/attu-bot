@@ -59,7 +59,7 @@ class ErrorHookTask(BaseTask):
 
             try:
                 icon = await generate_png(45, '#ff4941')
-                hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason='DoomBot Error Log')
+                hook = await error_log.create_webhook(name=bot.user.name, avatar=icon, reason=f'{config.bot.name} Error Log')
                 logger.info(f'created new webhook: {hook.name}-{hook.id}')
                 config.error_hook = hook.url
                 await config.config_repo.update_system_field('error_hook', hook.url)

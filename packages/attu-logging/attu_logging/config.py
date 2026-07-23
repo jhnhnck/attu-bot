@@ -95,11 +95,15 @@ class _MaxLevelFilter(logging.Filter):
 
 # mutable container avoids `global` while still allowing post-configure mutation.
 # read lazily by attu_logging.webhook at call time so startup-vs-on_load timing is handled.
-_state: dict[str, str | None] = {'webhook_url': None}
+_state: dict[str, str | None] = {'webhook_url': None, 'bot_name': None}
 
 
 def _get_webhook_url() -> str | None:
     return _state['webhook_url']
+
+
+def _get_bot_name() -> str | None:
+    return _state['bot_name']
 
 
 # --- public api ---
@@ -112,6 +116,14 @@ def set_webhook_url(url: str) -> None:
     startup before the url is known, so this function bridges the timing gap.
     """
     _state['webhook_url'] = url
+
+
+def set_bot_name(name: str) -> None:
+    """set the bot name used as the discord webhook username.
+
+    call this from on_load() after config.bot.name is available, alongside set_webhook_url().
+    """
+    _state['bot_name'] = name
 
 
 def configure(*, json: bool | None = None, level: str | None = None, webhook_url: str | None = None) -> None:

@@ -5,7 +5,7 @@ import traceback
 
 import structlog
 
-from attu_logging.config import _get_webhook_url
+from attu_logging.config import _get_bot_name, _get_webhook_url
 
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -56,19 +56,20 @@ async def send_to_webhook(error: Exception, location: str = '', logger_name: str
         import aiohttp
         from discord import Webhook
 
+        bot_name = _get_bot_name()  # None falls back to the webhook's own name
         async with aiohttp.ClientSession() as session:
             webhook = Webhook.from_url(url, session=session)
-            await webhook.send(f'**{error}**\n', username='AttuBot')
+            await webhook.send(f'**{error}**\n', username=bot_name)
 
             # trim the traceback to fit discord's 2000-char limit, dropping the noisy
             # "the above exception" tail and reserving room for the codeblock fences
             padding = len('``````')
             tb_str = _break_at_newline(tb_str.split('The above exception')[0], 2000 - padding)
 
-            await webhook.send(f'```{tb_str}```', username='AttuBot')
+            await webhook.send(f'```{tb_str}```', username=bot_name)
 
             end_msg = location if len(location) > 0 else f'(location not set; called from {logger_name})'
-            await webhook.send(end_msg, username='AttuBot')
+            await webhook.send(end_msg, username=bot_name)
 
     except Exception as err:
         logger.error(f'issue logging error to configured webhook: {err}')

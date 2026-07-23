@@ -105,7 +105,7 @@ def _load_extensions():
 
 
 def start_bot_loop():
-    logger.info('starting doombot')
+    logger.info('starting bot')
     _setup_discord_logging()
     config.on_init()
     _check_deps()

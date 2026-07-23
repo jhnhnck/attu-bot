@@ -110,6 +110,7 @@ async def _do_ready_init():
         logger.info('loading configuration from database')
         await config.on_load()
         attu_logging.set_webhook_url(config.error_hook)
+        attu_logging.set_bot_name(config.bot.name)
     except Exception as err:
         logger.critical('exception caught initializing database; exiting', exc_info=True)
         await attu_logging.webhook.send_to_webhook(err)
@@ -182,7 +183,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
             await ctx.respond("You're not my real dad!")
         else:
             # catch all for if bot gets added to another discord guild
-            await ctx.respond('This feature requires DoomBot(tm) Premium')
+            await ctx.respond(f'This feature requires {config.bot.name} Premium')
 
     elif isinstance(error, MissingPermissions):
         await ctx.respond(f'Nice try! {ui_emoji("rockball")}')
@@ -353,7 +354,7 @@ async def on_member_join(member: Member):
             if channel is None:
                 logger.warning(f'general channel {channel_id} not found in guild {member.guild.id}')
                 return
-            await channel.send(f'welcome to the archipelago {member.mention}')
+            await channel.send(config.bot.welcome_message.format(mention=member.mention))
 
         await send_welcome()
 
