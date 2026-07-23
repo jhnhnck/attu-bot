@@ -259,8 +259,8 @@ class TestRunOldWebhookCleanupFails:
             await task.run()
 
         # a warning should be logged about the deletion failure
-        mock_logger.warn.assert_called_once()
-        assert 'failed to delete' in mock_logger.warn.call_args[0][0]
+        mock_logger.warning.assert_called_once()
+        assert 'failed to delete' in mock_logger.warning.call_args[0][0]
 
 
 # ---------------------------------------------------------------------------

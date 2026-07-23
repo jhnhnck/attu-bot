@@ -295,7 +295,7 @@ class TestStartAll:
             await scheduler.start_all()
             await scheduler.start_all()
 
-        mock_logger.warn.assert_called_once()
+        mock_logger.warning.assert_called_once()
 
         # cleanup
         scheduler._running = False

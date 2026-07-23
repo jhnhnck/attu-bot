@@ -10,3 +10,12 @@
 
 ## closed
 - em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (plan.md edited for plan-revise, triggering the deferred condition)
+
+## phase 2 — newly visible pre-existing failures
+
+### test_bridge_sign.py — 5 tests need uvicorn/attu_server (not in unit container)
+
+- **tests:** `test_sign_symmetry_get`, `test_sign_symmetry_post_with_body`, `test_sign_changes_with_body`, `test_sign_changes_with_method`, `test_sign_method_case_insensitive`
+- **root cause:** `nova_core/bridge/router.py` imports `uvicorn` at module level; `test_bridge_sign.py` imports `nova_core.bridge.hmac` and `nova_core.bridge.router`; unit container lacks uvicorn; two tests also import `attu_server` which is server-only
+- **phase 2 relation:** pre-existing; masked in phase 0-1 by `test_bridge_auth.py` collection error stopping the unit suite before reaching `test_bridge_sign.py`; visible now only because integration-check re-ran with `--ignore=test_bridge_auth.py`
+- **classification:** deferred; fix in cleanup-bridge or phase 3 (uvicorn could be lazy-imported in router.py; attu_server import in test file needs conditional)

@@ -204,7 +204,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
         return
 
     site_info = await wiki.search.site_info()
-    logger.debug(*pages)
+    logger.debug('wiki search results', results=[str(p) for p in pages])
 
     # fetch the full summary for the first result
     summary = await wiki.pages.get_summary(pages[0].title)
