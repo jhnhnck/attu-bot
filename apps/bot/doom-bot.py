@@ -45,7 +45,7 @@ if mode != 'bot':
 
 try:
     if mode == 'bot':
-        from nova_core import start_bot_loop
+        from nova_core.client import start_bot_loop
 
         start_bot_loop()
 

@@ -44,3 +44,10 @@ implementer of nova-w1 ph4: the `GuildEntry` fields you settle on in `nova_core/
 the canonical shape; coordinate with nova-w5 if fields change from `{id, role}`.
 
 see `.claude/conflicts.md` for the full conflict record.
+
+## starting phase 1 - 2026-07-23
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w1`
+- branch: `phase/nova-w1`
+- parent: `trunk`
+- dod: `grep -rn 'doom_bot' apps/ packages/ tests/ scripts/ config/ --include="*.py"` returns zero lines; same grep over Dockerfiles, `*.yml`, `*.sh` returns zero lines; `ruff check` passes; `basedpyright` passes; Dockerfile sed target uses `nova_core/__init__.py`; bot runnable (bridge excluded - `config.bridge` not yet defined)
