@@ -66,7 +66,7 @@ def _make_config(theme=None, guild_config=None, **overrides):
     cfg.theme = theme or _make_theme()
     gc = guild_config or _make_guild_config()
     cfg.primary = MagicMock(return_value=gc)
-    cfg.primary_guild = 123456
+    cfg.get_guild_by_role.return_value.id = 123456
 
     for key, val in overrides.items():
         setattr(cfg, key, val)

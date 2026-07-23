@@ -101,7 +101,8 @@ class Year(BaseModel):
     async def total(cls, guild: int | None = None) -> int:
         """Count total stored years for a guild"""
         if guild is None:
-            guild = config.primary_guild
+            primary = config.get_guild_by_role('primary')
+            guild = primary.id if primary is not None else 0
         return await _get_repo().total(guild)
 
     @classmethod

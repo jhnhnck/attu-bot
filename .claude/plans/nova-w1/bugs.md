@@ -1,6 +1,8 @@
 # bugs — nova-w1: structural prerequisites
 ## open
 
+- [defer] `nova_core/client/markers.py` `YearMarker.mark()`: `channel` parameter defaults to the primary guild's id (an integer guild snowflake) when not provided; but `channel` is supposed to be a channel id. this is a pre-existing logic bug preserved during the phase 4 call-site migration; fix requires auditing all callers of `mark()` to determine the intended default and supplying an explicit channel
+
 - [defer] bridge startup wiring (`start_bridge_task()` called from `_do_ready_init()` after the `test_mode` guard) has zero test coverage: every integration test in `test_startup.py` uses `test_mode=True` which returns before reaching the bridge block; `test_bridge_auth.py` calls `build_app()` directly, bypassing the ready path. a compensating test would need to use `test_mode=False` and mock uvicorn (or `start_bridge_task`) to assert the call was made without actually binding a port. apply mock-compensation skill when adding this test.
 
 - [defer] `notes/` docs still reference `apps/bot/doom_bot/` paths in prose descriptions (agents.md, features/*.md, dev/testing.md, style/*.md, nova-core.md); these are cosmetic doc accuracy issues; ruff clean (docs are not .py); update gradually as each feature doc gets edited for other reasons

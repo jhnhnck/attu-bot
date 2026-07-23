@@ -791,7 +791,8 @@ async def fix_emoji(ctx: ApplicationContext):
 
     from nova_core.eggs.emojis import ensure_egg_emojis, ensure_progress_emojis
 
-    guild = bot.get_guild(config.secondary_server)
+    secondary = config.get_guild_by_role('secondary')
+    guild = bot.get_guild(secondary.id) if secondary is not None else None
     if guild is None:
         await ctx.respond('secondary server not in cache', ephemeral=True)
         return

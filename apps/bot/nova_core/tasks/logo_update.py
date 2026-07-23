@@ -61,7 +61,11 @@ class LogoUpdateTask(BaseTask):
         guild_icon = await generate_png(new_rotation, theme.guild_color, theme.logo_rings, theme.logo_planet)
 
         # edit guild and bot with new logos
-        guild = bot.get_guild(config.primary_guild) or await bot.fetch_guild(config.primary_guild)
+        primary = config.get_guild_by_role('primary')
+        if primary is None:
+            logger.warning('logo update: no primary guild configured; skipping guild icon update')
+            return
+        guild = bot.get_guild(primary.id) or await bot.fetch_guild(primary.id)
         try:
             await guild.edit(icon=guild_icon, reason='logo update task')
         except Exception as err:

@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
 from nova_core.client.core import config
+from nova_core.config import GuildEntry
 from tests.conftest import test_user
 
 
@@ -72,7 +73,7 @@ class TestComingSoonGate:
         ctx = mock_ctx_factory(user_id=test_user)
         config.owner_ids = {test_user}
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
 
         mock_resp = _make_response(200, {'display_name': 'Test User'})
         with (
@@ -180,7 +181,7 @@ class TestSignRequest:
 class TestExtractRoles:
     def setup_method(self):
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
         config.guild = MagicMock(return_value=SimpleNamespace(roles=_make_guild_roles()))
 
     def _make_member(self, *role_ids):
@@ -277,7 +278,7 @@ class TestExtractRoles:
 class TestTreesLink:
     def setup_method(self):
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
         config.owner_ids = {test_user}
 
     async def test_success(self, mock_ctx_factory):
@@ -485,7 +486,7 @@ class TestTreesLink:
 class TestTreesShow:
     def setup_method(self):
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
         config.owner_ids = {test_user}
 
     async def test_not_linked(self, mock_ctx_factory):
@@ -557,7 +558,7 @@ class TestTreesShow:
 class TestTreesShare:
     def setup_method(self):
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
         config.owner_ids = {test_user}
 
     def _make_target(self):
@@ -650,7 +651,7 @@ class TestTreesShare:
 class TestTreesUnshare:
     def setup_method(self):
         config.trees = _make_trees_config()
-        config.primary_guild = 1234567890
+        config.guild_entries = [GuildEntry(id=1234567890, role='primary')]
         config.owner_ids = {test_user}
 
     def _make_target(self):

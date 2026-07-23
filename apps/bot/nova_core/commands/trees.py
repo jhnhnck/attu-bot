@@ -70,13 +70,16 @@ async def _api_call(method: str, url: str, body: dict | None = None) -> httpx.Re
 
 def _extract_roles(user_id: int) -> list[str] | None:
     """check primary guild membership and build trees role list; returns None if not a member"""
-    guild = bot.get_guild(config.primary_guild)
+    primary = config.get_guild_by_role('primary')
+    if primary is None:
+        return None
+    guild = bot.get_guild(primary.id)
     if guild is None:
         return None
     member = guild.get_member(user_id)
     if member is None:
         return None
-    guild_roles = config.guild(config.primary_guild).roles
+    guild_roles = config.guild(primary.id).roles
     member_role_ids = {r.id for r in member.roles}
     roles = []
     if guild_roles.trees_admin_role and guild_roles.trees_admin_role in member_role_ids:

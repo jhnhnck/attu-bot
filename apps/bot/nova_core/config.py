@@ -168,6 +168,16 @@ class BridgeConfig(BaseModel):
     replay_window: int = 60
 
 
+class BotConfig(BaseModel):
+    name: str
+    welcome_message: str
+
+
+class GuildEntry(BaseModel):
+    id: int
+    role: str
+
+
 class GuildStarboard(BaseModel):
     enabled: bool = True  # set False to silence the legacy starboard for a guild without removing code
     channel_id: int = 0  # channel where starboard posts are sent
@@ -253,8 +263,9 @@ class NovaConfigRepr(TypedDict):
     path: str
     timezone: str
     error_log: tuple[int, int]
-    primary_guild: int
+    guild_entries: list[GuildEntry]
     guilds: list[GuildConfigExport]
+    bot: BotConfig
     wiki: WikiAuth
 
 
@@ -301,13 +312,13 @@ class NovaConfig:
         self.backup: BackupConfig = None
         self.wiki: WikiAuth = None
         self.theme: BotTheme = None
+        self.bot: BotConfig = None
         self.bot_token: str = None
         self.authorized_guilds: set[int] = set()
-        self.secondary_server: int = None
+        self.guild_entries: list[GuildEntry] = []
         self.valid_guilds: list[int] = []
         self.error_log: tuple[int, int] = None
         self.error_hook: str = None
-        self.primary_guild: int = None
         self.owner_ids: set[int] = set()
         self._raw: RawConfig = None
 
@@ -360,11 +371,29 @@ class NovaConfig:
 
         # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
-        guilds_raw = self._raw['discord']['guilds']
-        primary_id: int = guilds_raw['primary']
-        secondary_id: int = guilds_raw['secondary']
-        self.authorized_guilds = {primary_id, secondary_id}
-        self.secondary_server = secondary_id
+
+        # detect old [discord.guilds] format and reject it
+        discord_section = self._raw.get('discord', {})
+        old_guilds = discord_section.get('guilds', {})
+        if isinstance(old_guilds, dict) and ('primary' in old_guilds or 'secondary' in old_guilds):
+            raise ConfigLoadError('old [discord.guilds] format detected; migrate to [[guilds]] array with role field')
+
+        # parse [[guilds]] array
+        raw_entries = self._raw.get('guilds', [])
+        if not raw_entries:
+            raise ConfigLoadError('no [[guilds]] entries found in config file')
+        try:
+            self.guild_entries = [GuildEntry(**entry) for entry in raw_entries]
+        except (ValidationError, TypeError) as err:
+            logger.error(f'failed to validate guilds configuration: {err!s}')
+            raise ConfigLoadError('invalid [[guilds]] entry (each entry requires id: int and role: str)')
+        self.authorized_guilds = {entry.id for entry in self.guild_entries}
+
+        try:
+            self.bot = BotConfig(**self._raw['bot'])
+        except (KeyError, ValidationError) as err:
+            logger.error(f'failed to validate bot configuration: {err!s}')
+            raise ConfigLoadError('invalid bot configuration (missing [bot] section?)')
 
         try:
             self.paths = PathsConfig(**self._raw.get('paths', {}))
@@ -419,7 +448,7 @@ class NovaConfig:
             raise ConfigLoadError('invalid trees configuration (missing [trees] section?)')
 
         bridge_raw = self._raw.get('bridge')
-        if bridge_raw:
+        if bridge_raw is not None:
             try:
                 self.bridge = BridgeConfig(**bridge_raw)
             except ValidationError as err:
@@ -439,18 +468,18 @@ class NovaConfig:
             logger.warning('no system config found; creating defaults')
             from nova_core.database.models import SystemConfigDocument
 
+            primary_entry = self.get_guild_by_role('primary')
             system_config = SystemConfigDocument(
                 version='0.0.0',
                 error_log=[0, 0],
                 error_hook=f'{self.wiki.endpoint}/invalid-webhook',
-                primary_guild=self._raw['discord']['guilds']['primary'],
+                primary_guild=primary_entry.id if primary_entry is not None else 0,
             )
             await self.config_repo.save_system(system_config)
 
         # Extract system config values (eliminates redundant query)
         self.error_log = tuple(system_config.error_log)
         self.error_hook = system_config.error_hook
-        self.primary_guild = system_config.primary_guild
 
         # Load other configurations
         await self.load_theme()
@@ -572,7 +601,14 @@ class NovaConfig:
             raise UnauthorizedGuild(guild)
 
     def primary(self) -> GuildConfig:
-        return self.guild(self.primary_guild)
+        entry = self.get_guild_by_role('primary')
+        if entry is None:
+            raise UnauthorizedGuild('primary')
+        return self.guild(entry.id)
+
+    def get_guild_by_role(self, role: str) -> 'GuildEntry | None':
+        """return the first guild entry matching `role`, or None if not found."""
+        return next((e for e in self.guild_entries if e.role == role), None)
 
     def is_owner(self, user: int):
         return user in self.owner_ids
@@ -589,7 +625,6 @@ class NovaConfig:
         if system:
             self.error_log = tuple(system.error_log)
             self.error_hook = system.error_hook
-            self.primary_guild = system.primary_guild
 
         # trigger event if this is a reload
         if self._get_event('load').is_set():

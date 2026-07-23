@@ -45,7 +45,7 @@ class TestMoveEpochYearUpdates:
             mock_guild_config.set_epoch = AsyncMock()
             mock_guild_config.set_year_length = AsyncMock()
             mock_config.primary.return_value = mock_guild_config
-            mock_config.primary_guild = guild_id
+            mock_config.get_guild_by_role.return_value.id = guild_id
 
             # Call move_epoch with a longer length (extend scenario)
             await move_epoch(400)
@@ -88,7 +88,7 @@ class TestMoveEpochYearUpdates:
             mock_guild_config.set_epoch = AsyncMock()
             mock_guild_config.set_year_length = AsyncMock()
             mock_config.primary.return_value = mock_guild_config
-            mock_config.primary_guild = guild_id
+            mock_config.get_guild_by_role.return_value.id = guild_id
 
             # Call move_epoch with a shorter length (shorten scenario - new length < elapsed)
             await move_epoch(100)
@@ -126,7 +126,7 @@ class TestMoveEpochYearUpdates:
             mock_guild_config.set_epoch = AsyncMock()
             mock_guild_config.set_year_length = AsyncMock()
             mock_config.primary.return_value = mock_guild_config
-            mock_config.primary_guild = guild_id
+            mock_config.get_guild_by_role.return_value.id = guild_id
 
             # Call move_epoch to resume
             await move_epoch(365)
@@ -172,7 +172,7 @@ class TestMoveEpochYearUpdates:
             mock_guild_config.set_epoch = AsyncMock()
             mock_guild_config.set_year_length = AsyncMock()
             mock_config.primary.return_value = mock_guild_config
-            mock_config.primary_guild = guild_id
+            mock_config.get_guild_by_role.return_value.id = guild_id
 
             # Call move_epoch
             await move_epoch(400)
@@ -207,7 +207,7 @@ class TestMoveEpochYearUpdates:
             mock_guild_config.set_epoch = AsyncMock()
             mock_guild_config.set_year_length = AsyncMock()
             mock_config.primary.return_value = mock_guild_config
-            mock_config.primary_guild = guild_id
+            mock_config.get_guild_by_role.return_value.id = guild_id
 
             # Should not raise an exception
             await move_epoch(400)

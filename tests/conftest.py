@@ -32,7 +32,7 @@ import pytest_asyncio
 import tomlkit
 
 from nova_core.client.core import config
-from nova_core.config import GuildChannels, GuildConfig, GuildEpoch, GuildRoles, GuildUsers
+from nova_core.config import GuildChannels, GuildConfig, GuildEntry, GuildEpoch, GuildRoles, GuildUsers
 
 
 test_guild = 1234567890
@@ -182,7 +182,9 @@ def make_guild():
         config.authorized_guilds.add(guild_id)
         if guild_id not in config.valid_guilds:
             config.valid_guilds.append(guild_id)
-        config.primary_guild = guild_id
+        # register as primary guild entry so get_guild_by_role('primary') resolves
+        if not any(e.id == guild_id for e in config.guild_entries):
+            config.guild_entries.append(GuildEntry(id=guild_id, role='primary'))
         created.append(guild_id)
         return cfg
 
@@ -194,7 +196,7 @@ def make_guild():
         config.authorized_guilds.discard(gid)
         if gid in config.valid_guilds:
             config.valid_guilds.remove(gid)
-    config.primary_guild = None
+        config.guild_entries = [e for e in config.guild_entries if e.id != gid]
 
 
 @pytest.fixture

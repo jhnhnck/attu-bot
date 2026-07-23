@@ -226,14 +226,16 @@ class YearMarker(BaseModel):
     async def total(cls, guild: int | None = None) -> int:
         """Count total override markers for a guild"""
         if guild is None:
-            guild = config.primary_guild
+            primary = config.get_guild_by_role('primary')
+            guild = primary.id if primary is not None else 0
         return await _get_repo().total(guild)
 
     @classmethod
     async def timestamp(cls, year: int, guild: int | None = None) -> int | None:
         """Get timestamp from an override marker snowflake, or None if no override exists"""
         if guild is None:
-            guild = config.primary_guild
+            primary = config.get_guild_by_role('primary')
+            guild = primary.id if primary is not None else 0
 
         marker = await _get_repo().get_any_for_guild_year(guild, year)
         if not marker:
@@ -243,10 +245,12 @@ class YearMarker(BaseModel):
     @classmethod
     async def mark(cls, year: int, message_id: int, channel: int | None = None, guild: int | None = None):
         """Store a bot rollover message as an exact override marker"""
+        primary = config.get_guild_by_role('primary')
+        primary_id = primary.id if primary is not None else 0
         if channel is None:
-            channel = config.primary_guild
+            channel = primary_id  # NOTE: pre-existing bug - channel defaults to guild id; tracked in bugs.md
         if guild is None:
-            guild = config.primary_guild
+            guild = primary_id
 
         logger.info(f'marker override stored: guild={guild} channel={channel} year={year} message={message_id}')
         await _get_repo().upsert(guild=guild, channel=channel, year=year, message=message_id, exact=True)

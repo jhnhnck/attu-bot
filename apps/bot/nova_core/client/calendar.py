@@ -76,7 +76,8 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     from nova_core.client.markers import YearMarker
     from nova_core.client.years import Year
 
-    guild_id = config.primary_guild if guild is None else guild
+    _primary = config.get_guild_by_role('primary')
+    guild_id = _primary.id if guild is None else guild
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch
     result = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
@@ -175,7 +176,8 @@ async def move_epoch(length: int, guild: int | None = None):
     elapsed_days, current_year = get_year_status(guild)
     year_span = await get_year_span(current_year, guild)
     cfg = config.primary() if guild is None else config.guild(guild)
-    guild_id = config.primary_guild if guild is None else guild
+    _primary = config.get_guild_by_role('primary')
+    guild_id = _primary.id if guild is None else guild
 
     old_year_length = cfg.epoch.length
     note = ''
