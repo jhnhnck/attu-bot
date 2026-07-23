@@ -141,3 +141,11 @@ cosmetic: em-dashes in plan.md and log.md fixed in this pass (bugs.md item close
 
 - phase 4 (config restructure and string cleanup): revised — scope updated to note that __config_version__ bumps from 2.6.0 (phase 3's new baseline); also folds in the `if bridge_raw is not None:` one-liner fix from bugs.md since config.py is already being edited in that phase; all other phase 4 premises unchanged
 - no other downstream phases; phase 4 is the final phase of nova-w1
+
+## starting phase 4 - 2026-07-23
+
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w1 (keep-alive from phase 3)
+- branch: phase/nova-w1
+- parent branch: trunk
+- dod: sample TOML uses `[[guilds]]` array with `role` field; starting with old `[discord.guilds]` format raises `ConfigLoadError`; `grep -rn 'config\.primary_guild\|config\.secondary_server' . --include="*.py"` returns zero; no hardcoded doom/attu strings in `nova_core/client/` or `attu_logging/webhook.py`; `ruff check` passes; bot runnable
+- note: worktree kept alive from phase 3 per user instruction; all phases accumulate on phase/nova-w1 before trunk merge
