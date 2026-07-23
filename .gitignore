@@ -47,6 +47,8 @@ wip/
 .claude/settings.local.json
 .claude/plans
 !.claude/plans
+.claude/plans/archived/
+.claude/conflicts.md
 .claude/worktrees
 
 
