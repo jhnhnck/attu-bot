@@ -12,6 +12,11 @@
 - [defer] `nova_core/client/events.py` `_do_ready_init()`: add explanatory comment at the `set_webhook_url` call site noting that if `on_load()` raises before reaching this line, the except-clause `send_to_webhook()` silently no-ops (url unset); behavior unchanged from pre-migration; non-blocking comment-only fix
 - [defer] `_break_at_newline` inlined into `attu_logging/webhook.py` creates drift risk vs `nova_core/client/util.py`; real fix is moving to a shared-models package; out of scope for nova-w1; track in workstream 3
 
+- [defer] `router.py:149-167` — `bot._bridge_started` is True only after `server.serve()` exits (not while the bridge is running); the duplicate-start guard at line 149 is therefore bypassed during normal operation; functionally safe because `on_ready.has_run` prevents `start_bridge_task()` from being called twice, but the flag semantics are misleading. clean fix: set `_bridge_started = True` at task-creation time (before the task is scheduled) and only clear it to `False` on exception inside `_serve()`
+- [defer] `config.py:422` — `if bridge_raw:` silently treats an empty `[bridge]` TOML section as "bridge disabled" rather than raising `ConfigLoadError`; `BridgeConfig(**{})` would fail anyway since `secret` is required, but the user-visible error would be "bridge not configured" rather than "invalid bridge configuration". fix: `if bridge_raw is not None:` and let pydantic validation raise normally
+- [defer] `hmac.py:47` — lazy `from fastapi import HTTPException` inside `verify()` is now redundant since fastapi is a declared dep (added in phase 3 commit 3); the module-level import via `contextlib.suppress` already brings it into scope; remove the lazy import in a follow-up
+- [defer] `hmac.py:13` comment "fastapi is absent in unit/component test containers" is stale after phase 3 added fastapi to `apps/bot/pyproject.toml`; update comment to explain the real reason the module-level import is kept in globals (FastAPI calls `get_type_hints(verify)` at route-registration time and needs `Request` resolvable)
+
 ## closed
 - em-dashes throughout `plan.md` and `log.md`; fixed in phase 1 close pass (plan.md edited for plan-revise, triggering the deferred condition)
 
