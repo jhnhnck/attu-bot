@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from attu_models.connection import MongoStorage
 from attu_server import __version__, webauthn_store
+from attu_server.api.admin import router as admin_router
 from attu_server.api.me import router as me_router
 from attu_server.bridge_client import BridgeClient
 from attu_server.config import ServerConfig, load_config
@@ -59,6 +60,7 @@ def create_app(cfg: ServerConfig | None = None) -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     app.include_router(me_router, prefix='/api')
+    app.include_router(admin_router, prefix='/api')
 
     @app.get('/health')
     async def health() -> dict[str, Any]:

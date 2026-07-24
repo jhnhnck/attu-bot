@@ -31,11 +31,22 @@ class BridgeConfig(BaseModel):
     request_timeout: float = 10.0
 
 
+class GuildEntry(BaseModel):
+    id: int
+    role: str
+
+
+class AuthConfig(BaseModel):
+    api_keys: list[str] = []
+
+
 class ServerConfig(BaseModel):
     database: DatabaseConfig
     web: WebConfig
     webauthn: WebAuthnConfig
     bridge: BridgeConfig
+    auth: AuthConfig = AuthConfig()
+    guilds: list[GuildEntry] = []
 
 
 class ServerConfigError(Exception):

@@ -18,3 +18,10 @@ ph4 defines. gate that wiring on nova-w1 ph4 being closed.
 or a new `[admin]` section.
 
 see `.claude/conflicts.md` for the full conflict record.
+
+## starting phase 0 — 2026-07-24
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w5/`
+- branch: `phase/nova-w5`
+- parent: `trunk`
+- confirmed dod: `GET /admin/ping` returns 200 with valid key, 401 without; `config.auth` and `config.guilds` stubs on `ServerConfig` with empty defaults (no `load_config` wiring — deferred per log note above); admin router in `main.py`; three-case test; `ruff check .` clean; `docker compose run tests` passes
