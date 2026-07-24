@@ -185,7 +185,7 @@ base tasks (db-backup, error-hook, reload-watcher) must not also appear in `regi
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | not started |
+| 0 — walking skeleton | in progress |
 | 1 — full manifest API, TOML feature selection, migration ordering | not started |
 | 2 — base package explicit declaration | not started |
 
