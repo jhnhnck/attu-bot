@@ -208,7 +208,7 @@ yes. phase 0 alone ships a runnable second bot and proves the workspace can host
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | pending merge |
+| 0 — walking skeleton | closed in e546dc5 |
 | 1 — mongodb session support | not started |
 | 2 — banking feature | not started |
 | 3 — first casino game (coin flip) | not started |
