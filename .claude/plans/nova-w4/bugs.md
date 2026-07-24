@@ -12,6 +12,8 @@
 
 **Impact**: Low now; medium for phases 2–4. Fix: move the initial connect out of `on_ready` and only call it once at startup; handle reconnect separately, or verify that features always call `_db.get_db()` lazily on each operation rather than caching the returned object.
 
+**Disposition**: fix-in-phase-2 — phases 2+ register DB callers; any feature that caches the DB object at setup time will break on reconnect. must be resolved before phase 2 proceeds. **blocker for phase 2.**
+
 ---
 
 ### Casino Dockerfile omits git-info stamp stage
@@ -22,6 +24,8 @@
 
 **Impact**: Low — cosmetic for a walking skeleton; fix when the casino bot moves toward production.
 
+**Disposition**: defer — cosmetic; not a blocker for any nova-w4 phase. address when casino bot moves toward production deployment.
+
 ---
 
 ### Pre-existing unit test failure: test_sets_discord_http_logger_to_debug
@@ -31,6 +35,8 @@
 **Problem**: `AssertionError: assert 30 == 10` — test expects discord HTTP logger at DEBUG (10) but it's WARNING (30). Present on baseline before any nova-w4 changes. Unrelated to casino scaffold.
 
 **Impact**: Low — the test is checking logger level configuration; the functional behavior appears unchanged. Should be triaged by whoever owns `nova_core/logging` setup.
+
+**Disposition**: won't-fix — pre-existing failure, present before any nova-w4 changes, unrelated to casino scaffold. belongs to `nova_core/logging` ownership; recommend filing separately against that module.
 
 ---
 

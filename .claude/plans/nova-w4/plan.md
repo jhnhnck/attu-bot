@@ -116,6 +116,7 @@ the casino bot's core financial layer. atomic debit/credit is the invariant that
 - `tests/python/unit/test_banking_documents.py`: pydantic model validation; `InsufficientFundsError(reason='insufficient_balance')` raised when balance < amount; `InsufficientFundsError(reason='account_not_found')` raised when no account doc; `get_or_create` creates a 0-balance account on first call and returns the existing one on second call
 
 **pitfalls:**
+- **prerequisite — reconnect bug (bugs.md):** `_db.connect()` in `on_ready` closes and recreates the mongo client on every Discord reconnect. before phase 2 registers any feature that holds a DB reference, move the initial `connect()` call to before the event loop starts. features must call `_db.get_db()` lazily on each operation, never cache the returned object at setup time.
 - `balance_tokens` is `int` only — no floats, no `Decimal`. any payout multiplier must be applied as integer arithmetic (e.g., 2× payout = `amount * 2`, not `amount * 2.0`).
 - overdraft check must be inside the session transaction, not a pre-flight read-then-write. the conditional `find_one_and_update` with `{$gte: amount}` filter is the correct pattern; a separate `get()` followed by `debit()` is a race condition.
 - the `InsufficientFundsError` must distinguish "account not found" from "balance too low": the `find_one_and_update` with `{$gte: amount}` returns no match for both cases. do a follow-up `get()` to distinguish them and set `reason` accordingly.
@@ -207,7 +208,7 @@ yes. phase 0 alone ships a runnable second bot and proves the workspace can host
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | not started |
+| 0 — walking skeleton | pending merge |
 | 1 — mongodb session support | not started |
 | 2 — banking feature | not started |
 | 3 — first casino game (coin flip) | not started |
