@@ -8,6 +8,7 @@ members = [
     "attu-logging",
     "attu-models",
     "attu-server",
+    "casino-bot",
     "nova-core",
 ]
 
@@ -324,6 +325,31 @@ wheels = [
 [package.optional-dependencies]
 filecache = [
     { name = "filelock" },
+]
+
+[[package]]
+name = "casino-bot"
+version = "0.1.0"
+source = { virtual = "apps/casino" }
+dependencies = [
+    { name = "attu-logging" },
+    { name = "attu-models" },
+    { name = "nova-core" },
+    { name = "py-cord", extra = ["speed"] },
+    { name = "pydantic" },
+    { name = "pymongo" },
+    { name = "tomlkit" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attu-logging", virtual = "packages/attu-logging" },
+    { name = "attu-models", virtual = "packages/shared-models" },
+    { name = "nova-core", virtual = "apps/bot" },
+    { name = "py-cord", extras = ["speed"], specifier = "<3" },
+    { name = "pydantic" },
+    { name = "pymongo", specifier = ">=4.6.0" },
+    { name = "tomlkit" },
 ]
 
 [[package]]

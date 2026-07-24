@@ -12,12 +12,13 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["apps/bot", "apps/server", "packages/shared-models", "packages/attu-logging"]
+members = ["apps/bot", "apps/casino", "apps/server", "packages/shared-models", "packages/attu-logging"]
 
 [tool.uv.sources]
 nova-core = { workspace = true }
 attu-models = { workspace = true }
 attu-logging = { workspace = true }
+casino-bot = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -123,6 +124,7 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
   "S106",
   "E402",
 ]
+"apps/casino/**" = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
