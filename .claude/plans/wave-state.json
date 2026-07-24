@@ -19,8 +19,8 @@
     { "plan": "nova-w3", "phase": 5, "state": "queued", "gate": "nova-w3 ph4", "note": "trees extraction" },
     { "plan": "nova-w3", "phase": 6, "state": "queued", "gate": "nova-w3 ph5", "note": "starboard extraction" },
 
-    { "plan": "nova-w4", "phase": 0, "state": "active", "gate": null,           "note": "casino app walking skeleton in progress; apps/casino/ scaffold underway; log.md missing starting entry (plan-manager start step skipped)" },
-    { "plan": "nova-w4", "phase": 1, "state": "queued", "gate": "nova-w4 ph0",  "note": "mongodb session support" },
+    { "plan": "nova-w4", "phase": 0, "state": "closed", "gate": null,           "note": "casino app walking skeleton; apps/casino/ scaffold complete; closed in e546dc5" },
+    { "plan": "nova-w4", "phase": 1, "state": "active", "gate": null,           "note": "mongodb session support (MongoStorage.get_client); 3 open bugs incl. on_ready reconnect blocker for ph2" },
     { "plan": "nova-w4", "phase": 2, "state": "queued", "gate": "nova-w2 all",  "note": "banking feature (requires nova-w2 complete)" },
     { "plan": "nova-w4", "phase": 3, "state": "queued", "gate": "nova-w4 ph2",  "note": "coin flip game" },
     { "plan": "nova-w4", "phase": 4, "state": "queued", "gate": "nova-w4 ph3",  "note": "lottery feature" },
