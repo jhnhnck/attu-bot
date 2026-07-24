@@ -85,7 +85,6 @@ ignore = [
   "PLE1205",
   "PLR2004",
   "RUF012",
-  "S311",
   "UP037",
   "COM812",
 ]
@@ -124,6 +123,9 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
   "S106",
   "E402",
 ]
+"apps/bot/nova_core/commands/debug.py" = ["S311"]
+"apps/bot/nova_core/eggs/hatching.py" = ["S311"]
+"apps/bot/nova_core/tasks/logo_update.py" = ["S311"]
 "apps/casino/**" = []
 
 [tool.pytest.ini_options]
