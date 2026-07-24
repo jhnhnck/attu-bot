@@ -2,7 +2,7 @@
 
 <!-- bug-triage appends here -->
 
-## open
+## closed
 
 ### S311 per-file-ignores mechanism is inert under normal ruff check
 
@@ -14,4 +14,4 @@
 
 **Impact**: Medium — the code is correct today, but a future dev adding `import random` to casino code will not be caught by a default lint run. Only caught if someone explicitly runs `--select S311`.
 
-**Fix scope**: Cross-cutting change to root `pyproject.toml` and potentially other workspace member lint configs. Out of scope for nova-w4 phase 0; should be addressed before nova-w2 (feature loader) which is most likely to introduce `random` usage.
+**Fix**: Removed S311 from global `ignore`; added targeted per-file suppressions for `debug.py`, `hatching.py`, `logo_update.py`. Fixed in commit `21f631b` during phase 0.
