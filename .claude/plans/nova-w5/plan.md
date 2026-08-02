@@ -180,7 +180,7 @@ nova-admin> exit
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | not started |
+| 0 — walking skeleton | in progress |
 | 1 — auth gate + guild listing | not started |
 | 2 — config get/set | not started |
 | 3 — feature/reload/fix | not started |
