@@ -8,6 +8,11 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 ## untriaged
 
+### testing
+
+- ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice.
+
+
 ### starboard
 
 - ⭕ `bug` starboard doesn't render multiple images from messages with more than one attachment (from cowboy)

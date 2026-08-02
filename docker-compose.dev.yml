@@ -11,7 +11,7 @@ services:
       - path: ./.env
         required: false
     environment:
-      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER:-doom_dev}:${POSTGRES_PASSWORD:-doom_dev}@postgres:5432/${POSTGRES_DB:-doom_dev}
+      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER:-doom_dev}:${POSTGRES_PASSWORD:-doom_dev}@postgres:5432/${POSTGRES_DB:-postgres}
     depends_on:
       postgres:
         condition: service_healthy
@@ -25,7 +25,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-doom_dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doom_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-doom_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
