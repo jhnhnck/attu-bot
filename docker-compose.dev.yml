@@ -8,9 +8,10 @@ services:
     image: ghcr.io/ferretdb/ferretdb:latest
     restart: no
     env_file:
-      - ./.env
+      - path: ./.env
+        required: false
     environment:
-      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER:-doom_dev}:${POSTGRES_PASSWORD:-doom_dev}@postgres:5432/${POSTGRES_DB:-doom_dev}
     depends_on:
       postgres:
         condition: service_healthy
@@ -19,7 +20,12 @@ services:
     image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
     restart: no
     env_file:
-      - ./.env
+      - path: ./.env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-doom_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doom_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-doom_dev}
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
@@ -35,7 +41,8 @@ services:
       target: tester
     restart: no
     env_file:
-      - ./.env
+      - path: ./.env
+        required: false
     depends_on:
       ferret:
         condition: service_started
@@ -71,13 +78,9 @@ services:
     restart: no
     container_name: attu-dev-tests
     environment:
-      ATTU_CONFIG_FILE: /home/doom/.secrets/attu-bot.toml
+      TEST_DB_URL: "mongodb://${POSTGRES_USER:-doom_dev}:${POSTGRES_PASSWORD:-doom_dev}@ferret:27017/doombot?authSource=admin"
       TEST_MODE: "1"
       DEBUG: "1"
-    env_file:
-      - ./.env
-    volumes:
-      - ./.secrets/attu-bot.toml:/home/doom/.secrets/attu-bot.toml:ro
     user: doom:doom
     # tests bypass ferret-init: they create their own data and don't need the seed.
     depends_on:

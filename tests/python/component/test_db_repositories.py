@@ -40,9 +40,13 @@ pytestmark = pytest.mark.component
 def _read_db_config() -> tuple[str, str]:
     """read database url and name from the toml config file.
 
+    checks TEST_DB_URL first so the test container needs no secrets mount.
     falls back to unauthenticated localhost for convenience in local dev
     without a config file present.
     """
+    if url := os.environ.get('TEST_DB_URL'):
+        db_name = url.rsplit('/', 1)[-1].split('?', 1)[0] or 'doombot'
+        return url, db_name
     config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml'))
     if config_path.exists():
         with config_path.open() as f:

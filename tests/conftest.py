@@ -429,6 +429,9 @@ def make_year_doc():
 
 def _read_db_config() -> tuple[str, str]:
     """read database url and name from the toml config, falling back to localhost defaults."""
+    if url := os.environ.get('TEST_DB_URL'):
+        db_name = url.rsplit('/', 1)[-1].split('?', 1)[0] or 'doombot'
+        return url, db_name
     config_path = Path(os.environ.get('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml'))
     if config_path.exists():
         with config_path.open() as f:
