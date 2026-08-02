@@ -10,6 +10,7 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 ### testing
 
+- ⭕ `nit` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate copied from other test files; irrelevant for a loader test with no time-sensitive code. from nova-w2 phase 0 code review.
 - ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice.
 
 

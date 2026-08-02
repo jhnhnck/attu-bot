@@ -42,7 +42,7 @@ two residual risks from the pre-mortem. first: pycord's `bot.listen()` when call
 
 ### phase 0 — walking skeleton
 
-**status:** open
+**status:** closed in 46822eb
 
 **scope:**
 
@@ -185,7 +185,7 @@ base tasks (db-backup, error-hook, reload-watcher) must not also appear in `regi
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | in progress |
+| 0 — walking skeleton | closed in 46822eb |
 | 1 — full manifest API, TOML feature selection, migration ordering | not started |
 | 2 — base package explicit declaration | not started |
 
