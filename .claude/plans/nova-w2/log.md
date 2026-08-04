@@ -57,3 +57,27 @@
   - NIT-W2-01 resolved: TZ boilerplate removed from `test_feature_loader.py`
   - ruff passes on all changed files; basedpyright passes on all changed files (pre-existing `RawConfig` TypedDict error not introduced by this phase)
   - 1192 unit tests pass (1 pre-existing failure in `test_start_bot_loop.py` unchanged from baseline)
+
+### what landed vs spec
+- `[features]` TOML section added to `NovaConfig`: `features_enabled: list[str]`, `feature_config(name) -> dict`; `RawConfig` TypedDict updated; `_load_from_toml` handles parsing - delivered.
+- `getattr(config, 'features_enabled', None)` guard removed from `events.py`; replaced with `config.features_enabled` direct access - delivered.
+- `__config_version__` bumped to 2.8.0; `config/attu-bot.sample.toml` updated with commented `[features]` section - delivered.
+- `startup` field: omitted - intentional scope narrowing; run-once task pattern covers post-ready callbacks; wiki `_restore_wiki_views` migrates to a run-once task in nova-w3; decision documented in `notes/nova-core.md` - delivered.
+- repo injection pattern (a) implemented: `_wire_documents` calls `mod.init_repos(db)` if present; feature module owns instantiation; pattern documented in `nova_core/loader.py` module docstring and `notes/nova-core.md` - delivered.
+- `drain_migrations()` method added; collects `manifest.migrations` from each feature in enabled-list order; unit test asserts sentinel ordering - delivered.
+- ccboard manifest type-checked fixture in `test_feature_manifest.py` (12 tests); all fields round-trip; basedpyright clean - delivered.
+- `test_nova_config_features.py` (7 tests): `feature_config`/`features_enabled` roundtrip; absent-key returns `{}` - delivered.
+- NIT-W2-01: `TZ=UTC`/`_time.tzset()` boilerplate removed from `test_feature_loader.py` - resolved per plan.
+- test baseline: 1203 unit (24 new), 2 skipped; 180 component unchanged; 9 pre-existing integration errors unchanged.
+
+### what surprised us
+- `startup` field resolution was clean: once the run-once task pattern was recognized as covering post-ready callbacks, omitting the field was unambiguous. wiki `_restore_wiki_views` migrates naturally without a new manifest field.
+- repo injection pattern (a) vs (b): pattern (a) -- loader calls `mod.init_repos(db)` -- avoids the loader needing to know repository constructor signatures, which vary by feature. aligns with how `doom_bot/database/__init__.py` wires its own repos. pattern (b) would have required loader to introspect constructor arities or use a factory protocol.
+- the `getattr` guard removal was entirely mechanical once TOML plumbing landed; no surprises.
+
+### residual debt
+- none new. all DoD items met; no items routed to bugs.md.
+
+## revision after phase 1 - 2026-08-04
+
+- phase 2 - base package explicit declaration: **valid**. all phase 1 dependencies satisfied: `BASE_PACKAGE` stub in place (phase 0), `load_base()` implemented (phase 0), `config.features_enabled` direct access in place (phase 1 removes guard). repo injection pattern (a) does not affect phase 2 scope: `BasePackageSpec` items (ping, version, db-backup, error-hook, reload-watcher, bridge-health) are wired via `load_base`, not `load_all`; they do not use `FeatureManifest` or `init_repos`. phase 2 merge gate "phase 1 merged to trunk" is now satisfiable. new unit baseline for phase 2: 1203 pass, 2 skipped; `docker compose run tests` gate should use this as the expected baseline.
