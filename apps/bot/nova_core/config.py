@@ -5,7 +5,7 @@ import asyncio
 import datetime
 from os import environ, getenv
 from pathlib import Path
-from typing import Any, Literal, TypedDict, cast, override
+from typing import Any, Literal, NotRequired, TypedDict, cast, override
 from zoneinfo import ZoneInfo
 
 import anyio
@@ -39,6 +39,7 @@ class RawConfig(TypedDict):
     auth: dict[str, Any]
     discord: dict[str, Any]
     trees: dict[str, Any]
+    features: NotRequired[dict[str, Any]]
 
 
 class NovaGlobals(BaseModel):
@@ -331,6 +332,7 @@ class NovaConfig:
         self.hatch: HatchConfig = None
         self.trees: TreesConfig = None
         self.bridge: BridgeConfig = None
+        self.features_enabled: list[str] = []
 
         # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml')).resolve()
@@ -454,6 +456,10 @@ class NovaConfig:
             except ValidationError as err:
                 logger.error(f'failed to validate bridge configuration: {err!s}')
                 raise ConfigLoadError('invalid bridge configuration (check [bridge] section)')
+
+        # parse [features] section (optional; no error if absent)
+        features_raw = self._raw.get('features', {})
+        self.features_enabled = list(features_raw.get('enabled', []))
 
         self._get_event('init').set()
 
@@ -609,6 +615,14 @@ class NovaConfig:
     def get_guild_by_role(self, role: str) -> 'GuildEntry | None':
         """return the first guild entry matching `role`, or None if not found."""
         return next((e for e in self.guild_entries if e.role == role), None)
+
+    def feature_config(self, name: str) -> dict:
+        """return the [features.<name>] subtable as a plain dict, or {} if absent."""
+        if self._raw is None:
+            return {}
+        features = self._raw.get('features', {})
+        subtable = features.get(name, {})
+        return dict(subtable)
 
     def is_owner(self, user: int):
         return user in self.owner_ids

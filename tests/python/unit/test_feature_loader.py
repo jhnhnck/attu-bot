@@ -1,15 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """tests.python.unit.test_feature_loader | tests for FeatureContext loader."""
 
-import os
 import sys
-import time as _time
 import types
-
-
-os.environ['TZ'] = 'UTC'
-_time.tzset()
-
 from unittest.mock import MagicMock
 
 import pytest
@@ -143,6 +136,88 @@ class TestLoadAllErrors:
             ctx.load_all(['nova_core.features._fake_wrong_manifest_xyz'])
 
             warnings = [e for e in capture_structlog if e.get('log_level') == 'warning']
-            assert any('no manifest' in str(e.get('event', '')) for e in warnings)
+            assert any('is not a FeatureManifest' in str(e.get('event', '')) for e in warnings)
         finally:
             sys.modules.pop('nova_core.features._fake_wrong_manifest_xyz', None)
+
+
+# --- _wire_documents / init_repos ---
+
+
+class TestWireDocuments:
+    def test_init_repos_called_with_db_when_present(self):
+        """_wire_documents calls mod.init_repos(db) when the attribute exists"""
+        from nova_core.loader import FeatureContext
+        from nova_core.manifest import FeatureManifest
+
+        db = MagicMock()
+        scheduler = MagicMock()
+        scheduler.registered_tasks.return_value = []
+        ctx = FeatureContext(bot=MagicMock(), scheduler=scheduler, config=MagicMock(), db=db)
+
+        fake_mod = types.ModuleType('_fake_repo_mod')
+        fake_mod.init_repos = MagicMock()  # type: ignore[attr-defined]
+
+        ctx.load_feature(FeatureManifest(name='t'), _mod=fake_mod)
+
+        fake_mod.init_repos.assert_called_once_with(db)
+
+    def test_init_repos_skipped_when_absent(self):
+        """_wire_documents does not raise when mod has no init_repos"""
+        from nova_core.loader import FeatureContext
+        from nova_core.manifest import FeatureManifest
+
+        scheduler = MagicMock()
+        scheduler.registered_tasks.return_value = []
+        ctx = FeatureContext(bot=MagicMock(), scheduler=scheduler, config=MagicMock(), db=MagicMock())
+
+        fake_mod = types.ModuleType('_fake_no_repos_mod')
+        # should not raise even though init_repos is absent
+        ctx.load_feature(FeatureManifest(name='t'), _mod=fake_mod)
+
+    def test_no_mod_does_not_raise(self):
+        """_wire_documents with _mod=None does not raise"""
+        from nova_core.loader import FeatureContext
+        from nova_core.manifest import FeatureManifest
+
+        scheduler = MagicMock()
+        scheduler.registered_tasks.return_value = []
+        ctx = FeatureContext(bot=MagicMock(), scheduler=scheduler, config=MagicMock(), db=MagicMock())
+        ctx.load_feature(FeatureManifest(name='t'))
+
+
+# --- drain_migrations ---
+
+
+class TestDrainMigrations:
+    def test_drain_migrations_preserves_feature_order(self):
+        """migrations from multiple features are returned in load order"""
+        from nova_core.loader import FeatureContext
+        from nova_core.manifest import FeatureManifest
+
+        sentinel_a = object()
+        sentinel_b = object()
+
+        scheduler = MagicMock()
+        scheduler.registered_tasks.return_value = []
+        ctx = FeatureContext(bot=MagicMock(), scheduler=scheduler, config=MagicMock(), db=MagicMock())
+
+        ctx.load_feature(FeatureManifest(name='f1', migrations=[sentinel_a]))
+        ctx.load_feature(FeatureManifest(name='f2', migrations=[sentinel_b]))
+
+        result = ctx.drain_migrations()
+        assert result == [sentinel_a, sentinel_b]
+
+    def test_drain_migrations_clears_list(self):
+        """drain_migrations clears the internal list; subsequent call returns []"""
+        from nova_core.loader import FeatureContext
+        from nova_core.manifest import FeatureManifest
+
+        scheduler = MagicMock()
+        scheduler.registered_tasks.return_value = []
+        ctx = FeatureContext(bot=MagicMock(), scheduler=scheduler, config=MagicMock(), db=MagicMock())
+
+        ctx.load_feature(FeatureManifest(name='f1', migrations=[object()]))
+        ctx.drain_migrations()
+
+        assert ctx.drain_migrations() == []

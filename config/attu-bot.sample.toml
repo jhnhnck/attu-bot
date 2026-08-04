@@ -1,4 +1,4 @@
-config_version = "2.7.0"
+config_version = "2.8.0"
 
 [paths]
 # Path to the assets directory (templates, static files, favicon)
@@ -102,4 +102,9 @@ bind_host = "127.0.0.1"
 bot_port = 5050
 # max age in seconds for accepted request timestamps (replay attack window)
 replay_window = 60
+
+# [features]
+# enabled = []
+# per-feature config goes in [features.<name>] subtables
+# example: enabled = ["ccboard", "eggs", "wiki", "reminders", "trees", "modlog"]
 

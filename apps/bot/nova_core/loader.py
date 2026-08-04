@@ -1,8 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """nova_core.loader | feature manifest loader.
 
-repo injection: feature repository_classes are wired post-connection in _wire_documents;
-the pattern (registry vs init_repos callback) is finalized in phase 1.
+repo injection pattern (a): the loader calls `mod.init_repos(db)` on the feature module
+after loading its manifest, if the function exists. `init_repos` is responsible for
+instantiating the feature's repository classes with `db` and setting them as module-level
+singletons; this mirrors the `_wire_repos()` pattern in `nova_core.database.__init__`
+(import module, set `module._attr = repo_instance`) while letting each feature own its own
+attribute names. repository_classes in the manifest are present for discovery; injection is
+delegated to init_repos. index creation (repo.init_indexes()) must be called inside
+init_repos since _wire_documents is synchronous.
+
+migration ordering: load_all appends each feature's migrations in enabled-list order to
+_pending_migrations; drain_migrations() returns and clears the accumulated list so the
+caller can run them in a single pass after all features are loaded.
 """
 
 import importlib
@@ -34,6 +44,7 @@ class FeatureContext:
         self.scheduler = scheduler
         self.config = config
         self.db = db
+        self._pending_migrations: list = []
 
     def load_base(self, specs) -> None:
         """Load base package specs in order; each spec wires tasks and setup."""
@@ -51,19 +62,28 @@ class FeatureContext:
                 continue
 
             manifest = getattr(mod, 'manifest', None)
-            if manifest is None or not isinstance(manifest, FeatureManifest):
+            if manifest is None:
                 logger.warning(f"feature '{name}' has no manifest, skipping")
                 continue
+            if not isinstance(manifest, FeatureManifest):
+                logger.warning(f"feature '{name}'.manifest is not a FeatureManifest, skipping")
+                continue
 
-            self.load_feature(manifest)
+            self.load_feature(manifest, _mod=mod)
 
-    def load_feature(self, manifest: FeatureManifest) -> None:
+    def load_feature(self, manifest: FeatureManifest, _mod=None) -> None:
         """Wire all declared surfaces of a single feature manifest."""
         self._wire_tasks(manifest.tasks)
         self._wire_event_handlers(manifest.event_handlers)
         self._wire_setup(manifest.setup)
-        self._wire_documents(manifest.document_classes)
+        self._wire_documents(manifest.document_classes, manifest.repository_classes, _mod)
         self._wire_migrations(manifest.migrations)
+
+    def drain_migrations(self) -> list:
+        """Return accumulated migrations in feature declaration order and clear the list."""
+        result = list(self._pending_migrations)
+        self._pending_migrations.clear()
+        return result
 
     def _wire_tasks(self, tasks) -> None:
         """Register tasks with the scheduler; already-registered tasks are skipped."""
@@ -86,8 +106,18 @@ class FeatureContext:
         if setup_fn is not None:
             setup_fn(self.bot)
 
-    def _wire_documents(self, classes) -> None:
-        """no-op stub; repo/index init wired post-connection in phase 1"""
+    def _wire_documents(self, document_classes, repository_classes=None, _mod=None) -> None:
+        """Wire repository singletons via the feature module's init_repos(db) function.
+
+        If _mod has an init_repos attribute, it is called with self.db. The module is
+        responsible for instantiating each repository class and setting module-level
+        singletons (e.g. _mod._reaction_repo = ReactionRepository(db)). document_classes
+        and repository_classes are available for discovery by tooling; injection is
+        delegated to init_repos to avoid a naming-convention requirement on the loader.
+        """
+        if _mod is not None and hasattr(_mod, 'init_repos'):
+            _mod.init_repos(self.db)
 
     def _wire_migrations(self, migrations) -> None:
-        """no-op stub; migrations appended to runner in phase 1"""
+        """Append feature migrations to the accumulated list in declaration order."""
+        self._pending_migrations.extend(migrations)

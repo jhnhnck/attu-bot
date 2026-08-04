@@ -133,7 +133,7 @@ async def _do_ready_init():  # noqa: PLR0915 - ready init has inherently many se
 
         _loader = FeatureContext(bot=bot, scheduler=scheduler, config=config, db=db)
         _loader.load_base([])  # stub; populated in phase 2
-        _feature_list = getattr(config, 'features_enabled', None) or []
+        _feature_list = config.features_enabled
         if config.test_mode:
             _feature_list = ['nova_core.features._test_feature']
         _loader.load_all(_feature_list)

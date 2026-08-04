@@ -76,10 +76,21 @@ manifest = FeatureManifest(
 
 the core loader reads `[features]` from the toml, finds each manifest, and wires:
 - calls `bot.load_extension()` for slash commands via `setup`
-- registers each event handler via `bot.listen()`
+- registers each event handler via `bot.add_listener(fn, name=event_name)`
 - registers tasks with the scheduler
-- registers document/repo classes for index init
+- calls `mod.init_repos(db)` if present for repository injection (see repo injection pattern below)
 - appends feature migrations to the migration runner in declaration order
+
+**startup field decision (nova-w2 phase 1):** no `startup` field on `FeatureManifest`. post-ready callbacks use the existing `run_once=True, run_immediately=True` task pattern (demonstrated in `_test_feature`). the wiki phase's `_restore_wiki_views` function should be moved into a run-once task when wiki is extracted to a manifest-driven feature in nova-w3.
+
+**repo injection pattern (nova-w2 phase 1):** pattern (a) - the loader calls `mod.init_repos(db)` after loading the manifest if the function exists on the module. `init_repos(db)` instantiates the feature's repository classes with `db` and sets them as module-level singletons; this mirrors `_wire_repos()` in `nova_core.database.__init__` (import module, assign `module._attr = repo_instance`) while letting each feature own its attribute names. `repository_classes` in the manifest is for discovery; injection is delegated to `init_repos`. index creation (`repo.init_indexes()`, which is async) must be called inside `init_repos` since `_wire_documents` is synchronous. example feature implementation:
+
+```python
+def init_repos(db) -> None:
+    import nova_core.myfeature as _self
+    _self._my_repo = MyRepository(db)
+    # async index init must be scheduled or awaited separately
+```
 
 **per-bot feature selection:** `[features]` list in the toml. missing features have no manifest loaded; no core edits required to add or remove a feature.
 
