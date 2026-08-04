@@ -137,7 +137,7 @@ write the ccboard manifest body (from `notes/nova-core.md` example) as a type-ch
 
 ### phase 2 — base package explicit declaration
 
-**status:** open
+**status:** in progress
 
 **scope:**
 
@@ -187,7 +187,7 @@ base tasks (db-backup, error-hook, reload-watcher) must not also appear in `regi
 |---|---|
 | 0 — walking skeleton | closed in 46822eb |
 | 1 — full manifest API, TOML feature selection, migration ordering | closed in d422fa9 |
-| 2 — base package explicit declaration | not started |
+| 2 — base package explicit declaration | in progress |
 
 ---
 

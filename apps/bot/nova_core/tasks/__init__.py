@@ -35,12 +35,11 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     from nova_core.ccboard.auditor import auditor_task as ccboard_auditor_task
     from nova_core.ccboard.manager import manager_task as ccboard_manager_task
 
+    # db_backup_task, error_hook_task, and reload_watcher_task are now registered by
+    # load_base(BASE_PACKAGE) in _do_ready_init(); removed here to avoid duplicate registration
     bot_tasks = (
         nova_year_task,
         logo_update_task,
-        error_hook_task,
-        reload_watcher_task,
-        db_backup_task,
         message_backfill_task,
         egg_cleanup_task,
         presence_update_task,

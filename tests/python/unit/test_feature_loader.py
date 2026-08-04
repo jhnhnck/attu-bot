@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""tests.python.unit.test_feature_loader | tests for FeatureContext loader."""
+"""tests.python.unit.test_feature_loader | tests for FeatureContext loader and BASE_PACKAGE."""
 
 import sys
 import types
@@ -221,3 +221,19 @@ class TestDrainMigrations:
         ctx.drain_migrations()
 
         assert ctx.drain_migrations() == []
+
+
+# --- BASE_PACKAGE declaration ---
+
+
+class TestBasePackage:
+    def test_name_list(self):
+        """BASE_PACKAGE has exactly 6 items in declaration order"""
+        from nova_core.loader import BASE_PACKAGE
+
+        assert [spec.name for spec in BASE_PACKAGE] == ['ping', 'version', 'db-backup', 'error-hook', 'reload-watcher', 'bridge-health']
+
+    def test_length(self):
+        from nova_core.loader import BASE_PACKAGE
+
+        assert len(BASE_PACKAGE) == 6

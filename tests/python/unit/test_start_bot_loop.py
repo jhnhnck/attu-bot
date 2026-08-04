@@ -110,12 +110,14 @@ class TestStartBotLoopPipeline:
     """unit: start_bot_loop() pipeline steps are called in the correct order"""
 
     def test_happy_path_all_steps_called(self):
-        """all six startup steps fire on a clean run"""
+        """startup pipeline fires: on_init, dep check, load handlers, load extensions, bot.run.
+        ping is no longer registered here; it is registered via load_base(BASE_PACKAGE) in _do_ready_init().
+        """
         with (
             patch.object(nova_core.config, 'on_init') as mock_init,
             patch('shutil.which', return_value='/usr/bin/resvg'),
             patch('nova_core.client._load_event_handlers') as mock_handlers,
-            patch.object(nova_core.bot, 'add_application_command') as mock_add,
+            patch.object(nova_core.bot, 'add_application_command'),
             patch.object(nova_core.bot, 'load_extension'),
             patch.object(nova_core.bot, 'run') as mock_run,
         ):
@@ -123,7 +125,6 @@ class TestStartBotLoopPipeline:
 
             mock_init.assert_called_once()
             mock_handlers.assert_called_once()
-            mock_add.assert_called_once()
             mock_run.assert_called_once()
 
     def test_config_on_init_called_before_dep_check(self):
@@ -322,22 +323,18 @@ class TestLoadExtensions:
 
 
 class TestRegisterCoreCommands:
-    """unit: _register_core_commands() adds the ping command"""
+    """unit: _register_core_commands() is a no-op shim.
 
-    def test_adds_one_command(self):
+    ping is now registered via load_base(BASE_PACKAGE) in _do_ready_init(); this shim
+    remains as a placeholder for future top-level commands.
+    """
+
+    def test_adds_no_commands(self):
+        """shim does not register any commands directly"""
         with patch.object(nova_core.bot, 'add_application_command') as mock_add:
             nova_core._register_core_commands()
 
-        mock_add.assert_called_once()
-
-    def test_adds_ping_command(self):
-        """the registered command is the module-level command_ping"""
-        with patch.object(nova_core.bot, 'add_application_command') as mock_add:
-            nova_core._register_core_commands()
-
-        # the argument passed should be the same object as nova_core.command_ping
-        args, _ = mock_add.call_args
-        assert args[0] is nova_core.command_ping
+        mock_add.assert_not_called()
 
 
 # ============================================================

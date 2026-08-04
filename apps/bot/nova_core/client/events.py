@@ -125,14 +125,19 @@ async def _do_ready_init():  # noqa: PLR0915 - ready init has inherently many se
         await _shutdown(exit_code=1)
         return
 
-    # feature manifest loader
+    # startup sequence:
+    #   1. init_database: db connection established
+    #   2. loader.load_base: base package tasks and commands wired (ping, version, db-backup, error-hook, reload-watcher, bridge-health)
+    #   3. loader.load_all: feature manifest pass; tasks, events, commands, docs/repos, migrations wired
+    #   4. register_bot_tasks (shim): hardwired tasks remaining until w3 migrates each feature
+    #   5. scheduler.start_all: all registered tasks begin running
     try:
         from nova_core.client.core import db
-        from nova_core.loader import FeatureContext
+        from nova_core.loader import BASE_PACKAGE, FeatureContext
         from nova_core.tasks.scheduler import scheduler
 
         _loader = FeatureContext(bot=bot, scheduler=scheduler, config=config, db=db)
-        _loader.load_base([])  # stub; populated in phase 2
+        _loader.load_base(BASE_PACKAGE)
         _feature_list = config.features_enabled
         if config.test_mode:
             _feature_list = ['nova_core.features._test_feature']

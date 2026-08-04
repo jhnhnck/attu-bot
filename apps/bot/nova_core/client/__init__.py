@@ -6,11 +6,10 @@ import logging
 import pkgutil
 import shutil
 import sys
-from typing import cast
 
 import discord
 import structlog
-from discord import ApplicationCommand, ApplicationContext
+from discord import ApplicationContext
 
 import nova_core.commands
 from nova_core.client.core import bot, config, db  # noqa: F401 - re-exported as client API
@@ -89,9 +88,11 @@ def _load_event_handlers():
 
 
 def _register_core_commands():
-    """register top-level slash commands that are not part of any extension"""
-    logger.info('loading commands')
-    bot.add_application_command(cast(ApplicationCommand, command_ping))
+    """register top-level slash commands that are not part of any extension.
+
+    ping is now registered via load_base(BASE_PACKAGE) in _do_ready_init(); this shim
+    remains for test compatibility and any future top-level commands added before nova-w3.
+    """
 
 
 def _load_extensions():
