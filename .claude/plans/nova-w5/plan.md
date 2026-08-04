@@ -58,8 +58,8 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 **status:** not started
 
 **scope:**
-- `apps/server/attu_server/config.py` — wire `load_config` to populate `config.auth.api_keys` from TOML `[auth].api_keys` and `config.guilds` from TOML `[[guilds]]` array. nova-w1 has shipped the format; gate condition from the 2026-07-23 log note is now satisfied.
-- `apps/server/attu_server/deps.py` — replace `key not in config.auth.api_keys` with `not any(hmac.compare_digest(key, k) for k in config.auth.api_keys)` for timing-safe comparison (bug tracked in bugs.md; natural home before guild endpoints ship).
+- `apps/server/attu_server/config.py`: wire `load_config` to populate `config.auth.api_keys` from TOML `[auth].api_keys` and `config.guilds` from TOML `[[guilds]]` array. nova-w1 has shipped the format; gate condition from the 2026-07-23 log note is now satisfied.
+- `apps/server/attu_server/deps.py`: replace `key not in config.auth.api_keys` with `not any(hmac.compare_digest(key, k) for k in config.auth.api_keys)` for timing-safe comparison (bug tracked in bugs.md; natural home before guild endpoints ship).
 - `apps/server/attu_server/api/admin/slugs.py` — `slugify(name: str) -> str` (strip non-alphanumeric except spaces/dashes, lowercase, spaces→dashes, collapse consecutive dashes); `make_slug_map(items: list[dict]) -> dict[str, dict]` (builds `{slug: item}` with `-2`/`-3` collision suffixes)
 - `apps/server/attu_server/api/admin/guilds.py` — three endpoints:
   - `GET /admin/guilds` — iterates `config.guilds`; calls `bridge.get_guild_info(guild_id)` for each; returns `[{id, name, slug, role}]`
