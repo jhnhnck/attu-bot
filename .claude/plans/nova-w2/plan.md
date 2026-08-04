@@ -100,7 +100,7 @@ unit tests in `tests/python/unit/test_feature_loader.py`: mock bot, scheduler, c
 
 ### phase 1 — full manifest API, TOML feature selection, migration ordering
 
-**status:** pending merge
+**status:** closed in d422fa9
 
 **scope:**
 
@@ -186,7 +186,7 @@ base tasks (db-backup, error-hook, reload-watcher) must not also appear in `regi
 | phase | status |
 |---|---|
 | 0 — walking skeleton | closed in 46822eb |
-| 1 — full manifest API, TOML feature selection, migration ordering | pending merge |
+| 1 — full manifest API, TOML feature selection, migration ordering | closed in d422fa9 |
 | 2 — base package explicit declaration | not started |
 
 ---
