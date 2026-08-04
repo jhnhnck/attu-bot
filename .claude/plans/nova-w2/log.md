@@ -108,3 +108,34 @@
 | bridge-health | `nova_core/bridge/router.py:46` - `@unsigned.get('/health')` FastAPI route; registered by decorator at module import time; not a task | thin wrapper - route already wired by the decorator; `BasePackageSpec(name='bridge-health', tasks=[], setup=None)`; no code movement |
 
 no significant moves; no escalation required.
+
+## phase 2 retro - 2026-08-04
+
+### what landed vs spec
+
+- `BASE_PACKAGE` tuple with 6 `BasePackageSpec` items in declaration order - delivered.
+- ping: `_register_ping_command(bot)` extracted from inline decorator in `client/__init__.py`; `_register_core_commands()` is now a no-op shim - delivered.
+- version: stub (`tasks=[], setup=None`); no version slash command exists in nova_core - delivered per spec (noted in commit).
+- db-backup, error-hook, reload-watcher: referenced as existing module-level singletons; no code movement - delivered.
+- bridge-health: no-op spec (`tasks=[], setup=None`); `/bridge/health` fastapi route wired by decorator at import time; nothing for `load_base` to invoke - delivered.
+- `load_base(BASE_PACKAGE)` wired before `load_all` in `_do_ready_init()`; startup sequence comment block present - delivered.
+- duplicate registrations of db-backup, error-hook, reload-watcher removed from `register_bot_tasks()` - delivered.
+- `TestBasePackage` (2 tests added); `TestRegisterCoreCommands` updated to assert no commands are added by the shim - delivered.
+- unit baseline: 1204 pass (+1 net vs phase 1: 2 new tests, 1 pre-existing "fail" reclassified as always-passing in-container), 2 skip, 0 fail - delivered.
+
+### what surprised us
+
+- bridge-health is a no-op spec: `/bridge/health` is wired by `@unsigned.get('/health')` at router-module import time; there is nothing for `load_base` to invoke. this is correct behavior; the pre-phase audit caught it before any code was written. nova-w3 and casino should treat any service wired by fastapi decorator at module import time the same way - a `BasePackageSpec(name=..., tasks=[], setup=None)` stub is sufficient.
+- eager imports in loader.py: task classes are imported at module level, which cascades through `nova_core/tasks/__init__.py`; confirmed safe (no circular imports, no unexpected side effects beyond singleton creation), but nova-w3 should be aware when it adds new task module imports.
+- `TestSetupDiscordLogging` "pre-existing fail" was a misleading label; the test always passes in-container with `DEBUG=1`; the label was cleaned up and the baseline count corrected from 1203 to 1204 (net +1).
+
+### residual debt
+
+- none. all dod items met; no new items routed to bugs.md.
+
+## revision after phase 2 - 2026-08-04
+
+- this is the final phase of nova-w2; no downstream phases to classify within this plan.
+- cross-plan note (nova-w3): base package pass is complete; nova-w3 adds features via `[features] enabled` toml only, no edits to `events.py` or `loader.py` required for non-base features.
+- cross-plan note (nova-w3, casino): services wired by fastapi `@app.get()` (or equivalent) decorators at module import time need only a no-op `BasePackageSpec`; no setup fn is required in the manifest.
+- nova-w2 plan complete.
