@@ -81,3 +81,30 @@
 ## revision after phase 1 - 2026-08-04
 
 - phase 2 - base package explicit declaration: **valid**. all phase 1 dependencies satisfied: `BASE_PACKAGE` stub in place (phase 0), `load_base()` implemented (phase 0), `config.features_enabled` direct access in place (phase 1 removes guard). repo injection pattern (a) does not affect phase 2 scope: `BasePackageSpec` items (ping, version, db-backup, error-hook, reload-watcher, bridge-health) are wired via `load_base`, not `load_all`; they do not use `FeatureManifest` or `init_repos`. phase 2 merge gate "phase 1 merged to trunk" is now satisfiable. new unit baseline for phase 2: 1203 pass, 2 skipped; `docker compose run tests` gate should use this as the expected baseline.
+
+## starting phase 2 — 2026-08-04
+
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w2
+- branch: phase/nova-w2
+- parent sha: 128682f (phase 1 closed + plan status fix)
+- confirmed DoD:
+  - pre-phase audit table committed to plan log before any code is written; no "significant move" items (or escalated and approved)
+  - `nova_core.loader.BASE_PACKAGE` has exactly 6 items; unit test asserts count and name list: `[spec.name for spec in BASE_PACKAGE] == ['ping', 'version', 'db-backup', 'error-hook', 'reload-watcher', 'bridge-health']`
+  - `grep -n 'load_base\|load_all' nova_core/client/events.py` shows `load_base` before `load_all` inside `_do_ready_init()`
+  - startup sequence comment block present in `_do_ready_init()`
+  - base tasks (db-backup, error-hook, reload-watcher) not duplicated in `register_bot_tasks()` after this phase
+  - `docker compose run tests` passes
+  - cross-phase check: nova-w3 can add a feature via `[features] enabled` TOML only; no `events.py` or `loader.py` edits required for non-base features
+
+### pre-phase audit - 2026-08-04
+
+| name | current location | extraction cost |
+|---|---|---|
+| ping | `nova_core/client/__init__.py` - `command_ping` decorated with `@discord.slash_command`; registered via `_register_core_commands()` calling `bot.add_application_command(command_ping)` | minor move - registration wrapped in a `_register_ping_command(bot)` setup fn; `_register_core_commands()` becomes a no-op; `command_ping` stays in-place |
+| version | absent - no version slash command exists anywhere in `nova_core/` | absent - `BasePackageSpec(name='version', tasks=[], setup=None)`; nova-w3 fills it in |
+| db-backup | `nova_core/tasks/db_backup.py` - standalone `DatabaseBackupTask` class; `db_backup_task` module-level singleton | thin wrapper - reference `db_backup_task` directly in `tasks` list; no code movement |
+| error-hook | `nova_core/tasks/error_hook.py` - standalone `ErrorHookTask` class; `error_hook_task` module-level singleton | thin wrapper |
+| reload-watcher | `nova_core/tasks/reload_watcher.py` - standalone `ReloadWatcherTask` class; `reload_watcher_task` module-level singleton | thin wrapper |
+| bridge-health | `nova_core/bridge/router.py:46` - `@unsigned.get('/health')` FastAPI route; registered by decorator at module import time; not a task | thin wrapper - route already wired by the decorator; `BasePackageSpec(name='bridge-health', tasks=[], setup=None)`; no code movement |
+
+no significant moves; no escalation required.
