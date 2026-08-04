@@ -20,11 +20,12 @@
 
 ## constraints
 
-- depends on nova-w1 for `AuthConfig` / `api_keys` and `guilds` array in TOML; phase 0 and phase 1 add stubs with empty defaults so this workstream can proceed in parallel
+- nova-w1 merged to trunk 2026-07-23; TOML shape confirmed: `[auth]` section → `api_keys`; `[[guilds]]` array → `id`, `role` fields. phase 0 stubs carry empty defaults; phase 1 wires `load_config` for both fields.
 - python 3.13, uv workspace
 - `docker compose run tests` must pass at each phase merge
 - no push without explicit instruction
 - server calls bridge for all bot operations; the repl never touches the bridge directly
+- admin-router test fixtures must build a standalone app directly from the router (not call `create_app()`); `create_app()` has module-level import side effects that break the test container's PYTHONPATH isolation discovered in phase 0.
 
 ## accepted risks
 
@@ -57,12 +58,14 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 **status:** not started
 
 **scope:**
+- `apps/server/attu_server/config.py` — wire `load_config` to populate `config.auth.api_keys` from TOML `[auth].api_keys` and `config.guilds` from TOML `[[guilds]]` array. nova-w1 has shipped the format; gate condition from the 2026-07-23 log note is now satisfied.
+- `apps/server/attu_server/deps.py` — replace `key not in config.auth.api_keys` with `not any(hmac.compare_digest(key, k) for k in config.auth.api_keys)` for timing-safe comparison (bug tracked in bugs.md; natural home before guild endpoints ship).
 - `apps/server/attu_server/api/admin/slugs.py` — `slugify(name: str) -> str` (strip non-alphanumeric except spaces/dashes, lowercase, spaces→dashes, collapse consecutive dashes); `make_slug_map(items: list[dict]) -> dict[str, dict]` (builds `{slug: item}` with `-2`/`-3` collision suffixes)
 - `apps/server/attu_server/api/admin/guilds.py` — three endpoints:
   - `GET /admin/guilds` — iterates `config.guilds`; calls `bridge.get_guild_info(guild_id)` for each; returns `[{id, name, slug, role}]`
   - `GET /admin/guilds/{slug}/channels` — resolves slug → guild id; calls `bridge.get_guild_channels(guild_id)`; returns `[{id, name, slug, type}]`
   - `GET /admin/guilds/{slug}/roles` — resolves slug → guild id; calls `bridge.get_guild_roles(guild_id)`; returns `[{id, name, slug}]`
-- `tests/python/unit/test_admin_guilds.py` — slug generation correctness (including collision cases), listing endpoints with mocked `BridgeClient`, 404 on unknown guild slug
+- `tests/python/unit/test_admin_guilds.py` — slug generation correctness (including collision cases), listing endpoints with mocked `BridgeClient`, 404 on unknown guild slug; load_config round-trip for `[auth]` and `[[guilds]]` sections
 
 **slug generation rules:**
 - strip characters that are neither alphanumeric, space, nor dash
@@ -72,9 +75,9 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 - collision: first occurrence keeps the base slug; second gets `-2`, third gets `-3`
 - slug generation is deterministic per call — order of items in the list determines who wins collisions
 
-**dod:** three listing endpoints return slugged data; `GET /admin/guilds` calls bridge once per guild in `config.guilds`; slug uniqueness and collision tests pass; 404 on unknown slug; `ruff check .` clean; `docker compose run tests` passes
+**dod:** `load_config` wires `config.auth.api_keys` from `[auth]` TOML section and `config.guilds` from `[[guilds]]` array; timing-safe key comparison in `require_api_key`; three listing endpoints return slugged data; `GET /admin/guilds` calls bridge once per guild in `config.guilds`; slug uniqueness and collision tests pass; 404 on unknown slug; `ruff check .` clean; `docker compose run tests` passes
 
-**merge gate:** slug collision test covers at least two items with the same normalized name; bridge mock asserts call count matches `len(config.guilds)`
+**merge gate:** slug collision test covers at least two items with the same normalized name; bridge mock asserts call count matches `len(config.guilds)`; load_config test uses a minimal TOML string with `[auth]` and one `[[guilds]]` entry
 
 ---
 
@@ -180,7 +183,7 @@ nova-admin> exit
 
 | phase | status |
 |---|---|
-| 0 — walking skeleton | in progress |
+| 0 — walking skeleton | closed in 0c31d46 |
 | 1 — auth gate + guild listing | not started |
 | 2 — config get/set | not started |
 | 3 — feature/reload/fix | not started |
