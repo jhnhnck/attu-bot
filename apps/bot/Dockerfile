@@ -22,9 +22,10 @@ ENV FORCE_COLOR=1
 ARG DOOM_HOME="/home/doom"
 ENV VIRTUAL_ENV="$DOOM_HOME/.venv"
 ENV PATH="$DOOM_HOME/.venv/bin:$PATH"
-# nova_core lives at apps/bot/nova_core, attu_models at packages/shared-models/attu_models;
-# both are workspace virtual packages (uv does not install them), so PYTHONPATH carries the import roots.
-ENV PYTHONPATH="$DOOM_HOME/apps/bot:$DOOM_HOME/packages/shared-models:$DOOM_HOME/packages/attu-logging"
+# nova_core lives at apps/bot/nova_core, attu_models at packages/shared-models/attu_models,
+# attu_server at apps/server/attu_server; all are workspace virtual packages (uv does not install
+# them), so PYTHONPATH carries the import roots.
+ENV PYTHONPATH="$DOOM_HOME/apps/bot:$DOOM_HOME/apps/server:$DOOM_HOME/packages/shared-models:$DOOM_HOME/packages/attu-logging"
 
 # setup runtime
 RUN mkdir -p $DOOM_HOME/
@@ -85,6 +86,7 @@ USER root
 # copy extra needed files (as root so scripts can be chmod'd)
 COPY --chown=doom:doom ./tests $DOOM_HOME/tests
 COPY --chown=doom:doom ./scripts $DOOM_HOME/scripts
+COPY --chown=doom:doom ./apps/server/attu_server $DOOM_HOME/apps/server/attu_server
 
 # the host wrapper (`python scripts/run_tests.py`) re-enters via `docker compose run … tests scripts/run_tests.py …`, which makes docker exec the path directly; the repo commits the script at mode 644, so without +x the container fails to start.
 RUN chmod +x $DOOM_HOME/scripts/*.py $DOOM_HOME/scripts/*.sh

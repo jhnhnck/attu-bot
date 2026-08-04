@@ -9,11 +9,11 @@ os.environ['TZ'] = 'UTC'
 _time.tzset()
 
 from contextlib import asynccontextmanager
-from unittest.mock import patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.middleware.sessions import SessionMiddleware
 
 
 pytestmark = pytest.mark.unit
@@ -21,23 +21,25 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def client():
-    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, ServerConfig, WebConfig
-    from attu_server.main import create_app
+    from attu_server.api.admin import router as admin_router
+    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, ServerConfig, WebAuthnConfig, WebConfig
 
     cfg = ServerConfig(
         database=DatabaseConfig(url='mongodb://localhost:27017', name='test'),
         web=WebConfig(secret_key='test-session-secret'),
+        webauthn=WebAuthnConfig(),
         bridge=BridgeConfig(secret='test-bridge-secret'),
         auth=AuthConfig(api_keys=['valid-key']),
     )
 
     @asynccontextmanager
-    async def _noop_lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI):
         app.state.config = cfg
         yield
 
-    with patch('attu_server.main._build_lifespan', return_value=_noop_lifespan):
-        app = create_app(cfg)
+    app = FastAPI(lifespan=lifespan)
+    app.add_middleware(SessionMiddleware, secret_key='test-session-secret')
+    app.include_router(admin_router, prefix='/api')
 
     with TestClient(app) as tc:
         yield tc

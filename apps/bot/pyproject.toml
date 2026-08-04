@@ -9,6 +9,7 @@ dependencies = [
     "attu-models",
     "fastapi>=0.115.0",
     "httpx",
+    "itsdangerous",
     "mwparserfromhell",
     "py-cord[speed]<3",
     "pydantic",

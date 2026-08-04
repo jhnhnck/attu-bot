@@ -130,7 +130,7 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
-pythonpath = ["scripts", "apps/bot", "packages/shared-models", "packages/attu-logging"]
+pythonpath = ["scripts", "apps/bot", "apps/server", "packages/shared-models", "packages/attu-logging"]
 addopts = "-v"
 asyncio_mode = "auto"
 # 10 seconds is generous for unit tests and tight enough to catch runaways.
