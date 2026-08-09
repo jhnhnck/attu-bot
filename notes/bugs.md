@@ -10,8 +10,7 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 ### testing
 
-- ⭕ `nit` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate copied from other test files; irrelevant for a loader test with no time-sensitive code. from nova-w2 phase 0 code review.
-- ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice.
+- ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice. carried from plan: nova-w2 (2026-08-09)
 
 
 ### starboard
@@ -69,6 +68,7 @@ _(empty — populate via the `bug-triage` skill)_
 ## resolved
 
 - 🔴 `2026-07-20` `apps/chat/attu_chat/web/routes.py` broken imports from deleted `doom_bot.web` modules — resolved by deleting `apps/chat/` entirely in e4920c4d (drop-chat slice)
+- 🔴 `2026-08-05` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate — removed in 84033bf (nova-w2 phase 1)
 
 ---
 
@@ -119,6 +119,6 @@ the skill reads every entry in full, assigns severity + disposition, and surface
 ### metadata
 
 ```yaml
-last_updated: 20 July 2026
-total_resolved: 1
+last_updated: 09 August 2026
+total_resolved: 2
 ```

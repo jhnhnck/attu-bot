@@ -92,6 +92,10 @@ def init_repos(db) -> None:
     # async index init must be scheduled or awaited separately
 ```
 
+**bridge-health no-op pattern (nova-w2 phase 2):** services wired by fastapi `@app.get()` (or equivalent) decorators at module import time need only a no-op `BasePackageSpec(name=..., tasks=[], setup=None)`. the route is already registered when the router module is imported; there is nothing for `load_base` to invoke. applies to any fastapi route wired by a decorator at module level — the decorator side-effect is the registration.
+
+**loader eager imports (nova-w2 phase 2):** task classes in `BASE_PACKAGE` are imported at module level in `nova_core/loader.py`, which cascades through `nova_core/tasks/__init__.py` and creates module-level singletons at import time. safe (no circular imports, no unexpected side effects) but nova-w3 should be aware that adding new task module imports to `loader.py` carries the same cascade.
+
 **per-bot feature selection:** `[features]` list in the toml. missing features have no manifest loaded; no core edits required to add or remove a feature.
 
 ```toml
