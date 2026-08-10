@@ -6,7 +6,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from attu_server.api.admin.slugs import make_slug_map
+from attu_server.api.admin.slugs import make_slug_map, resolve_guild_id
 from attu_server.bridge_client import BridgeClient
 from attu_server.config import ServerConfig
 from attu_server.deps import get_bridge, get_config
@@ -38,10 +38,10 @@ async def list_guild_channels(
     bridge: Annotated[BridgeClient, Depends(get_bridge)],
 ) -> list[dict[str, Any]]:
     slug_map = await _build_guild_slug_map(config, bridge)
-    guild = slug_map.get(slug)
-    if guild is None:
+    guild_id = resolve_guild_id(slug, slug_map)
+    if guild_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='guild not found')
-    channels = await bridge.get_guild_channels(int(guild['id']))
+    channels = await bridge.get_guild_channels(guild_id)
     channel_slug_map = make_slug_map(channels)
     return [{'id': item['id'], 'name': item['name'], 'slug': s, 'type': item['type']} for s, item in channel_slug_map.items()]
 
@@ -53,9 +53,9 @@ async def list_guild_roles(
     bridge: Annotated[BridgeClient, Depends(get_bridge)],
 ) -> list[dict[str, Any]]:
     slug_map = await _build_guild_slug_map(config, bridge)
-    guild = slug_map.get(slug)
-    if guild is None:
+    guild_id = resolve_guild_id(slug, slug_map)
+    if guild_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='guild not found')
-    roles = await bridge.get_guild_roles(int(guild['id']))
+    roles = await bridge.get_guild_roles(guild_id)
     role_slug_map = make_slug_map(roles)
     return [{'id': item['id'], 'name': item['name'], 'slug': s} for s, item in role_slug_map.items()]

@@ -24,3 +24,15 @@ def make_slug_map(items: list[dict]) -> dict[str, dict]:
         slug = base if count == 0 else f'{base}-{count + 1}'
         result[slug] = item
     return result
+
+
+def resolve_guild_id(slug: str, guild_slug_map: dict[str, dict]) -> int | None:
+    """return the integer guild id for a slug, or None if not found.
+
+    guild_slug_map is the output of _build_guild_slug_map (slug -> {id, name, role}).
+    id values from the bridge are strings; this helper centralizes the int cast.
+    """
+    item = guild_slug_map.get(slug)
+    if item is None:
+        return None
+    return int(item['id'])
