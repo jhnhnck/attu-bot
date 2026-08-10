@@ -20,6 +20,70 @@ from starlette.middleware.sessions import SessionMiddleware
 pytestmark = pytest.mark.unit
 
 
+# --- load_config wiring ---
+
+
+def test_load_config_wires_api_keys_and_guilds(tmp_path):
+    """load_config reads auth.api_keys and [[guilds]] from TOML."""
+    from attu_server.config import load_config
+
+    toml_content = """\
+[database]
+url = "mongodb://localhost:27017/test"
+name = "test"
+
+[auth]
+api_keys = ["secret-1", "secret-2"]
+
+[auth.web]
+secret_key = "test-web-secret"
+
+[bridge]
+secret = "test-bridge-secret"
+
+[[guilds]]
+id = 111111111111111111
+role = "primary"
+
+[[guilds]]
+id = 222222222222222222
+role = "secondary"
+"""
+    config_file = tmp_path / 'attu-bot.toml'
+    config_file.write_text(toml_content)
+
+    cfg = load_config(config_file)
+    assert cfg.auth.api_keys == ['secret-1', 'secret-2']
+    assert len(cfg.guilds) == 2
+    assert cfg.guilds[0].id == 111111111111111111
+    assert cfg.guilds[0].role == 'primary'
+    assert cfg.guilds[1].id == 222222222222222222
+    assert cfg.guilds[1].role == 'secondary'
+
+
+def test_load_config_defaults_when_sections_absent(tmp_path):
+    """auth.api_keys and guilds default to [] when sections are missing."""
+    from attu_server.config import load_config
+
+    toml_content = """\
+[database]
+url = "mongodb://localhost:27017/test"
+name = "test"
+
+[auth.web]
+secret_key = "test-web-secret"
+
+[bridge]
+secret = "test-bridge-secret"
+"""
+    config_file = tmp_path / 'attu-bot.toml'
+    config_file.write_text(toml_content)
+
+    cfg = load_config(config_file)
+    assert cfg.auth.api_keys == []
+    assert cfg.guilds == []
+
+
 # --- slug function tests ---
 
 
