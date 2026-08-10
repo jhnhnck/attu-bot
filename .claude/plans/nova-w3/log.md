@@ -9,7 +9,7 @@
 - parent branch: `trunk`
 - confirmed dod:
   - repo injection pattern confirmed: loader calls `mod.init_repos(db)` after loading manifest (nova-core.md)
-  - `doom_bot/eggs/__init__.py` exports `manifest: FeatureManifest`
+  - `nova_core/eggs/__init__.py` exports `manifest: FeatureManifest`
   - `EggDocument`, `EggUserDocument`, `EggRepository`, `EggUserRepository` importable only from `nova_core.eggs.*`
   - `register_bot_tasks()` contains no reference to eggs tasks
   - with eggs removed from toml `[features].enabled`, bot starts without egg repos wired
