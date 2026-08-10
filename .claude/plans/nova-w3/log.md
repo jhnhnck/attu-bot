@@ -15,7 +15,7 @@
   - with eggs removed from toml `[features].enabled`, bot starts without egg repos wired
   - `docker compose run tests` passes; `ruff check .` clean
 
-## phase 0 retro — 2026-08-10
+## phase 0 retro (2026-08-10)
 
 ### what landed vs spec
 
@@ -34,7 +34,7 @@
 
 none.
 
-## revision after phase 0 — 2026-08-10
+## revision after phase 0 (2026-08-10)
 
 - phases 1-6: revise -- all scope and dod text corrected from doom_bot.* paths to nova_core.* paths; nova-w1 package rename makes the original paths stale; goals section (lines 7-9) and constraints line 24 updated for the same reason; substantive scope unchanged across all six phases.
 - phase 3 additionally: parenthetical "package is doom_bot during nova-w3" removed (now says "package is nova_core"); "no doom_bot imports" constraint updated to "no nova_core imports" in scope and dod.
