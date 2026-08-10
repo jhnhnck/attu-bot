@@ -125,7 +125,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 **dod:** feature toggle enable/disable persist to db and trigger guild reload; reload endpoints proxy correctly to bridge with right signal types; fix endpoint returns 200 when bridge responds 200, 501 when bridge returns 404; `501` path covered by a test; `docker compose run tests` passes
 
-**merge gate:** feature enable/disable test verifies the db write (mock storage) and the bridge trigger call separately; fix `501` test present and passing
+**merge gate:** feature enable/disable test verifies the db write (mock storage) and the bridge trigger call separately; fix `501` test present and passing; all slug→guild-id resolution uses `resolve_guild_id` from `slugs.py` (established in phase 2)
 
 ---
 
@@ -186,6 +186,6 @@ nova-admin> exit
 |---|---|
 | 0 — walking skeleton | closed in 1ba021e |
 | 1 — auth gate + guild listing | closed in 5221bab |
-| 2 — config get/set | not started |
+| 2 — config get/set | closed in 57ec490 |
 | 3 — feature/reload/fix | not started |
 | 4 — repl client | not started |

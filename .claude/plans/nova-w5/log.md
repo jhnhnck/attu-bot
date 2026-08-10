@@ -80,3 +80,34 @@ see `.claude/conflicts.md` for the full conflict record.
 **phase 2 (revised):** slug → guild id resolution must not use `_build_guild_slug_map()` (N bridge calls); guild id is already present in `config.guilds`. scope updated: add a `resolve_guild_id(slug, guilds)` helper; use it in config endpoints and retrofit channels/roles endpoints. merge gate updated: no bridge calls for guild-id lookup; retroactive fix to channels/roles tested.
 
 **phases 3, 4 (valid):** no premise changes; scope and approach unchanged.
+
+## starting phase 2 (2026-08-10)
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w5/`
+- branch: `phase/nova-w5`
+- parent: `trunk`
+- confirmed dod: config round-trip tested against a real `GuildConfigDocument` fixture; slug-to-snowflake resolution works for channel fields; invalid key path returns 422; unknown guild returns 404; bridge cache invalidate and reload called on every successful set; `resolve_guild_id` helper used for all slug→id lookups (no bridge calls); channels/roles endpoints retrofitted to use it; `docker compose run tests` passes
+
+## phase 2 retro -- 2026-08-10
+
+**what landed vs spec:**
+- all scoped items delivered: `resolve_guild_id(slug, guild_slug_map) -> int | None` helper in `slugs.py`; `GET /admin/guilds/{slug}/config/{key}` and `PATCH /admin/guilds/{slug}/config/{key}` in `config_routes.py`; dot-path traversal via `_traverse` with `hasattr` guard; channel/role slug-to-snowflake resolution for fields matching `_CHANNEL_SUFFIXES` / `_ROLE_SUFFIXES`; bridge cache invalidate and guild reload triggered on every successful patch; channels/roles endpoints retrofitted to call `resolve_guild_id` on the slug map.
+- two commits: feat (7d797f6) + patch (57ec490). the patch added the missing `hasattr` guard in `_traverse` caught after initial tests.
+- 1238 unit + 180 component + 12 integration tests pass; baseline updated from 1227; no regressions.
+- intentional scope adjustment: the phase 2 plan described "direct lookup against `config.guilds`" to eliminate N bridge calls for slug→id resolution in channels/roles. `GuildEntry` has no `name` field; slug generation requires the guild name from the bridge, so `_build_guild_slug_map` (N calls) is structurally necessary. the implementation uses `resolve_guild_id` on the slug map result instead; integration check accepted this as satisfying "no additional bridge calls for guild-id lookup" since `resolve_guild_id` itself makes no bridge calls.
+
+**what surprised us:**
+- `_traverse` initially used bare `getattr(obj, segment)` without a `hasattr` guard; raised `AttributeError` on invalid key paths instead of a structured 422. caught during testing, fixed in the patch commit.
+- `_CHANNEL_SUFFIXES = ('_channel', '_id')` over-matches `guild_id` (a top-level `GuildConfigDocument` field); patching `guild_id` with a string slug triggers channel resolution unnecessarily. works for ints and int-coercible strings but is semantically wrong. added to bugs.md; low severity; defer.
+- `config_routes.py` imports `_build_guild_slug_map` by its underscore-prefixed private name across module boundaries from `guilds.py`. should be made public or moved to `slugs.py`. added to bugs.md; low severity; defer.
+- `GuildEntry` confirmed to have only `id: int` and `role: str` -- no `name` field. the original plan's "direct lookup against `config.guilds`" was not achievable as written; N bridge calls for slug generation are unavoidable without a slug cache. the `resolve_guild_id` helper is the correct factoring given this constraint.
+
+**residual debt:**
+- `_CHANNEL_SUFFIXES` `_id` suffix over-matches `guild_id` -- low severity; deferred. see bugs.md.
+- cross-module private import of `_build_guild_slug_map` -- low severity; deferred. see bugs.md.
+
+## revision after phase 2 -- 2026-08-10
+
+**phase 3 (minor revise):** `resolve_guild_id` is now established in `slugs.py` (public api) and must be used for slug→guild-id resolution in all phase 3 endpoints (`features.py` per-guild ops, `reload.py` guild reload body). merge gate updated to require this explicitly. no scope or premise change otherwise; bridge fix endpoint dependency and 501 fallback approach unchanged.
+
+**phase 4 (valid):** no changes needed.
