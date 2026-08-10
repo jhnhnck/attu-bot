@@ -173,14 +173,18 @@ def mock_bridge():
     }
     bridge = MagicMock()
     bridge.get_guild_info = AsyncMock(side_effect=lambda gid: guild_data[gid])
-    bridge.get_guild_channels = AsyncMock(return_value=[
-        {'id': '111001', 'name': 'general', 'type': 'text_channel', 'position': 0, 'category_id': None, 'is_thread': False},
-        {'id': '111002', 'name': 'announcements', 'type': 'text_channel', 'position': 1, 'category_id': None, 'is_thread': False},
-    ])
-    bridge.get_guild_roles = AsyncMock(return_value=[
-        {'id': '111010', 'name': 'Admin', 'color': '0x0', 'position': 2, 'managed': False, 'is_default': False},
-        {'id': '111011', 'name': 'Member', 'color': '0x0', 'position': 1, 'managed': False, 'is_default': False},
-    ])
+    bridge.get_guild_channels = AsyncMock(
+        return_value=[
+            {'id': '111001', 'name': 'general', 'type': 'text_channel', 'position': 0, 'category_id': None, 'is_thread': False},
+            {'id': '111002', 'name': 'announcements', 'type': 'text_channel', 'position': 1, 'category_id': None, 'is_thread': False},
+        ]
+    )
+    bridge.get_guild_roles = AsyncMock(
+        return_value=[
+            {'id': '111010', 'name': 'Admin', 'color': '0x0', 'position': 2, 'managed': False, 'is_default': False},
+            {'id': '111011', 'name': 'Member', 'color': '0x0', 'position': 1, 'managed': False, 'is_default': False},
+        ]
+    )
     return bridge
 
 
