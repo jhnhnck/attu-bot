@@ -61,7 +61,7 @@ def _traverse(doc: GuildConfigDocument, segments: list[str]) -> Any:
     current: Any = doc
     for seg in segments:
         if isinstance(current, BaseModel):
-            if seg not in current.model_fields:
+            if not hasattr(current, seg) or seg not in current.model_fields:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f'unknown key: {seg!r}')
             current = getattr(current, seg)
         elif isinstance(current, dict):
