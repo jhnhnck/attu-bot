@@ -88,6 +88,7 @@ the core loader reads `[features]` from the toml, finds each manifest, and wires
 ```python
 def init_repos(db) -> None:
     import nova_core.myfeature as _self
+
     _self._my_repo = MyRepository(db)
     # async index init must be scheduled or awaited separately
 ```
