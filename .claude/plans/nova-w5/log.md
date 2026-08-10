@@ -50,3 +50,33 @@ see `.claude/conflicts.md` for the full conflict record.
 **constraints block updated:** added note that admin-router test fixtures must build a standalone app from the router, not call `create_app()`, due to module-level import side effects discovered in phase 0.
 
 **phases 2, 3, 4 (valid):** no premise changes; scope and approach unchanged.
+
+## starting phase 1 (2026-08-10)
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w5/`
+- branch: `phase/nova-w5`
+- parent: `trunk`
+- confirmed dod: three guild listing endpoints return slugged data; slug collision tests pass; `hmac.compare_digest` in `require_api_key`; `load_config` wiring reads `config.auth.api_keys` and `config.guilds` from TOML; `GET /admin/guilds` calls bridge once per guild in `config.guilds`; 404 on unknown guild slug; `ruff check .` clean; `docker compose run tests` passes
+
+## phase 1 retro — 2026-08-10
+
+**what landed vs spec:**
+- all scoped items delivered: `load_config` wiring for `auth.api_keys` (`[auth]` TOML section) and `config.guilds` (`[[guilds]]` array); `hmac.compare_digest` timing-safe any-match in `require_api_key`; `slugify()` and `make_slug_map()` in `slugs.py`; three listing endpoints (`GET /admin/guilds`, `/{slug}/channels`, `/{slug}/roles`) with 404 on unknown slug; unit tests covering two-collision and three-collision cases, bridge call-count assertion, `load_config` round-trip.
+- three commits: feat (da22118) + test/bug-close (5648596) + chore/format (fcc0d1a). chore fixed ruff format on `test_admin_guilds.py` only.
+- 1227 unit + 180 component + 12 integration tests pass; 9 pre-existing `test_startup.py` failures unchanged.
+
+**what surprised us:**
+- code review surfaced that `any(hmac.compare_digest(...))` still short-circuits: not fully constant-time when `api_keys` has >1 entry. low severity given single-key typical deployments.
+- `_build_guild_slug_map` is called by channels/roles endpoints solely to resolve slug → guild id, triggering N bridge calls; the id is already available in `config.guilds`. this is wasteful and will scale poorly as phase 2 adds more slug-resolved endpoints.
+- `_build_guild_slug_map` stores the bridge-returned string id and converts back via `int(guild['id'])` rather than using `g.id` directly from `GuildEntry`.
+
+**residual debt:**
+- `any(hmac.compare_digest(...))` short-circuits on >1 key — tracked in bugs.md; defer.
+- `_build_guild_slug_map` misused for id-only resolution in channels/roles — tracked in bugs.md; fix-in-phase-2 (blocker for phase 2 adding more slug-resolved endpoints).
+- `info['id']` round-trip in slug map — tracked in bugs.md; fix-in-phase-2 (bundle with above).
+
+## revision after phase 1 — 2026-08-10
+
+**phase 2 (revised):** slug → guild id resolution must not use `_build_guild_slug_map()` (N bridge calls); guild id is already present in `config.guilds`. scope updated: add a `resolve_guild_id(slug, guilds)` helper; use it in config endpoints and retrofit channels/roles endpoints. merge gate updated: no bridge calls for guild-id lookup; retroactive fix to channels/roles tested.
+
+**phases 3, 4 (valid):** no premise changes; scope and approach unchanged.

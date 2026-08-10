@@ -89,6 +89,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 - `apps/server/attu_server/api/admin/config_routes.py` — two endpoints (file named `config_routes.py` to avoid shadowing stdlib `config`):
   - `GET /admin/guilds/{slug}/config/{key}` — loads `GuildConfigDocument` from db; traverses dot-path key; returns `{"key": "...", "value": ...}`
   - `PATCH /admin/guilds/{slug}/config/{key}` — body: `{"value": ...}`; loads document; resolves slug to snowflake if the terminal field is a channel or role id; sets field at key path; validates with pydantic; saves; triggers `bridge.invalidate_guild_cache()` + `bridge.trigger_reload('guild', guild_id)`
+- **slug → guild id resolution:** do not call `_build_guild_slug_map()` (N bridge calls) to resolve `{slug}` to a guild id. instead, use a direct lookup against `config.guilds` — the id is already present there. add a small helper (e.g. `resolve_guild_id(slug, guilds) -> int | None`) and use it here and in channels/roles endpoints (retroactive fix tracked in bugs.md).
 - `tests/python/unit/test_admin_config.py` — uses a real `GuildConfigDocument` fixture (not mock dicts); tests: get roundtrip, set roundtrip, slug-to-snowflake resolution for channel fields, 422 on invalid key path, 422 on type mismatch, 404 on unknown guild slug
 
 **dot-path key contract:**
@@ -99,7 +100,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 
 **dod:** config round-trip tested against a real `GuildConfigDocument` fixture; slug-to-snowflake resolution works for channel fields; invalid key path returns 422; unknown guild returns 404; bridge cache invalidate and reload called on every successful set; `docker compose run tests` passes
 
-**merge gate:** dot-path traversal test uses a `GuildConfigDocument` instance with real field names (not a plain dict); no `getattr(obj, key)` without `hasattr` guard
+**merge gate:** dot-path traversal test uses a `GuildConfigDocument` instance with real field names (not a plain dict); no `getattr(obj, key)` without `hasattr` guard; slug → guild id resolution reads from `config.guilds` directly — no bridge calls for guild-id lookup; channels/roles endpoints updated to use the same helper (retroactive fix from phase 1 bug)
 
 ---
 
@@ -184,7 +185,7 @@ nova-admin> exit
 | phase | status |
 |---|---|
 | 0 — walking skeleton | closed in 1ba021e |
-| 1 — auth gate + guild listing | not started |
+| 1 — auth gate + guild listing | closed in fcc0d1a |
 | 2 — config get/set | not started |
 | 3 — feature/reload/fix | not started |
 | 4 — repl client | not started |
