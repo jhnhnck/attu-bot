@@ -119,6 +119,7 @@ the thinnest end-to-end slice through every layer this workstream will touch: a 
 - `apps/server/attu_server/api/admin/fix.py`:
   - `POST /admin/guilds/{slug}/fix/recalculate-starboard` — calls bridge `POST /bridge/fix/recalculate-starboard`; if bridge returns 404 (endpoint not yet implemented), returns `501 Not Implemented` with body `{"detail": "bridge fix endpoint not yet available", "operation": "recalculate-starboard"}`
 - `tests/python/unit/test_admin_features.py`, `test_admin_reload.py`, `test_admin_fix.py`
+- slug→guild-id resolution: use `resolve_guild_id` from `attu_server.api.admin.slugs` for all `{slug}`/`guild_slug` lookups; do not call `_build_guild_slug_map` for id-only resolution (established in phase 2)
 
 **bridge fix endpoint dependency:**
 `POST /bridge/fix/recalculate-starboard` does not yet exist in `doom_bot/bridge/router.py`. this is tracked in `bugs.md`. phase 3 ships the `fix.py` server-side endpoint with a `501` fallback; the bridge side is a separate task (nova-w3 or standalone). the `501` path must be tested — do not treat it as dead code.
