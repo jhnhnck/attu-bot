@@ -185,7 +185,7 @@ nova-admin> exit
 | phase | status |
 |---|---|
 | 0 — walking skeleton | closed in 1ba021e |
-| 1 — auth gate + guild listing | pending merge |
+| 1 — auth gate + guild listing | closed in 5221bab |
 | 2 — config get/set | not started |
 | 3 — feature/reload/fix | not started |
 | 4 — repl client | not started |
