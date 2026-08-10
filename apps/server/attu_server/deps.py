@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """attu_server.deps | fastapi dependencies (config, storage, bridge client)."""
 
+import hmac
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
@@ -30,5 +31,5 @@ def require_api_key(
     if not auth.startswith('Bearer '):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     key = auth.removeprefix('Bearer ')
-    if key not in config.auth.api_keys:
+    if not any(hmac.compare_digest(key, stored) for stored in config.auth.api_keys):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)

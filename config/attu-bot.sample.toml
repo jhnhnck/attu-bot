@@ -17,6 +17,10 @@ assets = "apps/bot/assets"
 url = "mongodb://ferretdb:CHANGE_ME@ferret:27017/doombot?authSource=admin"
 name = "doombot"
 
+[auth]
+# bearer tokens for the admin API (attu-server); add one per client
+api_keys = []
+
 [auth.bot]
 # Discord bot token — from the Discord Developer Portal
 token = "TOKEN_GOES_HERE"

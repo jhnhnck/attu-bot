@@ -68,6 +68,8 @@ def load_config(path: Path | None = None) -> ServerConfig:
             web=WebConfig(**raw['auth']['web']),
             webauthn=WebAuthnConfig(**raw['auth'].get('webauthn', {})),
             bridge=BridgeConfig(**raw['bridge']),
+            auth=AuthConfig(api_keys=list(raw['auth'].get('api_keys', []))),
+            guilds=[GuildEntry(**g) for g in raw.get('guilds', [])],
         )
     except (KeyError, ValidationError) as e:
         raise ServerConfigError(f'invalid config: {e!s}') from e
