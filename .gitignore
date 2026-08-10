@@ -48,6 +48,7 @@ wip/
 .claude/plans
 !.claude/plans
 .claude/plans/archived/
+.claude/plans/wave-state.json
 .claude/conflicts.md
 .claude/worktrees
 
