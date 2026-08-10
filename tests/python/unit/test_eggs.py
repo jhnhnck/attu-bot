@@ -16,7 +16,7 @@ import discord
 import pytest
 
 import nova_core.eggs.hatching as hatching_mod
-from nova_core.database.models import EggDocument, EggUserDocument
+from nova_core.eggs.documents import EggDocument, EggUserDocument
 from nova_core.eggs.hatching import (
     _egg_emoji_str,
     collect_egg,

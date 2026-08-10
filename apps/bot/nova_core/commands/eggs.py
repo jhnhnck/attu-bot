@@ -9,8 +9,8 @@ from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGro
 
 from nova_core.client.core import config
 from nova_core.client.embeds import make_embed, ui_emoji
-from nova_core.database.models import EggDocument
 from nova_core.eggs import hatching
+from nova_core.eggs.documents import EggDocument
 
 
 logger = structlog.stdlib.get_logger(__name__)

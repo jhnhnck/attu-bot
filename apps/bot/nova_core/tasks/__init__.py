@@ -5,12 +5,10 @@ import structlog
 
 from nova_core.tasks.base import BaseTask
 from nova_core.tasks.db_backup import DatabaseBackupTask, db_backup_task
-from nova_core.tasks.egg_cleanup import EggCleanupTask, egg_cleanup_task
 from nova_core.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_hook_task
 from nova_core.tasks.logo_update import LogoUpdateTask, logo_update_task
 from nova_core.tasks.message_backfill import MessageBackfillTask, message_backfill_task
 from nova_core.tasks.nova_year import NovaYearTask, nova_year_task
-from nova_core.tasks.presence import PresenceUpdateTask, presence_update_task
 from nova_core.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
 from nova_core.tasks.reminder import ReminderTask, reminder_task
 from nova_core.tasks.scheduler import TaskScheduler, scheduler
@@ -41,8 +39,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
         nova_year_task,
         logo_update_task,
         message_backfill_task,
-        egg_cleanup_task,
-        presence_update_task,
         reminder_task,
         ccboard_manager_task,
         ccboard_auditor_task,
@@ -56,23 +52,19 @@ def register_bot_tasks(s: TaskScheduler) -> None:
 __all__ = [
     'BaseTask',
     'DatabaseBackupTask',
-    'EggCleanupTask',
     'ErrorHookTask',
     'LogoUpdateTask',
     'MessageBackfillTask',
     'NovaYearTask',
-    'PresenceUpdateTask',
     'ReloadWatcherTask',
     'ReminderTask',
     'TaskScheduler',
     'db_backup_task',
-    'egg_cleanup_task',
     'error_hook_refresh',
     'error_hook_task',
     'logo_update_task',
     'message_backfill_task',
     'nova_year_task',
-    'presence_update_task',
     'register_bot_tasks',
     'reload_watcher_task',
     'reminder_task',

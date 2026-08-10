@@ -4,8 +4,6 @@
 from .connection import MongoStorage
 from .documents import (
     BoardEntryDocument,
-    EggDocument,
-    EggUserDocument,
     FamilyDocument,
     GuildConfigDocument,
     MessageAuthor,
@@ -24,8 +22,6 @@ from .documents import (
 )
 from .repositories import (
     ConfigRepository,
-    EggRepository,
-    EggUserRepository,
     EntryRepository,
     FamilyRepository,
     MessageRepository,
@@ -42,10 +38,6 @@ from .repositories import (
 __all__ = [
     'BoardEntryDocument',
     'ConfigRepository',
-    'EggDocument',
-    'EggRepository',
-    'EggUserDocument',
-    'EggUserRepository',
     'EntryRepository',
     'FamilyDocument',
     'FamilyRepository',

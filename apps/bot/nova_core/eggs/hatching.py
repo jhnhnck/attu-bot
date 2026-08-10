@@ -11,13 +11,13 @@ import discord
 import structlog
 
 from nova_core.client.core import bot, config
-from nova_core.database.models import EggDocument, EggUserDocument
-from nova_core.database.repositories import EggRepository, EggUserRepository
+from nova_core.eggs.documents import EggDocument, EggUserDocument
+from nova_core.eggs.repositories import EggRepository, EggUserRepository
 
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# module-level repo singletons; wired by database/__init__.py
+# module-level repo singletons; wired by nova_core.eggs.init_repos()
 _egg_repo: EggRepository | None = None
 _egg_user_repo: EggUserRepository | None = None
 

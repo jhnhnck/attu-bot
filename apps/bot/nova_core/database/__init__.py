@@ -14,10 +14,6 @@ import structlog
 from attu_models import (
     BoardEntryDocument,
     ConfigRepository,
-    EggDocument,
-    EggRepository,
-    EggUserDocument,
-    EggUserRepository,
     EntryRepository,
     FamilyDocument,
     FamilyRepository,
@@ -72,8 +68,6 @@ def _wire_repos(
     starboard_repo,
     reaction_repo,
     entry_repo,
-    egg_repo,
-    egg_user_repo,
     wiki_view_repo,
     reminder_repo,
 ) -> None:
@@ -85,7 +79,6 @@ def _wire_repos(
     import nova_core.client.starboard as _starboard
     import nova_core.client.years as _years
     import nova_core.commands.wiki as _wiki
-    import nova_core.eggs.hatching as _hatching
     import nova_core.signals as _signals
     import nova_core.tasks.reminder as _reminder
 
@@ -97,8 +90,6 @@ def _wire_repos(
     _starboard._starboard_repo = starboard_repo
     _ccboard._reaction_repo = reaction_repo
     _ccboard._entry_repo = entry_repo
-    _hatching._egg_repo = egg_repo
-    _hatching._egg_user_repo = egg_user_repo
     _wiki._wiki_view_repo = wiki_view_repo
     _reminder._reminder_repo = reminder_repo
 
@@ -145,12 +136,6 @@ async def init_database(url: str, name: str):
     family_repo = FamilyRepository(database)
     await _try_init_indexes(family_repo, 'family')
 
-    egg_repo = EggRepository(database)
-    await _try_init_indexes(egg_repo, 'egg')
-
-    egg_user_repo = EggUserRepository(database)
-    await _try_init_indexes(egg_user_repo, 'egg_user')
-
     wiki_view_repo = WikiViewRepository(database)
     await _try_init_indexes(wiki_view_repo, 'wiki_view')
 
@@ -166,8 +151,6 @@ async def init_database(url: str, name: str):
         starboard_repo=starboard_repo,
         reaction_repo=reaction_repo,
         entry_repo=entry_repo,
-        egg_repo=egg_repo,
-        egg_user_repo=egg_user_repo,
         wiki_view_repo=wiki_view_repo,
         reminder_repo=reminder_repo,
     )
@@ -178,10 +161,6 @@ async def init_database(url: str, name: str):
 __all__ = [
     'BoardEntryDocument',
     'ConfigRepository',
-    'EggDocument',
-    'EggRepository',
-    'EggUserDocument',
-    'EggUserRepository',
     'EntryRepository',
     'FamilyDocument',
     'FamilyRepository',
