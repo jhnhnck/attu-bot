@@ -185,8 +185,8 @@ def _setup_commands(bot) -> None:
 # import task singletons AFTER all module-level state is defined so that auditor.py and
 # manager.py can safely do `from nova_core import ccboard` at their module top level and
 # receive a partial-but-usable module (all utilities are already defined above).
-from nova_core.ccboard.auditor import auditor_task  # noqa: E402
-from nova_core.ccboard.manager import manager_task  # noqa: E402
+from nova_core.ccboard.auditor import auditor_task  # noqa: E402 - after module state; auditor imports ccboard at top level
+from nova_core.ccboard.manager import manager_task  # noqa: E402 - after module state; manager imports ccboard at top level
 
 
 manifest = FeatureManifest(
