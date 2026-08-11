@@ -6,6 +6,7 @@ import time
 import pytest
 import pytest_asyncio
 
+from nova_core.ccboard.repositories import EntryRepository, ReactionRepository
 from nova_core.config import GuildCCBoard
 from nova_core.database.models import (
     MessageAuthor,
@@ -15,9 +16,7 @@ from nova_core.database.models import (
     StarredMessageDocument,
 )
 from nova_core.database.repositories import (
-    EntryRepository,
     MessageRepository,
-    ReactionRepository,
     StarboardRepository,
 )
 

@@ -443,19 +443,12 @@ async def test_sweep_swallows_exceptions():
 # this real-call test verifies the manager singleton is wired into the task list.
 
 
-def test_register_bot_tasks_includes_manager():
-    """register_bot_tasks must add ccboard_manager_task to the scheduler"""
+def test_manifest_tasks_includes_manager():
+    """ccboard manager is now registered via FeatureManifest.tasks, not register_bot_tasks."""
+    import nova_core.ccboard as ccboard_mod
     from nova_core.ccboard.manager import manager_task as ccboard_manager_task
-    from nova_core.tasks import register_bot_tasks
 
-    scheduler = MagicMock()
-    scheduler.registered_tasks = MagicMock(return_value=[])
-    scheduler.register = MagicMock()
-
-    register_bot_tasks(scheduler)
-
-    registered = [call.args[0] for call in scheduler.register.call_args_list]
-    assert ccboard_manager_task in registered
+    assert ccboard_manager_task in ccboard_mod.manifest.tasks
 
 
 def test_register_bot_tasks_idempotent():

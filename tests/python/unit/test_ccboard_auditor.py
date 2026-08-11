@@ -959,22 +959,17 @@ class TestCleanupOrphans:
         assert 'unavailable' in result.summary
 
 
-def test_register_bot_tasks_includes_auditor():
-    from nova_core.tasks import register_bot_tasks
-    from nova_core.tasks.scheduler import TaskScheduler
+def test_manifest_tasks_includes_auditor():
+    """ccboard auditor is now registered via FeatureManifest.tasks, not register_bot_tasks."""
+    import nova_core.ccboard as ccboard_mod
 
-    scheduler = TaskScheduler()
-    register_bot_tasks(scheduler)
-    registered_names = {task.name for task in scheduler.registered_tasks()}
-    assert 'CCBoardAuditor' in registered_names
+    task_names = {t.name for t in ccboard_mod.manifest.tasks}
+    assert 'CCBoardAuditor' in task_names
 
 
-def test_register_bot_tasks_is_idempotent_for_auditor():
-    from nova_core.tasks import register_bot_tasks
-    from nova_core.tasks.scheduler import TaskScheduler
+def test_manifest_tasks_has_exactly_one_auditor():
+    """manifest.tasks must declare the auditor exactly once."""
+    import nova_core.ccboard as ccboard_mod
 
-    scheduler = TaskScheduler()
-    register_bot_tasks(scheduler)
-    register_bot_tasks(scheduler)
-    auditor_count = sum(1 for task in scheduler.registered_tasks() if task.name == 'CCBoardAuditor')
+    auditor_count = sum(1 for t in ccboard_mod.manifest.tasks if t.name == 'CCBoardAuditor')
     assert auditor_count == 1
