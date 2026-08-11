@@ -8,7 +8,8 @@ from datetime import UTC, datetime
 import discord
 import structlog
 
-from attu_models import BoardEntryDocument, MessageDocument
+from attu_models import MessageDocument
+from nova_core.ccboard.documents import BoardEntryDocument
 from nova_core.client.starboard import (
     _hydrate_stored_embed,
     _is_image,

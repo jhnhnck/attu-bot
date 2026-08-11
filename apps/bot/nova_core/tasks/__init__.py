@@ -25,14 +25,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     bot task into the ingestor process, since both processes share this package.
     idempotent: tasks already registered are skipped.
     """
-    # local import: nova_core.ccboard.manager pulls in client.starboard helpers via
-    # the builder, which back-imports nova_core.tasks. eager import here would
-    # collide with that load order at first import. moving it inside the function
-    # defers manager construction until startup, after the package graph is settled.
-    # the auditor task lives in the same package and follows the same lazy-import rule.
-    from nova_core.ccboard.auditor import auditor_task as ccboard_auditor_task
-    from nova_core.ccboard.manager import manager_task as ccboard_manager_task
-
     # db_backup_task, error_hook_task, and reload_watcher_task are now registered by
     # load_base(BASE_PACKAGE) in _do_ready_init(); removed here to avoid duplicate registration
     bot_tasks = (
@@ -40,8 +32,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
         logo_update_task,
         message_backfill_task,
         reminder_task,
-        ccboard_manager_task,
-        ccboard_auditor_task,
     )
     registered = set(s.registered_tasks())
     for task in bot_tasks:

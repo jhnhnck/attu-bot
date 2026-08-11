@@ -12,17 +12,13 @@ import asyncio
 import structlog
 
 from attu_models import (
-    BoardEntryDocument,
     ConfigRepository,
-    EntryRepository,
     FamilyDocument,
     FamilyRepository,
     GuildConfigDocument,
     MessageDocument,
     MessageRepository,
     MongoStorage,
-    ReactionDocument,
-    ReactionRepository,
     ReloadSignalDocument,
     ReloadSignalRepository,
     ReminderDocument,
@@ -66,13 +62,10 @@ def _wire_repos(
     signal_repo,
     message_repo,
     starboard_repo,
-    reaction_repo,
-    entry_repo,
     wiki_view_repo,
     reminder_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
-    import nova_core.ccboard as _ccboard
     import nova_core.client.families as _families
     import nova_core.client.markers as _markers
     import nova_core.client.messages as _messages
@@ -88,8 +81,6 @@ def _wire_repos(
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
     _starboard._starboard_repo = starboard_repo
-    _ccboard._reaction_repo = reaction_repo
-    _ccboard._entry_repo = entry_repo
     _wiki._wiki_view_repo = wiki_view_repo
     _reminder._reminder_repo = reminder_repo
 
@@ -127,12 +118,6 @@ async def init_database(url: str, name: str):
     starboard_repo = StarboardRepository(database)
     await _try_init_indexes(starboard_repo, 'starboard')
 
-    reaction_repo = ReactionRepository(database)
-    await _try_init_indexes(reaction_repo, 'ccboard_reactions')
-
-    entry_repo = EntryRepository(database)
-    await _try_init_indexes(entry_repo, 'ccboard_entries')
-
     family_repo = FamilyRepository(database)
     await _try_init_indexes(family_repo, 'family')
 
@@ -149,8 +134,6 @@ async def init_database(url: str, name: str):
         signal_repo=signal_repo,
         message_repo=message_repo,
         starboard_repo=starboard_repo,
-        reaction_repo=reaction_repo,
-        entry_repo=entry_repo,
         wiki_view_repo=wiki_view_repo,
         reminder_repo=reminder_repo,
     )
@@ -159,17 +142,13 @@ async def init_database(url: str, name: str):
 
 
 __all__ = [
-    'BoardEntryDocument',
     'ConfigRepository',
-    'EntryRepository',
     'FamilyDocument',
     'FamilyRepository',
     'GuildConfigDocument',
     'MessageDocument',
     'MessageRepository',
     'MongoStorage',
-    'ReactionDocument',
-    'ReactionRepository',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
     'ReminderDocument',

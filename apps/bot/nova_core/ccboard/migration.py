@@ -7,13 +7,12 @@ import discord
 import structlog
 
 from attu_models import (
-    BoardEntryDocument,
     MessageAuthor,
     MessageContent,
     MessageDocument,
     MessageRefs,
-    ReactionDocument,
 )
+from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
 from nova_core.client.core import bot, config
 from nova_core.client.messages import _get_repo as _get_message_repo
 from nova_core.client.starboard import _get_repo as _get_starboard_repo

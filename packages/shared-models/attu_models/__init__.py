@@ -3,14 +3,12 @@
 
 from .connection import MongoStorage
 from .documents import (
-    BoardEntryDocument,
     FamilyDocument,
     GuildConfigDocument,
     MessageAuthor,
     MessageContent,
     MessageDocument,
     MessageRefs,
-    ReactionDocument,
     ReloadSignalDocument,
     ReminderDocument,
     StarredMessageDocument,
@@ -22,10 +20,8 @@ from .documents import (
 )
 from .repositories import (
     ConfigRepository,
-    EntryRepository,
     FamilyRepository,
     MessageRepository,
-    ReactionRepository,
     ReloadSignalRepository,
     ReminderRepository,
     StarboardRepository,
@@ -36,9 +32,7 @@ from .repositories import (
 
 
 __all__ = [
-    'BoardEntryDocument',
     'ConfigRepository',
-    'EntryRepository',
     'FamilyDocument',
     'FamilyRepository',
     'GuildConfigDocument',
@@ -48,8 +42,6 @@ __all__ = [
     'MessageRefs',
     'MessageRepository',
     'MongoStorage',
-    'ReactionDocument',
-    'ReactionRepository',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
     'ReminderDocument',

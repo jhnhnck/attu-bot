@@ -7,8 +7,9 @@ from datetime import timedelta
 import discord
 import structlog
 
-from attu_models import BoardEntryDocument, EntryRepository
 from nova_core.ccboard.builder import build_embeds
+from nova_core.ccboard.documents import BoardEntryDocument
+from nova_core.ccboard.repositories import EntryRepository
 from nova_core.client.core import config
 from nova_core.client.util import format_message_link, theme_color
 from nova_core.config import GuildCCBoard, UnauthorizedGuild

@@ -17,8 +17,8 @@ from datetime import UTC, datetime, timedelta
 import discord
 import structlog
 
-from attu_models import ReactionDocument
 from nova_core import ccboard
+from nova_core.ccboard.documents import ReactionDocument
 from nova_core.client.core import config
 from nova_core.config import UnauthorizedGuild
 from nova_core.tasks.base import BaseTask
