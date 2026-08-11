@@ -160,6 +160,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - `nova_core/reminders/__init__.py` exports `manifest: FeatureManifest`
 - `ReminderDocument`, `ReminderRepository` live in `nova_core/reminders/`
 - `reminder_task` removed from `register_bot_tasks()`
+- test files that exercise `register_bot_tasks()` updated to assert `manifest.tasks` rather than direct task-object presence (phase 1 had 3 regressions from this pattern)
 - `docker compose run tests` passes
 
 **merge gate:** phase 3 closed on trunk; `attu_models/__init__.py` and `nova_core/database/__init__.py` at trunk HEAD
@@ -170,13 +171,14 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 **status:** open
 
-**scope:** commands-only feature; no tasks, no events. proves the pattern works without task or event registration. also validates moving a `client/` helper file into the feature package.
+**scope:** commands-only feature. also validates moving a `client/` helper file into the feature package.
 
+- verify before coding: check whether trees has any tasks currently in `register_bot_tasks()`; if yes, add `tasks=[...]` to manifest declaration and add task-removal dod item below
 - create `nova_core/trees/` package
 - move `FamilyDocument` to `nova_core/trees/documents.py`
 - move `FamilyRepository` to `nova_core/trees/repositories.py`
 - move `nova_core/client/families.py` to `nova_core/trees/families.py`; update any internal imports
-- declare `manifest` in `nova_core/trees/__init__.py`: `setup=commands.trees.setup`, `document_classes=[FamilyDocument]`, `repository_classes=[FamilyRepository]`; no tasks, no event handlers
+- declare `manifest` in `nova_core/trees/__init__.py`: `setup=commands.trees.setup`, `document_classes=[FamilyDocument]`, `repository_classes=[FamilyRepository]`, plus `tasks=[...]` if confirmed above
 - remove `FamilyDocument`, `FamilyRepository` from `attu_models`; remove from `nova_core/database/__init__.py`
 - update all import sites (`commands/trees.py` and any callers of `nova_core.client.families`)
 
@@ -184,6 +186,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - `nova_core/trees/__init__.py` exports `manifest: FeatureManifest`
 - `FamilyDocument`, `FamilyRepository` live in `nova_core/trees/`
 - `nova_core/client/families.py` deleted; no reference to it in `nova_core/client/`
+- if trees tasks were found in `register_bot_tasks()`: confirmed removed; test files updated to assert `manifest.tasks` rather than direct task-object presence
 - `docker compose run tests` passes
 
 **merge gate:** phase 4 closed on trunk; `attu_models/__init__.py` and `nova_core/database/__init__.py` at trunk HEAD
@@ -199,13 +202,15 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - move `StarredMessageDocument` to `nova_core/starboard/documents.py`
 - move `StarboardRepository` to `nova_core/starboard/repositories.py`
 - move `nova_core/client/starboard.py` to `nova_core/starboard/handlers.py`; update internal imports
-- declare `manifest` in `nova_core/starboard/__init__.py`: `event_handlers={'on_raw_reaction_add': ..., 'on_raw_reaction_remove': ..., 'on_raw_reaction_clear': ..., 'on_raw_reaction_clear_emoji': ...}`, `setup=commands.stars.setup`, `guild_config_key='starboard'`, `guild_config_model=GuildStarboard`, `document_classes=[StarredMessageDocument]`, `repository_classes=[StarboardRepository]`
+- verify before coding: check whether starboard has any tasks currently in `register_bot_tasks()`; if yes, add `tasks=[...]` to manifest declaration and add task-removal dod item below
+- declare `manifest` in `nova_core/starboard/__init__.py`: `event_handlers={'on_raw_reaction_add': ..., 'on_raw_reaction_remove': ..., 'on_raw_reaction_clear': ..., 'on_raw_reaction_clear_emoji': ...}`, `setup=commands.stars.setup`, `guild_config_key='starboard'`, `guild_config_model=GuildStarboard`, `document_classes=[StarredMessageDocument]`, `repository_classes=[StarboardRepository]`, plus `tasks=[...]` if confirmed above
 - remove starboard event handlers and `_starboard_enabled` from `client/events.py`
 - remove `StarredMessageDocument`, `StarboardRepository` from `attu_models`; remove from `nova_core/database/__init__.py`
 
 **dod:**
 - `nova_core/starboard/__init__.py` exports `manifest: FeatureManifest`
 - `client/events.py` contains no starboard imports or `_starboard_enabled`
+- if starboard tasks were found in `register_bot_tasks()`: confirmed removed; test files updated to assert `manifest.tasks` rather than direct task-object presence
 - `attu_models/documents.py` and `attu_models/repositories.py` contain no feature-specific classes: grep for `Egg`, `Reaction`, `Entry`, `Family`, `Reminder`, `WikiView`, `StarredMessage` returns zero hits
 - `nova_core/database/__init__.py` exports only infra, platform-service, and attu-specific classes
 - `docker compose run tests` passes
@@ -219,7 +224,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 | phase | status |
 |---|---|
 | 0 — eggs (walking skeleton) | pending merge |
-| 1 — ccboard | not started |
+| 1 — ccboard | pending merge |
 | 2 — modlog | not started |
 | 3 — wiki (package extraction) | not started |
 | 4 — reminders | not started |

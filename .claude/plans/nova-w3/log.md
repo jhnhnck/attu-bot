@@ -39,3 +39,44 @@ none.
 - phases 1-6: revise -- all scope and dod text corrected from doom_bot.* paths to nova_core.* paths; nova-w1 package rename makes the original paths stale; goals section (lines 7-9) and constraints line 24 updated for the same reason; substantive scope unchanged across all six phases.
 - phase 3 additionally: parenthetical "package is doom_bot during nova-w3" removed (now says "package is nova_core"); "no doom_bot imports" constraint updated to "no nova_core imports" in scope and dod.
 - phase 0 status: not started -> pending merge (no explicit closure confirmation in dispatch).
+
+## starting phase 1 (2026-08-11)
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3`
+- branch: `phase/nova-w3`
+- parent branch: `trunk` (at `f8939ac`)
+- confirmed dod:
+  - `nova_core/ccboard/__init__.py` exports `manifest: FeatureManifest`
+  - `client/events.py` contains no ccboard imports or `_ccboard_enabled`
+  - `register_bot_tasks()` contains no reference to ccboard tasks
+  - `FeatureManifest.migrations` field confirmed present in `nova_core/manifest.py:25`
+  - `attu_models/documents.py` and `attu_models/repositories.py` contain no ccboard classes
+  - `docker compose run tests` passes (1238 unit + 180 component)
+
+## phase 1 retro (2026-08-11)
+
+### what landed vs spec
+
+- all confirmed dod items delivered: `nova_core/ccboard/__init__.py` exports manifest; ccboard imports and `_ccboard_enabled` removed from `client/events.py`; ccboard tasks removed from `register_bot_tasks()`; ccboard classes removed from `attu_models`; 1238 unit + 180 component tests pass.
+- `migrations=[]` confirmed correct: ccboard's `migration.py` is a `/fix ccboard convert` slash-command handler, not an auto-run schema migration object; intentional narrowing from the plan's "confirm migrations field" uncertainty.
+- startup-log gate (ccboard removed from toml, confirm no handlers fire) not performed -- dropped from confirmed dod during implementation; plan.md listed it as a dod item; unconfirmed, not a regression.
+
+### what surprised us
+
+- `init_repos(db)` wires `_reaction_repo` and `_entry_repo` as module-level attributes directly on the ccboard module; watcher/manager/auditor access via `ccboard._reaction_repo` at call time -- no per-module singletons required, confirming the eggs module-attribute pattern generalizes to a more complex feature.
+- event handlers declared inline in `nova_core/ccboard/__init__.py` rather than a separate `handlers.py`; `_on_raw_reaction_add` is_bot detection logic carried over intact from the original `events.py`.
+- circular import forced bottom-of-file task imports in `__init__.py`: `auditor.py` and `manager.py` both do `from nova_core import ccboard` at top level; imports placed at bottom with `# noqa: E402` plus inline reason comments.
+- 4 post-implement regressions found and fixed across two cleanup commits: missed test file `test_commands_fix_stars_convert.py` (wrong import path after migration) and 3 `register_bot_tasks` tests that asserted direct task-object presence rather than `manifest.tasks`.
+
+### residual debt
+
+none.
+
+## revision after phase 1 (2026-08-11)
+
+- phase 2 (modlog): valid -- no tasks, no repos; event-only feature; implementer confirmed modlog has no tasks; no scope drift from phase 1 learnings.
+- phase 3 (wiki): valid -- no tasks; cross-package extraction scope unchanged; module-attribute repo pattern is confirmatory only, no wiring change needed.
+- phase 4 (reminders): revise -- add dod note: before closing, verify test files that exercise `register_bot_tasks()` do not assert direct task-object presence; update to assert `manifest.tasks` instead. same pattern that caused 3 regressions in phase 1.
+- phase 5 (trees): revise -- implementer notes trees has tasks currently in `register_bot_tasks()`; plan scope says "no tasks, no event handlers" -- verify before coding starts; if trees does have tasks, add `tasks=[...]` to manifest declaration, add task-removal dod item, and apply test-file compensation check.
+- phase 6 (starboard): revise -- implementer notes starboard has tasks in `register_bot_tasks()`; plan manifest declaration omits `tasks=`; add scope item to verify and declare if present; add dod note for test-file compensation check.
+- phase 1 status: in progress -> pending merge.
