@@ -5,16 +5,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from attu_models import (
-    BoardEntryDocument,
-    MessageAuthor,
-    MessageContent,
-    MessageDocument,
-    MessageRefs,
-    ReactionDocument,
-)
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from nova_core import ccboard
 from nova_core.ccboard import watcher
+from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
 from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 
@@ -442,18 +436,19 @@ async def test_stale_echo_rejected_by_emoji_mismatch(make_guild_ccboard, entry_d
 
 
 def test_extension_imports_cleanly_with_ccboard_wiring():
-    """compensation: the existing TestExtensionImports test mocks load_extension; this
-    test verifies that the new ccboard listener wiring on events.py is *additive* (not
-    replacing the legacy starboard handlers) and that nova_core.client.events still
-    imports cleanly with both systems registered.
+    """compensation: ccboard is now manifest-driven; events.py must contain no ccboard
+    registrations; the manifest must export the expected structure.
     """
     import importlib
 
     events_mod = importlib.import_module('nova_core.client.events')
-    # both legacy handlers still imported via local imports inside listeners; the
-    # ccboard-enabled gate function is exposed at module scope as a sanity check
-    assert hasattr(events_mod, '_ccboard_enabled')
-    # ccboard watcher is importable
+    # ccboard is loaded by the FeatureManifest loader, not events.py
+    assert not hasattr(events_mod, '_ccboard_enabled')
+    ccboard_mod = importlib.import_module('nova_core.ccboard')
+    from nova_core.manifest import FeatureManifest
+
+    assert isinstance(ccboard_mod.manifest, FeatureManifest)
+    # watcher must still be directly importable
     importlib.import_module('nova_core.ccboard.watcher')
 
 

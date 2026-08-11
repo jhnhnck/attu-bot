@@ -7,14 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import discord
 import pytest
 
-from attu_models import (
-    BoardEntryDocument,
-    MessageAuthor,
-    MessageContent,
-    MessageDocument,
-    MessageRefs,
-    ReactionDocument,
-)
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from nova_core import ccboard
 from nova_core.ccboard import auditor as auditor_mod
 from nova_core.ccboard import watcher as watcher_mod
@@ -26,6 +19,7 @@ from nova_core.ccboard.auditor import (
     _LiveReaction,
     auditor_task,
 )
+from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
 from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 

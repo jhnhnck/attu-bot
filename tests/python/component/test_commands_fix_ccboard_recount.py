@@ -6,16 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import pytest_asyncio
 
-from attu_models import (
-    BoardEntryDocument,
-    MessageAuthor,
-    MessageContent,
-    MessageDocument,
-    MessageRefs,
-    ReactionDocument,
-)
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
+from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
+from nova_core.ccboard.repositories import EntryRepository, ReactionRepository
 from nova_core.config import GuildCCBoard
-from nova_core.database.repositories import EntryRepository, ReactionRepository
 
 
 pytestmark = pytest.mark.component

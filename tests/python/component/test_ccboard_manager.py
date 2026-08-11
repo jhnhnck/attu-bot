@@ -6,8 +6,9 @@ import time
 import pytest
 import pytest_asyncio
 
-from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
-from nova_core.database.repositories import EntryRepository
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
+from nova_core.ccboard.documents import BoardEntryDocument
+from nova_core.ccboard.repositories import EntryRepository
 
 
 pytestmark = pytest.mark.component

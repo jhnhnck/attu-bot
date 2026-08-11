@@ -10,9 +10,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import pytest_asyncio
 
-from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
+from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
+from nova_core.ccboard.repositories import EntryRepository, ReactionRepository
 from nova_core.config import GuildCCBoard
-from nova_core.database.repositories import EntryRepository, ReactionRepository
 
 
 pytestmark = pytest.mark.component
@@ -225,7 +226,6 @@ class TestCCBoardLeaderboards:
 
     async def test_most_given_ranks_by_reactions_given(self, cc_repos, mock_ctx_factory):
         """ccboard most-given uses ReactionRepository; ranks by active positive reactions given."""
-        from attu_models import ReactionDocument
 
         def _rxn(user_id, msg_id, *, removed=False):
             return ReactionDocument(

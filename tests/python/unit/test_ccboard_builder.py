@@ -3,8 +3,9 @@
 
 import pytest
 
-from attu_models import BoardEntryDocument, MessageAuthor, MessageContent, MessageDocument, MessageRefs
+from attu_models import MessageAuthor, MessageContent, MessageDocument, MessageRefs
 from nova_core.ccboard.builder import build_embeds
+from nova_core.ccboard.documents import BoardEntryDocument
 from nova_core.config import GuildCCBoard
 
 
