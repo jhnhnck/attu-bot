@@ -4,7 +4,6 @@
 from attu_wiki import WikiClient
 from nova_core import __email__, __title__, __version__
 from nova_core.client.core import config
-from nova_core.manifest import FeatureManifest
 from nova_core.wiki.documents import WikiViewDocument
 from nova_core.wiki.repositories import WikiViewRepository, wire_wiki_command_repo
 
@@ -25,6 +24,9 @@ def init_repos(db) -> None:
 
 def setup(bot):
     get_wiki()
+
+
+from nova_core.manifest import FeatureManifest  # ruff: ignore[module-import-not-at-top-of-file] - deferred to break circular import: manifest->tasks->nova_year->wiki
 
 
 manifest = FeatureManifest(name='wiki', setup=setup, document_classes=[WikiViewDocument], repository_classes=[WikiViewRepository])
