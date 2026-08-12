@@ -140,3 +140,16 @@ see `.claude/conflicts.md` for the full conflict record.
 ## revision after phase 3 -- 2026-08-12
 
 **phase 4 (valid):** no premise changes from phase 3. all slug→id resolution helpers are in place; `BridgeClient` and `ConfigRepository` additions from phases 2 and 3 cover all the operations the repl commands will call. scope and approach unchanged.
+
+## starting phase 4 -- 2026-08-12
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w5/`
+- branch: `worktree-nova-w5`
+- parent: `trunk`
+- confirmed dod: all listed commands work against a running dev server (manual smoke test documented in `log.md`); `_AdminSession` unit tests cover state transitions and slug resolution; unknown slug and missing guild-selection error paths tested; `ruff check scripts/nova_admin.py` clean; `docker compose run tests` passes
+- merge gate: manual smoke test record in `log.md` showing `guilds`, `use`, `config get`, `config set`, `feature enable`, `reload guild` completing without error against dev server
+
+## smoke test pending -- 2026-08-12
+
+phase 4 implementation complete. smoke test against running dev server is pending user execution.
+commands to verify: guilds, use <slug>, config get <key>, config set <key> <value>, feature enable <name>, reload guild.
