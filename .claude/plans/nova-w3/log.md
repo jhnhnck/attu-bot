@@ -97,3 +97,29 @@ phases 0 and 1 were implemented and retro'd in a prior session. the worktree and
   - `nova_core/client/modlog.py` deleted; `nova_core/client/__init__.py` has no modlog import
   - `on_member_join` fires both welcome message (events.py) and modlog embed (manifest handler)
   - `docker compose run tests` passes
+
+## phase 2 retro — 2026-08-12
+
+### what landed vs spec
+
+- all dod items delivered: `nova_core/modlog/__init__.py` exports manifest; `nova_core/client/modlog.py` deleted; `nova_core/client/__init__.py` has no modlog import; `on_member_join` dual-handler (welcome message + modlog embed) confirmed via integration-check; 1272 unit + 180 component tests pass (+34 modlog handler tests from 1238 baseline).
+- event-only feature (no docs, repos, tasks) confirmed; pattern generalizes cleanly from eggs/ccboard -- no repo injection, no task registration, no circular import pressure.
+- intentional behavioral change: modlog is now ONLY active when `nova_core.modlog` is in `features.enabled` TOML; previously handlers were loaded unconditionally by `_load_event_handlers()`. prod config needs an explicit `nova_core.modlog` entry before next deploy.
+
+### what surprised us
+
+- the unconditional `_load_event_handlers()` load meant modlog was always-on regardless of toml config; moving to manifest makes it genuinely feature-gated for the first time. this same behavioral change applies to every remaining phase (wiki, trees, starboard all have unconditional load paths in `client/events.py`); prod config must be verified at each deploy.
+- `bot.add_listener(fn, name=event_name)` in `FeatureContext._wire_event_handlers()` supports multiple listeners on the same event cleanly; `on_member_join` dual-handler required no special handling.
+- cleanest phase so far: no unexpected coupling, no regressions, no post-implement fixups.
+
+### residual debt
+
+- pre-existing lint debt (RUF105/PLW0717 -- 47+30 codebase-wide) carried verbatim into `nova_core/modlog/handlers.py`; already in bugs.md; defer to standalone lint pass.
+
+## revision after phase 2 — 2026-08-12
+
+- phase 3 (wiki): valid -- cross-package extraction scope unchanged; startup field question remains per plan text. note: wiki will become feature-gated (same behavioral change as modlog); prod config must include `nova_core.wiki` at deploy. no scope edit required -- feature-gating is the stated goal.
+- phase 4 (reminders): valid -- test-file compensation note already added from phase 1 retro; no change.
+- phase 5 (trees): valid -- task-presence verification note already in place; no change. note: trees will also become feature-gated at migrate; prod config must include `nova_core.trees` at deploy.
+- phase 6 (starboard): valid -- task-presence and repo-pattern notes already in place; no change. note: starboard event handlers were unconditionally loaded (same pattern as modlog); prod config must include `nova_core.starboard` at deploy.
+- phase 2 status: in progress -> closed in 4c7b8ba.
