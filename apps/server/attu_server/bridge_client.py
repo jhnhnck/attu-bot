@@ -143,3 +143,14 @@ class BridgeClient:
             body['guild_id'] = guild_id
         r = await self._request('POST', '/bridge/reload', json=body)
         r.raise_for_status()
+
+    async def post_fix(self, operation: str, guild_id: int | None = None) -> Any:
+        """call a bridge fix endpoint; returns the raw response without raising on non-2xx.
+
+        caller is responsible for inspecting the status code before calling raise_for_status().
+        guild_id is included in the request body when provided.
+        """
+        body: dict[str, Any] | None = None
+        if guild_id is not None:
+            body = {'guild_id': guild_id}
+        return await self._request('POST', f'/bridge/fix/{operation}', json=body)

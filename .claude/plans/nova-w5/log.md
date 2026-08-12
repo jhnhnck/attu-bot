@@ -111,3 +111,10 @@ see `.claude/conflicts.md` for the full conflict record.
 **phase 3 (minor revise):** `resolve_guild_id` is now established in `slugs.py` (public api) and must be used for slug→guild-id resolution in all phase 3 endpoints (`features.py` per-guild ops, `reload.py` guild reload body). merge gate updated to require this explicitly. no scope or premise change otherwise; bridge fix endpoint dependency and 501 fallback approach unchanged.
 
 **phase 4 (valid):** no changes needed.
+
+## starting phase 3 — 2026-08-11
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w5/`
+- branch: `phase/nova-w5`
+- parent: `trunk`
+- confirmed dod: feature toggle enable/disable persist to db and trigger guild reload; reload endpoints proxy correctly to bridge with right signal types; fix endpoint returns 200 when bridge responds 200, 501 when bridge returns 404; 501 path covered by a test; all slug→guild-id resolution uses `resolve_guild_id` from `slugs.py`; `docker compose run tests` passes
