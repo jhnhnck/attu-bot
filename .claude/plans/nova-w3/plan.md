@@ -225,7 +225,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 |---|---|
 | 0 — eggs (walking skeleton) | closed in bd29d87 |
 | 1 — ccboard | closed in 6964bc4 |
-| 2 — modlog | closed in 4c7b8ba |
+| 2 — modlog | closed in 0b2b9ed |
 | 3 — wiki (package extraction) | not started |
 | 4 — reminders | not started |
 | 5 — trees | not started |
