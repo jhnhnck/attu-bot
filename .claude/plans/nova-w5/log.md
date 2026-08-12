@@ -153,3 +153,26 @@ see `.claude/conflicts.md` for the full conflict record.
 
 phase 4 implementation complete. smoke test against running dev server is pending user execution.
 commands to verify: guilds, use <slug>, config get <key>, config set <key> <value>, feature enable <name>, reload guild.
+
+## phase 4 retro — 2026-08-12
+
+**what landed vs spec:**
+- all scoped items delivered: `scripts/nova_admin.py` with `_AdminSession` dataclass and `AdminCmd` cmd.Cmd subclass; all listed commands (`guilds`, `use`, `channels`, `roles`, `config get/set`, `feature enable/disable`, `reload guild/theme/system`, `fix recalculate-starboard`, `refresh`, `exit`).
+- 17 new unit tests in `tests/python/unit/test_nova_admin.py` covering state transitions, slug resolution in cached channel/role lists, unknown slug error path, missing guild-selection error path.
+- 1 commit: `9028c55 feat(scripts): nova_admin.py repl client with _AdminSession, all commands, unit tests`
+- 1272 unit + 180 component + 12 integration tests pass; unit baseline updated 1255→1272; no regressions.
+- manual smoke test is the only open merge gate item; recorded as pending user execution — expected user-run work, not automated.
+
+**what surprised us:**
+- no adjacent bugs found during implementation (per implementer notes).
+- code review flagged two nits: `do_config/do_feature/do_reload/do_fix` call `self.session._request()` directly rather than through a session-method layer, leaving those paths without unit test coverage; `test_select_guild_channels_error_returns_false` does not assert the roles endpoint was not called. both routed to bugs.md; low severity.
+
+**residual debt:**
+- two code-review nits added to bugs.md (session-layer bypass; missing negative assertion in test). both low severity; defer.
+- smoke test pending user execution; not a code defect.
+
+## revision after phase 4 — 2026-08-12
+
+**no downstream phases.** phase 4 is the last phase in nova-w5. no plan entries require classification. no edits to plan.md scope or ordering needed. the plan proceeds directly to shipdown.
+
+**bug-triage output:** 8 open items (6 pre-existing + 2 new nits from phase 4 code review); all classified defer; no blockers; no downstream phases to unblock. see bugs.md for full dispositions.

@@ -14,6 +14,10 @@
 
 - **`config_routes.py` imports `_build_guild_slug_map` across module boundaries using its private name:** `_build_guild_slug_map` is underscore-prefixed (module-private) in `guilds.py` but imported directly in `config_routes.py`. should be renamed to `build_guild_slug_map` (public) or moved to `slugs.py` where the other slug utilities live. severity: low. disposition: defer; cleanup pass.
 
+- **`nova_admin.py` `do_*` methods call `self.session._request()` directly:** `do_config`, `do_feature`, `do_reload`, and `do_fix` bypass the session-method layer and call the private `_request()` helper directly; these paths have no unit test coverage. severity: low (nit; functional behaviour correct; unit tests cover `_AdminSession` methods). disposition: defer; cleanup pass.
+
+- **`test_select_guild_channels_error_returns_false` missing negative assertion:** the test asserts channels are empty after a channels-endpoint error but does not assert the roles endpoint was not called. severity: low (nit). disposition: defer; cleanup pass.
+
 ## closed
 
 - **`require_api_key` uses plain string comparison:** fixed in phase 1 (da22118); `hmac.compare_digest` with any-match logic now used in `deps.py`.

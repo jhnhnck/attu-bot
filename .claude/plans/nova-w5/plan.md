@@ -189,4 +189,4 @@ nova-admin> exit
 | 1 — auth gate + guild listing | closed in 5221bab |
 | 2 — config get/set | closed in f8939ac |
 | 3 — feature/reload/fix | closed in fc4b68c |
-| 4 — repl client | in progress |
+| 4 — repl client | closed in 9028c55 |
