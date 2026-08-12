@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.client.modlog | moderation log handlers."""
+"""nova_core.modlog.handlers | moderation log event handler functions."""
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -151,7 +151,6 @@ def _build_member_leave_embed(
     return embed
 
 
-@bot.listen()
 async def on_member_join(member: Member):
     with event_log_context(event='modlog.on_member_join', guild_id=member.guild.id, user_id=member.id):
         if member.guild.id not in config.valid_guilds:
@@ -160,7 +159,6 @@ async def on_member_join(member: Member):
         await _send_embed(member.guild.id, embed)
 
 
-@bot.listen()
 async def on_member_remove(member: Member):
     with event_log_context(event='modlog.on_member_remove', guild_id=member.guild.id, user_id=member.id):
         if member.guild.id not in config.valid_guilds:
@@ -170,7 +168,6 @@ async def on_member_remove(member: Member):
         await _send_embed(member.guild.id, embed)
 
 
-@bot.listen()
 async def on_member_ban(guild: Guild, user: User | Member):
     with event_log_context(event='modlog.on_member_ban', guild_id=guild.id, user_id=user.id):
         if guild.id not in config.valid_guilds:
@@ -185,7 +182,6 @@ async def on_member_ban(guild: Guild, user: User | Member):
         await _send_embed(guild.id, embed)
 
 
-@bot.listen()
 async def on_member_unban(guild: Guild, user: User):
     with event_log_context(event='modlog.on_member_unban', guild_id=guild.id, user_id=user.id):
         if guild.id not in config.valid_guilds:
@@ -200,7 +196,6 @@ async def on_member_unban(guild: Guild, user: User):
         await _send_embed(guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_channel_create(channel: discord.abc.GuildChannel):
     with event_log_context(event='modlog.on_guild_channel_create', guild_id=channel.guild.id, channel_id=channel.id):
         if channel.guild.id not in config.valid_guilds:
@@ -215,7 +210,6 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
         await _send_embed(channel.guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
     with event_log_context(event='modlog.on_guild_channel_delete', guild_id=channel.guild.id, channel_id=channel.id):
         if channel.guild.id not in config.valid_guilds:
@@ -230,7 +224,6 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
         await _send_embed(channel.guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_channel_update(before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
     with event_log_context(event='modlog.on_guild_channel_update', guild_id=after.guild.id, channel_id=after.id):
         if after.guild.id not in config.valid_guilds:
@@ -265,7 +258,6 @@ async def on_guild_channel_update(before: discord.abc.GuildChannel, after: disco
         await _send_embed(after.guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_role_create(role: Role):
     with event_log_context(event='modlog.on_guild_role_create', guild_id=role.guild.id, role_id=role.id):
         if role.guild.id not in config.valid_guilds:
@@ -278,7 +270,6 @@ async def on_guild_role_create(role: Role):
         await _send_embed(role.guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_role_delete(role: Role):
     with event_log_context(event='modlog.on_guild_role_delete', guild_id=role.guild.id, role_id=role.id):
         if role.guild.id not in config.valid_guilds:
@@ -291,7 +282,6 @@ async def on_guild_role_delete(role: Role):
         await _send_embed(role.guild.id, embed)
 
 
-@bot.listen()
 async def on_guild_role_update(before: Role, after: Role):
     with event_log_context(event='modlog.on_guild_role_update', guild_id=after.guild.id, role_id=after.id):
         if after.guild.id not in config.valid_guilds:
@@ -331,7 +321,6 @@ async def on_guild_role_update(before: Role, after: Role):
         await _send_embed(after.guild.id, embed)
 
 
-@bot.listen()
 async def on_member_update(before: Member, after: Member):  # noqa: PLR0912, PLR0915 - single event handler covering nick + role changes with audit log calls
     with event_log_context(event='modlog.on_member_update', guild_id=after.guild.id, user_id=after.id):
         if after.guild.id not in config.valid_guilds or after.bot:
@@ -428,7 +417,6 @@ def _emoji_map(emojis: Sequence[GuildEmoji]) -> dict[int, GuildEmoji]:
     return {emoji.id: emoji for emoji in emojis}
 
 
-@bot.listen()
 async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], after: Sequence[GuildEmoji]):
     with event_log_context(event='modlog.on_guild_emojis_update', guild_id=guild.id):
         if guild.id not in config.valid_guilds:
@@ -469,6 +457,3 @@ async def on_guild_emojis_update(guild: Guild, before: Sequence[GuildEmoji], aft
             embed.add_field(name='After', value=after_emoji.name, inline=True)
             embed.add_field(name='Emoji', value=str(after_emoji), inline=True)
             await _send_embed(guild.id, embed)
-
-
-logger.info('registered moderation log handlers')

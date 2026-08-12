@@ -355,7 +355,7 @@ class TestEventHandlerModules:
         'module',
         [
             'nova_core.client.events',
-            'nova_core.client.modlog',
+            'nova_core.modlog',
         ],
     )
     def test_event_handler_module_imports_cleanly(self, module):

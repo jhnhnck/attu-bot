@@ -84,7 +84,6 @@ def _setup_discord_logging():
 def _load_event_handlers():
     """import event handler modules to register all bot event handlers"""
     importlib.import_module('nova_core.client.events')
-    importlib.import_module('nova_core.client.modlog')
 
 
 def _register_core_commands():
