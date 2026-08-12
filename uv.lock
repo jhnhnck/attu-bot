@@ -8,6 +8,7 @@ members = [
     "attu-logging",
     "attu-models",
     "attu-server",
+    "attu-wiki",
     "casino-bot",
     "nova-core",
 ]
@@ -211,6 +212,23 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "attu-logging", virtual = "packages/attu-logging" }]
+
+[[package]]
+name = "attu-wiki"
+version = "0.1.0"
+source = { virtual = "packages/attu-wiki" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "structlog", specifier = ">=24.0.0" },
+]
 
 [[package]]
 name = "backports-zstd"
@@ -796,6 +814,7 @@ dependencies = [
     { name = "anyio" },
     { name = "attu-logging" },
     { name = "attu-models" },
+    { name = "attu-wiki" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "itsdangerous" },
@@ -814,6 +833,7 @@ requires-dist = [
     { name = "anyio", specifier = ">=4.12.0" },
     { name = "attu-logging", virtual = "packages/attu-logging" },
     { name = "attu-models", virtual = "packages/shared-models" },
+    { name = "attu-wiki", virtual = "packages/attu-wiki" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx" },
     { name = "itsdangerous" },

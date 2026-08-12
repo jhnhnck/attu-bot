@@ -1,0 +1,12 @@
+[project]
+name = "attu-wiki"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "httpx",
+    "pydantic",
+    "structlog>=24.0.0",
+]
+
+[tool.uv]
+package = false

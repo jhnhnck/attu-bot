@@ -12,7 +12,7 @@ dependencies = [
 package = false
 
 [tool.uv.workspace]
-members = ["apps/bot", "apps/casino", "apps/server", "packages/shared-models", "packages/attu-logging"]
+members = ["apps/bot", "apps/casino", "apps/server", "packages/shared-models", "packages/attu-logging", "packages/attu-wiki"]
 
 [tool.uv.sources]
 nova-core = { workspace = true }
@@ -100,7 +100,7 @@ skip-magic-trailing-comma = false
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
-known-first-party = ["nova_core", "attu_models", "attu_logging"]
+known-first-party = ["nova_core", "attu_models", "attu_logging", "attu_wiki"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -108,7 +108,7 @@ convention = "google"
 [tool.basedpyright]
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
-extraPaths = ["scripts", "apps/bot", "packages/shared-models", "packages/attu-logging"]
+extraPaths = ["scripts", "apps/bot", "packages/shared-models", "packages/attu-logging", "packages/attu-wiki"]
 reportOptionalOperand = false
 reportOptionalMemberAccess = false
 reportOptionalSubscript = false
@@ -130,7 +130,7 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
-pythonpath = ["scripts", "apps/bot", "apps/server", "packages/shared-models", "packages/attu-logging"]
+pythonpath = ["scripts", "apps/bot", "apps/server", "packages/shared-models", "packages/attu-logging", "packages/attu-wiki"]
 addopts = "-v"
 asyncio_mode = "auto"
 # 10 seconds is generous for unit tests and tight enough to catch runaways.
