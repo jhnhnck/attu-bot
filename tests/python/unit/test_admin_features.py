@@ -88,8 +88,10 @@ def _make_repo_mock(doc, update_calls=None):
     mock_repo = AsyncMock()
     mock_repo.get_guild = AsyncMock(return_value=doc)
     if update_calls is not None:
+
         async def record_update(guild_id, key, value):
             update_calls.append((guild_id, key, value))
+
         mock_repo.update_guild_field = record_update
     else:
         mock_repo.update_guild_field = AsyncMock()
