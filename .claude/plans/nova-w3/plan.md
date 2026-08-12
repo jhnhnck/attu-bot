@@ -223,7 +223,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 
 | phase | status |
 |---|---|
-| 0 — eggs (walking skeleton) | pending merge |
+| 0 — eggs (walking skeleton) | closed in bd29d87 |
 | 1 — ccboard | pending merge |
 | 2 — modlog | not started |
 | 3 — wiki (package extraction) | not started |
