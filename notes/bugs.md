@@ -30,6 +30,14 @@ format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open /
 
 - ⭕ `smell` `packages/shared-models/attu_models/repositories.py:36` `attu_models` imports `nova_core.config.{BotTheme, GuildConfig}` inside a `TYPE_CHECKING` block; the runtime cycle is broken but the type-hint coupling means shared-models still knows about `nova_core.config`. fix would either move `BotTheme` / `GuildConfig` into shared-models or generalize the repository signatures to accept protocols (from structlog phase 1 retro; import updated to nova_core in nova-w1 phase 1)
 
+### admin / attu_server
+
+- ⭕ `nit` `apps/server/attu_server/deps.py` `any(hmac.compare_digest(...))` short-circuits on multi-key `api_keys` lists — timing leaks key position; low risk for single-key deployments (typical); timing-safe fix would compare all keys unconditionally. carried from plan: nova-w5 (2026-08-12)
+- ⭕ `nit` `apps/server/attu_server/api/admin/config_routes.py:22` `_CHANNEL_SUFFIXES = ('_channel', '_id')` over-matches `guild_id` (top-level `GuildConfigDocument` field), triggering channel slug resolution for `guild_id` patches unnecessarily; works for ints and int-coercible strings but is semantically wrong. carried from plan: nova-w5 (2026-08-12)
+- ⭕ `nit` `apps/server/attu_server/api/admin/config_routes.py` imports private `_build_guild_slug_map` across module boundary from `guilds.py`; should be made public (`build_guild_slug_map`) or moved to `slugs.py` alongside other slug utilities. carried from plan: nova-w5 (2026-08-12)
+- ⭕ `nit` `scripts/nova_admin.py` `AdminCmd.do_config/do_feature/do_reload/do_fix` call `self.session._request()` directly, bypassing the session-method layer; these `do_*` paths have no unit test coverage. low severity — functional behaviour correct. carried from plan: nova-w5 (2026-08-12)
+- ⭕ `nit` `tests/python/unit/test_nova_admin.py` `test_select_guild_channels_error_returns_false` asserts `current_guild is None` but does not assert the roles endpoint was not called when channels fail. minor coverage gap. carried from plan: nova-w5 (2026-08-12)
+
 ### nova-core / bridge
 
 - ⭕ `bug` `nova_core/client/markers.py` `YearMarker.mark()` — `channel` parameter defaults to the primary guild's id (a snowflake) when not provided, but `channel` is supposed to be a channel id; pre-existing logic bug preserved during nova-w1 phase 4 migration; fix requires auditing all callers of `mark()` to determine the intended default. carried from plan: nova-w1 (2026-07-23)

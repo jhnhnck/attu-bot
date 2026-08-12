@@ -57,6 +57,7 @@ The mock compensation rule, the three standing cases (extension loading, permiss
 
 ## known gotchas
 
+- **`attu_server` admin-router test fixtures must build a standalone app from the router, not call `create_app()`**: `create_app()` has module-level import side effects (package-level `PYTHONPATH` assumptions) that break the test container's isolation in worktrees. build a standalone `FastAPI` app directly: `app = FastAPI(); app.include_router(admin_router)`. applies to all files under `tests/python/unit/test_admin_*.py`.
 - **discord enforces a 100-char hard limit on slash command and option descriptions**. the limit is checked at extension import time by py-cord — `TestExtensionImports.test_extension_imports_cleanly` catches overruns immediately. if the test fails with a `ValueError` from within py-cord's command registration, check the description length of any recently added or edited command/option.
 - **`isinstance(channel, discord.abc.Messageable)` fails for `MagicMock`** — mock objects don't satisfy ABC `__instancecheck__`. use a real `_FakeChannel(discord.abc.Messageable)` subclass in tests that need to pass through the isinstance gate (e.g., `auditor.py`'s channel-walking logic). see `tests/python/unit/test_ccboard_auditor.py` for the established pattern.
 
