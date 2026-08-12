@@ -77,7 +77,7 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
 
     with (
         patch('nova_core.tasks.nova_year.bot') as mock_bot,
-        patch('nova_core.tasks.nova_year.get_wiki', return_value=fake_wiki),
+        patch('nova_core.wiki.get_wiki', return_value=fake_wiki),
         patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
         patch.object(_scheduler, 'add_job', side_effect=lambda coro, name: coro.close()),
         patch('attu_logging.webhook.send_to_webhook', AsyncMock()),
@@ -208,7 +208,7 @@ class TestAdvanceYear:
         try:
             with (
                 patch('nova_core.tasks.nova_year.bot') as mock_bot,
-                patch('nova_core.tasks.nova_year.get_wiki', return_value=fake_wiki),
+                patch('nova_core.wiki.get_wiki', return_value=fake_wiki),
                 patch.object(config, 'wiki', MagicMock(user='u', key='k', page='Test Page')),
                 patch.object(_scheduler, 'add_job', side_effect=_capture),
                 patch('attu_logging.webhook.send_to_webhook', AsyncMock()),
