@@ -13,7 +13,6 @@ from nova_core.client.util import webhook_logging
 from nova_core.client.years import Year
 from nova_core.config import GuildConfig
 from nova_core.tasks.base import BaseTask
-from nova_core.wiki import get_wiki
 
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -180,6 +179,8 @@ class NovaYearTask(BaseTask):
         await year_vc.edit(name=f'Current Year: {year} PC')
 
         # --- Edit Wiki ---
+        from nova_core.wiki import get_wiki
+
         wiki = get_wiki()
         await wiki.authenticate(config.wiki.user, config.wiki.key)
 
