@@ -14,10 +14,10 @@ import httpx
 import pytest
 import respx
 
-from nova_core.wiki.admin import AdminApi
-from nova_core.wiki.auth import AuthApi
-from nova_core.wiki.models import SearchResult, SiteInfo
-from nova_core.wiki.search import SearchApi
+from attu_wiki.admin import AdminApi
+from attu_wiki.auth import AuthApi
+from attu_wiki.models import SearchResult, SiteInfo
+from attu_wiki.search import SearchApi
 
 
 pytestmark = pytest.mark.unit
@@ -64,7 +64,7 @@ class TestAuthApiGetCsrf:
     async def test_success_returns_token(self, auth):
         respx.get(action).mock(return_value=httpx.Response(200, json={'query': {'tokens': {'csrftoken': 'abc+\\'}}}))
         token = await auth.get_csrf()
-        assert token == 'abc+\\'  # noqa: S105
+        assert token == 'abc+\\'  # ruff: ignore[hardcoded-password-string]
 
     @respx.mock
     async def test_non_2xx_raises(self, auth):

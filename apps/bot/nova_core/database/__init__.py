@@ -27,8 +27,6 @@ from attu_models import (
     StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
-    WikiViewDocument,
-    WikiViewRepository,
     YearDocument,
     YearMarkerDocument,
     YearMarkerRepository,
@@ -62,7 +60,6 @@ def _wire_repos(
     signal_repo,
     message_repo,
     starboard_repo,
-    wiki_view_repo,
     reminder_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
@@ -71,7 +68,6 @@ def _wire_repos(
     import nova_core.client.messages as _messages
     import nova_core.client.starboard as _starboard
     import nova_core.client.years as _years
-    import nova_core.commands.wiki as _wiki
     import nova_core.signals as _signals
     import nova_core.tasks.reminder as _reminder
 
@@ -81,7 +77,6 @@ def _wire_repos(
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
     _starboard._starboard_repo = starboard_repo
-    _wiki._wiki_view_repo = wiki_view_repo
     _reminder._reminder_repo = reminder_repo
 
 
@@ -121,9 +116,6 @@ async def init_database(url: str, name: str):
     family_repo = FamilyRepository(database)
     await _try_init_indexes(family_repo, 'family')
 
-    wiki_view_repo = WikiViewRepository(database)
-    await _try_init_indexes(wiki_view_repo, 'wiki_view')
-
     reminder_repo = ReminderRepository(database)
     await _try_init_indexes(reminder_repo, 'reminder')
 
@@ -134,7 +126,6 @@ async def init_database(url: str, name: str):
         signal_repo=signal_repo,
         message_repo=message_repo,
         starboard_repo=starboard_repo,
-        wiki_view_repo=wiki_view_repo,
         reminder_repo=reminder_repo,
     )
 
@@ -157,8 +148,6 @@ __all__ = [
     'StarredMessageDocument',
     'SystemConfigDocument',
     'ThemeDocument',
-    'WikiViewDocument',
-    'WikiViewRepository',
     'YearDocument',
     'YearMarkerDocument',
     'YearMarkerRepository',

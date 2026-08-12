@@ -14,7 +14,6 @@ from .documents import (
     StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
-    WikiViewDocument,
     YearDocument,
     YearMarkerDocument,
 )
@@ -25,7 +24,6 @@ from .repositories import (
     ReloadSignalRepository,
     ReminderRepository,
     StarboardRepository,
-    WikiViewRepository,
     YearMarkerRepository,
     YearRepository,
 )
@@ -50,8 +48,6 @@ __all__ = [
     'StarredMessageDocument',
     'SystemConfigDocument',
     'ThemeDocument',
-    'WikiViewDocument',
-    'WikiViewRepository',
     'YearDocument',
     'YearMarkerDocument',
     'YearMarkerRepository',

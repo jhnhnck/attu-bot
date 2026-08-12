@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import discord
 import pytest
 
-from nova_core.wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
+from attu_wiki.models import PageSummary, PageThumbnail, SearchResult, SiteInfo
 
 
 def _make_mock_view_repo():

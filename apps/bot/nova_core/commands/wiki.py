@@ -13,16 +13,16 @@ from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands
 
 import attu_logging
+from attu_wiki.models import PageSummary, SearchResult, SiteInfo
 from nova_core.client.core import bot, config
 from nova_core.client.embeds import make_embed, ui_emoji
 from nova_core.client.util import is_authorized_guild
-from nova_core.database.models import WikiViewDocument
 from nova_core.wiki import get_wiki
-from nova_core.wiki.models import PageSummary, SearchResult, SiteInfo
+from nova_core.wiki.documents import WikiViewDocument
 
 
 if TYPE_CHECKING:
-    from nova_core.database.repositories import WikiViewRepository
+    from nova_core.wiki.repositories import WikiViewRepository
 
 
 # embed description is capped at 4096 chars; leave room for ellipsis
@@ -31,7 +31,7 @@ _EMBED_DESC_LIMIT = 4000
 # view timeout in seconds (30 minutes); used for expires_at ttl
 _VIEW_TIMEOUT = 1800
 
-# module-level repo singleton; wired in by database/__init__.py
+# module-level repo singleton; wired in by nova_core.wiki init_repos()
 _wiki_view_repo: 'WikiViewRepository | None' = None
 
 

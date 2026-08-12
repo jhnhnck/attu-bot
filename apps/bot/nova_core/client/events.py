@@ -25,7 +25,7 @@ logger = structlog.stdlib.get_logger(__name__)
 slow_command_threshold_ms = 500
 _cmd_start_times: dict[int, float] = {}
 
-_READY_SENTINEL = '/tmp/bot-ready'  # noqa: S108 - intentional healthcheck sentinel path in docker container
+_READY_SENTINEL = '/tmp/bot-ready'  # ruff: ignore[hardcoded-temp-file] - intentional healthcheck sentinel path in docker container
 
 
 # --- Shutdown ---
@@ -72,9 +72,9 @@ async def _graceful_shutdown():
 async def _restore_wiki_views():
     """restore persistent wiki lookup views from db on startup"""
     try:
+        from attu_wiki.models import PageSummary, SearchResult
         from nova_core.commands.wiki import WikiLookupView, _get_view_repo, build_wiki_embed
         from nova_core.wiki import get_wiki
-        from nova_core.wiki.models import PageSummary, SearchResult
 
         repo = _get_view_repo()
         deleted = await repo.delete_expired()
@@ -99,7 +99,7 @@ async def _restore_wiki_views():
         logger.warning(f'wiki view restore failed: {err}')
 
 
-async def _do_ready_init():  # noqa: PLR0915 - ready init has inherently many sequential steps
+async def _do_ready_init():  # ruff: ignore[too-many-statements] - ready init has inherently many sequential steps
     """inner ready path; extracted from on_ready() for testability"""
     try:
         logger.info('connecting to database and initializing repositories')

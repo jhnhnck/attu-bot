@@ -1,39 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.wiki | wiki package."""
+"""nova_core.wiki | wiki feature shim."""
 
-import structlog
-from discord import Bot
-
+from attu_wiki import WikiClient
+from nova_core import __email__, __title__, __version__
 from nova_core.client.core import config
-from nova_core.wiki.client import WikiClient
-from nova_core.wiki.models import SearchResult, SiteInfo
+from nova_core.manifest import FeatureManifest
+from nova_core.wiki.documents import WikiViewDocument
+from nova_core.wiki.repositories import WikiViewRepository, wire_wiki_command_repo
 
 
-logger = structlog.stdlib.get_logger(__name__)
-
-# module-level singleton - initialized by setup()
 _wiki: WikiClient | None = None
 
 
 def get_wiki() -> WikiClient:
-    """get the global WikiClient instance; raises if not yet initialized"""
-    global _wiki  # noqa: PLW0603 - lazy singleton initialization requires global
+    global _wiki  # ruff: ignore[global-statement] - lazy singleton initialization requires global
     if _wiki is None:
-        _wiki = WikiClient(endpoint=config.wiki.endpoint)
+        _wiki = WikiClient(endpoint=config.wiki.endpoint, user_agent=f'{__title__}/{__version__} ({__email__})')
     return _wiki
 
 
-def setup(bot: Bot):
-    logger.info(f'registered: {__name__}')
+def init_repos(db) -> None:
+    wire_wiki_command_repo(db.get_db())
 
-    # eagerly initialize so any config errors surface at startup
+
+def setup(bot):
     get_wiki()
 
 
-__all__ = [
-    'SearchResult',
-    'SiteInfo',
-    'WikiClient',
-    'get_wiki',
-    'setup',
-]
+manifest = FeatureManifest(name='wiki', setup=setup, document_classes=[WikiViewDocument], repository_classes=[WikiViewRepository])
