@@ -123,3 +123,48 @@ phases 0 and 1 were implemented and retro'd in a prior session. the worktree and
 - phase 5 (trees): valid -- task-presence verification note already in place; no change. note: trees will also become feature-gated at migrate; prod config must include `nova_core.trees` at deploy.
 - phase 6 (starboard): valid -- task-presence and repo-pattern notes already in place; no change. note: starboard event handlers were unconditionally loaded (same pattern as modlog); prod config must include `nova_core.starboard` at deploy.
 - phase 2 status: in progress -> closed in 4c7b8ba.
+
+## starting phase 3 — 2026-08-12
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3`
+- branch: `phase/nova-w3`
+- parent branch: `trunk`
+- merge gate check: phase 2 closed in 034ccd1 ✓; `attu_models/__init__.py` and `nova_core/database/__init__.py` at trunk HEAD ✓
+- nova-w2 spec check: `FeatureManifest` has no `startup` field — `_restore_wiki_views` will remain in `client/events.py` as a shim import from `nova_core.wiki`; documented in log
+
+**confirmed dod:**
+- `packages/attu-wiki/attu_wiki/` importable; `uv sync` clean on skeleton step (before any code moved)
+- `nova_core/wiki/__init__.py` under 30 lines
+- no `nova_core` imports anywhere in `packages/attu-wiki/`
+- `WikiViewDocument`, `WikiViewRepository` live in `nova_core/wiki/`
+- `_restore_wiki_views` placement confirmed: stays in `client/events.py`, imports from `nova_core.wiki`
+- `docker compose run tests` passes
+
+## phase 3 retro -- 2026-08-12
+
+### what landed vs spec
+
+- all confirmed dod items delivered with one accepted deviation:
+  - `packages/attu-wiki/attu_wiki/` importable; `uv sync` clean
+  - no `nova_core` imports anywhere in `packages/attu-wiki/` (verified, 0 hits)
+  - `WikiViewDocument`, `WikiViewRepository` live in `nova_core/wiki/`
+  - `_restore_wiki_views` stays in `client/events.py` importing from `nova_core.wiki`; `FeatureManifest` has no `startup` field -- documented, placement confirmed
+  - `docker compose run tests` passes: 1272 unit + 180 component (matches phase 2 baseline)
+- `nova_core/wiki/__init__.py` is 32 lines (2 over the "under 30 lines" dod). accepted deviation: a deferred `FeatureManifest` import required to break the circular-import chain adds 1 line; ruff `lines-after-imports = 2` isort config requires 2 blank lines after imports, accounting for the remaining overage. not a regression; not deferred -- accepted as the permanent floor.
+
+### what surprised us
+
+- circular import `nova_core.manifest -> tasks -> nova_year -> wiki -> manifest` required 3 fix iterations: (1) `get_wiki` moved to local scope in `nova_year.py`; (2) mock-target in `test_task_nova_year.py` broke (2 patches moved to `nova_core.wiki.get_wiki`); (3) deferred `FeatureManifest` import in `nova_core/wiki/__init__.py` itself. cycle was wiki-specific -- `nova_year.py` imported a wiki symbol at top level; checked phases 4-6 (`nova_year.py`, `tasks/__init__.py`) -- no reminders/trees/starboard imports; no recurrence expected.
+- `wire_wiki_command_repo` helper in `nova_core/wiki/repositories.py` consolidates repo creation, index scheduling, and command-module wiring; creates `nova_core.wiki.repositories -> nova_core.commands.wiki` cross-module dep that eggs/ccboard avoid by doing this wiring in `__init__.py`. logged in bugs.md.
+- cross-package extraction is materially heavier than intra-codebase moves: skeleton step, `uv sync`, monorepo `pyproject.toml` wiring, and no `nova_core` leakage check all add friction not present in phases 0-2.
+
+### residual debt
+
+- `wire_wiki_command_repo` cross-module dep (`nova_core.wiki.repositories -> nova_core.commands`); in bugs.md; low risk; no downstream phase blocker.
+
+## revision after phase 3 -- 2026-08-12
+
+- phase 4 (reminders): valid -- checked `nova_year.py` and `tasks/__init__.py`; no reminders imports; circular-import risk does not recur. test-file compensation note and prod-config note from prior revisions intact. no scope change.
+- phase 5 (trees): valid -- same check; no trees imports in nova_year or tasks init; no circular-import risk. task-presence verification note and prod-config note intact. no scope change.
+- phase 6 (starboard): valid -- same check; no starboard imports in nova_year or tasks init; no circular-import risk. task-presence, repo-pattern, and prod-config notes intact. no scope change.
+- phase 3 status: pending merge -> closed in 6856189.
