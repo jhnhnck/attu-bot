@@ -80,3 +80,20 @@ none.
 - phase 5 (trees): revise -- implementer notes trees has tasks currently in `register_bot_tasks()`; plan scope says "no tasks, no event handlers" -- verify before coding starts; if trees does have tasks, add `tasks=[...]` to manifest declaration, add task-removal dod item, and apply test-file compensation check. module-attribute repo pattern confirmed applicable, no wiring change needed.
 - phase 6 (starboard): revise -- implementer notes starboard has tasks in `register_bot_tasks()`; plan manifest declaration omits `tasks=`; add scope item to verify and declare if present; add dod note for test-file compensation check. module-attribute repo pattern confirmed applicable, no wiring change needed.
 - phase 1 status: in progress -> pending merge.
+
+## bookkeeping catch-up — 2026-08-12
+
+phases 0 and 1 were implemented and retro'd in a prior session. the worktree and branch were cleaned up, but `set-status "closed in <sha>"` never fired. both retros cite test-pass counts (1209 unit + 180 component for phase 0; 1238 unit + 180 component for phase 1), confirming integration-check ran. status table updated:
+- phase 0: pending merge -> closed in bd29d87 (last commit before phase 1 log entry)
+- phase 1: pending merge -> closed in 6964bc4 (trunk head at phase-2 worktree creation)
+
+## starting phase 2 — 2026-08-12
+
+- worktree: `/home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3`
+- branch: `phase/nova-w3`
+- parent branch: `trunk` (at `6964bc4`)
+- confirmed dod:
+  - `nova_core/modlog/__init__.py` exports `manifest: FeatureManifest`
+  - `nova_core/client/modlog.py` deleted; `nova_core/client/__init__.py` has no modlog import
+  - `on_member_join` fires both welcome message (events.py) and modlog embed (manifest handler)
+  - `docker compose run tests` passes

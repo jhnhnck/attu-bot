@@ -85,7 +85,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `medium priority` `medium effort` add tests for client/starboard.py (69%) - 168 missed statements; reaction cascade and embed rendering paths
 - ⭕ `medium priority` `medium effort` add tests for client/markers.py (68%) - 39 missed statements in marker parsing/validation
 - ⭕ `medium priority` `medium effort` add tests for shared-models/attu_models/repositories.py (69%) - 167 missed statements across repository methods
-- ⭕ `low priority` `medium effort` add tests for client/modlog.py (77%) - 62 missed statements in mod log embed/event paths
+- ⭕ `low priority` `medium effort` add tests for nova_core/modlog/handlers.py (77%) - 62 missed statements in mod log embed/event paths
 - ⭕ `low priority` `medium effort` add tests for tasks/message_backfill.py (71%) - 49 missed statements in batched fetch loop
 - ⭕ `low priority` `medium effort` add tests for commands/wiki.py (69%) - 42 missed statements in lookup pagination view
 - ⭕ `low priority` `medium effort` add tests for commands/trees.py (73%) - 65 missed statements across link/share/unshare paths
