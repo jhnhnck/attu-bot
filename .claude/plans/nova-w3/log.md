@@ -246,3 +246,19 @@ none new. `rule-codes-in-selectors` already in bugs.md.
 - phase 6 (starboard): revise -- add scope bullet: "verify before coding: check `setup=commands.stars.setup` for circular-import; trees and wiki both required a `_setup_commands` deferred-import wrapper to prevent cycle -- apply same pattern if starboard's setup import creates a cycle." no other scope change; event-handler, task-presence, test-file-compensation, and prod-config notes intact.
 - phase 5 status: in progress -> closed in c5a3c2d.
 
+
+## starting phase 6 — 2026-08-14
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3
+- branch: phase/nova-w3
+- parent branch: trunk
+- merge gate check: phase 5 closed in 5447e12 ✓; attu_models/__init__.py and nova_core/database/__init__.py at trunk HEAD ✓; ccboard stability in primary guild — to be confirmed at merge time
+- scope confirmed unchanged per post-phase-5 revision; deferred-import pre-check added for setup
+
+**confirmed dod:**
+- nova_core/starboard/__init__.py exports manifest: FeatureManifest
+- client/events.py contains no starboard imports or _starboard_enabled
+- if starboard tasks were found in register_bot_tasks(): confirmed removed; test files updated to assert manifest.tasks
+- attu_models/documents.py and attu_models/repositories.py contain no feature-specific classes (grep for Egg, Reaction, Entry, Family, Reminder, WikiView, StarredMessage returns zero hits)
+- nova_core/database/__init__.py exports only infra, platform-service, and attu-specific classes
+- docker compose run tests passes
+

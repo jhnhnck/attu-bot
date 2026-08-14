@@ -230,7 +230,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 | 3 — wiki (package extraction) | closed in 6856189 |
 | 4 — reminders | closed in 044727d |
 | 5 — trees | closed in 5447e12 |
-| 6 — starboard | not started |
+| 6 — starboard | in progress |
 
 ---
 

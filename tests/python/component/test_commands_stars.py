@@ -15,7 +15,8 @@ import pytest
 import pytest_asyncio
 
 from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
-from nova_core.database.repositories import MessageRepository, StarboardRepository
+from nova_core.database.repositories import MessageRepository
+from nova_core.starboard.repositories import StarboardRepository
 
 
 pytestmark = pytest.mark.component
