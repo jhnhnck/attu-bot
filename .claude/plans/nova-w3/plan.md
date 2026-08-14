@@ -203,6 +203,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 - move `StarboardRepository` to `nova_core/starboard/repositories.py`
 - move `nova_core/client/starboard.py` to `nova_core/starboard/handlers.py`; update internal imports
 - verify before coding: check whether starboard has any tasks currently in `register_bot_tasks()`; if yes, add `tasks=[...]` to manifest declaration and add task-removal dod item below
+- verify before coding: check `setup=commands.stars.setup` for circular-import; trees and wiki both required a `_setup_commands` deferred-import wrapper to prevent a cycle -- apply same pattern if starboard's setup import creates a cycle
 - declare `manifest` in `nova_core/starboard/__init__.py`: `event_handlers={'on_raw_reaction_add': ..., 'on_raw_reaction_remove': ..., 'on_raw_reaction_clear': ..., 'on_raw_reaction_clear_emoji': ...}`, `setup=commands.stars.setup`, `guild_config_key='starboard'`, `guild_config_model=GuildStarboard`, `document_classes=[StarredMessageDocument]`, `repository_classes=[StarboardRepository]`, plus `tasks=[...]` if confirmed above
 - remove starboard event handlers and `_starboard_enabled` from `client/events.py`
 - remove `StarredMessageDocument`, `StarboardRepository` from `attu_models`; remove from `nova_core/database/__init__.py`
@@ -228,7 +229,7 @@ three risks named in `pre-mortem.md` are accepted going in. first: the repo inje
 | 2 — modlog | closed in 034ccd1 |
 | 3 — wiki (package extraction) | closed in 6856189 |
 | 4 — reminders | closed in 044727d |
-| 5 — trees | in progress |
+| 5 — trees | closed in c5a3c2d |
 | 6 — starboard | not started |
 
 ---

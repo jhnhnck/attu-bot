@@ -221,3 +221,27 @@ none.
 - if trees tasks were found in register_bot_tasks(): confirmed removed; test files updated to assert manifest.tasks
 - docker compose run tests passes
 
+## phase 5 retro — 2026-08-14
+
+### what landed vs spec
+
+- all dod items delivered: `nova_core/trees/__init__.py` exports manifest with `setup=_setup_commands` (deferred-import wrapper), `document_classes=[FamilyDocument]`, `repository_classes=[FamilyRepository]`; `FamilyDocument`, `FamilyRepository` live exclusively in `nova_core/trees/`; `nova_core/client/families.py` deleted; 1273 unit + 180 component tests pass (unchanged from phase 4 baseline).
+- trees tasks were confirmed absent from `register_bot_tasks()` before coding; task-removal dod item is n/a -- not a gap, pre-coding verification worked as designed.
+- actual import-site caller was `commands/link.py`, not `commands/trees.py` as plan text implied; plan's "any callers of `nova_core.client.families`" catch-all covered it -- intentional narrowing in plan was slightly misnamed, not a scope gap.
+
+### what surprised us
+
+- `setup=commands.trees.setup` direct reference caused a circular-import; resolved by wrapping as `_setup_commands` deferred-import function in `__init__.py`, consistent with the circular-import guard pattern already in nova-core. plan text assumed direct reference; deferred-import is now confirmed as the standard for features whose setup touches the commands namespace.
+- `commands/link.py` (not `commands/trees.py`) was the real caller of `nova_core.client.families`; plan named the wrong file. git rename detection confirmed `nova_core/client/families.py` -> `nova_core/trees/families.py` at 100% similarity; diff was minimal.
+- no tasks existed in `register_bot_tasks()` for trees; task-presence pre-coding check confirmed absent cleanly.
+- pre-existing pyproject.toml lint debt (`rule-codes-in-selectors`, 28+ instances) surfaced during implementation; logged in bugs.md at `317c0b0`; not introduced by this phase.
+
+### residual debt
+
+none new. `rule-codes-in-selectors` already in bugs.md.
+
+## revision after phase 5 — 2026-08-14
+
+- phase 6 (starboard): revise -- add scope bullet: "verify before coding: check `setup=commands.stars.setup` for circular-import; trees and wiki both required a `_setup_commands` deferred-import wrapper to prevent cycle -- apply same pattern if starboard's setup import creates a cycle." no other scope change; event-handler, task-presence, test-file-compensation, and prod-config notes intact.
+- phase 5 status: in progress -> closed in c5a3c2d.
+
