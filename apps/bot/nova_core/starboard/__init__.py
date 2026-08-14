@@ -138,19 +138,26 @@ def _setup_commands(bot) -> None:
     _setup(bot)
 
 
-from nova_core.manifest import FeatureManifest  # noqa: E402, I001 - deferred to break circular import: manifest->tasks->message_backfill->client.messages->database.models->starboard.documents->starboard
+def __getattr__(name: str):
+    # pep 562 lazy attribute - defers FeatureManifest import until first access to break
+    # circular import: manifest->tasks->message_backfill->client.messages->database.models->starboard.documents->starboard
+    if name == 'manifest':
+        from nova_core.manifest import FeatureManifest
 
-manifest = FeatureManifest(
-    name='starboard',
-    event_handlers={
-        'on_raw_reaction_add': _on_raw_reaction_add,
-        'on_raw_reaction_remove': _on_raw_reaction_remove,
-        'on_raw_reaction_clear': _on_raw_reaction_clear,
-        'on_raw_reaction_clear_emoji': _on_raw_reaction_clear_emoji,
-    },
-    setup=_setup_commands,
-    guild_config_key='starboard',
-    guild_config_model=GuildStarboard,
-    document_classes=[StarredMessageDocument],
-    repository_classes=[StarboardRepository],
-)
+        _manifest = FeatureManifest(
+            name='starboard',
+            event_handlers={
+                'on_raw_reaction_add': _on_raw_reaction_add,
+                'on_raw_reaction_remove': _on_raw_reaction_remove,
+                'on_raw_reaction_clear': _on_raw_reaction_clear,
+                'on_raw_reaction_clear_emoji': _on_raw_reaction_clear_emoji,
+            },
+            setup=_setup_commands,
+            guild_config_key='starboard',
+            guild_config_model=GuildStarboard,
+            document_classes=[StarredMessageDocument],
+            repository_classes=[StarboardRepository],
+        )
+        globals()['manifest'] = _manifest
+        return _manifest
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
