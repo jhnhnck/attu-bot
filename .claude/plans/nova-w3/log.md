@@ -182,3 +182,27 @@ phases 0 and 1 were implemented and retro'd in a prior session. the worktree and
 - test files that exercise register_bot_tasks() updated to assert manifest.tasks rather than direct task-object presence
 - docker compose run tests passes
 
+
+## phase 4 retro — 2026-08-14
+
+### what landed vs spec
+
+- all dod items delivered: `nova_core/reminders/__init__.py` exports manifest; `ReminderDocument`, `ReminderRepository` live exclusively in `nova_core/reminders/`; both removed from `attu_models` and `nova_core/database/__init__.py`; `reminder_task` removed from `register_bot_tasks()`; test files updated to assert `manifest.tasks`; 1273 unit + 180 component tests pass (baseline incremented by 1 new manifest test).
+- intentional scope narrowing: plan offered "shim or delete" for `nova_core/tasks/reminder.py`; implementer chose delete + update all import sites. no shim created.
+- test-file compensation (`manifest.tasks` assertion pattern) applied cleanly — no regressions; phase 1's 3 regressions did not recur.
+
+### what surprised us
+
+- git detected `tasks/reminder.py` → `reminders/task.py` as 95%-similar rename; diff was minimal and clean; no hidden coupling surfaced.
+- no circular-import pressure: confirmed in phase 3 revision that `nova_year.py` and `tasks/__init__.py` carry no reminders imports; holds. cleanest phase since modlog.
+- no new bugs.md items from implementation; no post-implement fixups required.
+
+### residual debt
+
+none.
+
+## revision after phase 4 — 2026-08-14
+
+- phase 5 (trees): valid — no scope change. task-presence verification note ("verify before coding: check whether trees has any tasks in `register_bot_tasks()`") remains appropriate; reminders had no such ambiguity (single known task, straightforward), whereas trees task presence remains unconfirmed. prod-config note (trees becomes feature-gated at migrate) intact.
+- phase 6 (starboard): valid — no scope change. task-presence note and event-handler cleanup scope unchanged; deprecation framing unchanged. prod-config note intact.
+- phase 4 status: in progress -> closed in 5ed3090.
