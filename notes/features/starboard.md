@@ -80,7 +80,7 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 
 ---
 
-## Key Functions (`apps/bot/doom_bot/client/starboard.py`)
+## Key Functions (`apps/bot/nova_core/starboard/handlers.py`)
 
 | Function | Purpose |
 |---|---|
