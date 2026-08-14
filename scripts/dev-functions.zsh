@@ -7,14 +7,15 @@
 #   plan-merge <slug>     merge a finished worktree branch into trunk and clean up
 #   plan-remove <slug>    drop a worktree branch without merging (abandoned / superseded)
 
-# resolve branch for a worktree slug via nameref; tries phase/<slug>, worktree-<slug>, then bare <slug>
+# resolve branch for a worktree slug; sets _plan_branch_result; tries phase/<slug>, worktree-<slug>, bare <slug>
+_plan_branch_result=''
 _plan_branch() {
-    local -n _ret=$1
-    local slug="$2"
+    local slug="$1"
     local candidate
+    _plan_branch_result=''
     for candidate in "phase/${slug}" "worktree-${slug}" "${slug}"; do
         if git show-ref --verify --quiet "refs/heads/${candidate}"; then
-            _ret="${candidate}"
+            _plan_branch_result="${candidate}"
             return 0
         fi
     done
@@ -28,11 +29,11 @@ plan-merge() {
         return 2
     fi
 
-    local branch
-    _plan_branch branch "$slug" || {
+    _plan_branch "$slug" || {
         print -u2 -- "plan-merge: no local branch for '${slug}' (tried phase/${slug}, worktree-${slug}, ${slug})"
         return 1
     }
+    local branch="${_plan_branch_result}"
 
     local current
     current="$(git symbolic-ref --short HEAD 2>/dev/null)"
@@ -60,11 +61,11 @@ plan-remove() {
         return 2
     fi
 
-    local branch
-    _plan_branch branch "$slug" || {
+    _plan_branch "$slug" || {
         print -u2 -- "plan-remove: no local branch for '${slug}' (tried phase/${slug}, worktree-${slug}, ${slug})"
         return 1
     }
+    local branch="${_plan_branch_result}"
 
     local wt=".claude/worktrees/${slug}"
     if [[ -d "$wt" ]]; then
