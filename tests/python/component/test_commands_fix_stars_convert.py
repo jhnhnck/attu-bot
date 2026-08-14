@@ -15,10 +15,8 @@ from nova_core.database.models import (
     MessageRefs,
     StarredMessageDocument,
 )
-from nova_core.database.repositories import (
-    MessageRepository,
-    StarboardRepository,
-)
+from nova_core.database.repositories import MessageRepository
+from nova_core.starboard.repositories import StarboardRepository
 
 
 pytestmark = pytest.mark.component

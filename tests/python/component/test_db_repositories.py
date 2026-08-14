@@ -28,10 +28,10 @@ from nova_core.database.repositories import (
     ConfigRepository,
     MessageRepository,
     ReloadSignalRepository,
-    StarboardRepository,
     YearMarkerRepository,
     YearRepository,
 )
+from nova_core.starboard.repositories import StarboardRepository
 
 
 pytestmark = pytest.mark.component
