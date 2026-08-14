@@ -47,6 +47,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 - ⭕ `medium priority` `medium effort` add optional filters to /wiki random to restrict to pages within a category
 - ⭕ `low priority` `medium effort` add where you can cycle through the different sections on the page (up and down arrows maybe?)
+- ⭕ `low priority` `low effort` move `wire_wiki_command_repo` wiring from `nova_core/wiki/repositories.py` into `nova_core/wiki/__init__.py` to remove the cross-module dep (`nova_core.wiki.repositories -> nova_core.commands`); consistent with how eggs and ccboard handle this wiring. carried from plan: nova-w3 (2026-08-14)
 
 ### debug commands
 
@@ -77,6 +78,11 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 - ⭕ `future idea` `medium effort` discord oauth login for wiki apps (trees editor, other external tools); was previously wired through the deleted webauthn/passkey web admin flow; revisit when building the new web layer
+- ⭕ `low priority` `low effort` standalone lint-cleanup pass: fix RUF105 (noqa format, 47+ codebase-wide instances) and PLW0717 (too-many-statements-in-try-clause, 30+ instances across `apps/bot/`); pre-existing debt carried verbatim into `nova_core/modlog/handlers.py` from `client/modlog.py`; ruff --fix cannot auto-resolve PLW0717 (requires extracting inner blocks). carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `low effort` same standalone lint-cleanup pass: PLW0717 in `nova_core/client/events.py` - `_restore_wiki_views` (18+ stmts), `_do_ready_init` try blocks (7 and 9 stmts); three `too-many-statements-in-try-clause` violations; pre-existing, unchanged by any nova-w3 phase. carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `low effort` standalone pyproject.toml update: fix rule-codes-in-selectors violations (28+ instances) - ruff now requires rule names (e.g. `isort`) instead of rule codes (e.g. `I001`) in `lint.ignore` and `lint.per-file-ignores`; pre-existing, none introduced by nova-w3. carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `low effort` same standalone lint-cleanup pass: RUF103 invalid suppression syntax (use `# noqa: CODE` not `# ruff: ignore[...]`) in `events.py` lines 28/102 and `wiki/__init__.py` lines 15/29; also S108/PLR0915/PLW0603/S105 in `events.py`, `wiki/__init__.py`, and `test_wiki_http.py`; pre-existing, none introduced by nova-w3. carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `low effort` update stale forward-looking references in `notes/nova-core.md`: line 84 (`_restore_wiki_views` was not moved to a run-once task in nova-w3 - it stayed in `client/events.py` importing from `nova_core.wiki`); line 98 (loader eager-import warning was written for nova-w3 which has now shipped - rephrase as a standing invariant); toml `enabled` example still shows short names instead of full `nova_core.*` paths. carried from plan: nova-w3 (2026-08-14)
 
 ### code audits
 
@@ -217,6 +223,6 @@ bugs go in `notes/bugs.md`, not here. this file is for features, refactors, audi
 ### metadata
 
 ```yaml
-last_updated: 20 July 2026
+last_updated: 14 August 2026
 total_completed: 73
 ```

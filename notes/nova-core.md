@@ -95,7 +95,37 @@ def init_repos(db) -> None:
 
 **bridge-health no-op pattern (nova-w2 phase 2):** services wired by fastapi `@app.get()` (or equivalent) decorators at module import time need only a no-op `BasePackageSpec(name=..., tasks=[], setup=None)`. the route is already registered when the router module is imported; there is nothing for `load_base` to invoke. applies to any fastapi route wired by a decorator at module level — the decorator side-effect is the registration.
 
-**loader eager imports (nova-w2 phase 2):** task classes in `BASE_PACKAGE` are imported at module level in `nova_core/loader.py`, which cascades through `nova_core/tasks/__init__.py` and creates module-level singletons at import time. safe (no circular imports, no unexpected side effects) but nova-w3 should be aware that adding new task module imports to `loader.py` carries the same cascade.
+**loader eager imports (nova-w2 phase 2):** task classes in `BASE_PACKAGE` are imported at module level in `nova_core/loader.py`, which cascades through `nova_core/tasks/__init__.py` and creates module-level singletons at import time. safe (no circular imports, no unexpected side effects) but adding new task module imports to `loader.py` carries the same cascade.
+
+**deferred-import setup pattern (nova-w3):** `setup=commands.feature.setup` is not safe at module level when `commands.feature` imports back into `nova_core.feature`. the loader calls `setup(bot)` after the manifest is already in memory, so the cycle only manifests if the import of `commands.feature` occurs at module load time. fix: wrap as a local-import function:
+
+```python
+def _setup_commands(bot) -> None:
+    import nova_core.commands.myfeature as m
+    m.setup(bot)
+
+manifest = FeatureManifest(
+    ...
+    setup=_setup_commands,
+)
+```
+
+confirmed standard for trees, wiki, and starboard. any feature whose `commands/` module imports from the feature package itself requires this pattern.
+
+**pep 562 lazy manifest pattern (nova-w3):** when `nova_core/database/models.py` re-exports a feature's document class, importing `FeatureManifest` at module level in that feature's `__init__.py` creates a load-time cycle (`manifest -> database.models -> feature.__init__ -> manifest`). deferring the `FeatureManifest` import to the bottom of the file is insufficient - the cycle still closes at import time because `database/models.py` was already being imported at manifest init. the fix is pep 562 `__getattr__` in the feature's `__init__.py` to lazily construct `manifest` on first attribute access:
+
+```python
+# nova_core/myfeature/__init__.py
+from nova_core.myfeature.documents import MyDocument
+
+def __getattr__(name: str):
+    if name == "manifest":
+        from nova_core.manifest import FeatureManifest
+        # ... build and return manifest
+    raise AttributeError(name)
+```
+
+applies when `database/models.py` re-exports a feature document. the asymmetry with `database/repositories.py` (which may not need the re-export removed) exists because documents are pure pydantic with no manifest dependency, while repositories may depend on `FeatureManifest` indirectly. confirmed for `nova_core/starboard/__init__.py`.
 
 **per-bot feature selection:** `[features]` list in the toml. missing features have no manifest loaded; no core edits required to add or remove a feature.
 
