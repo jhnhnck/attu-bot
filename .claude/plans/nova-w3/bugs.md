@@ -7,6 +7,7 @@
 - **design nit: `wire_wiki_command_repo` in repositories.py wires nova_core.commands.wiki** — creates a `nova_core.wiki.repositories` → `nova_core.commands` cross-module dep. eggs/ccboard keep this wiring in `__init__.py`. originally forced by the 30-line shim constraint; the 32-line overage is now accepted as the permanent floor, so the line-count driver is moot. disposition: **defer** — move wiring into `nova_core/wiki/__init__.py` in a future cleanup pass; low risk; not a blocker for any downstream phase.
 
 - **lint-debt: rule-codes-in-selectors (pyproject.toml)** — ruff now requires rule names (e.g. `isort`) instead of codes (e.g. `I001`) in `lint.ignore` and `lint.per-file-ignores`; 28+ violations across `pyproject.toml` lint config blocks. pre-existing; none introduced by nova-w3. disposition: **defer** — update pyproject.toml rule codes to names in a standalone lint-cleanup pass; not a blocker for any downstream phase.
+- **lint-debt: RUF103 invalid suppression comments + S108/PLR0915/PLW0603/S105 across events.py, wiki/__init__.py, test_wiki_http.py** — pre-existing; all use `# ruff: ignore[...]` syntax which ruff does not recognize (RUF103); also S108 hardcoded temp path in events.py, PLR0915 (too many statements), PLW0603 (global statement), S105 (hardcoded password in test). none introduced by any nova-w3 phase. disposition: **defer** — same standalone lint-cleanup pass; not a blocker for any downstream phase.
 
 ## closed
 
