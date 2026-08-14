@@ -6,7 +6,6 @@ import asyncio
 import structlog
 
 from nova_core.config import GuildStarboard
-from nova_core.manifest import FeatureManifest
 from nova_core.starboard.documents import StarredMessageDocument
 from nova_core.starboard.repositories import StarboardRepository
 
@@ -138,6 +137,8 @@ def _setup_commands(bot) -> None:
 
     _setup(bot)
 
+
+from nova_core.manifest import FeatureManifest  # noqa: E402, I001 - deferred to break circular import: manifest->tasks->message_backfill->client.messages->database.models->starboard.documents->starboard
 
 manifest = FeatureManifest(
     name='starboard',
