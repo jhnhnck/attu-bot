@@ -262,3 +262,28 @@ none new. `rule-codes-in-selectors` already in bugs.md.
 - nova_core/database/__init__.py exports only infra, platform-service, and attu-specific classes
 - docker compose run tests passes
 
+
+## phase 6 retro — 2026-08-14
+
+### what landed vs spec
+
+- all confirmed dod items delivered: `nova_core/starboard/__init__.py` exports manifest via PEP 562 `__getattr__` (lazy) with 4 event_handlers, setup, guild_config_key, guild_config_model, document_classes, repository_classes; `client/events.py` contains no starboard imports or `_starboard_enabled`; no starboard tasks existed in `register_bot_tasks()` (confirmed absent pre-coding, n/a); cross-plan final dod met -- grep for `Egg|Reaction|Entry|Family|Reminder|WikiView|StarredMessage` in `attu_models/documents.py` and `attu_models/repositories.py` returns zero hits; `nova_core/database/__init__.py` exports only infra, platform-service, and attu-specific classes; 1274 unit (+1 new), 180 component tests pass.
+- backward-compat shim in `nova_core/client/starboard.py` was added then removed; scope narrowed to direct retargeting of all 7 app import sites and all 7 test files to `nova_core.starboard.handlers` -- more sites than similar phases but the pattern was straightforward.
+- `nova_core/database/models.py` retains the `StarredMessageDocument` re-export; accepted asymmetry with repositories -- justified, see "what surprised us".
+
+### what surprised us
+
+- shim-then-remove approach: backward-compat shim added, then removed when direct retargeting proved simpler; added one implementation pass but no functional consequence.
+- two circular imports required 3 fix passes: (1) `StarboardRepository` re-export removed from `nova_core/database/repositories.py`; 4 test files retargeted to `nova_core.starboard.repositories`; (2) deferred-to-bottom `FeatureManifest` import (the pattern that worked in phases 1-5) was insufficient -- `manifest->database.models->starboard->manifest` still closed the cycle at import time; PEP 562 `__getattr__` in `nova_core/starboard/__init__.py` was required to break it lazily.
+- `nova_core/database/models.py` retains `StarredMessageDocument` re-export while `nova_core/database/repositories.py` had its `StarboardRepository` re-export removed -- the asymmetry is justified: `starboard.documents` is pure Pydantic with no manifest dependency (safe re-export); `starboard.repositories` depends on `FeatureManifest` indirectly (removal required to break the cycle). not promoted to bugs.md -- the asymmetry has a concrete technical basis and is documented here for future readers.
+
+### residual debt
+
+none new. existing lint debt in bugs.md unchanged by this phase.
+
+## revision after phase 6 — 2026-08-14
+
+- no downstream phases remain; all phases 0-6 are complete.
+- plan is shipdown-ready: merge `phase/nova-w3` to trunk, then update toml `[features].enabled` in prod config to explicitly include `nova_core.modlog`, `nova_core.wiki`, `nova_core.trees`, `nova_core.starboard` (each was unconditionally loaded before this workstream; now feature-gated via manifest; omitting any one means its handlers will not fire).
+- bugs.md: 5 open items, all pre-existing lint debt or low-risk design nits; no downstream phase will absorb them; updated with plan-wide dispositions.
+- phase 6 status: in progress -> pending merge.
