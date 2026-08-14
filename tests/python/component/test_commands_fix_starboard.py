@@ -52,7 +52,7 @@ async def fix_sb_repos(component_db, make_guild):
     cfg.starboard.channel_id = sb_channel
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
-    import nova_core.client.starboard as _starboard
+    import nova_core.starboard.handlers as _starboard
 
     _starboard._starboard_repo = sb_repo
 

@@ -688,7 +688,7 @@ class TestLogDelete:
         mock_sb_repo.get_by_starboard_message = AsyncMock(return_value=sb_doc)
 
         logs_ch = _make_logs_channel()
-        with patch('nova_core.client.messages._get_logs_channel', return_value=logs_ch), patch('nova_core.client.starboard._get_repo', return_value=mock_sb_repo):
+        with patch('nova_core.client.messages._get_logs_channel', return_value=logs_ch), patch('nova_core.starboard.handlers._get_repo', return_value=mock_sb_repo):
             await log_delete(_make_raw_delete_payload())
 
         mock_message_repo.mark_deleted.assert_not_called()

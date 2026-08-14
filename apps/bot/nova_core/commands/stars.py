@@ -22,7 +22,7 @@ leaderboard_group = stars_group.create_subgroup('leaderboard', 'Starboard leader
 
 
 def _get_sb_repo():
-    from nova_core.client.starboard import _get_repo
+    from nova_core.starboard.handlers import _get_repo
 
     return _get_repo()
 
@@ -112,7 +112,7 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
         await ctx.respond(f'no messages found with {label} {ui_emoji("rockball_player")}', ephemeral=True)
         return
 
-    from nova_core.client.starboard import build_content, build_embeds, dominant_color
+    from nova_core.starboard.handlers import build_content, build_embeds, dominant_color
 
     msg_repo = _get_msg_repo()
     msg_doc = await msg_repo.get(doc.message_id)
@@ -240,7 +240,7 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
 @discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
 async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PLR0911 — branchy validation chain with one early-return per precondition failure
-    from nova_core.client.starboard import backfill_message_reactions, parse_jump_url
+    from nova_core.starboard.handlers import backfill_message_reactions, parse_jump_url
 
     parsed = parse_jump_url(message_link.strip())
     if parsed is None:

@@ -12,9 +12,9 @@ from discord.ext import commands
 
 from nova_core.client import messages
 from nova_core.client.core import bot, config
-from nova_core.client.starboard import _get_repo as _get_sb_repo
-from nova_core.client.starboard import _sync_starboard_post
 from nova_core.client.util import is_bot_owner
+from nova_core.starboard.handlers import _get_repo as _get_sb_repo
+from nova_core.starboard.handlers import _sync_starboard_post
 from nova_core.tasks import LogoUpdateTask, scheduler
 from nova_core.tasks.message_backfill import MessageBackfillTask
 from nova_core.tasks.nova_year import job_construct_year_links
@@ -190,8 +190,8 @@ async def fix_author_names(ctx: ApplicationContext, user: discord.User | None = 
 async def job_recount_starboard(guild_id: int, status_msg: discord.Message | None = None):  # noqa: PLR0912, PLR0915 - live discord fetch loop with many error/skip branches
     """fetch live reaction counts from discord for all starred messages and rebuild per-user reaction lists."""
     from nova_core.client.core import bot, config
-    from nova_core.client.starboard import _get_repo as _get_sb_repo
     from nova_core.database.models import StarredMessageDocument
+    from nova_core.starboard.handlers import _get_repo as _get_sb_repo
 
     try:
         guild_config = config.guild(guild_id)
@@ -300,7 +300,7 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
 
 async def job_regen_starboard(guild_id: int, status_msg: discord.Message | None = None):
     from nova_core.client.core import config
-    from nova_core.client.starboard import _sync_starboard_post
+    from nova_core.starboard.handlers import _sync_starboard_post
 
     try:
         guild_config = config.guild(guild_id)
@@ -409,10 +409,10 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
     from discord.utils import time_snowflake
 
     from nova_core.client.core import bot, config
-    from nova_core.client.starboard import _get_repo as _get_sb_repo_inner
-    from nova_core.client.starboard import _sync_starboard_post as _sync_post
-    from nova_core.client.starboard import parse_jump_url
     from nova_core.database.models import StarredMessageDocument
+    from nova_core.starboard.handlers import _get_repo as _get_sb_repo_inner
+    from nova_core.starboard.handlers import _sync_starboard_post as _sync_post
+    from nova_core.starboard.handlers import parse_jump_url
 
     try:
         guild_config = config.guild(guild_id)
@@ -563,7 +563,7 @@ async def fix_starboard_recover(ctx: ApplicationContext, days: int = 7):
 @commands.check(is_bot_owner)
 async def fix_starboard_recount(ctx: ApplicationContext):
     try:
-        from nova_core.client.starboard import _get_repo
+        from nova_core.starboard.handlers import _get_repo
 
         _get_repo()
     except RuntimeError:
@@ -593,7 +593,7 @@ async def fix_starboard_regen(ctx: ApplicationContext):
 @commands.check(is_bot_owner)
 @discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
 async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
-    from nova_core.client.starboard import parse_jump_url
+    from nova_core.starboard.handlers import parse_jump_url
 
     parsed = parse_jump_url(message_link)
     if parsed is None:
@@ -688,7 +688,7 @@ async def fix_ccboard_regen(ctx: ApplicationContext):
 @discord.commands.option(name='message_link', required=True, description='Discord message link to purge', input_type=str)
 async def fix_ccboard_purge(ctx: ApplicationContext, message_link: str):
     from nova_core import ccboard
-    from nova_core.client.starboard import parse_jump_url
+    from nova_core.starboard.handlers import parse_jump_url
 
     parsed = parse_jump_url(message_link)
     if parsed is None:
@@ -762,7 +762,7 @@ async def fix_ccboard_cleanup(ctx: ApplicationContext, confirm: bool = False):
 @discord.commands.option(name='confirm', required=False, default=False, description='When true, applies the diff; default is dry-run', input_type=bool)
 async def fix_ccboard_recount(ctx: ApplicationContext, message_link: str | None = None, confirm: bool = False):
     from nova_core.ccboard.auditor import auditor_task
-    from nova_core.client.starboard import parse_jump_url
+    from nova_core.starboard.handlers import parse_jump_url
 
     if message_link is None:
         result = await auditor_task.reconcile_guild(ctx.guild.id, dry_run=not confirm)

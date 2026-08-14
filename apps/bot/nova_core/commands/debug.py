@@ -346,7 +346,7 @@ async def debug_progress_bar(ctx: ApplicationContext):
 @discord.commands.option(name='message_link', required=True, description='Discord message link', input_type=str)
 async def debug_ccboard_show_reactions(ctx: ApplicationContext, message_link: str):
     from nova_core import ccboard
-    from nova_core.client.starboard import parse_jump_url
+    from nova_core.starboard.handlers import parse_jump_url
 
     parsed = parse_jump_url(message_link)
     if parsed is None:

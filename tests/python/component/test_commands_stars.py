@@ -73,7 +73,7 @@ async def stars_repos(component_db, make_guild):
     cfg.starboard.emojis = {'⭐': '#EEDD20'}
 
     import nova_core.client.messages as _messages
-    import nova_core.client.starboard as _starboard
+    import nova_core.starboard.handlers as _starboard
 
     _starboard._starboard_repo = sb_repo
     _messages._message_repo = msg_repo
@@ -195,7 +195,7 @@ class TestStarsRandom:
 
         from nova_core.commands.stars import stars_random
 
-        with patch('nova_core.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('nova_core.starboard.handlers.build_embeds', new=AsyncMock(return_value=[])):
             await stars_random(ctx)
 
         assert len(ctx._responses) == 1
@@ -231,7 +231,7 @@ class TestStarsRandom:
 
         from nova_core.commands.stars import stars_lost
 
-        with patch('nova_core.client.starboard.build_embeds', new=AsyncMock(return_value=[])):
+        with patch('nova_core.starboard.handlers.build_embeds', new=AsyncMock(return_value=[])):
             await stars_lost(ctx)
 
         assert len(ctx._responses) == 1
@@ -272,7 +272,7 @@ class TestStarsRecheck:
         with (
             patch('nova_core.client.core.bot') as mock_bot,
             patch('nova_core.client.messages.build_message_doc', new=AsyncMock(return_value=stored_doc)),
-            patch('nova_core.client.starboard.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
+            patch('nova_core.starboard.handlers.backfill_message_reactions', new=AsyncMock()) as mock_backfill,
         ):
             mock_bot.get_channel.return_value = fake_channel
 

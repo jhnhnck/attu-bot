@@ -10,7 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nova_core.client.starboard import (
+from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
+from nova_core.starboard.handlers import (
     _check_and_announce_sweep,
     _count_streak,
     _fmt_count,
@@ -27,7 +28,6 @@ from nova_core.client.starboard import (
     parse_jump_url,
     parse_starboard_content,
 )
-from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, MessageRefs, StarredMessageDocument
 
 
 # ---- constants ----
@@ -335,7 +335,7 @@ def make_starboard_guild(make_guild):
 
 
 async def test_handle_star_add_self_star_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -350,7 +350,7 @@ async def test_handle_star_add_self_star_ignored(make_starboard_guild, mock_sb_a
 
 
 async def test_handle_star_add_unconfigured_emoji_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -362,7 +362,7 @@ async def test_handle_star_add_unconfigured_emoji_ignored(make_starboard_guild, 
 
 
 async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -374,7 +374,7 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
     updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     sb_repo.upsert.assert_called_once()
@@ -383,7 +383,7 @@ async def test_handle_star_add_creates_document_and_adds_reaction(make_starboard
 
 
 async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -399,7 +399,7 @@ async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make
     updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         # reaction is on the STARBOARD channel/message, not the original
         await handle_star_add(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
 
@@ -408,7 +408,7 @@ async def test_handle_star_add_reaction_on_starboard_post_resolves_original(make
 
 
 async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -421,7 +421,7 @@ async def test_handle_star_add_message_not_in_db_ignored(make_starboard_guild, m
 
 
 async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_remove
+    from nova_core.starboard.handlers import handle_star_remove
 
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -429,7 +429,7 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
     updated = _make_star_doc(reactions={emoji_star: []}, total_reactions=0)
     sb_repo.remove_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_remove(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_a)
@@ -438,7 +438,7 @@ async def test_handle_star_remove_updates_document(make_starboard_guild, mock_sb
 
 async def test_handle_star_remove_bot_initiated_ignored(make_starboard_guild, mock_sb_and_msg_repos):
     """bot-initiated removals (self-star, duplicate cleanup) must not decrement the original message's reactions"""
-    from nova_core.client.starboard import _pending_bot_removals, handle_star_remove
+    from nova_core.starboard.handlers import _pending_bot_removals, handle_star_remove
 
     sb_repo, _msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -446,7 +446,7 @@ async def test_handle_star_remove_bot_initiated_ignored(make_starboard_guild, mo
     # simulate the bot registering a pending removal (as _remove_reaction_from_discord does)
     _pending_bot_removals.add((test_starboard_channel, test_starboard_msg, user_a, emoji_star))
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_remove(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
 
     # the pending key should be consumed and no DB mutation should happen
@@ -457,7 +457,7 @@ async def test_handle_star_remove_bot_initiated_ignored(make_starboard_guild, mo
 
 async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboard_guild, mock_sb_and_msg_repos):
     """user manually removing their reaction from the starboard post should decrement the original"""
-    from nova_core.client.starboard import handle_star_remove
+    from nova_core.starboard.handlers import handle_star_remove
 
     sb_repo, _msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -470,7 +470,7 @@ async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboar
     updated_doc = _make_star_doc(message_id=test_message)
     sb_repo.remove_reaction = AsyncMock(return_value=updated_doc)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_remove(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_b, emoji_str=emoji_star)
 
     sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_b)
@@ -485,8 +485,8 @@ response_msg_id = 333000333000333000
 
 
 async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
     from nova_core.config import GuildStarboard
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     cfg = make_starboard_guild()
@@ -498,7 +498,7 @@ async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make
     existing_doc = _make_star_doc(reactions={emoji_star: [user_a]})
     sb_repo.get = AsyncMock(return_value=existing_doc)
 
-    with patch('nova_core.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_glow)
 
     sb_repo.add_reaction.assert_not_called()
@@ -507,7 +507,7 @@ async def test_handle_star_add_second_emoji_ignored_when_user_already_voted(make
 
 
 async def test_handle_star_add_self_star_auto_removes(make_starboard_guild, mock_sb_and_msg_repos):
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -516,7 +516,7 @@ async def test_handle_star_add_self_star_auto_removes(make_starboard_guild, mock
     msg_repo.get = AsyncMock(return_value=msg_doc)
     sb_repo.get = AsyncMock(return_value=None)
 
-    with patch('nova_core.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
+    with patch('nova_core.starboard.handlers._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
     mock_remove.assert_called_once_with(test_channel, test_message, user_a, emoji_star)
@@ -525,7 +525,7 @@ async def test_handle_star_add_self_star_auto_removes(make_starboard_guild, mock
 
 async def test_handle_star_add_self_star_on_star_response_uses_orig_ids(make_starboard_guild, mock_sb_and_msg_repos):
     """self-star via a /star response message must remove from the response msg id, not the original"""
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -539,7 +539,7 @@ async def test_handle_star_add_self_star_on_star_response_uses_orig_ids(make_sta
     msg_repo.get = AsyncMock(side_effect=_msg_get)
     sb_repo.get = AsyncMock(return_value=None)
 
-    with patch('nova_core.client.starboard._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
+    with patch('nova_core.starboard.handlers._remove_reaction_from_discord', new_callable=AsyncMock) as mock_remove:
         await handle_star_add(test_guild, test_channel, response_msg_id, user_id=user_a, emoji_str=emoji_star)
 
     # remove must target the response message the user actually reacted on
@@ -548,8 +548,8 @@ async def test_handle_star_add_self_star_on_star_response_uses_orig_ids(make_sta
 
 
 async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import _sync_starboard_post
     from nova_core.config import GuildStarboard
+    from nova_core.starboard.handlers import _sync_starboard_post
 
     cfg = make_starboard_guild()
     cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color, emoji_glow: emoji_glow_color})
@@ -559,7 +559,7 @@ async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild,
     channel = AsyncMock()
     msg_doc = _make_msg_doc()
 
-    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
@@ -569,7 +569,7 @@ async def test_sync_no_post_when_two_emojis_from_same_user(make_starboard_guild,
 
 
 async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import _sync_starboard_post
+    from nova_core.starboard.handlers import _sync_starboard_post
 
     cfg = make_starboard_guild()
     doc = _make_star_doc(reactions={emoji_star: [user_a, user_b]}, weighted_total=2.0)
@@ -580,7 +580,7 @@ async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_
     channel.send = AsyncMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]), patch('nova_core.client.starboard._check_and_announce_sweep', new_callable=AsyncMock):
+    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers.build_embeds', new_callable=AsyncMock, return_value=[]), patch('nova_core.starboard.handlers._check_and_announce_sweep', new_callable=AsyncMock):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
@@ -591,7 +591,7 @@ async def test_sync_creates_post_when_two_users_react_same_emoji(make_starboard_
 
 
 async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import _sync_starboard_post
+    from nova_core.starboard.handlers import _sync_starboard_post
 
     cfg = make_starboard_guild()
     # post exists but only one user reacted - max per-emoji weight is 1.0 < 2
@@ -602,7 +602,7 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
     channel.get_partial_message = MagicMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
         mock_sb_repo.set_starboard_message = AsyncMock()
@@ -615,7 +615,7 @@ async def test_sync_deletes_post_when_falls_below_threshold(make_starboard_guild
 
 
 async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import _sync_starboard_post
+    from nova_core.starboard.handlers import _sync_starboard_post
 
     cfg = make_starboard_guild()
     # post exists and two users reacted - max per-emoji weight is 2.0 >= 2
@@ -626,7 +626,7 @@ async def test_sync_does_not_delete_post_at_threshold(make_starboard_guild, mock
     channel.get_partial_message = MagicMock(return_value=sb_msg)
     msg_doc = _make_msg_doc()
 
-    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]):
+    with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers.build_embeds', new_callable=AsyncMock, return_value=[]):
         mock_bot.get_channel = MagicMock(return_value=channel)
         mock_msg_repo.get = AsyncMock(return_value=msg_doc)
 
@@ -658,8 +658,8 @@ def _make_discord_user(user_id: int, *, bot: bool = False) -> MagicMock:
 
 async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb_repo):
     """user who reacted with two emojis: only first emoji counted, second auto-removed"""
-    from nova_core.client.starboard import backfill_message_reactions
     from nova_core.config import GuildStarboard
+    from nova_core.starboard.handlers import backfill_message_reactions
 
     cfg = make_starboard_guild()
     cfg.starboard = GuildStarboard(channel_id=test_starboard_channel, emojis={emoji_star: emoji_color, emoji_glow: emoji_glow_color})
@@ -677,7 +677,7 @@ async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb
     mock_sb_repo.get = AsyncMock(return_value=None)
     mock_sb_repo.upsert = AsyncMock()
 
-    with patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
         await backfill_message_reactions(message, test_guild)
 
@@ -693,7 +693,7 @@ async def test_backfill_enforces_one_vote_per_user(make_starboard_guild, mock_sb
 
 async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
     """author reacting to their own message is auto-removed during backfill"""
-    from nova_core.client.starboard import backfill_message_reactions
+    from nova_core.starboard.handlers import backfill_message_reactions
 
     make_starboard_guild()
 
@@ -708,7 +708,7 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
 
     mock_sb_repo.get = AsyncMock(return_value=None)
 
-    with patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.client.messages._message_repo') as mock_msg_repo, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         mock_msg_repo.get = AsyncMock(return_value=None)
         await backfill_message_reactions(message, test_guild)
 
@@ -723,14 +723,14 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
 
 
 async def test_handle_star_clear_wipes_reactions_and_syncs(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import handle_star_clear
+    from nova_core.starboard.handlers import handle_star_clear
 
     make_starboard_guild()
 
     updated = _make_star_doc(reactions={}, total_reactions=0, weighted_total=0.0)
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_clear(test_guild, test_channel, test_message)
 
     mock_sb_repo.clear_all_reactions.assert_called_once_with(test_message)
@@ -738,27 +738,27 @@ async def test_handle_star_clear_wipes_reactions_and_syncs(make_starboard_guild,
 
 
 async def test_handle_star_clear_no_doc_does_nothing(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import handle_star_clear
+    from nova_core.starboard.handlers import handle_star_clear
 
     make_starboard_guild()
 
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=None)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_clear(test_guild, test_channel, test_message)
 
     mock_sync.assert_not_called()
 
 
 async def test_handle_star_clear_emoji_removes_one_emoji(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import handle_star_clear_emoji
+    from nova_core.starboard.handlers import handle_star_clear_emoji
 
     make_starboard_guild()
 
     updated = _make_star_doc(reactions={}, total_reactions=0, weighted_total=0.0)
     mock_sb_repo.clear_emoji_reactions = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_clear_emoji(test_guild, test_channel, test_message, emoji_star)
 
     mock_sb_repo.clear_emoji_reactions.assert_called_once_with(test_message, emoji_star)
@@ -766,13 +766,13 @@ async def test_handle_star_clear_emoji_removes_one_emoji(make_starboard_guild, m
 
 
 async def test_handle_star_clear_emoji_ignores_unconfigured_emoji(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import handle_star_clear_emoji
+    from nova_core.starboard.handlers import handle_star_clear_emoji
 
     make_starboard_guild()
 
     mock_sb_repo.clear_emoji_reactions = AsyncMock()
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
         await handle_star_clear_emoji(test_guild, test_channel, test_message, '❤️')
 
     mock_sb_repo.clear_emoji_reactions.assert_not_called()
@@ -780,7 +780,7 @@ async def test_handle_star_clear_emoji_ignores_unconfigured_emoji(make_starboard
 
 
 async def test_handle_star_clear_redirects_starboard_channel(make_starboard_guild, mock_sb_repo):
-    from nova_core.client.starboard import handle_star_clear
+    from nova_core.starboard.handlers import handle_star_clear
 
     make_starboard_guild()
 
@@ -790,7 +790,7 @@ async def test_handle_star_clear_redirects_starboard_channel(make_starboard_guil
     updated = _make_star_doc(reactions={}, total_reactions=0, weighted_total=0.0)
     mock_sb_repo.clear_all_reactions = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_clear(test_guild, test_starboard_channel, test_starboard_msg)
 
     mock_sb_repo.get_by_starboard_message.assert_called_once_with(test_starboard_msg)
@@ -844,7 +844,7 @@ class TestRecountStarboard:
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
         # bot and _sync_starboard_post are imported inside the function, so patch at source
-        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)
 
@@ -898,7 +898,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), 'not found'))
 
-        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)  # must not raise
 
@@ -962,7 +962,7 @@ class TestRecountStarboard:
         orig_channel = AsyncMock()
         orig_channel.fetch_message = AsyncMock(return_value=orig_msg)
 
-        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
+        with patch('nova_core.client.core.bot') as mock_bot, patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock) as mock_sync:
             mock_bot.get_channel = MagicMock(return_value=orig_channel)
             await job_recount_starboard(test_guild)
 
@@ -977,7 +977,7 @@ class TestStarboardChannelFallthrough:
         """reaction on an unlinked message in the starboard channel should not be silently dropped"""
         from unittest.mock import AsyncMock, patch
 
-        from nova_core.client.starboard import handle_star_add
+        from nova_core.starboard.handlers import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -992,7 +992,7 @@ class TestStarboardChannelFallthrough:
         updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(test_guild, test_starboard_channel, test_message, user_id=user_a, emoji_str=emoji_star)
 
         # should NOT have been dropped - add_reaction must have been called
@@ -1002,7 +1002,7 @@ class TestStarboardChannelFallthrough:
         """reaction on a known starboard post should still redirect to the original message"""
         from unittest.mock import AsyncMock, patch
 
-        from nova_core.client.starboard import handle_star_add
+        from nova_core.starboard.handlers import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -1017,7 +1017,7 @@ class TestStarboardChannelFallthrough:
         updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(test_guild, test_starboard_channel, test_starboard_msg, user_id=user_a, emoji_str=emoji_star)
 
         # should have been redirected to the original message ID
@@ -1028,7 +1028,7 @@ class TestStarReferenceRedirect:
     async def test_handle_star_add_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
         from unittest.mock import AsyncMock, patch
 
-        from nova_core.client.starboard import handle_star_add
+        from nova_core.starboard.handlers import handle_star_add
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -1042,7 +1042,7 @@ class TestStarReferenceRedirect:
         updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1)
         sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-        with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_add(test_guild, test_channel, response_id, user_id=user_a, emoji_str=emoji_star)
 
         sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
@@ -1050,7 +1050,7 @@ class TestStarReferenceRedirect:
     async def test_handle_star_remove_uses_reference(self, make_starboard_guild, mock_sb_and_msg_repos):
         from unittest.mock import AsyncMock, patch
 
-        from nova_core.client.starboard import handle_star_remove
+        from nova_core.starboard.handlers import handle_star_remove
 
         sb_repo, msg_repo = mock_sb_and_msg_repos
         make_starboard_guild()
@@ -1060,7 +1060,7 @@ class TestStarReferenceRedirect:
         msg_repo.get = AsyncMock(return_value=response_doc)
         sb_repo.remove_reaction = AsyncMock(return_value=_make_star_doc(reactions={emoji_star: []}, total_reactions=0))
 
-        with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+        with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
             await handle_star_remove(test_guild, test_channel, response_id, user_id=user_a, emoji_str=emoji_star)
 
         sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_a)
@@ -1136,7 +1136,7 @@ def test_dominant_color_super_reaction_wins():
 
 async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=True must call add_super_reaction, not add_reaction"""
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -1148,7 +1148,7 @@ async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_gui
     updated = _make_star_doc(super_reactions={emoji_star: [user_a]}, total_reactions=1, weighted_total=1.5)
     sb_repo.add_super_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=True)
 
     sb_repo.add_super_reaction.assert_called_once_with(test_message, emoji_star, user_a)
@@ -1157,7 +1157,7 @@ async def test_handle_star_add_super_calls_add_super_reaction(make_starboard_gui
 
 async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=False must call add_reaction, not add_super_reaction"""
-    from nova_core.client.starboard import handle_star_add
+    from nova_core.starboard.handlers import handle_star_add
 
     sb_repo, msg_repo = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -1169,7 +1169,7 @@ async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, 
     updated = _make_star_doc(reactions={emoji_star: [user_a]}, total_reactions=1, weighted_total=1.0)
     sb_repo.add_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_add(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=False)
 
     sb_repo.add_reaction.assert_called_once_with(test_message, emoji_star, user_a)
@@ -1178,7 +1178,7 @@ async def test_handle_star_add_normal_does_not_call_super(make_starboard_guild, 
 
 async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboard_guild, mock_sb_and_msg_repos):
     """is_burst=True on remove must call remove_super_reaction"""
-    from nova_core.client.starboard import handle_star_remove
+    from nova_core.starboard.handlers import handle_star_remove
 
     sb_repo, _ = mock_sb_and_msg_repos
     make_starboard_guild()
@@ -1186,7 +1186,7 @@ async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboa
     updated = _make_star_doc(super_reactions={emoji_star: []}, total_reactions=0, weighted_total=0.0)
     sb_repo.remove_super_reaction = AsyncMock(return_value=updated)
 
-    with patch('nova_core.client.starboard._sync_starboard_post', new_callable=AsyncMock):
+    with patch('nova_core.starboard.handlers._sync_starboard_post', new_callable=AsyncMock):
         await handle_star_remove(test_guild, test_channel, test_message, user_id=user_a, emoji_str=emoji_star, is_burst=True)
 
     sb_repo.remove_super_reaction.assert_called_once_with(test_message, emoji_star, user_a)

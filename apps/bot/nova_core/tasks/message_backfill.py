@@ -10,7 +10,7 @@ from discord.utils import time_snowflake
 
 from nova_core.client.core import bot, config
 from nova_core.client.messages import _get_repo, build_message_doc
-from nova_core.client.starboard import backfill_message_reactions
+from nova_core.starboard.handlers import backfill_message_reactions
 from nova_core.tasks.base import BaseTask
 
 
@@ -203,8 +203,8 @@ class MessageBackfillTask(BaseTask):
     async def _reconcile_pending_starred_docs(self, guild_id: int) -> None:
         """Re-check starred docs with no starboard post; catches stars added during an outage."""
         from nova_core.client.core import config as _config
-        from nova_core.client.starboard import _get_repo as _get_sb_repo
-        from nova_core.client.starboard import _sync_starboard_post, backfill_message_reactions
+        from nova_core.starboard.handlers import _get_repo as _get_sb_repo
+        from nova_core.starboard.handlers import _sync_starboard_post, backfill_message_reactions
 
         try:
             sb_repo = _get_sb_repo()

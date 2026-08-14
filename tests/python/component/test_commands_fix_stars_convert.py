@@ -94,7 +94,7 @@ async def convert_repos(component_db, make_guild):
 
     import nova_core.ccboard as _ccboard
     import nova_core.client.messages as _messages
-    import nova_core.client.starboard as _starboard
+    import nova_core.starboard.handlers as _starboard
 
     _starboard._starboard_repo = sb_repo
     _messages._message_repo = msg_repo

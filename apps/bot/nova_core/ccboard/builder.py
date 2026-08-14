@@ -10,14 +10,14 @@ import structlog
 
 from attu_models import MessageDocument
 from nova_core.ccboard.documents import BoardEntryDocument
-from nova_core.client.starboard import (
+from nova_core.client.util import format_message_link
+from nova_core.config import GuildCCBoard
+from nova_core.starboard.handlers import (
     _hydrate_stored_embed,
     _is_image,
     _parse_color,
     _should_merge_stored_embed,
 )
-from nova_core.client.util import format_message_link
-from nova_core.config import GuildCCBoard
 
 
 logger = structlog.stdlib.get_logger(__name__)

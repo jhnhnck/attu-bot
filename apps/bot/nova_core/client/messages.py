@@ -443,7 +443,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, 
 
     # skip known starboard posts (reference still in db - e.g. mod deleted the post)
     try:
-        from nova_core.client.starboard import _get_repo as _get_sb_repo
+        from nova_core.starboard.handlers import _get_repo as _get_sb_repo
 
         if await _get_sb_repo().get_by_starboard_message(payload.message_id) is not None:
             return

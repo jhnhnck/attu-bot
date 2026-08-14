@@ -217,9 +217,9 @@ class TestShowRandomMessage:
         with (
             patch('nova_core.commands.stars._get_sb_repo', return_value=mock_sb_repo),
             patch('nova_core.commands.stars._get_msg_repo', return_value=mock_msg_repo),
-            patch('nova_core.client.starboard.build_embeds', new_callable=AsyncMock, return_value=[]),
-            patch('nova_core.client.starboard.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
-            patch('nova_core.client.starboard.dominant_color', return_value=0x5865F2),
+            patch('nova_core.starboard.handlers.build_embeds', new_callable=AsyncMock, return_value=[]),
+            patch('nova_core.starboard.handlers.build_content', return_value='⭐ **2** | https://discord.com/channels/1/2/3'),
+            patch('nova_core.starboard.handlers.dominant_color', return_value=0x5865F2),
         ):
             await _show_random_message(ctx, min_total=2)
 

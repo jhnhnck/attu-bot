@@ -137,8 +137,8 @@ def restore_config_state():
 
     # clear repo/db handles that may be bound to a different event loop
     config.config_repo = None
-    from nova_core.client import starboard as _starboard_module
     from nova_core.client.core import db
+    from nova_core.starboard import handlers as _starboard_module
 
     db.client = None
     db.db = None

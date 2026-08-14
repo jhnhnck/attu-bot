@@ -15,7 +15,7 @@ from attu_models import (
 from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
 from nova_core.client.core import bot, config
 from nova_core.client.messages import _get_repo as _get_message_repo
-from nova_core.client.starboard import _get_repo as _get_starboard_repo
+from nova_core.starboard.handlers import _get_repo as _get_starboard_repo
 
 
 logger = structlog.stdlib.get_logger(__name__)
