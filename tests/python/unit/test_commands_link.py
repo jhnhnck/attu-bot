@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nova_core.database.models import FamilyDocument
+from nova_core.trees.documents import FamilyDocument
 from tests.conftest import test_guild, test_user
 
 

@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from nova_core.client.families import get_family, get_viewer_url, is_family_file, list_families, save_family
-from nova_core.database.models import FamilyDocument
+from nova_core.trees.documents import FamilyDocument
+from nova_core.trees.families import get_family, get_viewer_url, is_family_file, list_families, save_family
 
 
 pytestmark = pytest.mark.unit
@@ -78,7 +78,7 @@ class TestGetViewerUrl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch('nova_core.client.families.httpx.AsyncClient', return_value=mock_client):
+        with patch('nova_core.trees.families.httpx.AsyncClient', return_value=mock_client):
             result = await get_viewer_url('file content')
 
         assert result == 'https://www.familyecho.com/?t=abc123'
@@ -94,7 +94,7 @@ class TestGetViewerUrl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch('nova_core.client.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(ValueError, match='FamilyEcho API error'):
+        with patch('nova_core.trees.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(ValueError, match='FamilyEcho API error'):
             await get_viewer_url('bad content')
 
     async def test_missing_url_in_response_raises_valueerror(self):
@@ -107,7 +107,7 @@ class TestGetViewerUrl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch('nova_core.client.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(ValueError, match='unexpected FamilyEcho API response'):
+        with patch('nova_core.trees.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(ValueError, match='unexpected FamilyEcho API response'):
             await get_viewer_url('content')
 
     async def test_http_error_propagates(self):
@@ -123,7 +123,7 @@ class TestGetViewerUrl:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch('nova_core.client.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(httpx.HTTPStatusError):
+        with patch('nova_core.trees.families.httpx.AsyncClient', return_value=mock_client), pytest.raises(httpx.HTTPStatusError):
             await get_viewer_url('content')
 
 
@@ -136,7 +136,7 @@ class TestGetRepoGuard:
     """unit: repo functions raise RuntimeError when repo is not initialized"""
 
     async def test_get_family_raises_when_repo_none(self):
-        with patch('nova_core.client.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
+        with patch('nova_core.trees.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
             await get_family(123, 'test')
 
     async def test_save_family_raises_when_repo_none(self):
@@ -148,11 +148,11 @@ class TestGetRepoGuard:
             set_by=456,
             set_at=1000000,
         )
-        with patch('nova_core.client.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
+        with patch('nova_core.trees.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
             await save_family(doc)
 
     async def test_list_families_raises_when_repo_none(self):
-        with patch('nova_core.client.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
+        with patch('nova_core.trees.families._family_repo', None), pytest.raises(RuntimeError, match='family repo not initialized'):
             await list_families(123)
 
 
@@ -176,7 +176,7 @@ class TestGetFamily:
         )
         mock_repo.get.return_value = expected
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             result = await get_family(123, 'Smith')
 
         assert result is expected
@@ -186,7 +186,7 @@ class TestGetFamily:
         mock_repo = AsyncMock()
         mock_repo.get.return_value = None
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             result = await get_family(123, 'unknown')
 
         assert result is None
@@ -195,7 +195,7 @@ class TestGetFamily:
         mock_repo = AsyncMock()
         mock_repo.get.return_value = None
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             await get_family(123, '  Jones  ')
 
         mock_repo.get.assert_awaited_once_with(123, 'jones')
@@ -220,7 +220,7 @@ class TestSaveFamily:
             set_at=1000000,
         )
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             await save_family(doc)
 
         mock_repo.upsert.assert_awaited_once_with(doc)
@@ -242,7 +242,7 @@ class TestListFamilies:
         ]
         mock_repo.list_all.return_value = docs
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             result = await list_families(123)
 
         assert result == docs
@@ -253,7 +253,7 @@ class TestListFamilies:
         mock_repo = AsyncMock()
         mock_repo.list_all.return_value = []
 
-        with patch('nova_core.client.families._family_repo', mock_repo):
+        with patch('nova_core.trees.families._family_repo', mock_repo):
             result = await list_families(123)
 
         assert result == []

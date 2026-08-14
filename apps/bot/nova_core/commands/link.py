@@ -11,9 +11,9 @@ from discord import ApplicationCommand, ApplicationContext, Bot, SlashCommandGro
 from discord.ext import commands
 
 from nova_core.client.core import bot, config
-from nova_core.client.families import get_family, get_viewer_url, is_family_file, list_families, save_family
 from nova_core.client.util import has_announcements_role
-from nova_core.database.models import FamilyDocument
+from nova_core.trees.documents import FamilyDocument
+from nova_core.trees.families import get_family, get_viewer_url, is_family_file, list_families, save_family
 
 
 logger = structlog.stdlib.get_logger(__name__)

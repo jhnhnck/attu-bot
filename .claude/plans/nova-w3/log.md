@@ -206,3 +206,18 @@ none.
 - phase 5 (trees): valid — no scope change. task-presence verification note ("verify before coding: check whether trees has any tasks in `register_bot_tasks()`") remains appropriate; reminders had no such ambiguity (single known task, straightforward), whereas trees task presence remains unconfirmed. prod-config note (trees becomes feature-gated at migrate) intact.
 - phase 6 (starboard): valid — no scope change. task-presence note and event-handler cleanup scope unchanged; deprecation framing unchanged. prod-config note intact.
 - phase 4 status: in progress -> closed in 5ed3090.
+
+## starting phase 5 — 2026-08-14
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3
+- branch: phase/nova-w3
+- parent branch: trunk
+- merge gate check: phase 4 closed in 044727d ✓; attu_models/__init__.py and nova_core/database/__init__.py at trunk HEAD ✓
+- scope confirmed unchanged per post-phase-3 revision in log.md; no circular-import risk; task-presence check required before coding
+
+**confirmed dod:**
+- nova_core/trees/__init__.py exports manifest: FeatureManifest
+- FamilyDocument, FamilyRepository live in nova_core/trees/
+- nova_core/client/families.py deleted; no reference to it in nova_core/client/
+- if trees tasks were found in register_bot_tasks(): confirmed removed; test files updated to assert manifest.tasks
+- docker compose run tests passes
+

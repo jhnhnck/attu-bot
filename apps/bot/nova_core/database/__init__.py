@@ -13,8 +13,6 @@ import structlog
 
 from attu_models import (
     ConfigRepository,
-    FamilyDocument,
-    FamilyRepository,
     GuildConfigDocument,
     MessageDocument,
     MessageRepository,
@@ -52,7 +50,6 @@ async def _try_init_indexes(repo: object, label: str, timeout_sec: float = 90.0)
 
 def _wire_repos(
     *,
-    family_repo,
     marker_repo,
     year_repo,
     signal_repo,
@@ -60,14 +57,12 @@ def _wire_repos(
     starboard_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
-    import nova_core.client.families as _families
     import nova_core.client.markers as _markers
     import nova_core.client.messages as _messages
     import nova_core.client.starboard as _starboard
     import nova_core.client.years as _years
     import nova_core.signals as _signals
 
-    _families._family_repo = family_repo
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
     _signals._repo = signal_repo
@@ -108,11 +103,7 @@ async def init_database(url: str, name: str):
     starboard_repo = StarboardRepository(database)
     await _try_init_indexes(starboard_repo, 'starboard')
 
-    family_repo = FamilyRepository(database)
-    await _try_init_indexes(family_repo, 'family')
-
     _wire_repos(
-        family_repo=family_repo,
         marker_repo=marker_repo,
         year_repo=year_repo,
         signal_repo=signal_repo,
@@ -125,8 +116,6 @@ async def init_database(url: str, name: str):
 
 __all__ = [
     'ConfigRepository',
-    'FamilyDocument',
-    'FamilyRepository',
     'GuildConfigDocument',
     'MessageDocument',
     'MessageRepository',

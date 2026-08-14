@@ -1,18 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.client.families | FamilyEcho family tracking."""
+"""nova_core.trees.families | FamilyEcho family tracking."""
 
 import re
 
 import httpx
 import structlog
 
-from nova_core.database.models import FamilyDocument
-from nova_core.database.repositories import FamilyRepository
+from nova_core.trees.documents import FamilyDocument
+from nova_core.trees.repositories import FamilyRepository
 
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# module-level singleton seeded by database/__init__.py
+# module-level singleton seeded by nova_core/trees/__init__.py init_repos()
 _family_repo: FamilyRepository | None = None
 
 familyecho_api = 'https://www.familyecho.com/api/'

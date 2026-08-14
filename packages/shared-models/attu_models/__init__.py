@@ -3,7 +3,6 @@
 
 from .connection import MongoStorage
 from .documents import (
-    FamilyDocument,
     GuildConfigDocument,
     MessageAuthor,
     MessageContent,
@@ -18,7 +17,6 @@ from .documents import (
 )
 from .repositories import (
     ConfigRepository,
-    FamilyRepository,
     MessageRepository,
     ReloadSignalRepository,
     StarboardRepository,
@@ -29,8 +27,6 @@ from .repositories import (
 
 __all__ = [
     'ConfigRepository',
-    'FamilyDocument',
-    'FamilyRepository',
     'GuildConfigDocument',
     'MessageAuthor',
     'MessageContent',
