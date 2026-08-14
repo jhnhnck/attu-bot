@@ -309,7 +309,7 @@ def _make_star_doc(**kwargs) -> StarredMessageDocument:
 @pytest.fixture
 def mock_sb_repo():
     repo = AsyncMock()
-    with patch('nova_core.client.starboard._starboard_repo', repo):
+    with patch('nova_core.starboard.handlers._starboard_repo', repo):
         yield repo
 
 
@@ -1349,7 +1349,7 @@ def mock_sb_repo_for_sweep():
     """patch _starboard_repo with a fresh MagicMock for sweep tests"""
     repo = MagicMock()
     repo.all_for_guild = AsyncMock()
-    with patch('nova_core.client.starboard._starboard_repo', repo):
+    with patch('nova_core.starboard.handlers._starboard_repo', repo):
         yield repo
 
 
