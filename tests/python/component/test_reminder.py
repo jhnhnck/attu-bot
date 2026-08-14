@@ -12,8 +12,8 @@ import time
 
 import pytest
 
-from nova_core.database.models import ReminderDocument
-from nova_core.database.repositories import ReminderRepository
+from nova_core.reminders.documents import ReminderDocument
+from nova_core.reminders.repositories import ReminderRepository
 
 
 pytestmark = pytest.mark.component

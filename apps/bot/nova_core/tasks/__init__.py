@@ -10,7 +10,6 @@ from nova_core.tasks.logo_update import LogoUpdateTask, logo_update_task
 from nova_core.tasks.message_backfill import MessageBackfillTask, message_backfill_task
 from nova_core.tasks.nova_year import NovaYearTask, nova_year_task
 from nova_core.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
-from nova_core.tasks.reminder import ReminderTask, reminder_task
 from nova_core.tasks.scheduler import TaskScheduler, scheduler
 
 
@@ -31,7 +30,6 @@ def register_bot_tasks(s: TaskScheduler) -> None:
         nova_year_task,
         logo_update_task,
         message_backfill_task,
-        reminder_task,
     )
     registered = set(s.registered_tasks())
     for task in bot_tasks:
@@ -47,7 +45,6 @@ __all__ = [
     'MessageBackfillTask',
     'NovaYearTask',
     'ReloadWatcherTask',
-    'ReminderTask',
     'TaskScheduler',
     'db_backup_task',
     'error_hook_refresh',
@@ -57,6 +54,5 @@ __all__ = [
     'nova_year_task',
     'register_bot_tasks',
     'reload_watcher_task',
-    'reminder_task',
     'scheduler',
 ]

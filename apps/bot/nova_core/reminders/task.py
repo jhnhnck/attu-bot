@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.tasks.reminder | reminder task."""
+"""nova_core.reminders.task | reminder task."""
 
 from datetime import datetime, timedelta
 
@@ -11,14 +11,14 @@ from nova_core.client.core import bot, config
 from nova_core.client.embeds import make_embed
 from nova_core.client.util import format_message_link, webhook_logging
 from nova_core.config import UnauthorizedGuild
-from nova_core.database.models import ReminderDocument
-from nova_core.database.repositories import ReminderRepository
+from nova_core.reminders.documents import ReminderDocument
+from nova_core.reminders.repositories import ReminderRepository
 from nova_core.tasks.base import BaseTask
 
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# module-level repo singleton; wired by database/__init__.py
+# module-level repo singleton; wired by nova_core.reminders.init_repos()
 _reminder_repo: ReminderRepository | None = None
 
 
@@ -142,7 +142,7 @@ class ReminderTask(BaseTask):
             if fire_dt is None:
                 continue
 
-            # overdue — fire ASAP
+            # overdue - fire ASAP
             if fire_dt <= now:
                 return now
 

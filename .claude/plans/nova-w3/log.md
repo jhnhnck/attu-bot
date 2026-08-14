@@ -168,3 +168,17 @@ phases 0 and 1 were implemented and retro'd in a prior session. the worktree and
 - phase 5 (trees): valid -- same check; no trees imports in nova_year or tasks init; no circular-import risk. task-presence verification note and prod-config note intact. no scope change.
 - phase 6 (starboard): valid -- same check; no starboard imports in nova_year or tasks init; no circular-import risk. task-presence, repo-pattern, and prod-config notes intact. no scope change.
 - phase 3 status: pending merge -> closed in 6856189.
+## starting phase 4 — 2026-08-14
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/nova-w3
+- branch: phase/nova-w3
+- parent branch: trunk
+- merge gate check: phase 3 closed in 6856189 ✓; attu_models/__init__.py and nova_core/database/__init__.py at trunk HEAD ✓
+- scope confirmed unchanged per post-phase-3 revision in log.md
+
+**confirmed dod:**
+- nova_core/reminders/__init__.py exports manifest: FeatureManifest
+- ReminderDocument, ReminderRepository live in nova_core/reminders/
+- reminder_task removed from register_bot_tasks()
+- test files that exercise register_bot_tasks() updated to assert manifest.tasks rather than direct task-object presence
+- docker compose run tests passes
+

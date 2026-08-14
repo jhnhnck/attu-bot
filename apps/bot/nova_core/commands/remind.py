@@ -13,8 +13,8 @@ from discord.ext import commands
 from nova_core.client.core import config
 from nova_core.client.embeds import make_embed
 from nova_core.client.util import is_authorized_guild
-from nova_core.database.models import ReminderDocument
-from nova_core.tasks.reminder import _get_repo, compute_fire_time, format_attu_date, reminder_task
+from nova_core.reminders.documents import ReminderDocument
+from nova_core.reminders.task import _get_repo, compute_fire_time, format_attu_date, reminder_task
 
 
 logger = structlog.stdlib.get_logger(__name__)

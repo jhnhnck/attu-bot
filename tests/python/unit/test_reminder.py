@@ -21,8 +21,8 @@ import pytest
 from freezegun import freeze_time
 
 from nova_core.client.calendar import AttuYearSpan
-from nova_core.database.models import ReminderDocument
-from nova_core.tasks.reminder import compute_fire_time, format_attu_date
+from nova_core.reminders.documents import ReminderDocument
+from nova_core.reminders.task import compute_fire_time, format_attu_date
 from tests.conftest import test_channel, test_guild, test_user
 
 
@@ -77,7 +77,7 @@ class TestComputeFireTime:
         """Year-only reminder fires at the start_time of the year span."""
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
             r = _make_reminder(attu_year=5, attu_month=None)
             result = await compute_fire_time(r)
 
@@ -90,7 +90,7 @@ class TestComputeFireTime:
         # 14-day year: span_seconds = 1209600
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
             # month 3 (no day) → haracalnde_pos = (3-1)*30 + (1-1) = 60
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=None)
             result = await compute_fire_time(r)
@@ -104,7 +104,7 @@ class TestComputeFireTime:
         """Full date reminder fires at the correct interpolated position."""
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
             # 15-3 → haracalnde_pos = (3-1)*30 + (15-1) = 74
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=15)
             result = await compute_fire_time(r)
@@ -133,7 +133,7 @@ class TestComputeFireTime:
         """Invalid span (start/end = 0) → returns None."""
         span = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
             r = _make_reminder(attu_year=5)
             result = await compute_fire_time(r)
 
@@ -178,7 +178,7 @@ class TestRemindAddValidation:
         # year 1 starts at epoch (2024-01-01) which is in the past
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
             await remind_add(mock_ctx, year=1)
 
         mock_ctx.respond.assert_called_once()
@@ -200,7 +200,7 @@ class TestRemindAddValidation:
         mock_interaction_msg.id = 1111111111
         mock_ctx.interaction.original_response = AsyncMock(return_value=mock_interaction_msg)
 
-        with patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span), patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span), patch('nova_core.reminders.task._reminder_repo', mock_repo):
             await remind_add(mock_ctx, year=5, note='test note')
 
         # should have inserted a reminder
@@ -230,8 +230,8 @@ class TestRemindAddValidation:
         mock_ctx.interaction.original_response = AsyncMock(return_value=mock_interaction_msg)
 
         with (
-            patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=span),
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span),
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
             patch('nova_core.commands.remind.reminder_task') as mock_task,
         ):
             await remind_add(mock_ctx, year=5)
@@ -253,7 +253,7 @@ class TestRemindCancelValidation:
         mock_repo.get.return_value = other_user_reminder
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=other_user_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
@@ -269,7 +269,7 @@ class TestRemindCancelValidation:
         mock_repo.get.return_value = None
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id='nonexistent')
 
         args = mock_ctx._responses[0]
@@ -286,7 +286,7 @@ class TestRemindCancelValidation:
         mock_repo.get.return_value = fired_reminder
         mock_repo.get_by_prefix.return_value = None
 
-        with patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=fired_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
@@ -303,7 +303,7 @@ class TestRemindCancelValidation:
         mock_repo.get.return_value = reminder
         mock_repo.delete.return_value = True
 
-        with patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task._reminder_repo', mock_repo):
             await remind_cancel(mock_ctx, reminder_id=reminder.reminder_id)
 
         mock_repo.delete.assert_called_once_with(reminder.reminder_id)
@@ -318,7 +318,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_happy_path_sends_to_original_channel(self, guild):
         """delivers the reminder embed to the original channel with a user mention."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, attu_month=3, attu_day=15, note='do the thing')
 
@@ -326,7 +326,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -341,7 +341,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_fallback_to_meta_chat(self, make_guild):
         """falls back to meta_chat when the original channel is not found."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         cfg = make_guild()
         meta_channel_id = 7777777777
@@ -359,7 +359,7 @@ class TestDeliverReminder:
 
         mock_guild.get_channel_or_thread = MagicMock(side_effect=_get_channel)
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -368,11 +368,11 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_guild_not_found(self):
         """logs warning and returns when guild is not found."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         reminder = _make_reminder()
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = None
             # should not raise
             await _deliver_reminder(reminder)
@@ -380,7 +380,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_no_channel_at_all(self, make_guild):
         """logs warning when neither original channel nor meta_chat is found."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         cfg = make_guild()
         cfg.channels.meta_chat = 0  # no meta chat configured
@@ -390,7 +390,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=None)
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             # should not raise
             await _deliver_reminder(reminder)
@@ -398,7 +398,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_includes_message_link(self, guild):
         """includes a jump url in the embed when the reminder has a message_id."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, message_id=1234567890)
 
@@ -406,7 +406,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -416,7 +416,7 @@ class TestDeliverReminder:
     @pytest.mark.asyncio
     async def test_no_note_no_message_id(self, guild):
         """embed has no note line and no jump url when both are absent."""
-        from nova_core.tasks.reminder import _deliver_reminder
+        from nova_core.reminders.task import _deliver_reminder
 
         reminder = _make_reminder(attu_year=5, note='', message_id=0)
 
@@ -424,7 +424,7 @@ class TestDeliverReminder:
         mock_guild = MagicMock()
         mock_guild.get_channel_or_thread = MagicMock(return_value=mock_channel)
 
-        with patch('nova_core.tasks.reminder.bot') as mock_bot:
+        with patch('nova_core.reminders.task.bot') as mock_bot:
             mock_bot.get_guild.return_value = mock_guild
             await _deliver_reminder(reminder)
 
@@ -444,7 +444,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_fires_overdue_reminders(self, guild):
         """run() fires reminders whose fire time is in the past and marks them fired."""
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -456,9 +456,9 @@ class TestReminderTaskRun:
         past_span = AttuYearSpan(start_time=1000000, end_time=1200000, duration=14)
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=past_span),
-            patch('nova_core.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=past_span),
+            patch('nova_core.reminders.task._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -469,7 +469,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_skips_future_reminders(self, guild):
         """run() does not fire reminders whose fire time is in the future."""
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -481,9 +481,9 @@ class TestReminderTaskRun:
         future_span = AttuYearSpan(start_time=9999999999, end_time=9999999999 + 1209600, duration=14)
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.get_year_span', new_callable=AsyncMock, return_value=future_span),
-            patch('nova_core.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=future_span),
+            patch('nova_core.reminders.task._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -493,7 +493,7 @@ class TestReminderTaskRun:
     @pytest.mark.asyncio
     async def test_skips_when_fire_time_none(self, guild):
         """run() skips reminders whose fire time cannot be computed (paused guild, etc.)."""
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -502,9 +502,9 @@ class TestReminderTaskRun:
         mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
-            patch('nova_core.tasks.reminder._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.compute_fire_time', new_callable=AsyncMock, return_value=None),
+            patch('nova_core.reminders.task._deliver_reminder', new_callable=AsyncMock) as mock_deliver,
         ):
             await task.run()
 
@@ -520,13 +520,13 @@ class TestReminderTaskNextRun:
     @freeze_time('2024-06-01 12:00:00')
     async def test_no_pending_reminders(self, guild):
         """returns ~30 minutes from now when there are no unfired reminders."""
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
         mock_repo = AsyncMock()
         mock_repo.list_all_unfired = AsyncMock(return_value=[])
 
-        with patch('nova_core.tasks.reminder._reminder_repo', mock_repo):
+        with patch('nova_core.reminders.task._reminder_repo', mock_repo):
             result = await task.next_run()
 
         assert result is not None
@@ -541,7 +541,7 @@ class TestReminderTaskNextRun:
         """returns the earliest fire time across all pending reminders."""
         from datetime import datetime
 
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -561,8 +561,8 @@ class TestReminderTaskNextRun:
             return fire_r2
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.compute_fire_time', side_effect=mock_compute),
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.compute_fire_time', side_effect=mock_compute),
         ):
             result = await task.next_run()
 
@@ -575,7 +575,7 @@ class TestReminderTaskNextRun:
         """returns now when a reminder is already overdue."""
         from datetime import datetime
 
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -586,8 +586,8 @@ class TestReminderTaskNextRun:
         overdue_time = datetime(2024, 1, 1, 0, 0).astimezone()
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=overdue_time),
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.compute_fire_time', new_callable=AsyncMock, return_value=overdue_time),
         ):
             result = await task.next_run()
 
@@ -601,7 +601,7 @@ class TestReminderTaskNextRun:
         """returns ~30 minutes from now when all reminders belong to paused/unauthorized guilds."""
         from datetime import datetime
 
-        from nova_core.tasks.reminder import ReminderTask
+        from nova_core.reminders.task import ReminderTask
 
         task = ReminderTask()
 
@@ -610,11 +610,22 @@ class TestReminderTaskNextRun:
         mock_repo.list_all_unfired = AsyncMock(return_value=[reminder])
 
         with (
-            patch('nova_core.tasks.reminder._reminder_repo', mock_repo),
-            patch('nova_core.tasks.reminder.compute_fire_time', new_callable=AsyncMock, return_value=None),
+            patch('nova_core.reminders.task._reminder_repo', mock_repo),
+            patch('nova_core.reminders.task.compute_fire_time', new_callable=AsyncMock, return_value=None),
         ):
             result = await task.next_run()
 
         assert result is not None
         expected = datetime(2024, 6, 1, 12, 30).astimezone()
         assert abs((result - expected).total_seconds()) < 5
+
+
+# --- Manifest Registration ---
+
+
+def test_manifest_tasks_includes_reminder():
+    """reminder_task is now registered via FeatureManifest.tasks, not register_bot_tasks."""
+    import nova_core.reminders as reminders_mod
+    from nova_core.reminders.task import reminder_task as reminders_reminder_task
+
+    assert reminders_reminder_task in reminders_mod.manifest.tasks

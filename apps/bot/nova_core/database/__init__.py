@@ -21,8 +21,6 @@ from attu_models import (
     MongoStorage,
     ReloadSignalDocument,
     ReloadSignalRepository,
-    ReminderDocument,
-    ReminderRepository,
     StarboardRepository,
     StarredMessageDocument,
     SystemConfigDocument,
@@ -60,7 +58,6 @@ def _wire_repos(
     signal_repo,
     message_repo,
     starboard_repo,
-    reminder_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
     import nova_core.client.families as _families
@@ -69,7 +66,6 @@ def _wire_repos(
     import nova_core.client.starboard as _starboard
     import nova_core.client.years as _years
     import nova_core.signals as _signals
-    import nova_core.tasks.reminder as _reminder
 
     _families._family_repo = family_repo
     _markers._marker_repo = marker_repo
@@ -77,7 +73,6 @@ def _wire_repos(
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
     _starboard._starboard_repo = starboard_repo
-    _reminder._reminder_repo = reminder_repo
 
 
 async def init_database(url: str, name: str):
@@ -116,9 +111,6 @@ async def init_database(url: str, name: str):
     family_repo = FamilyRepository(database)
     await _try_init_indexes(family_repo, 'family')
 
-    reminder_repo = ReminderRepository(database)
-    await _try_init_indexes(reminder_repo, 'reminder')
-
     _wire_repos(
         family_repo=family_repo,
         marker_repo=marker_repo,
@@ -126,7 +118,6 @@ async def init_database(url: str, name: str):
         signal_repo=signal_repo,
         message_repo=message_repo,
         starboard_repo=starboard_repo,
-        reminder_repo=reminder_repo,
     )
 
     logger.info('database initialized')
@@ -142,8 +133,6 @@ __all__ = [
     'MongoStorage',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
-    'ReminderDocument',
-    'ReminderRepository',
     'StarboardRepository',
     'StarredMessageDocument',
     'SystemConfigDocument',
