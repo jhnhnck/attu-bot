@@ -6,3 +6,4 @@ Re-exports the repository classes from `attu_models.repositories` so existing
 """
 
 from attu_models.repositories import *  # noqa: F403  # re-export every name from attu_models.repositories
+from nova_core.starboard.repositories import StarboardRepository  # noqa: F401  # moved from attu_models; explicit re-export for backward compat

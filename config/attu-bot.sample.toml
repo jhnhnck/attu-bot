@@ -110,5 +110,5 @@ replay_window = 60
 # [features]
 # enabled = []
 # per-feature config goes in [features.<name>] subtables
-# example: enabled = ["nova_core.ccboard", "nova_core.eggs", "nova_core.modlog", "nova_core.wiki", "reminders", "trees"]
+# example: enabled = ["nova_core.ccboard", "nova_core.eggs", "nova_core.modlog", "nova_core.starboard", "nova_core.wiki", "reminders", "trees"]
 

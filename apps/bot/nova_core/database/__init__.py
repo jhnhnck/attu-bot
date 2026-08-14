@@ -19,8 +19,6 @@ from attu_models import (
     MongoStorage,
     ReloadSignalDocument,
     ReloadSignalRepository,
-    StarboardRepository,
-    StarredMessageDocument,
     SystemConfigDocument,
     ThemeDocument,
     YearDocument,
@@ -54,12 +52,10 @@ def _wire_repos(
     year_repo,
     signal_repo,
     message_repo,
-    starboard_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
     import nova_core.client.markers as _markers
     import nova_core.client.messages as _messages
-    import nova_core.client.starboard as _starboard
     import nova_core.client.years as _years
     import nova_core.signals as _signals
 
@@ -67,7 +63,6 @@ def _wire_repos(
     _years._year_repo = year_repo
     _signals._repo = signal_repo
     _messages._message_repo = message_repo
-    _starboard._starboard_repo = starboard_repo
 
 
 async def init_database(url: str, name: str):
@@ -99,16 +94,11 @@ async def init_database(url: str, name: str):
     await _try_init_indexes(signal_repo, 'signal')
     await _try_init_indexes(message_repo, 'message')
 
-    # seed module-level repo singletons so lazy _get_repo() calls work
-    starboard_repo = StarboardRepository(database)
-    await _try_init_indexes(starboard_repo, 'starboard')
-
     _wire_repos(
         marker_repo=marker_repo,
         year_repo=year_repo,
         signal_repo=signal_repo,
         message_repo=message_repo,
-        starboard_repo=starboard_repo,
     )
 
     logger.info('database initialized')
@@ -122,8 +112,6 @@ __all__ = [
     'MongoStorage',
     'ReloadSignalDocument',
     'ReloadSignalRepository',
-    'StarboardRepository',
-    'StarredMessageDocument',
     'SystemConfigDocument',
     'ThemeDocument',
     'YearDocument',
