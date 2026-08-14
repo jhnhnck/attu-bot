@@ -242,6 +242,7 @@ none new. `rule-codes-in-selectors` already in bugs.md.
 
 ## revision after phase 5 — 2026-08-14
 
+- bugs.md: all 4 open items reviewed; 0 disposition changes; none block phase 6 (all are codebase-wide lint debt or a low-risk cross-module dep in wiki, unrelated to starboard code paths).
 - phase 6 (starboard): revise -- add scope bullet: "verify before coding: check `setup=commands.stars.setup` for circular-import; trees and wiki both required a `_setup_commands` deferred-import wrapper to prevent cycle -- apply same pattern if starboard's setup import creates a cycle." no other scope change; event-handler, task-presence, test-file-compensation, and prod-config notes intact.
 - phase 5 status: in progress -> closed in c5a3c2d.
 
