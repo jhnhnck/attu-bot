@@ -25,7 +25,7 @@ users can set reminders that fire when a specific haracalnde calendar date arriv
 
 ## fire time computation
 
-the haracalnde date is the source of truth. the real-world fire timestamp is computed dynamically by `compute_fire_time()` in `apps/bot/doom_bot/tasks/reminder.py`:
+the haracalnde date is the source of truth. the real-world fire timestamp is computed dynamically by `compute_fire_time()` in `apps/bot/nova_core/reminders/task.py`:
 
 1. call `get_year_span(attu_year, guild_id)` to get the target year's `(start_time, end_time)`.
 2. if year-only: fire at `start_time`.
@@ -72,11 +72,11 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 
 | function | file | purpose |
 |---|---|---|
-| `compute_fire_time()` | `apps/bot/doom_bot/tasks/reminder.py` | convert a reminder's haracalnde date to a real-world datetime |
-| `format_attu_date()` | `apps/bot/doom_bot/tasks/reminder.py` | format a reminder's target date as a readable string |
-| `_deliver_reminder()` | `apps/bot/doom_bot/tasks/reminder.py` | send the notification message to the channel |
-| `ReminderTask.next_run()` | `apps/bot/doom_bot/tasks/reminder.py` | compute the earliest fire time across all pending reminders |
-| `ReminderTask.run()` | `apps/bot/doom_bot/tasks/reminder.py` | fire any overdue reminders |
+| `compute_fire_time()` | `apps/bot/nova_core/reminders/task.py` | convert a reminder's haracalnde date to a real-world datetime |
+| `format_attu_date()` | `apps/bot/nova_core/reminders/task.py` | format a reminder's target date as a readable string |
+| `_deliver_reminder()` | `apps/bot/nova_core/reminders/task.py` | send the notification message to the channel |
+| `ReminderTask.next_run()` | `apps/bot/nova_core/reminders/task.py` | compute the earliest fire time across all pending reminders |
+| `ReminderTask.run()` | `apps/bot/nova_core/reminders/task.py` | fire any overdue reminders |
 
 ---
 
@@ -95,15 +95,16 @@ indexes: unique on `reminder_id`; compound `(guild_id, fired, attu_year)` for ta
 
 | file | role |
 |---|---|
-| `apps/bot/doom_bot/tasks/reminder.py` | `ReminderTask`, `compute_fire_time()`, `_deliver_reminder()`, `format_attu_date()` |
-| `apps/bot/doom_bot/commands/remind.py` | `/remind add`, `/remind list`, `/remind cancel` slash commands |
-| `packages/shared-models/attu_models/documents.py` | `ReminderDocument` pydantic model (re-exported via `doom_bot.database.models`) |
-| `packages/shared-models/attu_models/repositories.py` | `ReminderRepository` — CRUD + queries (re-exported via `doom_bot.database.repositories`) |
+| `apps/bot/nova_core/reminders/task.py` | `ReminderTask`, `compute_fire_time()`, `_deliver_reminder()`, `format_attu_date()` |
+| `apps/bot/nova_core/reminders/documents.py` | `ReminderDocument` pydantic model |
+| `apps/bot/nova_core/reminders/repositories.py` | `ReminderRepository` — CRUD + queries |
+| `apps/bot/nova_core/reminders/__init__.py` | `manifest: FeatureManifest` — tasks, setup, document/repository classes |
+| `apps/bot/nova_core/commands/remind.py` | `/remind add`, `/remind list`, `/remind cancel` slash commands |
 
 ---
 
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 14 August 2026
 ```

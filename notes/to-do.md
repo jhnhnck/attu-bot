@@ -179,7 +179,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - 🔴 `11 April 2026` fix js test count in run_tests.py — `extract_counts` now uses `re.findall` + last match for correct vitest count
 - 🔴 `12 April 2026` add tests for commands/debug.py (33% → 86%) and commands/time.py (40% → 96%)
 - 🔴 `12 April 2026` add tests for tasks/logo_update.py (32% → 99%) and tasks/error_hook.py (31% → 100%)
-- 🔴 `12 April 2026` add tests for tasks/reminder.py (40% → 94%)
+- ✅ `12 April 2026` add tests for tasks/reminder.py (40% → 94%) — done in nova-w3 phase 4; test_reminder.py restructured, manifest test added
 - 🔴 `12 April 2026` add tests for commands/query.py (37% → 95%) and commands/stars.py (58% → 88%)
 - 🔴 `12 April 2026` add tests for client/families.py (36% → 100%) and database/connection.py (59% → 100%)
 - 🔴 `12 April 2026` add tests for web/discord_integration.py (37% → 93%)
