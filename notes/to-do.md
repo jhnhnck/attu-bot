@@ -90,6 +90,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### testing
 
+- ⭕ `low priority` `high effort` convert the 9 command/task component tests (`test_commands_*.py`, `test_task_*.py`, `test_ccboard_manager.py`, `test_reminder.py`) from real-DB component tests to unit tests with mocked repos; only `test_db_repositories.py` genuinely requires a real DB — the rest test application logic and use `component_db` only as a convenient state store; converting eliminates the docker dependency for most of the component suite and removes worktree test-isolation friction; do not use `mongomock_motor` (incomplete aggregation/TTL support)
 - ⭕ `low priority` `low effort` `test_task_logo_update.py` — add test for `LogoUpdateTask.run()` when `get_guild_by_role('primary')` returns `None`: guild icon/emoji/role updates skipped, bot avatar still updated. carried from plan: nova-w1 (2026-07-23)
 - ⭕ `medium priority` `high effort` add tests for commands/fix.py (42%) - 492 statements, 278 missed across the largest command module
 - ⭕ `medium priority` `high effort` add tests for client/events.py (38%) - 264 statements, 156 missed across discord event handlers
