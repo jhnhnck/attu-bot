@@ -6,6 +6,7 @@
 2. update container established: `doom-bot.py migrate` mode + compose `update` service precedes `core`/`bot` on every startup
 3. migration history reset to an empty table; `system.version = '2.5.5'` is the hard baseline enforced at bot startup; `ready_migration_table` retired
 4. FerretDB-specific workarounds removed from codebase; ferretdb-quirks skill archived
+5. single-node replica set configured in both compose environments; `start_session()` / `start_transaction()` / `abort_transaction()` verified working - unblocks nova-w4 banking
 
 ## non-goals
 
@@ -31,12 +32,13 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 
 **scope:** no code changes. prove the data transfer works before touching the codebase.
 
-- spin up a standalone `mongo:8` container locally (or temporarily add to dev compose) with credentials matching what phase 2 will use (`MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD`)
+- spin up a standalone `mongo:8` container locally with `--replSet rs0` and credentials matching what phase 2 will use (`MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD`); initialize replica set via `mongosh --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]})"`
 - seed dev FerretDB via the normal `ferret-init` flow to get a representative dataset
 - run `mongodump` against dev FerretDB; `mongorestore` to local mongo:8
 - temporarily set `MONGO_URL` in dev TOML to the mongo:8 connection string; start bot
 - verify: bot reaches `on_ready`, all collections readable, no errors in logs
 - spike: write a standalone script that calls `init_database(url, name)` then `run_pending_migrations()` against the local mongo:8; confirm it runs without error and exits cleanly
+- spike: open a session via `AsyncMongoClient.start_session()`, perform a write, abort, assert write not visible - confirms replica set + session semantics work
 
 **dod:**
 - bot starts cleanly against mongo:8 restored data with no errors
@@ -44,8 +46,9 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - per-collection document count matches between FerretDB and mongo:8 (compare before and after restore)
 - zero duplicate `message_id` rows in messages collection confirmed: `db.messages.aggregate([{$group:{_id:'$message_id',count:{$sum:1}}},{$match:{count:{$gt:1}}}])` returns empty
 - `init_database()` -> `run_pending_migrations()` sequencing spike passes; approach documented
+- session write-abort spike passes; `rs.status()` shows primary node healthy
 
-**merge gate:** no code to merge; gate is documented evidence (log snippet + doc count table) that bot started clean against mongo:8
+**merge gate:** no code to merge; gate is documented evidence (log snippet + doc count table + rs.status() output) that bot started clean against mongo:8 replica set
 
 ---
 
@@ -58,7 +61,7 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - `nova_core/config.py`: remove both `run_pending_migrations()` calls (lines ~522 and ~597); remove the `web_mode`/`ingestor_mode` migration skip logic and the flags themselves (vestigial once migration calls are gone); add startup assertion after DB connect: if `system.version != nova_core.__schema__`, log critical and refuse to start
 - new `nova_core/client/migrate.py` (~30-40 lines): parse TOML via `tomllib` to extract DB URL + name, call `init_database(url, name)` (sets `config.config_repo`), then `run_pending_migrations(stage='load')`, exit 0 on success / non-zero on failure; pycord is imported transitively but is safe (see accepted risks)
 - `doom-bot.py`: add `migrate` as a valid mode alongside `bot`
-- `docker-compose.dev.yml`: add `mongo` service (`mongo:8` with auth env vars); add `update` service (same bot image, command `python doom-bot.py migrate`, `depends_on: mongo`); add `depends_on: update: condition: service_completed_successfully` to `bot`; update bot `MONGO_URL` to point at `mongo:27017`
+- `docker-compose.dev.yml`: add `mongo` service (`mongo:8` with `--replSet rs0` command, auth env vars, healthcheck on `rs.hello().isWritablePrimary`); add `mongo-init` service (one-shot `mongosh --eval "try{rs.status()}catch(e){rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]})}"`, `depends_on: mongo: condition: service_healthy`, `restart: no`); add `update` service (same bot image, command `python doom-bot.py migrate`, `depends_on: mongo-init: condition: service_completed_successfully`); `bot` depends on `update: condition: service_completed_successfully`; update bot `MONGO_URL` to point at `mongo:27017`
 - `docker-compose.prod.yml`: same additions targeting `core` service
 - tests: update mocks to remove migration expectations from `on_load`/`on_ready`; add test for version mismatch refusal
 
@@ -82,7 +85,7 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - `nova_core/wiki/repositories.py`: replace `delete_expired()` with TTL index (`expireAfterSeconds=0` on `expires_at`) in `init_indexes()`; delete `delete_expired()` method and its caller in the cleanup task or wherever it is called
 - `nova_core/eggs/repositories.py`: rewrite `get_user_egg_stats()` as a single aggregation pipeline; remove the `async for` streaming loop
 - `StarredMessageDocument`: drop `weighted_total` field; remove `_sync_totals()` pipeline update for it; wherever `weighted_total` appears in logs, compute inline (`total_normal + total_super * 1.5`) at log time
-- both compose files: remove `ferret`, `postgres`, `ferret-init` services; tests service `TEST_DB_URL` updated to point at `mongo:27017`; prod compose also gets a `mongo:8` service with auth env vars (credentials via `.env` or secret file)
+- both compose files: remove `ferret`, `postgres`, `ferret-init` services; tests service `TEST_DB_URL` updated to point at `mongo:27017`; prod compose also gets `mongo` + `mongo-init` services with replica set config (same pattern as dev, credentials via `.env` or secret file)
 - prod compose: remove `postgres_data` volume declaration; add `mongo_data` named volume for persistence
 - archive `ferretdb-quirks` skill (move to `.claude/skills/archived/`)
 - `notes/to-do.md` line 78: update entry to reflect completion
@@ -93,6 +96,7 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - `get_user_egg_stats` is a single aggregation round-trip; confirmed via test
 - `weighted_total` field absent from `StarredMessageDocument`; no references in repositories or tests
 - `docker compose run tests` passes with FerretDB services absent (tests hit local `mongo:8`)
+- `rs.status()` confirms primary node healthy in dev compose; session write-abort round-trip succeeds (nova-w4 phase 1 gate retired)
 - `ruff check .` clean
 
 **merge gate:** phase 1 merged to trunk
@@ -116,6 +120,7 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - `system.version` confirmed `'2.5.5'` in prod FerretDB before cutover begins (query prod DB directly)
 - old prod compose file backed up before replacement
 - prod bot online against MongoDB Community; no errors in first 10 minutes of logs
+- `rs.status()` confirms prod replica set primary healthy
 - `docker ps` shows no ferret or postgres containers running
 - `postgres_data` volume retained for minimum 24 hours post-cutover, then deleted; `mongo_data` volume present and non-empty
 - backup task (`db_backup.py`) verified it runs against MongoDB Community (next scheduled tick or triggered via `/fix`)
