@@ -18,6 +18,13 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          paths:
+            - apps/bot
+            - apps/casino
+            - apps/server
+            - packages/shared-models
+            - packages/attu-logging
+            - packages/attu-wiki
           options:
             docstring_style: google
             show_root_heading: true
@@ -45,3 +52,10 @@ nav:
   - Style:
     - Embeds: style/embed_usage.md
     - Buttons: style/button_usage.md
+  - API reference:
+    - Nova Core: api/nova-core.md
+    - Attu Models: api/attu-models.md
+    - Attu Logging: api/attu-logging.md
+    - Attu Wiki: api/attu-wiki.md
+    - Attu Server: api/attu-server.md
+    - Casino Bot: api/casino-bot.md

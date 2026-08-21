@@ -33,3 +33,10 @@ intentional scope narrowing: probe page could not render attu_logging docstrings
 
 - phase 0: status closed in 8039757
 - phase 1: scope updated — prepend step: configure mkdocstrings `paths:` in mkdocs.yml pointing to all six package source dirs before creating api/ pages; blocker prerequisite surfaced by phase 0 probe
+
+## starting phase 1 — 2026-08-21
+
+- worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/mkdocs (same branch, no inter-phase merge)
+- branch: phase/mkdocs (continuing from phase 0)
+- parent: trunk
+- dod: mkdocs build --strict exits 0; all 6 packages in api reference nav; FeatureContext and WikiClient render with docstrings
