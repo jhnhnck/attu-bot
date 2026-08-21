@@ -84,4 +84,4 @@ mkdocstrings API pages will surface internal modules not intended as public API.
 | phase | status |
 |---|---|
 | 0 - scaffold and probe | closed in 8039757 |
-| 1 - api reference | in progress |
+| 1 - api reference | closed in 0629a7c |

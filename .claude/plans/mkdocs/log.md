@@ -40,3 +40,19 @@ intentional scope narrowing: probe page could not render attu_logging docstrings
 - branch: phase/mkdocs (continuing from phase 0)
 - parent: trunk
 - dod: mkdocs build --strict exits 0; all 6 packages in api reference nav; FeatureContext and WikiClient render with docstrings
+
+## retro — phase 1 — 2026-08-21
+
+**delivered:** api reference pages for all 6 workspace packages via mkdocstrings; mkdocs build --strict passes in 0.97s
+
+**what worked:** griffe static analysis handled all 6 packages cleanly without requiring runtime imports (discord.py, motor, etc. not needed); paths: config in mkdocs.yml was the only required fix; no stubs needed for any package
+
+**what surprised us:** all workspace packages having package = false was discovered in the phase 0 probe — the paths: workaround resolved it cleanly in phase 1 without any package config changes
+
+**dod:** all met — strict build exits 0, all 6 packages in nav, FeatureContext and WikiClient verified in rendered output
+
+**bugs:** 0 open; 0 new
+
+**plan revisions:** none — last phase, no downstream to revise
+
+## revision — none
