@@ -162,7 +162,7 @@ class GuildEpochForm(BaseModel):
 | `instance.model_copy(update={'field': value})` | shallow copy with overrides; does **not** re-run validators. use `Model.model_validate(instance.model_dump() \| {...})` if you need re-validation. |
 | `Model.model_fields` | dict of `FieldInfo` keyed by field name; used in `web/forms.py` `flatten_form_data` to route flat form keys into nested sections. |
 
-**discord snowflake / json quirk**: snowflakes are stored as `int` in mongodb (see `notes/agents.md` mongodb section) but **must** be serialized as strings whenever they cross into the web layer or json — js `Number` loses precision above 2^53. plain `model_dump_json()` will emit them as integers, so the web layer either casts to `str(...)` explicitly or relies on form models that declare them as `int` on the way in but render them as strings in templates. don't trust the default for snowflakes; check the route.
+**discord snowflake / json quirk**: snowflakes are stored as `int` in mongodb (see `docs/agents.md` mongodb section) but **must** be serialized as strings whenever they cross into the web layer or json — js `Number` loses precision above 2^53. plain `model_dump_json()` will emit them as integers, so the web layer either casts to `str(...)` explicitly or relies on form models that declare them as `int` on the way in but render them as strings in templates. don't trust the default for snowflakes; check the route.
 
 ## the document vs runtime model convention
 
@@ -180,7 +180,7 @@ why the split: the document is the on-the-wire schema and must tolerate drift; t
 
 ## tier-3 config field plumbing - the six-step checklist
 
-**this is the codebase's canonical silent-failure mode.** adding a guild-level config field but missing any of the six steps causes the field to silently use its hardcoded default in production regardless of what is stored in mongodb. there is no runtime warning. quoted from `notes/agents.md` ("adding a new config field" → "tier 3 - mongodb"):
+**this is the codebase's canonical silent-failure mode.** adding a guild-level config field but missing any of the six steps causes the field to silently use its hardcoded default in production regardless of what is stored in mongodb. there is no runtime warning. quoted from `docs/agents.md` ("adding a new config field" → "tier 3 - mongodb"):
 
 1. **`doom_bot/database/models.py`** - add the field to `GuildConfigDocument` (or the relevant document model) with a default. `extra='ignore'` means anything not listed here is **dropped on read** - this is the root cause of the failure mode.
 2. **`doom_bot/config.py`** - add the field to the corresponding runtime model (`GuildConfig`, `GuildChannels`, `GuildEpoch`, `GuildRoles`, `GuildUsers`, `GuildStarboard`, etc.) with the same default.
@@ -261,5 +261,5 @@ mandatory parts when adding a new mutation route:
 
 - pydantic v2 docs: https://docs.pydantic.dev/latest/
 - v1 → v2 migration guide: https://docs.pydantic.dev/latest/migration/
-- repo conventions: `notes/agents.md` (the "pydantic" and "configuration system" sections)
+- repo conventions: `docs/agents.md` (the "pydantic" and "configuration system" sections)
 - canonical examples: `doom_bot/database/models.py` (documents), `doom_bot/config.py` `GuildEpoch` (model_validator + legacy migration) and `NovaConfig.load_guild()` (hydration site), `doom_bot/web/forms.py` (form validation), `doom_bot/client/years.py` and `doom_bot/client/markers.py` (runtime-wraps-document pattern)

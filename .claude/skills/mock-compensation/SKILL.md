@@ -5,7 +5,7 @@ description: AttuBot's mock compensation rule - when a test mocks a framework me
 
 # mock-compensation
 
-**the rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides; cover that behavior at another level or the failure mode is silent green CI. this skill is canonical; see also [`notes/dev/testing.md`](notes/dev/testing.md) for surrounding test conventions (fixtures, layout, running tests).
+**the rule:** when a test mocks a framework mechanism, it inherits responsibility for the behavior that mock hides; cover that behavior at another level or the failure mode is silent green CI. this skill is canonical; see also [`docs/dev/testing.md`](docs/dev/testing.md) for surrounding test conventions (fixtures, layout, running tests).
 
 silent test passage is the worst failure mode. a mock that hides a broken decorator, a missing import, or a skipped permission check turns a real prod bug into a green checkmark. every mock of a framework mechanism owes a compensating test somewhere else.
 

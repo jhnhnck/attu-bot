@@ -82,5 +82,5 @@ mkdocstrings API pages will surface internal modules not intended as public API.
 
 | phase | status |
 |---|---|
-| 0 - scaffold and probe | not started |
+| 0 - scaffold and probe | in progress |
 | 1 - api reference | not started |

@@ -128,13 +128,13 @@ decorator order matters: `@group.command(...)` outermost, then `@discord.command
 | `ctx.author`, `ctx.user` | invoker; in slash commands these are the same. |
 | `ctx.guild`, `ctx.channel`, `ctx.interaction` | usual discord refs. |
 
-**ephemeral rule (from `notes/agents.md`)**: `ephemeral=True` is only for errors and validation failures. successful responses are public; do not pass `ephemeral` at all.
+**ephemeral rule (from `docs/agents.md`)**: `ephemeral=True` is only for errors and validation failures. successful responses are public; do not pass `ephemeral` at all.
 
 ## error handling
 
 global handler is `on_application_command_error` in `doom_bot/client/events.py`. **extension commands should raise naturally**; do not wrap every command body in a try/except. the global handler dispatches on `CheckFailure`, `UnauthorizedGuild`, `MissingPermissions`, and a generic fallback that posts to the error webhook via `logger.send_to_webhook`.
 
-quoted from `notes/agents.md`:
+quoted from `docs/agents.md`:
 > `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
 
 if you need command-local recovery (e.g. a 404 from an external api becomes a friendly response), catch the specific exception and respond; let everything else propagate.
@@ -177,7 +177,7 @@ embed.add_field(name='Role', value=role.mention, inline=False)
 
 the 6000-char total counts `title + description + all field names + all field values + footer.text + author.name` combined. `len(embed)` returns this; check before sending dynamic content.
 
-reference: `notes/style/embed_usage.md`.
+reference: `docs/style/embed_usage.md`.
 
 ## views, buttons, modals, selects
 
@@ -220,7 +220,7 @@ prefer dynamic construction (`add_item(discord.ui.Button(...))` plus `btn.callba
 - `discord.ui.Modal` with `discord.ui.InputText` items; submit via `await ctx.send_modal(MyModal())` from a slash command, or `await interaction.response.send_modal(...)` from a component callback.
 - `discord.ui.Select` (or subclass and override `callback`); a select takes a full row (5 slots).
 
-reference: `notes/style/button_usage.md`.
+reference: `docs/style/button_usage.md`.
 
 ## events
 
@@ -241,11 +241,11 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent): ...
 - 3s response window: any awaited io before `respond` or `defer` risks the interaction timing out.
 - changing the command tree (new command, renamed group, changed option) requires `await bot.sync_commands()` to take effect in the discord client.
 - discord snowflake ids exceed js's safe int range; serialize them as strings in any json crossing into the web layer.
-- never start a discord interaction during testing; the rules in `CLAUDE.md` and `notes/agents.md` forbid it without explicit user approval.
+- never start a discord interaction during testing; the rules in `CLAUDE.md` and `docs/agents.md` forbid it without explicit user approval.
 
 ## quick links
 
 - pycord docs (stable): https://docs.pycord.dev/en/stable/
 - pycord guide: https://guide.pycord.dev/
 - pycord github: https://github.com/Pycord-Development/pycord
-- repo conventions: `notes/agents.md` (the `discord (pycord)` section), `notes/style/embed_usage.md`, `notes/style/button_usage.md`
+- repo conventions: `docs/agents.md` (the `discord (pycord)` section), `docs/style/embed_usage.md`, `docs/style/button_usage.md`

@@ -100,5 +100,5 @@ something()  # noqa: PLW0603 - lazy singleton initialization requires global
 
 ## cross-references
 
-- `notes/agents.md` rule #4 - the noqa-reason rule
-- `notes/agents.md` personality section - lowercase comments, semicolons or regular dashes (never em-dashes), american english
+- `docs/agents.md` rule #4 - the noqa-reason rule
+- `docs/agents.md` personality section - lowercase comments, semicolons or regular dashes (never em-dashes), american english

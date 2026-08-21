@@ -1,6 +1,6 @@
 # AttuBot / Doom Bot
 
-Additional docs are in `notes/` (architecture in `notes/architecture.md`, config system in `notes/config-system.md`, style guides in `notes/style/`, feature specs in `notes/features/`, dev guides in `notes/dev/`).
+Additional docs are in `docs/` (architecture in `docs/architecture.md`, config system in `docs/config-system.md`, style guides in `docs/style/`, feature specs in `docs/features/`, dev guides in `docs/dev/`).
 
 ## rules
 

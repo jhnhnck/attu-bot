@@ -91,7 +91,7 @@ log-side errors follow the log rules above (lowercase, no terminal punctuation, 
 
 ## the ephemeral rule
 
-from `notes/agents.md` (coding conventions, discord section):
+from `docs/agents.md` (coding conventions, discord section):
 
 > **ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument).
 
@@ -139,6 +139,6 @@ standard Discord emoji names (`:ballot_box_with_check:`, `:no_entry:`) are fine 
 
 ## cross-references
 
-- `notes/agents.md` - ephemeral rule (discord coding conventions section); personality section for semicolons / dashes / american english
+- `docs/agents.md` - ephemeral rule (discord coding conventions section); personality section for semicolons / dashes / american english
 - `pycord` skill (`embeds` section) - embed construction (titles, fields, colors)
 - `commit-style` skill - related custom-emoji usage in commit subjects

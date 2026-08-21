@@ -238,7 +238,7 @@ R8. nothing should still import it.
 - `git rm tests/python/unit/test_logging.py` and create `tests/python/unit/test_attu_logging.py` covering the surface that survived: `_resolve_pycord_bucket`, `_MaxLevelFilter`, idempotency of `configure()`, discord.http level gating.
 - update `tests/conftest.py`: `capture_structlog` fixture stays as-is; remove any wrapper-aware bits.
 - `apps/bot/doom_bot/__init__.py`: remove any re-export of the wrapper symbols.
-- update `notes/agents.md` if it still references the wrapper.
+- update `docs/agents.md` if it still references the wrapper.
 
 **definition of done:**
 - `find apps/bot/doom_bot -name 'logging.py'` returns 0 paths (Goal 2 met).
@@ -319,7 +319,7 @@ bug log: empty. the two pre-existing bugs surfaced (`scripts/run_tests.py` chmod
 
 **surprises.** plan implied multiple shared-models files needed flipping; only `repositories.py` did. structlog `BoundLogger.warn` is a stdlib alias and worked unchanged for the 6 `logger.warn(...)` call sites in `StarboardRepository`, so no per-call-site edits were needed. the cross-phase "no cycle" check turned out to be a one-shot `PYTHONPATH=...` invocation inside the existing tester container, not the venv-gymnastics the plan implied. carried-forward question from phase 0 (whether the `AttubotLogger.warning` bandaid was load-bearing for repositories.py) confirmed no — repositories used `.warn`, not `.warning`.
 
-**residual debt.** one item, not structlog-scope: the TYPE_CHECKING-only `from doom_bot.config import BotTheme, GuildConfig` in `repositories.py:36`. doesn't violate the runtime cycle rule (cross-phase check confirmed) but is an architectural smell. **routed to `notes/bugs.md`** under `architecture` section as `nit / defer`; would require either moving `BotTheme`/`GuildConfig` into shared-models or generalizing the repo signatures to protocols — separate plan, not a structlog phase.
+**residual debt.** one item, not structlog-scope: the TYPE_CHECKING-only `from doom_bot.config import BotTheme, GuildConfig` in `repositories.py:36`. doesn't violate the runtime cycle rule (cross-phase check confirmed) but is an architectural smell. **routed to `docs/bugs.md`** under `architecture` section as `nit / defer`; would require either moving `BotTheme`/`GuildConfig` into shared-models or generalizing the repo signatures to protocols — separate plan, not a structlog phase.
 
 ### plan revision
 
@@ -330,4 +330,4 @@ bug log: empty. the two pre-existing bugs surfaced (`scripts/run_tests.py` chmod
 - phase 3 confirmed: shared-models has zero `send_to_webhook` callers (verified during phase 1's audit grep). phase 3's scope of "13 sites in events.py, scheduler.py, trees.py, wiki.py, debug.py, attu_chat/commands/ask.py" is the complete set; no surprise sites lurking in shared-models.
 - phase 4 risk further reduced: structlog `BoundLogger.warn` / `.warning` interchangeability now demonstrated end-to-end through `repositories.py`. the pre-phase-4 grep is still worth doing, but the failure mode it was guarding against (a method the wrapper had but structlog doesn't) is empirically absent for the warn family.
 
-bug log (structlog plan): empty. one item routed to project-wide `notes/bugs.md` under `architecture` (defer).
+bug log (structlog plan): empty. one item routed to project-wide `docs/bugs.md` under `architecture` (defer).

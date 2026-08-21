@@ -88,7 +88,7 @@ one risk accepted going in: the prod FerretDB data export (mongodump) has never 
 - both compose files: remove `ferret`, `postgres`, `ferret-init` services; tests service `TEST_DB_URL` updated to point at `mongo:27017`; prod compose also gets `mongo` + `mongo-init` services with replica set config (same pattern as dev, credentials via `.env` or secret file)
 - prod compose: remove `postgres_data` volume declaration; add `mongo_data` named volume for persistence
 - archive `ferretdb-quirks` skill (move to `.claude/skills/archived/`)
-- `notes/to-do.md` line 78: update entry to reflect completion
+- `docs/to-do.md` line 78: update entry to reflect completion
 
 **dod:**
 - no FerretDB workaround comments remain in codebase (`grep -r "FerretDB\|ferretdb" apps/ packages/` returns nothing)

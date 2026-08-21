@@ -289,7 +289,7 @@ key shapes:
 - the rest search api ignores `limit` slightly; truncate manually after parse (`search.py:36`).
 - `pages.edit` here does not pass `basetimestamp` / `baserevid`; concurrent edits will silently last-write-wins. add the params if a new write path needs conflict detection.
 - never run live edits or admin actions during testing or research. read-only api calls against a public wiki (e.g. en.wikipedia.org/w/api.php) are fine for verifying response shapes; writes against attuproject.org are not.
-- per `notes/agents.md` and `CLAUDE.md`: never trigger discord-side interactions or commit changes without explicit user instruction.
+- per `docs/agents.md` and `CLAUDE.md`: never trigger discord-side interactions or commit changes without explicit user instruction.
 
 ## quick links
 

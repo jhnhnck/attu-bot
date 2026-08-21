@@ -1,13 +1,13 @@
 ---
 name: feature-completion
-description: AttuBot end-of-task checklist - tests, documentation, configuration plumbing, web interface, and linting. trigger when the user signals task wrap-up ("ready to commit", "feature done", "ready for review", "I think that's it", "done", "looks good"); when running pytest, ruff check, ruff format, npm run lint, or `docker compose run ... tests`; before drafting any `git commit` message; before reporting a feature, fix, or refactor as complete. canonical source for the checklist - if it diverges from `notes/agents.md`, this skill wins.
+description: AttuBot end-of-task checklist - tests, documentation, configuration plumbing, web interface, and linting. trigger when the user signals task wrap-up ("ready to commit", "feature done", "ready for review", "I think that's it", "done", "looks good"); when running pytest, ruff check, ruff format, npm run lint, or `docker compose run ... tests`; before drafting any `git commit` message; before reporting a feature, fix, or refactor as complete. canonical source for the checklist - if it diverges from `docs/agents.md`, this skill wins.
 ---
 
 # feature completion checklist
 
 Walk through every applicable item below before reporting a task as done. Answer each as a literal yes/no; if the answer is no and the item applies, finish that item before declaring completion.
 
-Source section: `notes/agents.md` — `## feature completion checklist`. This skill is canonical; if it drifts from agents.md, flag the divergence so agents.md gets updated to match.
+Source section: `docs/agents.md` — `## feature completion checklist`. This skill is canonical; if it drifts from agents.md, flag the divergence so agents.md gets updated to match.
 
 ## tests
 
@@ -21,10 +21,10 @@ Source section: `notes/agents.md` — `## feature completion checklist`. This sk
 
 ## documentation
 
-- [ ] did you update the relevant feature spec in `notes/features/` if behavior or storage changed?
-- [ ] is the feature new, stable, and referenceable? if yes, did you propose a new note file following `notes/.meta.md` guidance (feature.md, library_usage.md, or domain_concept.md)?
-- [ ] if you added a new note file, did you update the reference notes table in `notes/agents.md`?
-- [ ] did you update `notes/to-do.md` to reflect completed work?
+- [ ] did you update the relevant feature spec in `docs/features/` if behavior or storage changed?
+- [ ] is the feature new, stable, and referenceable? if yes, did you propose a new note file following `docs/.meta.md` guidance (feature.md, library_usage.md, or domain_concept.md)?
+- [ ] if you added a new note file, did you update the reference notes table in `docs/agents.md`?
+- [ ] did you update `docs/to-do.md` to reflect completed work?
 
 ## configuration (only if you added a config field)
 
@@ -45,7 +45,7 @@ See the `pydantic` skill for the document/runtime model split, `ConfigDict(extra
 
 ## web interface (only if you added or changed web-facing config, pages, or endpoints)
 
-- [ ] did you follow the relevant guide in `notes/features/web.md` (adding a config field; adding a page or endpoint)?
+- [ ] did you follow the relevant guide in `docs/features/web.md` (adding a config field; adding a page or endpoint)?
 - [ ] every mutation: did you add audit logging via `web_app.audit_logger.log_change(...)`?
 - [ ] every mutation: did you send a reload signal via `send_signal()` after save so the bot process picks up the change?
 - [ ] new API endpoints: do they return `{'error': '...'}` on failure and `{'success': True, 'message': '...'}` on success?
@@ -56,9 +56,9 @@ See the `pydantic` skill for the document/runtime model split, `ConfigDict(extra
 - [ ] is `ruff check .` clean? (fix all issues; do not suppress without cause)
 - [ ] is `ruff format --check .` clean?
 - [ ] did you touch any JS? if yes, is `npm run lint` clean?
-- [ ] every `# noqa` suppression has a valid reason attached? (rule #4 from `notes/agents.md`)
+- [ ] every `# noqa` suppression has a valid reason attached? (rule #4 from `docs/agents.md`)
 
 ## final gate
 
 - [ ] every applicable box above is checked
-- [ ] you have not run `git commit` without explicit user instruction (rule #3 from `notes/agents.md`)
+- [ ] you have not run `git commit` without explicit user instruction (rule #3 from `docs/agents.md`)

@@ -64,15 +64,15 @@ question: does the change come with the tests it needs, and are the tests testin
 - assert behavior, not call shape: `assert_called_with(...)` on an internal helper is brittle; assert the resulting db state or the message sent
 - tests must not depend on real time; freezegun is the convention (`TZ=UTC` is already set in the harness)
 
-defer to: `mock-compensation` skill (the rule + standing cases), `notes/dev/testing.md` (fixtures and harness conventions), `feature-completion` skill (the literal tests checklist).
+defer to: `mock-compensation` skill (the rule + standing cases), `docs/dev/testing.md` (fixtures and harness conventions), `feature-completion` skill (the literal tests checklist).
 
 ## pass 5 - documentation
 
 question: would someone touching this area in three months understand it from the repo alone?
 
-- behavior or storage of a documented feature changed → corresponding `notes/features/*.md` updated in the same diff
-- new note file → reference table in `notes/agents.md` updated
-- `notes/to-do.md` reflects what landed and what's deferred
+- behavior or storage of a documented feature changed → corresponding `docs/features/*.md` updated in the same diff
+- new note file → reference table in `docs/agents.md` updated
+- `docs/to-do.md` reflects what landed and what's deferred
 - inline comments earn their place per `comment-style`; default is no comment
 
 defer to: `comment-style` skill (case, brevity, todo tags, noqa reasons), `file-header` skill (SPDX + breadcrumb on new files), `feature-completion` skill (literal documentation checklist).
@@ -146,7 +146,7 @@ run order at a phase boundary: programmer → `feature-completion` → `code-rev
 
 ## cross-references
 
-- `notes/dev/process.md` - the loop this skill sits inside
-- `notes/agents.md` - architecture, conventions, rules, and the patterns-and-pitfalls list this skill draws from
+- `docs/dev/process.md` - the loop this skill sits inside
+- `docs/agents.md` - architecture, conventions, rules, and the patterns-and-pitfalls list this skill draws from
 - canonical style skills: `comment-style`, `message-style`, `commit-style`, `file-header`, `pycord`, `pydantic`, `mediawiki-api`, `ferretdb-quirks`, `mock-compensation`, `docker-commands`, `container-logs`
 - shared sibling skills: `pre-mortem`, `integration-check`, `phase-retro`, `bug-triage`, `plan-revise`, `ship-readiness`

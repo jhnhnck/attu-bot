@@ -63,12 +63,12 @@ Note: `feat(hatch): trading and collection info` — not "implement trading and 
 
 A commit ships when the unit it describes is whole. The shape of "whole" depends on the type:
 
-- **`feat`** — implementation + tests + notes/docs + config/assets + `notes/to-do.md` updates, all in one commit. Done means the thing it describes works, not that the code compiles.
-- **`fix` / `patch`** — the change plus any test that covers it. If db layer or a script had to be touched to make it right, those go in too. `notes/to-do.md` updates marking the item complete go in the same commit.
+- **`feat`** — implementation + tests + notes/docs + config/assets + `docs/to-do.md` updates, all in one commit. Done means the thing it describes works, not that the code compiles.
+- **`fix` / `patch`** — the change plus any test that covers it. If db layer or a script had to be touched to make it right, those go in too. `docs/to-do.md` updates marking the item complete go in the same commit.
 - **`refactor`** — every file referencing the renamed/reshaped thing, swept in a single commit. No partial refactors left dangling.
 - **data / config change** — minimal: just the value and its docs.
 - **`chore`** — never rides along with feature or fix work; collect linting and formatting separately.
-- **`test`** — fine to include with the feature it covers, fine to land standalone later. If a feature ships without tests, add a `notes/to-do.md` entry under the test section.
+- **`test`** — fine to include with the feature it covers, fine to land standalone later. If a feature ships without tests, add a `docs/to-do.md` entry under the test section.
 
 Small `fix` / `patch` follow-ups after a large `feat` are normal and expected; do not try to anticipate everything upfront.
 
@@ -78,5 +78,5 @@ The tree often holds hunks from several tasks at once. That is fine — deployme
 
 ## Cross-references
 
-- `notes/agents.md` rule #3 — the "no commits without explicit instruction" rule
-- `notes/agents.md` personality section — semicolons or regular dashes (never em-dashes), American English, brief over verbose
+- `docs/agents.md` rule #3 — the "no commits without explicit instruction" rule
+- `docs/agents.md` personality section — semicolons or regular dashes (never em-dashes), American English, brief over verbose
