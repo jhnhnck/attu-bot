@@ -130,3 +130,8 @@ the skill reads every entry in full, assigns severity + disposition, and surface
 last_updated: 09 August 2026
 total_resolved: 2
 ```
+
+## open
+
+- **mkdocstrings cannot import attu_logging** — packages/attu-logging/pyproject.toml has `package = false`, so uv does not install attu_logging into the venv; mkdocstrings raises ModuleNotFoundError when the api reference page is added; phase 1 will need to either set `package = true` for attu-logging or configure a PYTHONPATH workaround before the api reference build can succeed
+- **stale agents.md link in nova-core.md** — docs/nova-core.md links to `agents.md` which does not exist (the file was renamed to architecture.md); mkdocs build warns but does not fail; pre-existing, unrelated to mkdocs scaffold
