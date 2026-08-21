@@ -60,6 +60,7 @@ mkdocstrings API pages will surface internal modules not intended as public API.
 
 **scope:** create API reference pages in docs/api/ for each workspace package using mkdocstrings directives, wire into nav.
 
+- configure `paths:` in the mkdocstrings handler config in mkdocs.yml to point to all six package source dirs: `apps/bot`, `apps/server`, `apps/casino`, `packages/shared-models`, `packages/attu-logging`, `packages/attu-wiki` — required because all six packages have `package = false` and are not installed into the venv by uv
 - create `docs/api/` with one .md per package:
   - `nova-core.md` → `:::nova_core` with submodule filtering
   - `attu-models.md` → `:::attu_models`
@@ -82,5 +83,5 @@ mkdocstrings API pages will surface internal modules not intended as public API.
 
 | phase | status |
 |---|---|
-| 0 - scaffold and probe | in progress |
+| 0 - scaffold and probe | closed in 8039757 |
 | 1 - api reference | not started |
