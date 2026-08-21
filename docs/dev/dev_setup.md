@@ -72,6 +72,18 @@ cp -r /srv/backups/attu-bot/<timestamp> apps/bot/assets/doombot-seed
 
 ---
 
+## docs site
+
+preview the docs site locally:
+
+```bash
+uv run mkdocs serve
+```
+
+builds in ~1s and reloads on save. all six workspace packages are documented via mkdocstrings; the `paths:` config in `mkdocs.yml` is required because all packages have `package = false` (not installed as venv site-packages). `uv run mkdocs build --strict` must exit 0 before merging any docs changes.
+
+---
+
 ## metadata
 
 ```yaml
