@@ -338,7 +338,7 @@ runs independently of all workstreams; no ordering constraint.
 
 ## see also
 
-- [agents.md](agents.md) - architecture, coding conventions, rules
+- [architecture.md](architecture.md) - architecture, coding conventions, rules
 - [dev/dev_setup.md](dev/dev_setup.md) - local dev workflow and deploy steps
 - [features/ccboard.md](features/ccboard.md) - ccboard feature spec (first feature to migrate under the new pattern)
 - [features/tasks.md](features/tasks.md) - task scheduler overview and BaseTask lifecycle
