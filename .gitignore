@@ -28,6 +28,9 @@ venv/
 
 # node.js
 node_modules/
+
+# mkdocs build output
+site/
 package-lock.json
 
 # config files

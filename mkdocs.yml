@@ -1,0 +1,47 @@
+site_name: AttuBot / Doom Bot
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: false
+            show_if_no_docstring: false
+            filters:
+              - "!^_"
+
+nav:
+  - Home: architecture.md
+  - Config system: config-system.md
+  - Nova Core: nova-core.md
+  - Features:
+    - Eggs: features/eggs.md
+    - Markers: features/markers.md
+    - Reminders: features/reminders.md
+    - Starboard: features/starboard.md
+    - Tasks: features/tasks.md
+    - Timekeeping: features/timekeeping.md
+    - CCBoard: features/ccboard.md
+  - Dev guides:
+    - Setup: dev/dev_setup.md
+    - Testing: dev/testing.md
+    - Process: dev/process.md
+  - Style:
+    - Embeds: style/embed_usage.md
+    - Buttons: style/button_usage.md
