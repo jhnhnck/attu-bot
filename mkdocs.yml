@@ -34,7 +34,8 @@ plugins:
               - "!^_"
 
 nav:
-  - Home: architecture.md
+  - Home: index.md
+  - Architecture: architecture.md
   - Config system: config-system.md
   - Nova Core: nova-core.md
   - Features:
