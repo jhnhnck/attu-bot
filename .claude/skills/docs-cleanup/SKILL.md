@@ -31,7 +31,7 @@ When a doc references `agents.md` (or `notes/agents.md`), check the surrounding 
 | config system | `docs/config-system.md` |
 | a named feature | `docs/features/<feature>.md` |
 
-Known case: `docs/nova-core.md` links to `agents.md` (which no longer exists); the link text describes architecture → update to `docs/architecture.md`.
+Known case: `docs/features/tasks.md` step 7 read "Add a row to the tasks table in `notes/agents.md`" — the link text describes architecture/reference content → correctly updated to `docs/architecture.md`.
 
 Other common stale forms and their redirects:
 
