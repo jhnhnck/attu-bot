@@ -159,17 +159,17 @@ Command files (`apps/bot/doom_bot/commands/`) can import `scheduler` at the top 
 
 ## How to Add a New Recurring Task
 
-1. Create `apps/bot/doom_bot/tasks/my_feature.py` with the standard file header
+1. Create `apps/bot/nova_core/tasks/my_feature.py` with the standard file header
 2. Define a class extending `BaseTask`; set `name`, `interval` (or `None`), and optionally `run_immediately`
 3. Implement `run()` (required); implement `on_start()` if you need to wait on config or the bot being ready
 4. Implement `next_run()` if `interval is None`
 5. Add a module-level singleton: `my_feature_task = MyFeatureTask()`
-6. In `apps/bot/doom_bot/tasks/__init__.py`, import the singleton and add `s.register(my_feature_task)` inside `register_bot_tasks()`
-7. Add a row to the tasks table in `notes/agents.md`
+6. In `apps/bot/nova_core/tasks/__init__.py`, import the singleton and add `s.register(my_feature_task)` inside `register_bot_tasks()`
+7. Add a row to the tasks table in `docs/architecture.md`
 
 ## How to Fire a One-Shot Job from a Command
 
-1. Import `scheduler` at the top of the command module: `from doom_bot.tasks import scheduler`
+1. Import `scheduler` at the top of the command module: `from nova_core.tasks import scheduler`
 2. Call `scheduler.add_job(my_coro(...), 'Job', 'operation_name')` after responding to the user
 3. If additional context is needed (channel, user, guild), add it as extra parts: `scheduler.add_job(coro, 'Job', 'fix_messages', f'#{channel.name}')`
 4. Use the `Job` kind for maintenance operations; use the task's `BaseTask.name` as kind for out-of-cycle task triggers
@@ -179,5 +179,5 @@ Command files (`apps/bot/doom_bot/commands/`) can import `scheduler` at the top 
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 22 August 2026
 ```

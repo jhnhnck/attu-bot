@@ -1,6 +1,6 @@
 ---
 name: comment-style
-description: AttuBot python comment conventions - case, punctuation, brevity, section dividers, todo tags, and noqa reasons. trigger when editing or creating any `.py` file under `doom_bot/`, `tests/python/`, or `scripts/`; when writing inline or block comments in python; when adding `# noqa`, `# TODO`, `# NOTE`, or `# FIXME` tags; when adding or reviewing module-level section dividers; when answering questions about python comment formatting in this repo.
+description: AttuBot python comment conventions - case, punctuation, brevity, section dividers, todo tags, and noqa reasons. trigger when editing or creating any `.py` file under `apps/`, `packages/`, or `tests/`; when writing inline or block comments in python; when adding `# noqa`, `# TODO`, `# NOTE`, or `# FIXME` tags; when adding or reviewing module-level section dividers; when answering questions about python comment formatting in this repo.
 ---
 
 # comment-style
@@ -82,7 +82,7 @@ use sparingly. format: all-caps tag, colon, space, lowercase message. only `TODO
 
 ## noqa requires a reason
 
-rule #4 from `agents.md`: every `noqa` must include a valid reason. format:
+`CLAUDE.md` rule #4: every `noqa` must include a valid reason. format:
 
 ```python
 something()  # noqa: PLW0603 - lazy singleton initialization requires global
@@ -100,5 +100,5 @@ something()  # noqa: PLW0603 - lazy singleton initialization requires global
 
 ## cross-references
 
-- `docs/agents.md` rule #4 - the noqa-reason rule
-- `docs/agents.md` personality section - lowercase comments, semicolons or regular dashes (never em-dashes), american english
+- `CLAUDE.md` rule #4 - the noqa-reason rule
+- `CLAUDE.md` personality section - lowercase comments, semicolons or regular dashes (never em-dashes), american english

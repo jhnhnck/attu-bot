@@ -46,9 +46,9 @@ docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests
 
 ## Coverage & troubleshooting
 
-- Coverage reports target `apps/bot/doom_bot/` (and `packages/shared-models/attu_models/` where it gets imported) plus the python tests (see `scripts/run_tests.py` and `coverage` config). If you add new files, ensure the `coverage run` command still wraps the desired modules.
+- Coverage reports target `apps/bot/nova_core/` (and `packages/shared-models/attu_models/` where it gets imported) plus the python tests (see `scripts/run_tests.py` and `coverage` config). If you add new files, ensure the `coverage run` command still wraps the desired modules.
 - If the database is unavailable, component tests will fail quickly; make sure `.secrets/attu-bot.toml` points to a reachable ferret/postgres pair before running them.
-- `TZ=UTC` must be set before pytest starts because `doom_bot.config` reads the timezone at import time. The shared `tests/conftest.py` already sets it for every test.
+- `TZ=UTC` must be set before pytest starts because `nova_core.config` reads the timezone at import time. The shared `tests/conftest.py` already sets it for every test.
 - When renaming tests, keep imports (e.g., `from tests.conftest import TEST_GUILD`) relative to the test package layout.
 
 ## Mock compensation
@@ -71,5 +71,5 @@ The mock compensation rule, the three standing cases (extension loading, permiss
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 22 August 2026
 ```
