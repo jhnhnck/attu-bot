@@ -28,7 +28,7 @@ _cmd_start_times: dict[int, float] = {}
 _READY_SENTINEL = '/tmp/bot-ready'  # ruff: ignore[hardcoded-temp-file] - intentional healthcheck sentinel path in docker container
 
 
-# --- Shutdown ---
+# --- shutdown ---
 
 
 async def _shutdown(exit_code: int = 1):
@@ -48,7 +48,7 @@ async def _shutdown(exit_code: int = 1):
 
 
 async def _graceful_shutdown():
-    """handle SIGTERM from docker; stop tasks, close connections, then close bot cleanly"""
+    """handle SIGTERM from docker; stop tasks, close connections, then close bot cleanly."""
     from nova_core.client.core import db
     from nova_core.tasks.scheduler import scheduler
 
@@ -66,11 +66,11 @@ async def _graceful_shutdown():
     await bot.close()
 
 
-# --- Ready Path ---
+# --- ready path ---
 
 
 async def _restore_wiki_views():
-    """restore persistent wiki lookup views from db on startup"""
+    """restore persistent wiki lookup views from db on startup."""
     try:
         from attu_wiki.models import PageSummary, SearchResult
         from nova_core.commands.wiki import WikiLookupView, _get_view_repo, build_wiki_embed
@@ -100,7 +100,7 @@ async def _restore_wiki_views():
 
 
 async def _do_ready_init():  # ruff: ignore[too-many-statements] - ready init has inherently many sequential steps
-    """inner ready path; extracted from on_ready() for testability"""
+    """inner ready path; extracted from on_ready() for testability."""
     try:
         logger.info('connecting to database and initializing repositories')
         from nova_core.database import init_database
@@ -194,7 +194,7 @@ async def _do_ready_init():  # ruff: ignore[too-many-statements] - ready init ha
     bot._bot_initialized = True
 
 
-# --- Events ---
+# --- events ---
 
 
 @bot.event

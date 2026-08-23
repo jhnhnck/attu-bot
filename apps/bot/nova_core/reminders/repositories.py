@@ -25,11 +25,9 @@ class ReminderRepository:
         )
 
     async def insert(self, doc: ReminderDocument) -> None:
-        """Insert a new reminder"""
         await self.db[self.COLLECTION].insert_one(doc.model_dump())
 
     async def get(self, reminder_id: str) -> ReminderDocument | None:
-        """Fetch reminder by reminder_id"""
         doc = await self.db[self.COLLECTION].find_one({'reminder_id': reminder_id})
         if doc:
             doc.pop('_id', None)
@@ -73,7 +71,6 @@ class ReminderRepository:
         return [ReminderDocument(**{k: v for k, v in d.items() if k != '_id'}) for d in docs]
 
     async def mark_fired(self, reminder_id: str, fired_at: int) -> None:
-        """Mark a reminder as fired"""
         await self.db[self.COLLECTION].update_one(
             {'reminder_id': reminder_id},
             {'$set': {'fired': True, 'fired_at': fired_at}},

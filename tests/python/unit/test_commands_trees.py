@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for /trees Commands
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_trees | unit tests for /trees commands."""
 
 import hashlib
 import hmac
@@ -17,7 +13,7 @@ from nova_core.config import GuildEntry
 from tests.conftest import test_user
 
 
-# --- Helpers ---
+# --- helpers ---
 
 _HMAC_SECRET = 'test-secret-key'  # noqa: S105 - test value only
 _DEV_URL = 'http://attu-tree-dev:8000'

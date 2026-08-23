@@ -1,12 +1,5 @@
-"""
-AttuBot - Reminder Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for the reminder feature: fire time computation, date formatting,
-and slash command validation.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_reminder | unit tests for the reminder feature."""
 
 import os
 import time as _time

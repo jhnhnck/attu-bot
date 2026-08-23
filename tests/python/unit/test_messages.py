@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for message tracking
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_messages | tests for message tracking and modlog handlers."""
 
 import os
 import time as _time
@@ -54,7 +50,7 @@ def _make_msg_doc(**kwargs) -> MessageDocument:
     )
 
 
-# --- Fixtures ---
+# --- fixtures ---
 
 
 @pytest.fixture
@@ -2117,9 +2113,7 @@ class TestLogBulkDeleteAdditional:
         assert '...' in preview
 
 
-# ============================================================
-# ui_emoji helper
-# ============================================================
+# --- ui_emoji helper ---
 
 
 class TestUiEmoji:

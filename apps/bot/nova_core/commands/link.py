@@ -18,7 +18,6 @@ from nova_core.trees.families import get_family, get_viewer_url, is_family_file,
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# parses https://discord.com/channels/{guild}/{channel}/{message}
 _MESSAGE_LINK_RE = re.compile(r'https://discord\.com/channels/(\d+)/(\d+)/(\d+)')
 
 # --- Link Commands ---
@@ -69,7 +68,6 @@ async def family_view(ctx: ApplicationContext, name: str):
 async def family_set(ctx: ApplicationContext, name: str, message_link: str):
     config.guild(ctx.guild.id)  # ensures guild is authorized
 
-    # parse the message link
     match = _MESSAGE_LINK_RE.search(message_link)
     if not match:
         await ctx.respond('Failed: that does not look like a valid discord message link', ephemeral=True)
@@ -78,7 +76,6 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
     channel_id = int(match.group(2))
     message_id = int(match.group(3))
 
-    # fetch the message and find the .txt attachment
     try:
         channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
         msg = await channel.fetch_message(message_id)  # type: ignore[union-attr]
@@ -92,7 +89,6 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         await ctx.respond('Failed: no .txt or .ged file found on that message', ephemeral=True)
         return
 
-    # download and validate
     try:
         raw = await family_attachments[0].read()
         content = raw.decode('utf-8')
@@ -134,7 +130,6 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
 async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attachment):
     config.guild(ctx.guild.id)  # ensures guild is authorized
 
-    # download the attachment
     try:
         raw = await file.read()
         content = raw.decode('utf-8')
@@ -143,7 +138,6 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         await ctx.respond('Failed: could not read the attached file', ephemeral=True)
         return
 
-    # validate it's a FamilyScript or GEDCOM file
     if not is_family_file(content):
         await ctx.respond('Failed: attached file does not look like a FamilyScript or GEDCOM file from familyecho.com', ephemeral=True)
         return

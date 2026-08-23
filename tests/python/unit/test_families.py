@@ -1,9 +1,5 @@
-"""
-AttuBot - Unit Tests for Family Tracking Module
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_families | unit tests for the family tracking module."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,9 +13,7 @@ from nova_core.trees.families import get_family, get_viewer_url, is_family_file,
 pytestmark = pytest.mark.unit
 
 
-# ============================================================
-# sample content
-# ============================================================
+# --- sample content ---
 
 _VALID_FAMILYSCRIPT = '# The Smith Family\n#\n# FamilyScript downloaded by John Smith\nDATA LINE\n'
 _VALID_FAMILYSCRIPT_CRLF = '# The Smith Family\r\n#\r\n# FamilyScript downloaded by John Smith\r\nDATA LINE\r\n'
@@ -29,9 +23,7 @@ _NOT_FAMILY = 'this is just some random text\nnothing to see here\n'
 _EMPTY = ''
 
 
-# ============================================================
-# is_family_file()
-# ============================================================
+# --- is_family_file() ---
 
 
 class TestIsFamilyFile:
@@ -60,9 +52,7 @@ class TestIsFamilyFile:
         assert is_family_file('# Some Name\n#\n# Not the right prefix\n') is False
 
 
-# ============================================================
-# get_viewer_url()
-# ============================================================
+# --- get_viewer_url() ---
 
 
 class TestGetViewerUrl:
@@ -127,9 +117,7 @@ class TestGetViewerUrl:
             await get_viewer_url('content')
 
 
-# ============================================================
-# _get_repo() guard
-# ============================================================
+# --- _get_repo() guard ---
 
 
 class TestGetRepoGuard:
@@ -156,9 +144,7 @@ class TestGetRepoGuard:
             await list_families(123)
 
 
-# ============================================================
-# get_family()
-# ============================================================
+# --- get_family() ---
 
 
 class TestGetFamily:
@@ -201,9 +187,7 @@ class TestGetFamily:
         mock_repo.get.assert_awaited_once_with(123, 'jones')
 
 
-# ============================================================
-# save_family()
-# ============================================================
+# --- save_family() ---
 
 
 class TestSaveFamily:
@@ -226,9 +210,7 @@ class TestSaveFamily:
         mock_repo.upsert.assert_awaited_once_with(doc)
 
 
-# ============================================================
-# list_families()
-# ============================================================
+# --- list_families() ---
 
 
 class TestListFamilies:

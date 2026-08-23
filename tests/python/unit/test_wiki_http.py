@@ -1,12 +1,5 @@
-"""
-AttuBot - Wiki HTTP Boundary Tests (respx)
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests the three wiki API layers (auth, search, admin) against a mocked HTTP
-transport.  No real network calls are made.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_wiki_http | wiki HTTP boundary tests using mocked transport."""
 
 from unittest.mock import patch
 
@@ -27,9 +20,7 @@ rest = 'https://wiki.example.test/rest.php/v1'
 base = 'https://wiki.example.test'
 
 
-# ============================================================
-# shared fixtures
-# ============================================================
+# --- shared fixtures ---
 
 
 @pytest.fixture
@@ -54,9 +45,7 @@ def admin(http_client, auth):
     return AdminApi(http_client, '/api.php', auth)
 
 
-# ============================================================
-# AuthApi
-# ============================================================
+# --- AuthApi ---
 
 
 class TestAuthApiGetCsrf:
@@ -124,9 +113,7 @@ class TestAuthApiLogin:
         assert 'mytoken' in content
 
 
-# ============================================================
-# SearchApi
-# ============================================================
+# --- SearchApi ---
 
 
 class TestSearchApiSearch:
@@ -317,9 +304,7 @@ class TestSearchApiSiteInfo:
             await search.site_info()
 
 
-# ============================================================
-# AdminApi
-# ============================================================
+# --- AdminApi ---
 
 
 class TestAdminApiBlock:

@@ -16,7 +16,6 @@ class EggRepository:
         self.db = db
 
     async def init_indexes(self) -> None:
-        """Create required indexes"""
         await self.db[self.COLLECTION].create_index('egg_id', unique=True)
         # covers get_oldest_ready() and get_next_unhatched() filter + sort on hatches_at
         await self.db[self.COLLECTION].create_index(
@@ -24,11 +23,9 @@ class EggRepository:
         )
 
     async def insert(self, doc: EggDocument) -> None:
-        """Insert a new egg"""
         await self.db[self.COLLECTION].insert_one(doc.model_dump())
 
     async def get(self, egg_id: str) -> EggDocument | None:
-        """Fetch egg by egg_id"""
         doc = await self.db[self.COLLECTION].find_one({'egg_id': egg_id})
         if doc:
             doc.pop('_id', None)
@@ -60,14 +57,12 @@ class EggRepository:
         return None
 
     async def mark_hatched(self, egg_id: str, result: str) -> None:
-        """Mark an egg as hatched and set its result"""
         await self.db[self.COLLECTION].update_one(
             {'egg_id': egg_id},
             {'$set': {'hatched': True, 'result': result}},
         )
 
     async def update_message_id(self, egg_id: str, message_id: int) -> None:
-        """Store the thread message id for this egg"""
         await self.db[self.COLLECTION].update_one(
             {'egg_id': egg_id},
             {'$set': {'message_id': message_id}},
@@ -123,7 +118,6 @@ class EggRepository:
         return await cursor.to_list(length=None)
 
     async def transfer(self, egg_id: str, new_user_id: int, new_message_id: int) -> None:
-        """Transfer egg ownership and update its thread message id"""
         await self.db[self.COLLECTION].update_one(
             {'egg_id': egg_id},
             {'$set': {'user_id': new_user_id, 'message_id': new_message_id}},
@@ -185,14 +179,12 @@ class EggUserRepository:
         self.db = db
 
     async def init_indexes(self) -> None:
-        """Create required indexes"""
         await self.db[self.COLLECTION].create_index(
             [('guild_id', ASCENDING), ('user_id', ASCENDING)],
             unique=True,
         )
 
     async def get(self, guild_id: int, user_id: int) -> EggUserDocument | None:
-        """Fetch user egg state"""
         doc = await self.db[self.COLLECTION].find_one({'guild_id': guild_id, 'user_id': user_id})
         if doc:
             doc.pop('_id', None)
@@ -200,7 +192,6 @@ class EggUserRepository:
         return None
 
     async def upsert(self, doc: EggUserDocument) -> None:
-        """Insert or update user egg state"""
         await self.db[self.COLLECTION].update_one(
             {'guild_id': doc.guild_id, 'user_id': doc.user_id},
             {'$set': doc.model_dump()},
@@ -208,7 +199,6 @@ class EggUserRepository:
         )
 
     async def update_field(self, guild_id: int, user_id: int, field: str, value) -> None:
-        """Update a single field on the user egg state"""
         await self.db[self.COLLECTION].update_one(
             {'guild_id': guild_id, 'user_id': user_id},
             {'$set': {field: value}},

@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class WikiViewDocument(BaseModel):
-    """Persistent state for a WikiLookupView instance"""
+    """persistent state for a WikiLookupView instance."""
 
     model_config = ConfigDict(extra='ignore')
 

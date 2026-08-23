@@ -31,14 +31,12 @@ async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
     logger.info(f'querying pins in #{channel.name}')
     await ctx.respond(f'## Pins in <#{channel.id}>')
 
-    # for year 1 thru current year
     for year in range(1, current_year + 1):
         year_span = await get_year_span(year)
         start_time = datetime.fromtimestamp(year_span.start_time).astimezone() if year > 0 else guild_creation
         end_time = datetime.fromtimestamp(year_span.end_time).astimezone()
         pins = []
 
-        # search through each years history
         async for message in channel.history(after=start_time, before=end_time, limit=None):
             if message.type == MessageType.pins_add:
                 link = format_message_link(ctx.guild.id, message.reference.channel_id, message.reference.message_id or 0)

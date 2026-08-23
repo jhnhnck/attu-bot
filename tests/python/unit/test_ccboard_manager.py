@@ -12,7 +12,7 @@ from nova_core.ccboard.manager import ManagerTask, _lowest_positive_emoji, _swee
 from nova_core.config import GuildCCBoard
 
 
-# --- Constants ---
+# --- constants ---
 
 guild_id = 1234567890
 channel_id = 5555555555
@@ -23,7 +23,7 @@ new_post_id = 333000333000333000
 author_id = 573360359566737409
 
 
-# --- Fixtures ---
+# --- fixtures ---
 
 
 @pytest.fixture(autouse=True)
@@ -121,7 +121,7 @@ def _stub_get_channel(channel) -> MagicMock:
     return bot
 
 
-# --- Helper Tests ---
+# --- helper tests ---
 
 
 def test_lowest_positive_emoji_picks_smallest_positive():
@@ -150,7 +150,7 @@ def test_sweep_message_text_contains_user_mention():
     assert 'sweaps' in text
 
 
-# --- _sync_post Tests ---
+# --- _sync_post tests ---
 
 
 @pytest.mark.asyncio
@@ -324,7 +324,7 @@ async def test_edit_forbidden_sends_reply():
     repo.set_reply_created.assert_awaited_once_with(message_id)
 
 
-# --- Sweep Tests ---
+# --- sweep tests ---
 
 
 @pytest.mark.asyncio
@@ -438,7 +438,7 @@ async def test_sweep_swallows_exceptions():
     channel.send.assert_not_called()
 
 
-# --- Registration Test ---
+# --- registration test ---
 # mock-compensation: register_bot_tasks is mocked in other tests by replacing the scheduler;
 # this real-call test verifies the manager singleton is wired into the task list.
 

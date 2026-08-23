@@ -1,12 +1,5 @@
-"""
-AttuBot - Task Scheduler Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for TaskScheduler._run_loop with run_once semantics.
-All tests mock asyncio.sleep to avoid real delays.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_scheduler | unit tests for the task scheduler run loop."""
 
 import asyncio
 from datetime import datetime, timedelta
@@ -16,7 +9,7 @@ from nova_core.tasks.base import BaseTask
 from nova_core.tasks.scheduler import TaskScheduler
 
 
-# ---- helpers ----
+# --- helpers ---
 
 
 def _make_scheduler() -> TaskScheduler:
@@ -62,9 +55,7 @@ class _RunOnceDeferredTask(BaseTask):
         pass
 
 
-# ============================================================
-# run_once=True, run_immediately=True
-# ============================================================
+# --- run_once=True, run_immediately=True ---
 
 
 class TestRunOnceImmediate:
@@ -106,9 +97,7 @@ class TestRunOnceImmediate:
         mock_sleep.assert_not_awaited()
 
 
-# ============================================================
-# run_once=True, run_immediately=False
-# ============================================================
+# --- run_once=True, run_immediately=False ---
 
 
 class TestRunOnceDeferred:
@@ -150,9 +139,7 @@ class TestRunOnceDeferred:
         mock_sleep.assert_awaited_once_with(1.0)
 
 
-# ============================================================
-# run_once=False - normal looping task
-# ============================================================
+# --- run_once=False - normal looping task ---
 
 
 class TestNormalLoopTask:
@@ -180,9 +167,7 @@ class TestNormalLoopTask:
         assert call_count >= 3
 
 
-# ============================================================
-# add_job
-# ============================================================
+# --- add_job ---
 
 
 class TestAddJob:
@@ -250,9 +235,7 @@ class TestAddJob:
         assert len(scheduler._jobs) == 0
 
 
-# ============================================================
-# start_all
-# ============================================================
+# --- start_all ---
 
 
 class _SimpleTask(BaseTask):
@@ -304,9 +287,7 @@ class TestStartAll:
         await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
 
 
-# ============================================================
-# stop_all
-# ============================================================
+# --- stop_all ---
 
 
 class TestStopAll:
@@ -330,9 +311,7 @@ class TestStopAll:
         assert scheduler._running is False
 
 
-# ============================================================
-# dynamic scheduling: next_run returning None
-# ============================================================
+# --- dynamic scheduling: next_run returning None ---
 
 
 class _NoneNextRunTask(BaseTask):
@@ -368,9 +347,7 @@ class TestDynamicScheduling:
         task.run.assert_not_awaited()
 
 
-# ============================================================
-# error in run()
-# ============================================================
+# --- error in run() ---
 
 
 class _FailThenSucceedTask(BaseTask):
@@ -417,9 +394,7 @@ class TestErrorInRun:
         mock_logger.error.assert_called_once()
 
 
-# ============================================================
-# properties: count and running_tasks
-# ============================================================
+# --- properties: count and running_tasks ---
 
 
 class TestProperties:
@@ -483,9 +458,7 @@ class TestProperties:
         await asyncio.gather(*scheduler._loop_tasks, return_exceptions=True)
 
 
-# ============================================================
-# _sleep_until with wake_event (interruptible sleep)
-# ============================================================
+# --- _sleep_until with wake_event (interruptible sleep) ---
 
 
 class TestSleepUntilWake:
@@ -524,9 +497,7 @@ class TestSleepUntilWake:
         assert 4.0 < delay <= 5.0
 
 
-# ============================================================
-# dynamic task: request_wake() re-evaluates next_run()
-# ============================================================
+# --- dynamic task: request_wake() re-evaluates next_run() ---
 
 
 class _WakeableDynamicTask(BaseTask):

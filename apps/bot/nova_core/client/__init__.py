@@ -19,7 +19,7 @@ from nova_core.client.embeds import ui_emoji
 logger = structlog.stdlib.get_logger(__name__)
 
 
-# --- Pycord Bridge Handler ---
+# --- pycord bridge handler ---
 
 
 class PycordBridgeHandler(logging.Handler):
@@ -37,7 +37,7 @@ class PycordBridgeHandler(logging.Handler):
 logger.info('initializing')
 
 
-# --- Commands ---
+# --- commands ---
 
 
 @discord.slash_command(name='ping', description='Simple command to test if the bot is online')
@@ -46,17 +46,17 @@ async def command_ping(ctx: ApplicationContext):
     await ctx.respond(f'Pong! ({latency_ms}ms) {ui_emoji("rockball")}')
 
 
-# --- Extensions ---
+# --- extensions ---
 
 # auto-discovered from nova_core/commands/; sorted for deterministic loading order
 extensions_list = sorted(f'nova_core.commands.{mod.name}' for mod in pkgutil.iter_modules(nova_core.commands.__path__))
 
 
-# --- Startup Helpers ---
+# --- startup helpers ---
 
 
 def _check_deps():
-    """check required system dependencies; raises Exception if any are missing"""
+    """check required system dependencies; raises Exception if any are missing."""
     for cmd in ('resvg', 'mongodump'):
         where = shutil.which(cmd)
         if where is None:
@@ -95,13 +95,13 @@ def _register_core_commands():
 
 
 def _load_extensions():
-    """load all slash command extensions in order; raises Exception on first failure"""
+    """load all slash command extensions in order; raises Exception on first failure."""
     logger.info('loading extensions')
     for ext in extensions_list:
         bot.load_extension(ext)
 
 
-# --- Bot Entry Point ---
+# --- bot entry point ---
 
 
 def start_bot_loop():

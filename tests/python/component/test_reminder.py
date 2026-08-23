@@ -1,12 +1,5 @@
-"""
-AttuBot - Reminder Repository Component Tests (real MongoDB)
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-These tests run against a real MongoDB instance. Each test gets isolated
-collections via the component_db fixture from conftest.py.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_reminder | reminder repository component tests."""
 
 import time
 
@@ -122,12 +115,9 @@ class TestReminderRepositoryQueries:
         repo = ReminderRepository(component_db)
         await repo.init_indexes()
 
-        # user A's reminders
         r1 = _make_reminder(reminder_id='user-a-1', user_id=1111, attu_year=5)
         r2 = _make_reminder(reminder_id='user-a-2', user_id=1111, attu_year=3)
-        # user B's reminder
         r3 = _make_reminder(reminder_id='user-b-1', user_id=2222, attu_year=4)
-        # user A's fired reminder
         r4 = _make_reminder(reminder_id='user-a-fired', user_id=1111, attu_year=2, fired=True, fired_at=int(time.time()))
 
         for doc in [r1, r2, r3, r4]:
@@ -135,7 +125,6 @@ class TestReminderRepositoryQueries:
 
         results = await repo.list_active_for_user(reminder_guild, 1111)
         assert len(results) == 2
-        # should be sorted by attu_year ascending
         assert results[0].attu_year == 3
         assert results[1].attu_year == 5
 

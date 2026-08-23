@@ -1,18 +1,12 @@
-"""
-AttuBot - Tests for ErrorHookTask
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_task_error_hook | tests for ErrorHookTask."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from nova_core.tasks.error_hook import ErrorHookTask, error_hook_refresh
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
+# --- helpers ---
 
 
 def _make_task() -> ErrorHookTask:
@@ -68,9 +62,7 @@ def _make_webhook(url, user=None):
     return hook
 
 
-# ---------------------------------------------------------------------------
-# on_start
-# ---------------------------------------------------------------------------
+# --- on_start ---
 
 
 class TestOnStart:
@@ -86,9 +78,7 @@ class TestOnStart:
         mock_bot.wait_until_ready.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# run — test mode
-# ---------------------------------------------------------------------------
+# --- run - test mode ---
 
 
 class TestRunTestMode:
@@ -105,9 +95,7 @@ class TestRunTestMode:
         mock_bot.get_guild.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# run — happy path (webhook already valid)
-# ---------------------------------------------------------------------------
+# --- run - happy path (webhook already valid) ---
 
 
 class TestRunHappyPath:
@@ -129,9 +117,7 @@ class TestRunHappyPath:
         channel.create_webhook.assert_not_awaited()
 
 
-# ---------------------------------------------------------------------------
-# run — webhook missing, creates new one
-# ---------------------------------------------------------------------------
+# --- run - webhook missing, creates new one ---
 
 
 class TestRunWebhookMissing:
@@ -159,9 +145,7 @@ class TestRunWebhookMissing:
         mock_cfg.config_repo.update_system_field.assert_awaited_once_with('error_hook', new_hook.url)
 
 
-# ---------------------------------------------------------------------------
-# run — avatar generation
-# ---------------------------------------------------------------------------
+# --- run - avatar generation ---
 
 
 class TestRunWebhookCreationWithAvatar:
@@ -191,9 +175,7 @@ class TestRunWebhookCreationWithAvatar:
         assert call_kwargs.kwargs.get('avatar') == icon_bytes or call_kwargs[1].get('avatar') == icon_bytes
 
 
-# ---------------------------------------------------------------------------
-# run — old webhook cleanup
-# ---------------------------------------------------------------------------
+# --- run - old webhook cleanup ---
 
 
 class TestRunOldWebhookCleanup:
@@ -263,9 +245,7 @@ class TestRunOldWebhookCleanupFails:
         assert 'failed to delete' in mock_logger.warning.call_args[0][0]
 
 
-# ---------------------------------------------------------------------------
-# run — discord api error during creation
-# ---------------------------------------------------------------------------
+# --- run - discord api error during creation ---
 
 
 class TestRunDiscordApiError:
@@ -289,9 +269,7 @@ class TestRunDiscordApiError:
         mock_cfg.config_repo.update_system_field.assert_not_awaited()
 
 
-# ---------------------------------------------------------------------------
-# run — outer exception (guild/channel lookup fails)
-# ---------------------------------------------------------------------------
+# --- run - outer exception (guild/channel lookup fails) ---
 
 
 class TestRunOuterException:
@@ -310,9 +288,7 @@ class TestRunOuterException:
         assert 'failed acquiring' in mock_logger.error.call_args[0][0]
 
 
-# ---------------------------------------------------------------------------
-# run — config persistence after webhook update
-# ---------------------------------------------------------------------------
+# --- run - config persistence after webhook update ---
 
 
 class TestRunConfigPersistence:
@@ -338,9 +314,7 @@ class TestRunConfigPersistence:
         mock_cfg.config_repo.update_system_field.assert_awaited_once_with('error_hook', 'https://discord.com/api/webhooks/persisted')
 
 
-# ---------------------------------------------------------------------------
-# standalone function
-# ---------------------------------------------------------------------------
+# --- standalone function ---
 
 
 class TestStandaloneFunction:
@@ -353,12 +327,10 @@ class TestStandaloneFunction:
             mock_logger.send_to_webhook = AsyncMock()
             await error_hook_refresh()
 
-        # in test mode it returns early — verifying it ran without error is sufficient
+        # in test mode it returns early - verifying it ran without error is sufficient
 
 
-# ---------------------------------------------------------------------------
-# singleton
-# ---------------------------------------------------------------------------
+# --- singleton ---
 
 
 class TestSingleton:

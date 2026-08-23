@@ -1,11 +1,5 @@
-"""
-AttuBot - Time Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for /time advance, /time pause, /time resume, and /time dilate commands from time.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_time | tests for /time advance, pause, resume, and dilate commands."""
 
 import os
 import time as _time
@@ -21,7 +15,7 @@ import pytest
 from tests.conftest import test_guild
 
 
-# --- /time advance Command Tests ---
+# --- /time advance command tests ---
 
 
 class TestTimeAdvanceCommand:
@@ -90,7 +84,7 @@ class TestTimeAdvanceCommand:
         assert advance_call[0][1] == 1
 
 
-# --- /time pause Command Tests ---
+# --- /time pause command tests ---
 
 
 class TestTimePauseCommand:
@@ -128,7 +122,7 @@ class TestTimePauseCommand:
         assert call_order == ['respond', 'pause']
 
 
-# --- /time resume Command Tests ---
+# --- /time resume command tests ---
 
 
 class TestTimeResumeCommand:
@@ -177,7 +171,7 @@ class TestTimeResumeCommand:
         assert call_order == ['move_epoch', 'respond', 'resume']
 
 
-# --- /time dilate Command Tests ---
+# --- /time dilate command tests ---
 
 
 class TestTimeDilateCommand:

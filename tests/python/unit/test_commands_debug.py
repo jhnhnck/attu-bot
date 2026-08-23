@@ -1,11 +1,5 @@
-"""
-AttuBot - Debug Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for slash commands and helper functions in commands/debug.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_debug | unit tests for slash commands in commands/debug.py."""
 
 import os
 import time as _time
@@ -498,7 +492,7 @@ class TestDebugDumpStarboard:
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
 
-        # build mock messages — some from the starboard bot, some not
+        # build mock messages - some from the starboard bot, some not
         starboard_msg = MagicMock(spec=discord.Message)
         starboard_msg.id = 100
         starboard_msg.author = MagicMock()

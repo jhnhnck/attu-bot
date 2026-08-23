@@ -1,11 +1,5 @@
-"""
-AttuBot - Color Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests for the /color command from commands/debug.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_color | tests for the /color command."""
 
 import os
 import time as _time
@@ -21,13 +15,13 @@ import pytest
 from nova_core.client.core import config
 
 
-# --- /color Command Tests ---
+# --- /color command tests ---
 
 
 class TestColorCommand:
     @pytest.mark.asyncio
     async def test_color_returns_embed_with_hex(self, mock_ctx):
-        """Test that /color responds with an embed whose description contains the hex color"""
+        """test that /color responds with an embed whose description contains the hex color"""
         from nova_core.commands.debug import command_color
 
         mock_theme = MagicMock()
@@ -44,7 +38,7 @@ class TestColorCommand:
 
     @pytest.mark.asyncio
     async def test_color_no_theme_ephemeral_error(self, mock_ctx):
-        """Test that /color responds ephemerally with a failure message when no theme is set"""
+        """test that /color responds ephemerally with a failure message when no theme is set"""
         from nova_core.commands.debug import command_color
 
         with patch.object(config, 'theme', None):

@@ -1,13 +1,5 @@
-"""
-AttuBot - Stars Command Integration Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests stars commands with real StarboardRepository + MessageRepository state.
-Discord gateway objects (bot, channel, message) are faked; leaderboard aggregation
-and random selection run against actual MongoDB.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_commands_stars | stars command component tests with real repositories."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,12 +17,10 @@ test_guild = 1234567890
 sb_channel = 4000000001
 msg_channel = 4000000002
 
-# author ids for seeding
 author_a = 100000001
 author_b = 100000002
 author_c = 100000003
 
-# reactor ids
 user_1 = 200000001
 user_2 = 200000002
 user_3 = 200000003
@@ -104,7 +94,6 @@ class TestStarsLeaderboards:
         embed = ctx._responses[0]['kwargs']['embed']
         desc = embed.description
 
-        # A (3 stars) should appear before B (2 stars) and C (1 star)
         assert f'<@{author_a}>' in desc
         assert f'<@{author_b}>' in desc
         assert desc.index(f'<@{author_a}>') < desc.index(f'<@{author_b}>')
@@ -135,7 +124,6 @@ class TestStarsLeaderboards:
         sb = stars_repos['sb']
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        # user_1 gives 3 stars total (2 on msg 3001, 1 on msg 3002)
         await sb.upsert(_sb_doc(3001, author_a, {'⭐': [user_1, user_2]}))
         await sb.upsert(_sb_doc(3002, author_a, {'⭐': [user_1, user_3]}))
 
@@ -145,7 +133,6 @@ class TestStarsLeaderboards:
 
         embed = ctx._responses[0]['kwargs']['embed']
         desc = embed.description
-        # user_1 gave 2 stars, user_2 and user_3 each gave 1
         assert f'<@{user_1}>' in desc
         assert desc.index(f'<@{user_1}>') < desc.index(f'<@{user_2}>')
 
@@ -206,7 +193,6 @@ class TestStarsRandom:
     async def test_random_no_match_responds_no_messages(self, stars_repos, mock_ctx_factory):
         """stars random responds ephemeral when no messages with >= 2 stars exist"""
         ctx = mock_ctx_factory(guild_id=test_guild)
-        # repo is empty
 
         from nova_core.commands.stars import stars_random
 
@@ -222,11 +208,9 @@ class TestStarsRandom:
         msg_repo = stars_repos['msg']
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        # doc with 1 star - matches lost (min=1, max=1)
         await sb.upsert(_sb_doc(6001, author_a, {'⭐': [user_1]}, total_reactions=1))
         await msg_repo.upsert(_msg_doc(6001))
 
-        # doc with 3 stars - should not be returned by lost
         await sb.upsert(_sb_doc(6002, author_b, {'⭐': [user_1, user_2, user_3]}, total_reactions=3))
         await msg_repo.upsert(_msg_doc(6002, author_b))
 
@@ -281,10 +265,8 @@ class TestStarsRecheck:
 
             await stars_recheck(ctx, message_link=message_link)
 
-        # verify the response
         assert any('recheck complete' in (r['args'][0] if r['args'] else '') for r in ctx._responses)
 
-        # message should be in the DB
         assert await msg_repo.get(message_id) is not None
 
         # backfill should have been invoked with the fetched message (force=False for normal channel, replace=True always)

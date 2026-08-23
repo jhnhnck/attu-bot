@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class StarredMessageDocument(BaseModel):
-    """MongoDB document tracking stars earned by a message"""
+    """MongoDB document tracking stars earned by a message."""
 
     model_config = ConfigDict(extra='ignore')
 

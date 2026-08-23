@@ -75,7 +75,6 @@ async def _is_bot_audit_action(guild: Guild, action: discord.AuditLogAction, tar
 
 
 async def _get_audit_actor(guild: Guild, action: discord.AuditLogAction, target_id: int) -> 'discord.User | discord.Member | None':
-    # look up who performed the most recent audit action for this target
     try:
         async for entry in guild.audit_logs(limit=5, action=action):
             target = getattr(entry, 'target', None)
@@ -88,7 +87,6 @@ async def _get_audit_actor(guild: Guild, action: discord.AuditLogAction, target_
 
 
 async def _get_remove_reason(guild: Guild, target_id: int) -> 'tuple[str | None, discord.User | discord.Member | None]':
-    # check whether the member departure was a kick or ban, and by whom
     for action, label in ((discord.AuditLogAction.kick, 'kick'), (discord.AuditLogAction.ban, 'ban')):
         try:
             async for entry in guild.audit_logs(limit=3, action=action):

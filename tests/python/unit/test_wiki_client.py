@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for WikiClient Facade
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_wiki_client | tests for the WikiClient facade."""
 
 from unittest.mock import AsyncMock
 
@@ -19,9 +15,7 @@ from attu_wiki.search import SearchApi
 endpoint = 'https://wiki.example.test'
 
 
-# ---------------------------------------------------------------------------
-# __init__
-# ---------------------------------------------------------------------------
+# --- __init__ ---
 
 
 class TestInit:
@@ -60,9 +54,7 @@ class TestInit:
         assert wiki.admin._client is wiki._http
 
 
-# ---------------------------------------------------------------------------
-# authenticate
-# ---------------------------------------------------------------------------
+# --- authenticate ---
 
 
 class TestAuthenticate:
@@ -84,9 +76,7 @@ class TestAuthenticate:
             await wiki.authenticate('user', 'key')
 
 
-# ---------------------------------------------------------------------------
-# close
-# ---------------------------------------------------------------------------
+# --- close ---
 
 
 class TestClose:

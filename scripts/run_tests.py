@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""
-AttuBot - Test Runner
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""scripts.run_tests | test suite runner for nova_core."""
 
 import argparse
 import re
@@ -44,7 +40,7 @@ def run_suite(title: str, cmd: list[str], quiet: bool, step: int, total: int) ->
     header(step, total, title)
     start = time.monotonic()
     pipe = subprocess.PIPE if quiet else None
-    proc = subprocess.Popen(cmd, stdout=pipe, stderr=pipe, text=True)  # noqa: S603
+    proc = subprocess.Popen(cmd, stdout=pipe, stderr=pipe, text=True)  # noqa: S603 - cmd is a trusted list built from local config, not user input
     interrupted = False
     try:
         stdout, stderr = proc.communicate()
@@ -70,7 +66,7 @@ if __name__ == '__main__':
     if not Path('/.dockerenv').exists():
         dev_dir = Path(__file__).parent.parent.resolve()
         cmd = ['docker', 'compose', 'run', '--build', '--rm', '--quiet-build', 'tests', 'scripts/run_tests.py', *sys.argv[1:]]
-        proc = subprocess.Popen(cmd, cwd=dev_dir)  # noqa: S603
+        proc = subprocess.Popen(cmd, cwd=dev_dir)  # noqa: S603 - cmd is a trusted list; docker compose shares process group by design
         # docker compose run shares our process group, so ^C reaches it directly; keep waiting
         # while it forwards the signal and tears down the container instead of exiting early
         while True:
@@ -115,12 +111,11 @@ if __name__ == '__main__':
     if args.coverage:
         print()
         report_stdout = sys.stderr if args.coverage_json else None
-        subprocess.run(['coverage', 'report'], stdout=report_stdout, check=False)  # noqa: S607
+        subprocess.run(['coverage', 'report'], stdout=report_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH inside the container
 
     if args.coverage_json:
-        subprocess.run(['coverage', 'json', '-o', '-'], stdout=real_stdout, check=False)  # noqa: S607
+        subprocess.run(['coverage', 'json', '-o', '-'], stdout=real_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH inside the container
 
-    # --- summary ---
     print()
     print(colored('results:', 'white', attrs=['bold']))
     for title, passed, elapsed, counts in results:

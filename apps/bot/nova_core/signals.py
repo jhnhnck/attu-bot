@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.signals | Cross-Process config reload signaling."""
+"""nova_core.signals | cross-process config reload signaling."""
 
 import structlog
 
@@ -22,7 +22,6 @@ _signal_targets: dict[str, tuple[str, ...]] = {
 
 
 def _get_repo() -> ReloadSignalRepository:
-    """Get or create the reload signal repository"""
     global _repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _repo is None:
         _repo = ReloadSignalRepository(db.get_db())
@@ -30,7 +29,7 @@ def _get_repo() -> ReloadSignalRepository:
 
 
 async def send_signal(signal_type: str, guild_id: int | None = None):
-    """Write a reload signal for every consumer that listens for this signal_type.
+    """write a reload signal for every consumer that listens for this signal_type.
 
     safe to call from the web process - errors are logged but not re-raised.
     """

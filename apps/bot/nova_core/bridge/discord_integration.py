@@ -14,7 +14,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class DiscordCache:
-    """Simple in-memory cache for Discord API results"""
+    """simple in-memory cache for Discord API results."""
 
     def __init__(self, ttl: int = 300):
         self.ttl = ttl
@@ -41,12 +41,12 @@ class DiscordCache:
             self.cache.clear()
 
 
-# Global cache instance
+# global cache instance
 _cache = DiscordCache()
 
 
 async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
-    """Fetch all channels for a guild using Pycord, including threads"""
+    """fetch all channels for a guild using Pycord, including threads."""
     cache_key = f'channels:{guild_id}'
     cached = _cache.get(cache_key)
     if cached is not None:
@@ -61,7 +61,7 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
         threads_result = []
 
         for c in [*channels, *threads]:
-            # We only care about text, voice, and category channels for config
+            # we only care about text, voice, and category channels for config
             if isinstance(c, discord.TextChannel | discord.VoiceChannel | discord.CategoryChannel | discord.StageChannel | discord.ForumChannel):
                 result.append({
                     'id': str(c.id),
@@ -71,7 +71,7 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
                     'category_id': str(c.category_id) if hasattr(c, 'category_id') and c.category_id else None,
                     'is_thread': False,
                 })
-            # Handle thread types (public threads, private threads, announcement threads)
+            # handle thread types (public threads, private threads, announcement threads)
             elif isinstance(c, discord.Thread):
                 parent_channel = next((ch for ch in channels if hasattr(ch, 'id') and str(ch.id) == str(c.parent_id)), None)
                 parent_name = parent_channel.name if parent_channel else 'Unknown'
@@ -87,10 +87,10 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
                     'is_thread': True,
                 })
 
-        # Sort channels by position
+        # sort channels by position
         result.sort(key=lambda x: x['position'])
 
-        # Sort threads by position and append to result
+        # sort threads by name and append to result
         threads_result.sort(key=lambda x: x['name'])
         result.extend(threads_result)
 
@@ -102,7 +102,7 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
 
 
 async def get_guild_roles(guild_id: int) -> list[dict[str, Any]] | None:
-    """Fetch all roles for a guild using Pycord"""
+    """fetch all roles for a guild using Pycord."""
     cache_key = f'roles:{guild_id}'
     cached = _cache.get(cache_key)
     if cached is not None:
@@ -124,7 +124,7 @@ async def get_guild_roles(guild_id: int) -> list[dict[str, Any]] | None:
             for r in roles
         ]
 
-        # Sort by position (descending, like Discord UI)
+        # sort by position (descending, like Discord UI)
         result.sort(key=lambda x: x['position'], reverse=True)
 
         _cache.set(cache_key, result)
@@ -135,7 +135,7 @@ async def get_guild_roles(guild_id: int) -> list[dict[str, Any]] | None:
 
 
 async def get_user_info(user_id: int) -> dict[str, Any] | None:
-    """Fetch user information using Pycord"""
+    """fetch user information using Pycord."""
     cache_key = f'user:{user_id}'
     cached = _cache.get(cache_key)
     if cached is not None:
@@ -157,7 +157,7 @@ async def get_user_info(user_id: int) -> dict[str, Any] | None:
 
 
 async def get_guild_info(guild_id: int) -> dict[str, Any] | None:
-    """Fetch guild information using Pycord"""
+    """fetch guild information using Pycord."""
     cache_key = f'guild_info:{guild_id}'
     cached = _cache.get(cache_key)
     if cached is not None:
@@ -178,7 +178,7 @@ async def get_guild_info(guild_id: int) -> dict[str, Any] | None:
 
 
 async def get_users_info(user_ids: list[int]) -> list[dict[str, Any]]:
-    """Fetch user information for multiple user IDs"""
+    """fetch user information for multiple user IDs."""
     result = []
     for user_id in user_ids:
         user_info = await get_user_info(user_id)
@@ -188,7 +188,7 @@ async def get_users_info(user_ids: list[int]) -> list[dict[str, Any]]:
 
 
 def invalidate_guild_cache(guild_id: int):
-    """Invalidate cache for a specific guild"""
+    """invalidate cache for a specific guild."""
     _cache.clear(prefix=f'channels:{guild_id}')
     _cache.clear(prefix=f'roles:{guild_id}')
     _cache.clear(prefix=f'guild_info:{guild_id}')

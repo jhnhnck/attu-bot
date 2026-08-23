@@ -1,12 +1,5 @@
-"""
-AttuBot - attu_logging Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Covers _resolve_pycord_bucket, _MaxLevelFilter, and configure() idempotency.
-AttubotLogger tests removed in phase 2 (logger migrated to structlog.stdlib directly).
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_logging | unit tests for attu_logging configuration."""
 
 import logging
 
@@ -19,9 +12,7 @@ from attu_logging.config import configure as _configure
 pytestmark = pytest.mark.unit
 
 
-# ============================================================
-# _resolve_pycord_bucket processor
-# ============================================================
+# --- _resolve_pycord_bucket processor ---
 
 
 class TestResolvePycordBucket:
@@ -68,9 +59,7 @@ class TestResolvePycordBucket:
         assert out is ev
 
 
-# ============================================================
-# _MaxLevelFilter
-# ============================================================
+# --- _MaxLevelFilter ---
 
 
 class TestMaxLevelFilter:
@@ -97,9 +86,7 @@ class TestMaxLevelFilter:
         assert f.filter(self._make_record(15)) is True  # former ALERT
 
 
-# ============================================================
-# discord.http level gating
-# ============================================================
+# --- discord.http level gating ---
 
 
 class TestDiscordHttpLevelGating:
@@ -129,9 +116,7 @@ class TestDiscordHttpLevelGating:
         assert logging.getLogger('discord.http').level == logging.DEBUG
 
 
-# ============================================================
-# configure() idempotency
-# ============================================================
+# --- configure() idempotency ---
 
 
 class TestConfigureIdempotent:

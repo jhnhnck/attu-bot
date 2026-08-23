@@ -220,7 +220,6 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
             new_reactions: dict[str, set[int]] = {emoji: set() for emoji in sb.emojis}
             author_id = doc.author_id
 
-            # fetch the original message for live reactions
             try:
                 orig_channel = bot.get_channel(doc.channel_id)
                 if orig_channel is None:
@@ -241,7 +240,6 @@ async def job_recount_starboard(guild_id: int, status_msg: discord.Message | Non
                 errors += 1
                 continue
 
-            # also collect reactions from the starboard post if it exists
             if doc.starboard_message_id:
                 try:
                     sb_channel = bot.get_channel(sb.channel_id)
@@ -445,7 +443,6 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
     try:
         history = sb_channel.history(after=after, oldest_first=True, limit=None)  # type: ignore[union-attr]
         async for sb_msg in history:
-            # only consider posts made by this bot
             if bot.user is None or sb_msg.author.id != bot.user.id:
                 continue
 
@@ -474,7 +471,6 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
                     continue
 
                 if doc is not None:
-                    # doc exists but link is wrong or missing; fix the pointer and re-sync
                     await sb_repo.set_starboard_message(doc.message_id, sb_msg.id)
                     updated = await sb_repo.get(doc.message_id)
                     if updated:
@@ -483,7 +479,6 @@ async def job_recover_starboard_from_channel(guild_id: int, days: int = 7, statu
                     logger.info(f'recover_starboard: fixed link for message {orig_message_id} -> post {sb_msg.id}')
                     continue
 
-                # doc does not exist; fetch the original message and build a new doc
                 orig_channel = bot.get_channel(orig_channel_id)
                 if orig_channel is None:
                     orig_channel = await bot.fetch_channel(orig_channel_id)
@@ -616,7 +611,6 @@ async def fix_starboard_purge(ctx: ApplicationContext, message_link: str):
         return
     message_id = doc.message_id
 
-    # try to delete the discord starboard post if one is linked
     deleted_post = False
     if doc.starboard_message_id:
         try:

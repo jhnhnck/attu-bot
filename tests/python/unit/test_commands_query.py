@@ -1,11 +1,5 @@
-"""
-AttuBot - Query Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for /query pins command from query.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_query | tests for /query pins command."""
 
 import os
 import time as _time
@@ -23,7 +17,7 @@ from discord import MessageType
 from tests.conftest import test_guild
 
 
-# --- Async Iterator Helper ---
+# --- async iterator helper ---
 
 
 class AsyncIterator:
@@ -44,7 +38,7 @@ class AsyncIterator:
         return item
 
 
-# --- /query pins Command Tests ---
+# --- /query pins command tests ---
 
 
 class TestQueryPinsCommand:

@@ -1,11 +1,5 @@
-"""
-AttuBot - Ping/Pong Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Integration tests for the /ping and /pong commands
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_ping | tests for /ping and /pong commands."""
 
 import os
 import time as _time
@@ -19,13 +13,13 @@ from unittest.mock import patch
 import pytest
 
 
-# --- /ping Command Tests ---
+# --- /ping command tests ---
 
 
 class TestPingCommand:
     @pytest.mark.asyncio
     async def test_ping_responds_pong(self, mock_ctx):
-        """Test that /ping responds with 'Pong!' and latency"""
+        """test that /ping responds with 'Pong!' and latency"""
         from nova_core.client import command_ping
 
         mock_ctx.bot.latency = 0.042
@@ -39,13 +33,13 @@ class TestPingCommand:
         assert '<:rockball:1308981475114225694>' in response
 
 
-# --- /pong Command Tests ---
+# --- /pong command tests ---
 
 
 class TestPongCommand:
     @pytest.mark.asyncio
     async def test_pong_owner_immediate_response(self, mock_ctx_factory):
-        """Test that /pong responds immediately with mention for bot owner"""
+        """test that /pong responds immediately with mention for bot owner"""
         from nova_core.commands.debug import command_pong
 
         ctx = mock_ctx_factory(user_id=999, is_owner=True)
@@ -60,7 +54,7 @@ class TestPongCommand:
 
     @pytest.mark.asyncio
     async def test_pong_non_owner_ping_response(self, mock_ctx_factory):
-        """Test that /pong responds with 'Ping!' for non-owner and creates background task"""
+        """test that /pong responds with 'Ping!' for non-owner and creates background task"""
         from unittest.mock import MagicMock
 
         from nova_core import tasks as tasks_module

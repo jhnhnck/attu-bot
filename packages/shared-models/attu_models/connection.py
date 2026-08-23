@@ -1,9 +1,5 @@
-"""
-AttuBot - MongoDB Connection Management
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""attu_models.connection | MongoDB connection manager with retry."""
 
 import asyncio
 import contextlib
@@ -20,7 +16,7 @@ _RETRY_DELAYS = (2.0, 4.0, 8.0)  # seconds between attempts 1→2, 2→3, 3→4
 
 
 class MongoStorage:
-    """MongoDB connection manager using pymongo async API"""
+    """MongoDB connection manager using pymongo async API."""
 
     def __init__(self):
         self.client: AsyncMongoClient | None = None
@@ -29,19 +25,19 @@ class MongoStorage:
         self.db_name: str | None = None
 
     async def connect(self, url: str, name: str, timeout: int = 30000, socket_timeout: int | None = 30000) -> AsyncDatabase:  # noqa: ASYNC109 - timeout parameter is for mongo client, not asyncio.timeout
-        """Initialize MongoDB connection with retry on transient failures.
+        """initialize MongoDB connection with retry on transient failures.
 
-        Args:
+        args:
             url: MongoDB connection URL (e.g. 'mongodb://localhost:27017')
-            name: Database name
-            timeout: Connection/server-selection timeout in milliseconds (default: 30000ms = 30s)
-            socket_timeout: Per-operation socket timeout in ms; None disables it (default: 30000ms = 30s)
+            name: database name
+            timeout: connection/server-selection timeout in milliseconds (default: 30000ms = 30s)
+            socket_timeout: per-operation socket timeout in ms; None disables it (default: 30000ms = 30s)
 
-        Returns:
-            AsyncDatabase: The connected database instance
+        returns:
+            AsyncDatabase: the connected database instance
 
-        Raises:
-            RuntimeError: If all connection attempts fail
+        raises:
+            RuntimeError: if all connection attempts fail
         """
         self.mongo_url = url
         self.db_name = name
@@ -92,13 +88,13 @@ class MongoStorage:
         raise RuntimeError(f'MongoDB connection failed: {last_err!s}') from last_err
 
     def get_db(self) -> AsyncDatabase:
-        """Get database instance"""
+        """get the database instance."""
         if self.db is None:
             raise RuntimeError('MongoDB not initialized; call connect() first')
         return self.db
 
     async def close(self):
-        """Close MongoDB connection"""
+        """close the MongoDB connection."""
         if self.client:
             await self.client.close()
             logger.info('closed mongodb connection')

@@ -1,12 +1,5 @@
-"""
-AttuBot - ReloadWatcherTask Component Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests real signal consumption from MongoDB and resulting config state mutations.
-Uses a real ConfigRepository + ReloadSignalRepository on isolated component_db collections.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_task_reload_watcher | reload watcher task component tests."""
 
 from unittest.mock import patch
 
@@ -219,9 +212,7 @@ class TestReloadWatcherSignalConsumption:
             with patch('nova_core.tasks.reload_watcher._repo', signal_repo):
                 await _make_task().run()
 
-            # effect should still apply
             assert config.guilds[test_guild].epoch.year == 3
-            # and signals are gone
             assert await signal_repo.consume_all() == []
         finally:
             config.config_repo = saved_config_repo

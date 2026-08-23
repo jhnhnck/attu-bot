@@ -30,30 +30,25 @@ async def year_check(ctx: ApplicationContext, year: int):
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
     year = year if year is not None else (current_year + 1)
 
-    # invalid year input
     if year <= 0:
         await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
 
-    # prior years - read directly from Year records
     elif year < current_year:
         year_record = await Year.get(guild_config.id, year)
         if year_record:
             await ctx.respond(f'Year {year} PC lasted for {year_record.duration} days, starting on <t:{year_record.start_time}:d> and ending on <t:{year_record.end_time}:d>')
         else:
-            # Fallback to computed span if no record exists
+            # fallback to computed span if no record exists
             year_span = await get_year_span(year, guild=guild_config.id)
             await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
-    # check if time is paused first
     elif guild_config.epoch.paused:
         await ctx.respond('Sorry! New Years is cancelled until further notice')
 
-    # current year
     elif year == current_year:
         year_span = await get_year_span(year, guild=guild_config.id)
         await ctx.respond(f'Year {year} PC will last for {year_span.duration} days, which started on <t:{year_span.start_time}:d> and will end on <t:{year_span.end_time}:d>')
 
-    # next year (original functionality)
     elif year == (current_year + 1):
         year_span = await get_year_span(year, guild=guild_config.id)
         if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.get_rollover_time():
@@ -66,7 +61,6 @@ async def year_check(ctx: ApplicationContext, year: int):
     elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 80):
         await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe")
 
-    # check future years
     else:
         year_span = await get_year_span(year, guild=guild_config.id)
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
@@ -80,7 +74,6 @@ async def year_search(ctx: ApplicationContext, year: int):
     year_span = await get_year_span(year, guild=guild_config.id)
     msg = []
 
-    # invalid year input
     if year <= 0:
         await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
         return
@@ -91,7 +84,6 @@ async def year_search(ctx: ApplicationContext, year: int):
 
     canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, *guild_config.channels.canon_channels]
 
-    # get a list of all the lore channels
     for channel_id in canon_channels:
         msg.append(f'in:{ctx.guild.get_channel(channel_id).name}')
 
@@ -107,10 +99,7 @@ async def year_search(ctx: ApplicationContext, year: int):
 
 
 async def find_marker_link(year: int, channel: TextChannel) -> str:
-    """Resolve and format the jump link to the year marker in a channel.
-
-    delegates all search and resolution logic to markers.py.
-    """
+    """resolve and format the jump link to the year marker in a channel."""
     cfg = config.guild(channel.guild.id)
     marker = await resolve_marker(guild=cfg.id, channel=channel.id, year=year)
 
@@ -136,15 +125,13 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
     if channel is None:
         channel = cast(TextChannel, ctx.guild.get_channel_or_thread(canon_channels[0]))
 
-    # validate arguments
     if year < 1 or year > current_year:
         await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
 
-    # Skip if its a not a text channel (so we can be unspecific about canon_channels)
+    # skip if its a not a text channel (so we can be unspecific about canon_channels)
     elif channel.type not in (ChannelType.text, ChannelType.news):
         await ctx.respond(f'Failed: command does not work on whatever {channel.mention} is', ephemeral=True)
 
-    # validate as lore channel
     elif channel.id not in canon_channels:
         await ctx.respond('Failed: this command only works on lore channels', ephemeral=True)
 

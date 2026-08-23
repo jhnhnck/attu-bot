@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""
-AttuBot - Deploy Script
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""scripts.deploy | deploy and version management script for nova_core."""
 
 import argparse
 import json
@@ -33,7 +29,7 @@ dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
 version_file = dev_dir / 'apps' / 'bot' / 'nova_core' / '__init__.py'
 
-# epoch snapshot — paste the output of /fix epoch here when the epoch changes
+# epoch snapshot - paste the output of /fix epoch here when the epoch changes
 _epoch_toml = """\
 [epoch]
 time = 1772229600
@@ -52,7 +48,7 @@ def run_cmd(cmd: list[str], cwd: Path | None = None, capture: bool = True, dry_r
     if dry_run:
         print(colored(f'    (dry run) {shlex.join(str(c) for c in cmd)}', 'dark_grey'))
         return ''
-    result = subprocess.run(cmd, capture_output=capture, text=True, check=False, cwd=cwd)  # noqa: S603
+    result = subprocess.run(cmd, capture_output=capture, text=True, check=False, cwd=cwd)  # noqa: S603 - cmd is a trusted list built from local config, not user input
     if result.returncode != 0:
         out = (result.stdout + result.stderr).strip() if capture else ''
         raise RuntimeError(out or f'{cmd[0]} exited with code {result.returncode}')
@@ -125,7 +121,7 @@ def compute_new_version(current: str, bump: str) -> tuple[str, str]:
 def check_container_health(cwd: Path) -> list[str]:
     """return a list of problem descriptions for any containers that are unhealthy or exited."""
     result = subprocess.run(
-        ['docker', 'compose', 'ps', '--format', 'json'],  # noqa: S607
+        ['docker', 'compose', 'ps', '--format', 'json'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
         capture_output=True,
         text=True,
         check=False,
@@ -159,7 +155,6 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     total = 5
     n = 0
 
-    # --- 1. verify tag exists ---
     n += 1
     header(n, total, f'verifying tag {tag}')
     try:
@@ -168,7 +163,6 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
         abort(f"tag {tag!r} not found in dev repo; check with: git tag -l '*{tag.rsplit('.', 1)[-1]}*'")
     print(colored(f'  tag {tag} found', 'green'))
 
-    # --- 2. check trunk is clean ---
     n += 1
     header(n, total, 'checking trunk working directory')
     trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
@@ -178,7 +172,6 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     current_sha = git_cmd(['rev-parse', '--short', 'HEAD'], cwd=prod_dir)
     print(colored(f'  trunk is clean (currently at {current_sha})', 'green'))
 
-    # --- 3. reset trunk to tag and force-push ---
     n += 1
     header(n, total, f'resetting trunk to {tag}')
     if not dry_run:
@@ -191,7 +184,6 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     else:
         print(colored(f'  (dry run) would git reset --hard {tag} and force-push origin trunk', 'dark_grey'))
 
-    # --- 4. rebuild containers ---
     n += 1
     header(n, total, 'rebuilding containers')
     run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run)
@@ -201,7 +193,6 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     else:
         print(colored('  (dry run) would run docker compose up --build -d', 'dark_grey'))
 
-    # --- 5. health check ---
     n += 1
     header(n, total, 'checking container health')
     if not dry_run:
@@ -249,7 +240,7 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
         deploy_tag = git_cmd(['describe', '--tags', '--abbrev=0'], cwd=prod_dir)
         if not dry_run:
             subprocess.run(
-                ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607
+                ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
                 check=True,
                 cwd=prod_dir,
             )
@@ -268,8 +259,8 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
         print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
         if not dry_run:
             print(colored('rolling back trunk to previous state', 'yellow'), file=sys.stderr)
-            trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
-            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
+            trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
+            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
             if trunk_reset.returncode != 0 or rebuild.returncode != 0:
                 print(colored('warning: rollback may have failed; check trunk manually', 'red'), file=sys.stderr)
             else:
@@ -311,7 +302,6 @@ if __name__ == '__main__':
             sys.exit(130)
         sys.exit(0)
 
-    # count total steps up front
     total = 7  # branch check, new commits check, stash dev, trunk clean, version bump, commit+tag, merge
     if not skip_tests:
         total += 1  # dev tests
@@ -322,7 +312,6 @@ if __name__ == '__main__':
 
     n = 0
 
-    # --- 1. branch check ---
     n += 1
     header(n, total, 'checking branch')
     branch = git_cmd(['rev-parse', '--abbrev-ref', 'HEAD'])
@@ -330,7 +319,6 @@ if __name__ == '__main__':
         abort(f"must be on the dev branch (currently on '{branch}')")
     print(colored('  on dev', 'green'))
 
-    # --- 2. check dev has commits not in trunk ---
     n += 1
     header(n, total, 'checking for new commits')
     new_commits = git_cmd(['log', 'trunk..dev', '--oneline'])
@@ -338,7 +326,6 @@ if __name__ == '__main__':
         abort('dev has no new commits ahead of trunk; nothing to deploy')
     print(colored(f'  {len(new_commits.splitlines())} commit(s) ahead of trunk', 'green'))
 
-    # --- 3. stash dev changes if dirty ---
     n += 1
     header(n, total, 'stashing dev changes')
     dev_status = git_cmd(['status', '--porcelain'])
@@ -370,7 +357,6 @@ if __name__ == '__main__':
     new_ver: str | None = None
 
     try:
-        # --- 4. check trunk working directory ---
         n += 1
         header(n, total, 'checking trunk working directory')
         trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
@@ -380,7 +366,6 @@ if __name__ == '__main__':
         saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
         print(colored('  trunk is clean', 'green'))
 
-        # --- 5. run tests in dev ---
         if not skip_tests:
             n += 1
             header(n, total, 'running tests in dev')
@@ -395,7 +380,6 @@ if __name__ == '__main__':
                 abort(f'dev tests failed: {e}')
             print(colored('  tests passed', 'green'))
 
-        # --- 6. version bump ---
         n += 1
         header(n, total, 'bumping version')
         content = version_file.read_text()
@@ -412,7 +396,6 @@ if __name__ == '__main__':
             pyproject_file.write_text(pyproject_updated)
             version_modified = True
 
-        # --- 7. commit and tag ---
         n += 1
         header(n, total, 'committing and tagging')
         if not dry_run:
@@ -431,7 +414,6 @@ if __name__ == '__main__':
         else:
             print(colored(f'  (dry run) would commit version bump and create tag {new_tag}', 'dark_grey'))
 
-        # --- 8. merge dev into trunk ---
         n += 1
         header(n, total, 'merging dev into trunk')
         if not dry_run:
@@ -454,7 +436,6 @@ if __name__ == '__main__':
             sys.exit(0)
 
         try:
-            # --- 9. run tests in trunk (optional) ---
             if not skip_tests:
                 n += 1
                 header(n, total, 'running tests in trunk')
@@ -466,12 +447,11 @@ if __name__ == '__main__':
                 )
                 print(colored('  tests passed', 'green'))
 
-            # --- 10. restart containers, health check, then push ---
             n += 1
             header(n, total, 'restarting containers')
             if not dry_run:
                 subprocess.run(
-                    ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607
+                    ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
                     check=True,
                     cwd=prod_dir,
                 )
@@ -491,10 +471,10 @@ if __name__ == '__main__':
             print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
             if merged and not dry_run:
                 print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
-                trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607
+                trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
                 dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - undo version bump commit on dev
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on dev
-                rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607
+                rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
                     print(colored('warning: rollback may have failed; check trunk and dev manually', 'red'), file=sys.stderr)
                 else:

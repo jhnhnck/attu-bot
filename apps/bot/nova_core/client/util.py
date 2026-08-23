@@ -14,11 +14,11 @@ import attu_logging
 from nova_core.client.core import config
 
 
-# --- Initialization ---
+# --- initialization ---
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# --- Permissions Check ---
+# --- permissions check ---
 
 
 def is_bot_owner(ctx: Context) -> bool:
@@ -31,7 +31,7 @@ def is_authorized_guild(ctx: Context) -> bool:
 
 
 def has_announcements_role(ctx: Context) -> bool:
-    """Return True if the invoking member holds the configured announcements role."""
+    """return True if the invoking member holds the configured announcements role."""
     try:
         gc = config.guild(ctx.guild.id)
     except Exception:
@@ -44,13 +44,13 @@ def has_announcements_role(ctx: Context) -> bool:
     return isinstance(app_ctx.author, discord.Member) and any(r.id == role_id for r in app_ctx.author.roles)
 
 
-# --- Decorators ---
+# --- decorators ---
 
 
 def webhook_logging(scope: structlog.stdlib.BoundLogger) -> Callable:
-    """Catch exceptions and forward them to the error webhook.
+    """catch exceptions and forward them to the error webhook.
 
-    Intentionally does not re-raise; the scheduler's own handler is not needed
+    intentionally does not re-raise; the scheduler's own handler is not needed
     when the webhook already captures the error.
     """
 
@@ -68,7 +68,7 @@ def webhook_logging(scope: structlog.stdlib.BoundLogger) -> Callable:
     return decorator
 
 
-# --- Logging Context ---
+# --- logging context ---
 
 
 @contextmanager
@@ -85,7 +85,7 @@ def event_log_context(**fields: object) -> Iterator[None]:
         structlog.contextvars.unbind_contextvars(*fields.keys())
 
 
-# --- Theme ---
+# --- theme ---
 
 
 def theme_color() -> int:
@@ -105,10 +105,9 @@ def shift_hue(hex_color: str, degrees: float = 1.0) -> str:
     return f'#{round(r2 * 255):02x}{round(g2 * 255):02x}{round(b2 * 255):02x}'
 
 
-# --- Formatting ---
+# --- formatting ---
 
 
-# util to make discord message links
 def format_message_link(guild: int, channel: int, message: int, relative: bool = False) -> str:
     return f'https://discord.com/channels/{guild}/{channel}/{message}' + ('[~]' if relative else '')
 
@@ -122,13 +121,13 @@ def break_at_newline(text: str, maximum: int, end: str = '...\n') -> str:
     result = ''
 
     for line in lines:
-        # Check if adding this line (with newline) plus the end marker would exceed maximum
+        # check if adding this line (with newline) plus the end marker would exceed maximum
         potential = result + line + '\n'
         if len(potential) + len(end) > maximum:
-            # Can't fit this line, return what we have so far with end marker
+            # can't fit this line, return what we have so far with end marker
             return (result + end)[:maximum]
 
         result = potential
 
-    # If we get here, we've included all lines but still need to add end marker
+    # if we get here, we've included all lines but still need to add end marker
     return (result + end)[:maximum]

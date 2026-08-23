@@ -32,7 +32,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         return
 
     ids = link.split('/')[-3:]
-    guild, channel, message = int(ids[0]), int(ids[1]), int(ids[2])  # unpack string into components
+    guild, channel, message = int(ids[0]), int(ids[1]), int(ids[2])
 
     try:
         guild_config = config.guild(guild)
@@ -50,7 +50,6 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         await ctx.respond('Failed: channel is not a lore channel', ephemeral=True)
         return
 
-    # Check if close
     est_marker = await YearMarker.get(channel=channel, year=year)
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
@@ -58,7 +57,6 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         await ctx.respond(f'Failed: provided link is {int(time_diff)} seconds off from expected; if correct, override with `force:true`', ephemeral=True)
         return
 
-    # Add or update marker
     marker, created = await YearMarker.get_or_create(guild=guild, channel=channel, year=year, message=message)
     await marker.update(message=message, exact=True)
 
@@ -79,15 +77,11 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
         await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
         return
 
-    # Get existing marker
     est_marker = await YearMarker.get_any(guild=guild_config.id, year=year)
     old_time = int(snowflake_time(est_marker.message).timestamp())
     new_time = int(snowflake_time(snowflake).timestamp())
 
-    # Log change
     logger.info(f'moving {year} PC start from {est_marker.message} to {snowflake}')
-
-    # Update marker
     await est_marker.update(message=snowflake)
 
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')

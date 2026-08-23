@@ -1,13 +1,5 @@
-"""
-AttuBot - Startup Integration Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-These tests exercise the bot ready path (_do_ready_init) and web before_serving startup
-end-to-end against a real MongoDB instance, with discord bot methods patched offline.
-No network calls to Discord are made.  Requires a running mongod (provided by CI docker-compose).
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.integration.test_startup | bot startup integration tests against real MongoDB."""
 
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch

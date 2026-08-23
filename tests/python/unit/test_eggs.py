@@ -1,12 +1,5 @@
-"""
-AttuBot - Egg Game Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for the egg collection game. All tests mock Discord, repo, and asyncio
-dependencies - no real DB or network calls.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_eggs | unit tests for the egg collection game."""
 
 import time
 from datetime import date
@@ -29,7 +22,7 @@ from nova_core.tasks.egg_cleanup import egg_cleanup_task
 from nova_core.tasks.scheduler import scheduler as real_scheduler
 
 
-# ---- constants ----
+# --- constants ---
 
 test_guild = 1234567890
 test_user = 9876543210
@@ -38,7 +31,7 @@ test_thread = 5555555555
 test_message = 222222222222
 
 
-# ---- helpers ----
+# --- helpers ---
 
 
 def _make_egg(*, hatched=False, hatches_at=0, message_id=test_message, rarity='common', result='🐣'):
@@ -64,9 +57,7 @@ def _make_user_doc(*, thread_id=test_thread, last_collected_at=0):
     )
 
 
-# ============================================================
-# hatch_date()
-# ============================================================
+# --- hatch_date() ---
 
 
 class TestHatchDate:
@@ -81,9 +72,7 @@ class TestHatchDate:
         assert hatch_date(2019) == date(2019, 4, 21)
 
 
-# ============================================================
-# collect_egg()
-# ============================================================
+# --- collect_egg() ---
 
 
 class TestCollectEgg:
@@ -181,9 +170,7 @@ class TestCollectEgg:
         self.egg_repo.insert.assert_called_once()
 
 
-# ============================================================
-# hatch_egg()
-# ============================================================
+# --- hatch_egg() ---
 
 
 class TestHatchEgg:
@@ -249,9 +236,7 @@ class TestHatchEgg:
         self.mock_add_job.assert_called_once()
 
 
-# ============================================================
-# run_hatch_animation()
-# ============================================================
+# --- run_hatch_animation() ---
 
 
 class TestRunHatchAnimation:
@@ -287,9 +272,7 @@ class TestRunHatchAnimation:
         assert edit_calls[1] == call(content='🐣')
 
 
-# ============================================================
-# ensure_eggs_ready()
-# ============================================================
+# --- ensure_eggs_ready() ---
 
 
 class TestEnsureEggsReady:
@@ -344,9 +327,7 @@ class TestEnsureEggsReady:
         mock_discord_guild.create_text_channel.assert_not_called()
 
 
-# ============================================================
-# _egg_emoji_str()
-# ============================================================
+# --- _egg_emoji_str() ---
 
 
 class TestEggEmojiStr:
@@ -363,9 +344,7 @@ class TestEggEmojiStr:
         assert result == ':common_egg:'
 
 
-# ============================================================
-# get_or_create_user_thread() - cache miss paths
-# ============================================================
+# --- get_or_create_user_thread() - cache miss paths ---
 
 
 class TestGetOrCreateUserThread:
@@ -429,9 +408,7 @@ class TestGetOrCreateUserThread:
         self.egg_user_repo.upsert.assert_called_once()
 
 
-# ============================================================
-# hatch_egg() - additional cache-miss and guard paths
-# ============================================================
+# --- hatch_egg() - additional cache-miss and guard paths ---
 
 
 class TestHatchEggCacheMiss:
@@ -508,9 +485,7 @@ class TestHatchEggCacheMiss:
             await hatch_egg(test_guild, test_user)
 
 
-# ============================================================
-# egg commands (commands.py)
-# ============================================================
+# --- egg commands (commands.py) ---
 
 
 class TestEggCommands:
@@ -587,9 +562,7 @@ class TestEggCommands:
         assert str(test_thread) in self.ctx._responses[0]['args'][0]
 
 
-# ============================================================
-# /eggs progress command
-# ============================================================
+# --- /eggs progress command ---
 
 
 class TestEggsProgress:
@@ -620,9 +593,7 @@ class TestEggsProgress:
         assert embed.title == "TestPlayer's egg collection"
 
 
-# ============================================================
-# /eggs leaderboard hatched command
-# ============================================================
+# --- /eggs leaderboard hatched command ---
 
 
 class TestEggsLeaderboardHatched:
@@ -665,9 +636,7 @@ class TestEggsLeaderboardHatched:
         assert embed.description == 'no data yet'
 
 
-# ============================================================
-# /eggs leaderboard collected command
-# ============================================================
+# --- /eggs leaderboard collected command ---
 
 
 class TestEggsLeaderboardCollected:
@@ -710,9 +679,7 @@ class TestEggsLeaderboardCollected:
         assert embed.description == 'no data yet'
 
 
-# ============================================================
-# emojis.py
-# ============================================================
+# --- emojis.py ---
 
 
 class TestEmojis:
@@ -777,9 +744,7 @@ class TestEmojis:
         mock_guild.create_custom_emoji.assert_not_called()
 
 
-# ============================================================
-# transfer_egg()
-# ============================================================
+# --- transfer_egg() ---
 
 
 class TestTransferEgg:
@@ -880,9 +845,7 @@ class TestTransferEgg:
         self.egg_repo.transfer.assert_called_once()
 
 
-# ============================================================
-# _offer_text() helper
-# ============================================================
+# --- _offer_text() helper ---
 
 
 class TestOfferText:
@@ -933,9 +896,7 @@ class TestOfferText:
         assert '\n' not in result
 
 
-# ============================================================
-# EggGiftOfferView - button callbacks
-# ============================================================
+# --- EggGiftOfferView - button callbacks ---
 
 
 def _make_interaction(user_id: int) -> MagicMock:
@@ -1042,9 +1003,7 @@ class TestEggGiftOfferView:
         await view.on_timeout()  # no error
 
 
-# ============================================================
-# _EggSelectMenu - callback
-# ============================================================
+# --- _EggSelectMenu - callback ---
 
 
 def _make_select_menu(options: list | None = None):
@@ -1135,9 +1094,7 @@ class TestEggSelectMenu:
         assert 'no longer available' in content
 
 
-# ============================================================
-# _EggSelectMenu - pagination
-# ============================================================
+# --- _EggSelectMenu - pagination ---
 
 
 def _make_options(count: int) -> list[discord.SelectOption]:
@@ -1247,9 +1204,7 @@ class TestEggSelectMenuPagination:
         assert len(new_select.options) == 6
 
 
-# ============================================================
-# /eggs give command
-# ============================================================
+# --- /eggs give command ---
 
 
 class TestEggsGiveCommand:
@@ -1387,9 +1342,7 @@ class TestEggsGiveCommand:
         assert response['kwargs'].get('ephemeral') is True
 
 
-# ============================================================
-# ensure_eggs_ready() coverage
-# ============================================================
+# --- ensure_eggs_ready() coverage ---
 
 
 class TestEnsureEggsReadyExtra:
@@ -1410,9 +1363,7 @@ class TestEnsureEggsReadyExtra:
         mock_bot.get_guild.assert_called_once_with(test_guild)
 
 
-# ============================================================
-# additional get_or_create_user_thread() coverage
-# ============================================================
+# --- additional get_or_create_user_thread() coverage ---
 
 
 class TestGetOrCreateUserThreadExtra:
@@ -1490,9 +1441,7 @@ class TestGetOrCreateUserThreadExtra:
             await get_or_create_user_thread(test_guild, test_user, 'testuser')
 
 
-# ============================================================
-# additional hatch_egg() guard coverage
-# ============================================================
+# --- additional hatch_egg() guard coverage ---
 
 
 class TestHatchEggGuards:
@@ -1551,9 +1500,7 @@ class TestHatchEggGuards:
             await hatch_egg(test_guild, test_user)
 
 
-# ============================================================
-# additional run_hatch_animation() coverage
-# ============================================================
+# --- additional run_hatch_animation() coverage ---
 
 
 class TestRunHatchAnimationExtra:
@@ -1576,9 +1523,7 @@ class TestRunHatchAnimationExtra:
         mock_add_job.assert_called_once()
 
 
-# ============================================================
-# ensure_progress_emojis()
-# ============================================================
+# --- ensure_progress_emojis() ---
 
 
 class TestEnsureProgressEmojis:
@@ -1623,9 +1568,7 @@ class TestEnsureProgressEmojis:
         mock_guild.create_custom_emoji.assert_not_called()
 
 
-# ============================================================
-# render_progress_bar()
-# ============================================================
+# --- render_progress_bar() ---
 
 
 def _progress_emojis_dict() -> dict[str, int]:
@@ -1709,9 +1652,7 @@ class TestRenderProgressBar:
         assert result.count('□') == 5
 
 
-# ============================================================
-# EggCleanupTask
-# ============================================================
+# --- EggCleanupTask ---
 
 
 class TestEggCleanupTask:

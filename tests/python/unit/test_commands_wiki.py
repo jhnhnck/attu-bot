@@ -1,11 +1,5 @@
-"""
-AttuBot - Wiki Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Integration tests for /wiki lookup command from commands/wiki.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_wiki | integration tests for /wiki commands."""
 
 import os
 import time as _time
@@ -66,7 +60,7 @@ def _make_mock_wiki(pages: list[dict], site: dict | None = None, summary: PageSu
     return mock
 
 
-# --- /wiki lookup Command Tests ---
+# --- /wiki lookup command tests ---
 
 
 class TestWikiLookupCommand:
@@ -286,7 +280,7 @@ class TestWikiLookupCommand:
         assert 'respond' in defer_order
 
 
-# --- SiteInfo Model Tests ---
+# --- SiteInfo model tests ---
 
 
 class TestSiteInfoModel:
@@ -304,7 +298,7 @@ class TestSiteInfoModel:
         assert info.generator == 'MediaWiki 1.40'
 
 
-# --- SearchResult Model Tests ---
+# --- SearchResult model tests ---
 
 
 class TestSearchResultModel:
@@ -325,7 +319,7 @@ class TestSearchResultModel:
         assert r.excerpt == 'some text'
 
 
-# --- PageSummary / PageThumbnail Model Tests ---
+# --- PageSummary / PageThumbnail model tests ---
 
 
 class TestPageSummaryModel:
@@ -362,7 +356,7 @@ class TestPageThumbnailModel:
         assert t.height == 200
 
 
-# --- build_wiki_embed Tests ---
+# --- build_wiki_embed tests ---
 
 _SITE_INFO = SiteInfo(server='https://wiki.example.com', articlepath='/wiki/$1', sitename='Test Wiki')
 
@@ -463,7 +457,7 @@ class TestBuildWikiEmbed:
         assert embed.footer.text == 'Test Wiki'
 
 
-# --- /wiki random Command Tests ---
+# --- /wiki random command tests ---
 
 
 class TestWikiRandomCommand:

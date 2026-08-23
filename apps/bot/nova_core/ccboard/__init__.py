@@ -31,7 +31,7 @@ _locks: dict[int, asyncio.Lock] = {}
 
 
 def get_lock(message_id: int) -> asyncio.Lock:
-    """return (creating if needed) the asyncio.Lock for one message"""
+    """return (creating if needed) the asyncio.Lock for one message."""
     lock = _locks.get(message_id)
     if lock is None:
         lock = asyncio.Lock()
@@ -65,7 +65,7 @@ def consume_pending_removal(channel_id: int, message_id: int, user_id: int, emoj
 
 def discard_pending_removal(channel_id: int, message_id: int, user_id: int, emoji_str: str) -> None:
     """drop a key without claiming it; for use when the discord.remove_reaction call fails
-    and we still want one-vote enforcement to proceed without leaving stale entries"""
+    and we still want one-vote enforcement to proceed without leaving stale entries."""
     _pending_bot_removals.discard((channel_id, message_id, user_id, emoji_str))
 
 
@@ -99,7 +99,7 @@ def init_repos(db) -> None:
     _task.add_done_callback(_bg_tasks.discard)
 
 
-# --- Manifest event handlers ---
+# --- manifest event handlers ---
 # these are registered via bot.add_listener() by FeatureContext._wire_event_handlers().
 # guild_id guard is required; the watcher functions also check cfg.enabled internally.
 
@@ -182,7 +182,7 @@ def _setup_commands(bot) -> None:
     _setup(bot)
 
 
-# import task singletons AFTER all module-level state is defined so that auditor.py and
+# import task singletons after all module-level state is defined so that auditor.py and
 # manager.py can safely do `from nova_core import ccboard` at their module top level and
 # receive a partial-but-usable module (all utilities are already defined above).
 from nova_core.ccboard.auditor import auditor_task  # noqa: E402 - after module state; auditor imports ccboard at top level

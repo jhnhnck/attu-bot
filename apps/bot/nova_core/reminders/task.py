@@ -61,12 +61,10 @@ async def compute_fire_time(reminder: ReminderDocument) -> datetime | None:
         # year-only: fire at start of the year (rollover)
         return datetime.fromtimestamp(span.start_time).astimezone()
 
-    # compute haracalnde position within the year [0, 359]
     month = reminder.attu_month
     day = reminder.attu_day if reminder.attu_day is not None else 1
     haracalnde_pos = (month - 1) * 30 + (day - 1)
 
-    # linear interpolation within the year span
     span_seconds = span.end_time - span.start_time
     fire_ts = span.start_time + (haracalnde_pos / 360) * span_seconds
     return datetime.fromtimestamp(fire_ts).astimezone()
@@ -172,5 +170,4 @@ class ReminderTask(BaseTask):
                 logger.info(f'fired reminder {reminder.reminder_id} for user {reminder.user_id}')
 
 
-# singleton instance for registration
 reminder_task = ReminderTask()

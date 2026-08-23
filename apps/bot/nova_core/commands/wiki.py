@@ -138,7 +138,6 @@ class WikiLookupView(discord.ui.View):
         self._current_embed, self._current_url = build_wiki_embed(summary, self._site_info)
         self._build_buttons()
 
-        # persist updated index
         with contextlib.suppress(Exception):
             repo = _get_view_repo()
             doc = await repo.get(self._message_id)
@@ -188,7 +187,6 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
         wiki.search.search(query, _SEARCH_LIMIT),
     )
 
-    # combine: title result first, then body results not already included, capped at _SEARCH_LIMIT
     seen = {p.title for p in title_pages}
     pages = list(title_pages)
     for p in body_pages:
@@ -198,7 +196,6 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
             seen.add(p.title)
             pages.append(p)
 
-    # handle no results
     if len(pages) == 0:
         await ctx.respond(f'**Oops, no results for __{query}__!** {ui_emoji("rockball_player")}')
         return

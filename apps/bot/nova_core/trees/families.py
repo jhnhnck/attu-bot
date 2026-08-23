@@ -31,7 +31,7 @@ def _get_repo() -> FamilyRepository:
 
 
 def is_family_file(content: str) -> bool:
-    """Return True if content is a FamilyScript or Family Echo GEDCOM file."""
+    """return True if content is a FamilyScript or Family Echo GEDCOM file."""
     if _FAMILYSCRIPT_HEADER_RE.match(content) or _GEDCOM_HEADER_RE.match(content):
         return True
     header = content[:200].splitlines()[:5]
@@ -42,9 +42,9 @@ def is_family_file(content: str) -> bool:
 async def get_viewer_url(file_content: str) -> str:
     """POST the FamilyScript content to FamilyEcho and return the temporary viewer URL.
 
-    The returned URL is valid for approximately 24 hours.
-    Raises ValueError if the API returns an error response.
-    Raises httpx.HTTPError on network failure.
+    the returned URL is valid for approximately 24 hours.
+    raises ValueError if the API returns an error response.
+    raises httpx.HTTPError on network failure.
     """
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -63,15 +63,15 @@ async def get_viewer_url(file_content: str) -> str:
 
 
 async def get_family(guild_id: int, name: str) -> FamilyDocument | None:
-    """Fetch a family by guild and name (case-insensitive)."""
+    """fetch a family by guild and name (case-insensitive)."""
     return await _get_repo().get(guild_id, name.strip().lower())
 
 
 async def save_family(doc: FamilyDocument) -> None:
-    """Persist a family record."""
+    """persist a family record."""
     await _get_repo().upsert(doc)
 
 
 async def list_families(guild_id: int) -> list[FamilyDocument]:
-    """Return all registered families for a guild."""
+    """return all registered families for a guild."""
     return await _get_repo().list_all(guild_id)

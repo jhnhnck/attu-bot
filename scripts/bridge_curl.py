@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # SPDX-License-Identifier: Apache-2.0
-"""scripts.bridge_curl | sign + send a request to the bot bridge for phase-1 verification.
+"""scripts.bridge_curl | sign + send a request to the bot bridge.
 
 usage:
   uv run scripts/bridge_curl.py GET /bridge/guilds/<id>/channels

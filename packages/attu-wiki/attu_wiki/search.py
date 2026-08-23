@@ -11,7 +11,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class SearchApi:
-    """handles wiki search and general site info via the REST and action apis"""
+    """handles wiki search and general site info via the REST and action apis."""
 
     def __init__(self, client: httpx.AsyncClient, action_endpoint: str, rest_endpoint: str):
         self._client = client
@@ -19,7 +19,7 @@ class SearchApi:
         self._rest = rest_endpoint
 
     async def search(self, query: str, limit: int) -> list[SearchResult]:
-        """search for wiki pages matching the query (full-text, title + body)"""
+        """search for wiki pages matching the query (full-text, title + body)."""
         res = await self._client.get(
             f'{self._rest}/search/page',
             params={'q': query, 'limit': limit},
@@ -33,7 +33,7 @@ class SearchApi:
         return [SearchResult.model_validate(page) for page in raw]
 
     async def search_title(self, query: str, limit: int) -> list[SearchResult]:
-        """search for wiki pages by title only"""
+        """search for wiki pages by title only."""
         res = await self._client.get(
             f'{self._rest}/search/title',
             params={'q': query, 'limit': limit},
@@ -46,7 +46,7 @@ class SearchApi:
         return [SearchResult.model_validate(page) for page in raw]
 
     async def site_info(self) -> SiteInfo:
-        """fetch general site information"""
+        """fetch general site information."""
         data = {
             'action': 'query',
             'format': 'json',

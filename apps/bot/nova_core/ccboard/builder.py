@@ -30,12 +30,12 @@ _REPLY_COLOR = 0x2B2D31
 _GIF_HOST_HINTS = ('tenor.com', 'giphy.com', 'gfycat.com')
 
 
-# --- Pipeline State ---
+# --- pipeline state ---
 
 
 @dataclass
 class _State:
-    """mutable state passed between pipeline rules"""
+    """mutable state passed between pipeline rules."""
 
     main_embed: discord.Embed
     extra_embeds: list[discord.Embed] = field(default_factory=list)
@@ -46,7 +46,7 @@ class _State:
     suppress_main: bool = False  # voice memo path replaces the main embed entirely
 
 
-# --- Helpers ---
+# --- helpers ---
 
 
 def _jump_url(snapshot: MessageDocument) -> str:
@@ -79,7 +79,7 @@ def _resolve_gif_url(stored: dict) -> str | None:
     return image or video
 
 
-# --- Rules ---
+# --- rules ---
 
 
 def rule_base(entry: BoardEntryDocument, config: GuildCCBoard, state: _State) -> _State:
@@ -159,7 +159,7 @@ def rule_primary_image(entry: BoardEntryDocument, config: GuildCCBoard, state: _
     """attach the first image attachment to the main embed.
 
     sets `main_embed.url = jump_url` so multi-image galleries render as a single
-    connected unit on discord — the legacy starboard skipped this and the gallery
+    connected unit on discord - the legacy starboard skipped this and the gallery
     rendered as disconnected blocks.
     """
     attachments = entry.snapshot.content.attachments
@@ -226,7 +226,7 @@ def rule_sticker(entry: BoardEntryDocument, config: GuildCCBoard, state: _State)
     content = entry.snapshot.content
     if not content.sticker_urls:
         return state
-    # only fire when there's no other media — text + sticker keeps the text
+    # only fire when there's no other media - text + sticker keeps the text
     if state.image_attachments or content.embeds:
         return state
     if not state.main_embed.image or not state.main_embed.image.url:
@@ -276,7 +276,7 @@ def rule_forwarded(entry: BoardEntryDocument, config: GuildCCBoard, state: _Stat
     return state
 
 
-# --- Pipeline ---
+# --- pipeline ---
 
 
 _RULE = Callable[[BoardEntryDocument, GuildCCBoard, _State], _State]
@@ -301,7 +301,7 @@ def build_embeds(entry: BoardEntryDocument, config: GuildCCBoard) -> list[discor
     rules are pure: each takes (entry, config, state) and returns the updated state.
     the final list is `[reply_embed?, main_embed, *extra_embeds]`. all embeds in a
     multi-image gallery share `main_embed.url == jump_url` so discord groups them
-    visually — this is the regression fix versus the legacy starboard.
+    visually - this is the regression fix versus the legacy starboard.
     """
     state = _State(main_embed=discord.Embed())
     for rule in _PIPELINE:

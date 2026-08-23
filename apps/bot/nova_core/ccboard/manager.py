@@ -19,7 +19,7 @@ from nova_core.tasks.base import BaseTask
 logger = structlog.stdlib.get_logger(__name__)
 
 
-# --- Constants ---
+# --- constants ---
 
 
 # debounce window in seconds before a dirty entry is considered settled
@@ -35,11 +35,11 @@ _SWEEP_COUNTS = (3, 5, 11)
 _STREAK_WINDOW = 12
 
 
-# --- Helpers ---
+# --- helpers ---
 
 
 def _get_entry_repo() -> EntryRepository:
-    """fetch the entry repo singleton wired by database init"""
+    """fetch the entry repo singleton wired by database init."""
     from nova_core import ccboard
 
     if ccboard._entry_repo is None:
@@ -52,7 +52,7 @@ def _credited_author_id(entry: BoardEntryDocument) -> int:
 
 
 def _lowest_positive_emoji(cfg: GuildCCBoard) -> str | None:
-    """return the configured emoji with the smallest positive point value, or None"""
+    """return the configured emoji with the smallest positive point value, or None."""
     positives = [(emoji, pts) for emoji, pts in cfg.emojis.items() if pts > 0]
     if not positives:
         return None
@@ -60,7 +60,7 @@ def _lowest_positive_emoji(cfg: GuildCCBoard) -> str | None:
 
 
 def _sweep_message(streak: int, user_id: int) -> str | None:
-    """return the sweep announcement description for the given streak, or None"""
+    """return the sweep announcement description for the given streak, or None."""
     mention = f'<@{user_id}>'
     if streak == 3:
         return f'**{mention} sweaps!**'
@@ -71,7 +71,7 @@ def _sweep_message(streak: int, user_id: int) -> str | None:
     return None
 
 
-# --- Task ---
+# --- task ---
 
 
 class ManagerTask(BaseTask):
@@ -126,7 +126,7 @@ class ManagerTask(BaseTask):
                         logger.error(f'ccboard manager: mark_synced failed for message {entry.message_id}: {err}')
 
     async def _sync_post(self, entry: BoardEntryDocument, cfg: GuildCCBoard) -> None:  # noqa: PLR0911, PLR0912, PLR0915 - branchy create/update/delete/replace logic with multiple discord error cases
-        """create / edit / delete the discord post for one settled entry"""
+        """create / edit / delete the discord post for one settled entry."""
         from nova_core.client.core import bot
 
         entry_repo = _get_entry_repo()
@@ -248,7 +248,7 @@ class ManagerTask(BaseTask):
         await self._announce_sweep(entry, cfg, channel)
 
     async def _announce_sweep(self, entry: BoardEntryDocument, cfg: GuildCCBoard, channel) -> None:
-        """check for a sweep milestone and announce it; never blocks post creation"""
+        """check for a sweep milestone and announce it; never blocks post creation."""
         try:
             entry_repo = _get_entry_repo()
             credited = _credited_author_id(entry)

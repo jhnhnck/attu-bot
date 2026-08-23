@@ -8,7 +8,7 @@ from nova_core.ccboard.documents import BoardEntryDocument, ReactionDocument
 
 
 class ReactionRepository:
-    """Repository for ccboard reaction documents (one per message_id, user_id).
+    """repository for ccboard reaction documents (one per message_id, user_id).
 
     records are never hard-deleted; on remove, `removed` is set to True. on re-react with
     the same emoji, the existing doc is refreshed in place. on re-react with a different
@@ -29,7 +29,7 @@ class ReactionRepository:
         await self.db[self.COLLECTION].create_index([('message_id', ASCENDING), ('removed', ASCENDING)])
 
     async def get_active(self, message_id: int, user_id: int) -> ReactionDocument | None:
-        """return the active (`removed=False`) reaction for this user on this message, if any"""
+        """return the active (`removed=False`) reaction for this user on this message, if any."""
         doc = await self.db[self.COLLECTION].find_one({'message_id': message_id, 'user_id': user_id, 'removed': False})
         if doc:
             doc.pop('_id', None)
@@ -71,7 +71,7 @@ class ReactionRepository:
         return ReactionDocument(**result)
 
     async def soft_delete_all_for_message(self, message_id: int, *, now: int) -> int:
-        """soft-delete every active reaction on this message; returns the number affected"""
+        """soft-delete every active reaction on this message; returns the number affected."""
         result = await self.db[self.COLLECTION].update_many(
             {'message_id': message_id, 'removed': False},
             {'$set': {'removed': True, 'removed_at': now}},
@@ -79,7 +79,7 @@ class ReactionRepository:
         return result.modified_count
 
     async def soft_delete_emoji(self, message_id: int, emoji_str: str, *, now: int) -> int:
-        """soft-delete every active reaction with this emoji on this message"""
+        """soft-delete every active reaction with this emoji on this message."""
         result = await self.db[self.COLLECTION].update_many(
             {'message_id': message_id, 'emoji_str': emoji_str, 'removed': False},
             {'$set': {'removed': True, 'removed_at': now}},
@@ -87,7 +87,7 @@ class ReactionRepository:
         return result.modified_count
 
     async def aggregate_points(self, message_id: int) -> tuple[int, int]:
-        """return (net_points, positive_points) for active reactions on this message"""
+        """return (net_points, positive_points) for active reactions on this message."""
         pipeline = [
             {'$match': {'message_id': message_id, 'removed': False}},
             {
@@ -107,7 +107,7 @@ class ReactionRepository:
         return int(docs[0].get('net_points', 0)), int(docs[0].get('positive_points', 0))
 
     async def list_for_message(self, message_id: int, *, include_removed: bool = True) -> list[ReactionDocument]:
-        """return all reactions on a message; for /debug ccboard show_reactions"""
+        """return all reactions on a message; for /debug ccboard show_reactions."""
         match: dict = {'message_id': message_id}
         if not include_removed:
             match['removed'] = False
@@ -116,7 +116,7 @@ class ReactionRepository:
         return [ReactionDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
     async def message_ids_with_emoji(self, guild_id: int, emoji_str: str) -> list[int]:
-        """return distinct message_ids in this guild that have an active reaction with this emoji"""
+        """return distinct message_ids in this guild that have an active reaction with this emoji."""
         pipeline = [
             {'$match': {'guild_id': guild_id, 'emoji_str': emoji_str, 'removed': False}},
             {'$group': {'_id': '$message_id'}},
@@ -125,7 +125,7 @@ class ReactionRepository:
         return [doc['_id'] for doc in await cursor.to_list(length=None)]
 
     async def leaderboard_most_given(self, guild_id: int, limit: int = 10) -> list[dict]:
-        """top users by count of active positive-point reactions given"""
+        """top users by count of active positive-point reactions given."""
         pipeline = [
             {'$match': {'guild_id': guild_id, 'removed': False, 'point_value': {'$gt': 0}}},
             {'$group': {'_id': '$user_id', 'total_given': {'$sum': 1}}},
@@ -137,7 +137,7 @@ class ReactionRepository:
 
 
 class EntryRepository:
-    """Repository for ccboard entry documents (one per tracked message)"""
+    """repository for ccboard entry documents (one per tracked message)."""
 
     COLLECTION = 'ccboard_entries'
 
@@ -172,7 +172,7 @@ class EntryRepository:
         return None
 
     async def get_by_display_message(self, display_message_id: int) -> BoardEntryDocument | None:
-        """find an entry whose display_message_ids array contains this id"""
+        """find an entry whose display_message_ids array contains this id."""
         doc = await self.db[self.COLLECTION].find_one({'display_message_ids': display_message_id})
         if doc:
             doc.pop('_id', None)
@@ -200,7 +200,7 @@ class EntryRepository:
         )
 
     async def append_display_message_id(self, message_id: int, display_message_id: int, *, cap: int = 20) -> None:
-        """push a display message id, keeping only the most recent `cap` entries"""
+        """push a display message id, keeping only the most recent `cap` entries."""
         await self.db[self.COLLECTION].update_one(
             {'message_id': message_id},
             {'$push': {'display_message_ids': {'$each': [display_message_id], '$slice': -cap}}},
@@ -213,21 +213,21 @@ class EntryRepository:
         )
 
     async def mark_dirty(self, message_id: int, *, last_reaction_at: int) -> None:
-        """called by the watcher on every reaction event; flags the entry for manager pickup"""
+        """called by the watcher on every reaction event; flags the entry for manager pickup."""
         await self.db[self.COLLECTION].update_one(
             {'message_id': message_id},
             {'$set': {'is_dirty': True, 'last_reaction_at': last_reaction_at}},
         )
 
     async def mark_synced(self, message_id: int, *, now: int) -> None:
-        """called by the manager after a successful sync"""
+        """called by the manager after a successful sync."""
         await self.db[self.COLLECTION].update_one(
             {'message_id': message_id},
             {'$set': {'is_dirty': False, 'last_synced_at': now}},
         )
 
     async def mark_all_dirty(self, guild_id: int) -> int:
-        """force the manager to rebuild every post in this guild on the next tick (/fix ccboard regen)"""
+        """force the manager to rebuild every post in this guild on the next tick (/fix ccboard regen)."""
         result = await self.db[self.COLLECTION].update_many(
             {'guild_id': guild_id},
             {'$set': {'is_dirty': True}},
@@ -235,7 +235,7 @@ class EntryRepository:
         return result.modified_count
 
     async def find_settled(self, guild_id: int, *, now: int, debounce_seconds: int = 60, limit: int = 50) -> list[BoardEntryDocument]:
-        """return up to `limit` dirty entries whose last reaction is at least `debounce_seconds` old"""
+        """return up to `limit` dirty entries whose last reaction is at least `debounce_seconds` old."""
         cursor = (
             self
             .db[self.COLLECTION]
@@ -287,7 +287,7 @@ class EntryRepository:
         return None
 
     async def delete(self, message_id: int) -> bool:
-        """delete an entry doc; returns True if a document was deleted"""
+        """delete an entry doc; returns True if a document was deleted."""
         result = await self.db[self.COLLECTION].delete_one({'message_id': message_id})
         return result.deleted_count > 0
 
@@ -311,7 +311,7 @@ class EntryRepository:
         return [doc.get('effective_author_id') or doc['author_id'] for doc in docs]
 
     async def leaderboard_most_stars(self, guild_id: int, limit: int = 10) -> list[dict]:
-        """top credited users by total positive_points received"""
+        """top credited users by total positive_points received."""
         pipeline = [
             {'$match': {'guild_id': guild_id}},
             {
@@ -327,7 +327,7 @@ class EntryRepository:
         return await cursor.to_list(length=limit)
 
     async def leaderboard_most_starred(self, guild_id: int, limit: int = 10) -> list[dict]:
-        """top credited users by count of messages on the board"""
+        """top credited users by count of messages on the board."""
         pipeline = [
             {'$match': {'guild_id': guild_id, 'starboard_message_id': {'$ne': None}}},
             {
@@ -343,7 +343,7 @@ class EntryRepository:
         return await cursor.to_list(length=limit)
 
     async def leaderboard_top_messages(self, guild_id: int, limit: int = 10) -> list[BoardEntryDocument]:
-        """top messages by positive_points"""
+        """top messages by positive_points."""
         cursor = self.db[self.COLLECTION].find({'guild_id': guild_id, 'starboard_message_id': {'$ne': None}}).sort('positive_points', -1).limit(limit)
         docs = await cursor.to_list(length=limit)
         return [BoardEntryDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]

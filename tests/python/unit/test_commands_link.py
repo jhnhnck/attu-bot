@@ -1,9 +1,5 @@
-"""
-AttuBot - Link Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_link | tests for /link family commands."""
 
 import os
 import time as _time

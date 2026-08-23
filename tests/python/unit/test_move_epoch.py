@@ -1,6 +1,5 @@
-"""
-Tests for Year-aware epoch move functionality
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_move_epoch | tests for year-aware epoch move functionality."""
 
 from datetime import time
 from unittest.mock import AsyncMock, MagicMock, patch

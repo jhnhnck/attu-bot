@@ -17,9 +17,9 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class TaskScheduler:
-    """Async task scheduler - replaces the old JobWorker.
+    """async task scheduler.
 
-    Provides:
+    provides:
     - add_job(coro, name): fire-and-forget background tasks
     - register(task): recurring tasks that run in a loop
     - start_all(): begin all registered recurring tasks
@@ -33,9 +33,9 @@ class TaskScheduler:
         self._running: bool = False
 
     def add_job(self, coro: Coroutine, kind: str, *parts: object) -> None:
-        """Add a fire-and-forget background task.
+        """add a fire-and-forget background task.
 
-        Args:
+        args:
             coro: coroutine to run
             kind: CamelCase task kind (e.g. 'Job', 'HatchAnimation', 'PresenceUpdate')
             *parts: optional context values joined with ':' inside brackets
@@ -61,15 +61,15 @@ class TaskScheduler:
         task.add_done_callback(self._jobs.discard)
 
     def register(self, task: BaseTask) -> None:
-        """Register a recurring task (BaseTask subclass)."""
+        """register a recurring task (BaseTask subclass)."""
         self._registered_tasks.append(task)
 
     def registered_tasks(self) -> list[BaseTask]:
-        """Return the currently registered task instances (for idempotence checks)."""
+        """return the currently registered task instances (for idempotence checks)."""
         return list(self._registered_tasks)
 
     async def start_all(self) -> None:
-        """Start all registered recurring tasks."""
+        """start all registered recurring tasks."""
         if self._running:
             logger.warning('scheduler already running')
             return
@@ -84,7 +84,7 @@ class TaskScheduler:
         logger.info(f'started [{len(self._registered_tasks)}] recurring tasks')
 
     async def stop_all(self) -> None:
-        """Gracefully stop all tasks and wait for completion."""
+        """gracefully stop all tasks and wait for completion."""
         if not self._running:
             return
 
@@ -109,7 +109,7 @@ class TaskScheduler:
                 logger.warning('scheduler: timed out waiting for jobs to stop')
 
     async def _sleep_until(self, when: datetime, wake_event: asyncio.Event | None = None) -> None:
-        """Sleep until a specific datetime, waking early if cancelled or wake_event is set."""
+        """sleep until a specific datetime, waking early if cancelled or wake_event is set."""
         delay = (when - datetime.now().astimezone()).total_seconds()
         if delay <= 0:
             return
@@ -124,7 +124,7 @@ class TaskScheduler:
             await asyncio.sleep(delay)
 
     async def _run_loop(self, task: BaseTask) -> None:  # noqa: PLR0912 - run_once/run_immediately/interval branches are all distinct scheduling paths
-        """Internal: run a task in a loop until shutdown."""
+        """internal: run a task in a loop until shutdown."""
         await task.on_start()
 
         if task.run_immediately:
@@ -143,7 +143,6 @@ class TaskScheduler:
 
         while self._running:
             try:
-                # dynamic scheduling: next_run() returns a specific datetime
                 if task.interval is None:
                     next_dt = await task.next_run()
                     if next_dt is None:

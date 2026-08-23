@@ -46,8 +46,6 @@ class BridgeClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    # --- low-level signed request ---
-
     async def _request(self, method: str, path: str, *, json: Any = None) -> httpx.Response:
         body = b'' if json is None else httpx.Request(method, path, json=json).content
         sig = _sign(self._cfg.secret, method, path, body)
@@ -69,8 +67,6 @@ class BridgeClient:
 
     def _cache_set(self, key: str, data: Any) -> None:
         self._cache[key] = (time.time() + self._cache_ttl, data)
-
-    # --- high-level methods ---
 
     async def health(self) -> dict[str, Any]:
         # /bridge/health is unsigned; uses the underlying client without signing

@@ -13,7 +13,7 @@ from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 
 
-# --- Constants ---
+# --- constants ---
 
 channel_id = 5555555555
 ccboard_channel_id = 9999999999
@@ -27,7 +27,7 @@ emoji_fire = '🔥'
 emoji_skull = '💀'
 
 
-# --- Fixtures ---
+# --- fixtures ---
 
 
 @pytest.fixture
@@ -122,7 +122,7 @@ def _stub_remove_reaction(monkeypatch):
     return stub
 
 
-# --- Tests ---
+# --- tests ---
 
 
 @pytest.mark.asyncio
@@ -432,7 +432,7 @@ async def test_stale_echo_rejected_by_emoji_mismatch(make_guild_ccboard, entry_d
     reaction_repo.soft_delete.assert_not_called()
 
 
-# --- Mock-Compensation Test ---
+# --- mock-compensation test ---
 
 
 def test_extension_imports_cleanly_with_ccboard_wiring():

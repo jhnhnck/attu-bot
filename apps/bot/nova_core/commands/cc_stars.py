@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.commands.cc_stars | deprecated walking-skeleton stub for /cc stars.
+"""nova_core.commands.cc_stars | deprecated walking-skeleton stub for /cc stars."""
 
-the group is named `cc` (not `cc_stars`) so that the subgroup is `stars`,
-mirroring the legacy `/stars` shape under a distinct top-level name.
-"""
+# the group is named `cc` (not `cc_stars`) so that the subgroup is `stars`,
+# mirroring the legacy `/stars` shape under a distinct top-level name
 
 from typing import cast
 

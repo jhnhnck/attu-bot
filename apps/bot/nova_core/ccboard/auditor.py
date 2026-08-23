@@ -27,7 +27,7 @@ from nova_core.tasks.base import BaseTask
 logger = structlog.stdlib.get_logger(__name__)
 
 
-# --- Result type ---
+# --- result type ---
 
 
 @dataclass
@@ -46,7 +46,7 @@ class PassResult:
     details: dict = field(default_factory=dict)
 
 
-# --- Internal helpers ---
+# --- internal helpers ---
 
 
 def _credited_author_id(entry) -> int:
@@ -82,7 +82,7 @@ async def _fetch_discord_message(guild_id: int, channel_id: int, message_id: int
 
 @dataclass
 class _LiveReaction:
-    """one user/emoji pair seen on discord during reconcile"""
+    """one user/emoji pair seen on discord during reconcile."""
 
     user_id: int
     emoji_str: str
@@ -101,7 +101,7 @@ async def _collect_live_reactions(
     iteration failed; callers should skip the remove-side of the diff in
     partial mode to avoid wiping real votes from incomplete data.
 
-    one-vote enforcement is NOT applied here — caller resolves it after
+    one-vote enforcement is NOT applied here - caller resolves it after
     deciding which rows to keep (self/bot policy, etc).
     """
     rows: list[_LiveReaction] = []
@@ -141,30 +141,30 @@ def _resolve_one_vote(rows: list[_LiveReaction]) -> dict[int, _LiveReaction]:
 
 @dataclass
 class _ReconcileDiff:
-    """structured per-user diff between live discord and the database"""
+    """structured per-user diff between live discord and the database."""
 
-    # users in live but absent from db (or in db but soft-deleted) — would create new
+    # users in live but absent from db (or in db but soft-deleted) - would create new
     to_add: list[_LiveReaction] = field(default_factory=list)
     # users in both, but the live emoji or super flag differs from the db record
     to_replace: list[tuple[_LiveReaction, ReactionDocument]] = field(default_factory=list)
-    # users in db active state but missing from live — would soft-delete
+    # users in db active state but missing from live - would soft-delete
     to_remove: list[ReactionDocument] = field(default_factory=list)
     # invalid live rows (bot reactor, self-reaction); would auto-remove from discord
     to_strip_from_discord: list[_LiveReaction] = field(default_factory=list)
     # users with multiple live rows; the extras would be auto-removed from discord
     to_strip_extras: list[_LiveReaction] = field(default_factory=list)
     # users in both with matching emoji+super, but the db record's freshness predates
-    # cfg.weights_updated_at — re-snapshot point_value with current weights and stamp last_recounted_at
+    # cfg.weights_updated_at - re-snapshot point_value with current weights and stamp last_recounted_at
     to_recount: list[ReactionDocument] = field(default_factory=list)
-    # users in both with matching emoji+super — no change needed (counted, not enumerated)
+    # users in both with matching emoji+super - no change needed (counted, not enumerated)
     matching_count: int = 0
 
 
 def _is_stale(db_row: ReactionDocument, weights_updated_at: int) -> bool:
-    """staleness predicate (option B+, phase 2.1 verdict).
+    """staleness predicate.
 
     a record is stale when its last point_value snapshot predates the most recent
-    config weight change. None last_recounted_at falls back to reacted_at — the
+    config weight change. None last_recounted_at falls back to reacted_at - the
     record was snapshotted at reaction time and never re-snapshotted.
     weights_updated_at == 0 short-circuits to "never stale" so guilds that have
     not changed weights since the field was added pay no recount cost.
@@ -207,8 +207,7 @@ def _compute_diff(
     `to_remove` so missing-from-live records (which might be missing only
     because pagination failed) are not soft-deleted.
 
-    weights_updated_at drives the recount staleness predicate (phase 2.3 /
-    option B+). matching records whose effective freshness predates this
+    weights_updated_at drives the recount staleness predicate. matching records whose effective freshness predates this
     timestamp move from `matching_count` to `to_recount` so the apply path
     re-snapshots `point_value`.
     """
@@ -239,7 +238,7 @@ def _compute_diff(
             continue
         _classify_existing_match(diff, live_row=live_row, db_row=db_row, weights_updated_at=weights_updated_at)
 
-    # remove side — only when not partial
+    # remove side - only when not partial
     if not partial:
         for user_id, db_row in db_active.items():
             if user_id not in valid_live:
@@ -280,7 +279,7 @@ def _diff_details(diff: _ReconcileDiff, *, partial: bool) -> dict:
     }
 
 
-# --- Apply ---
+# --- apply ---
 
 
 async def _apply_diff(
@@ -324,7 +323,7 @@ async def _apply_diff(
             )
         )
 
-    # replaces — soft-delete old, upsert new under the unique (message, user) key
+    # replaces - soft-delete old, upsert new under the unique (message, user) key
     for live, db_row in diff.to_replace:
         await reaction_repo.soft_delete(entry.message_id, db_row.user_id, expected_emoji=db_row.emoji_str, now=now)
         point_value = cfg.emojis[live.emoji_str] + (cfg.super_bonus if live.is_super else 0)
@@ -349,7 +348,7 @@ async def _apply_diff(
     for db_row in diff.to_remove:
         await reaction_repo.soft_delete(entry.message_id, db_row.user_id, expected_emoji=db_row.emoji_str, now=now)
 
-    # recounts — same emoji/is_super as the existing record, fresh point_value from current cfg,
+    # recounts - same emoji/is_super as the existing record, fresh point_value from current cfg,
     # last_recounted_at stamped to now. structurally a soft-delete + upsert under the same
     # (message, user) unique key, identical to the replace bucket but without changing emoji.
     for db_row in diff.to_recount:
@@ -380,16 +379,14 @@ async def _apply_diff(
         await _safe_remove_reaction(entry.channel_id, entry.message_id, live.user_id, live.emoji_str)
 
 
-# --- Task ---
+# --- task ---
 
 
 class AuditorTask(BaseTask):
     """auditor for ccboard drift between live discord state and the database.
 
     registered in the scheduler with `interval=None` so it never fires on a
-    timer; today every pass is invoked from a slash command. when phase 2.4
-    introduces a periodic discovery sweep, that path will set its own
-    interval-style schedule (most likely a separate task class).
+    timer; every pass is invoked from a slash command.
     """
 
     name: str = 'CCBoardAuditor'
@@ -472,10 +469,10 @@ class AuditorTask(BaseTask):
             return PassResult(kind='reconcile_entry', dry_run=False, mutated=True, summary=summary, details=details)
 
     async def reconcile_guild(self, guild_id: int, *, dry_run: bool = True) -> PassResult:
-        """reconcile every entry in a guild (phase 2.4).
+        """reconcile every entry in a guild.
 
         calls reconcile_entry per entry under a 90s per-guild time budget.
-        guild-wide recount is inherited free — reconcile_entry already
+        guild-wide recount is inherited free - reconcile_entry already
         consults cfg.weights_updated_at via the staleness predicate in
         _compute_diff, so a weights bump before running this will
         re-snapshot every stale active record automatically.
@@ -524,7 +521,7 @@ class AuditorTask(BaseTask):
         )
 
     async def recount_entry(self, guild_id: int, message_id: int, *, dry_run: bool = True) -> PassResult:
-        """thin wrapper around `reconcile_entry` (phase 2.3, option B+).
+        """thin wrapper around `reconcile_entry`.
 
         recount is no longer a separate codepath. `reconcile_entry` always
         consults `cfg.weights_updated_at`, and stale records (those whose
@@ -544,10 +541,10 @@ class AuditorTask(BaseTask):
             details=result.details,
         )
 
-    async def discover_guild(self, guild_id: int, *, dry_run: bool = True, lookback_days: int = 30) -> PassResult:  # noqa: PLR0912, PLR0915 — channel-history scan with per-channel and per-message error/skip branches
-        """scan recently-active channels for missed reactions (phase 2.4).
+    async def discover_guild(self, guild_id: int, *, dry_run: bool = True, lookback_days: int = 30) -> PassResult:  # noqa: PLR0912, PLR0915 - channel-history scan with per-channel and per-message error/skip branches
+        """scan recently-active channels for missed reactions.
 
-        scoped to channels that already have ccboard entries — never performs
+        scoped to channels that already have ccboard entries - never performs
         an unbounded guild-wide scan (the pre-mortem flagged that as a
         high-severity performance risk). for each channel, walks the last
         `lookback_days` days of message history; messages with configured-emoji
@@ -667,8 +664,8 @@ class AuditorTask(BaseTask):
             details={'channels': channels_scanned, 'scanned': scanned, 'found': found, 'created': created, 'elapsed_s': round(elapsed, 1), 'budget_exhausted': budget_exhausted},
         )
 
-    async def cleanup_orphans(self, guild_id: int, *, dry_run: bool = True, grace_days: int = 7) -> PassResult:  # noqa: PLR0911, PLR0912 — channel-scan with per-precondition early returns and per-failure-mode error branches
-        """scan the ccboard channel for bot-authored posts with no DB twin (phase 2.5).
+    async def cleanup_orphans(self, guild_id: int, *, dry_run: bool = True, grace_days: int = 7) -> PassResult:  # noqa: PLR0911, PLR0912 - channel-scan with per-precondition early returns and per-failure-mode error branches
+        """scan the ccboard channel for bot-authored posts with no DB twin.
 
         only considers posts older than `grace_days` so freshly-created posts
         whose entry write failed are not deleted before the manager retries.

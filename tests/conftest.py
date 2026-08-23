@@ -1,11 +1,5 @@
-"""
-AttuBot - Shared Test Fixtures
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests run with TZ=UTC so that datetime.fromtimestamp() and _config.timezone are consistent.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.conftest | shared fixtures and test infrastructure for the test suite."""
 
 import os
 import time as _time
@@ -13,7 +7,7 @@ import uuid
 from pathlib import Path
 
 
-# Set timezone before any nova_core imports (NovaConfig reads TZ in __init__)
+# set timezone before any nova_core imports (NovaConfig reads TZ in __init__)
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
@@ -47,7 +41,7 @@ def _block_network_for_unit_tests(request):
     Why: unit tests must not touch the network. If a mock patch silently misses
     its target (e.g. patches a re-export shim instead of the original symbol),
     a real client can be constructed and its background tasks then hammer real
-    services. We hit this with pymongo's AsyncMongoClient — patching the wrong
+    services. We hit this with pymongo's AsyncMongoClient - patching the wrong
     import path leaked live monitor tasks pointed at production MongoDB.
     """
     if 'unit' not in request.keywords:
@@ -87,9 +81,8 @@ def restore_config_state():
     Several fixtures mutate the global config singleton (replacing load_guild,
     load_globals, config_repo, guilds, authorized_guilds, setting the init event)
     without teardown. This fixture prevents those mutations from bleeding into
-    later tests (notably test_startup_integration and test_task_reload_watcher_component).
+    later tests.
     """
-    # shallow snapshot of instance attrs
     # avoid restoring loop-bound repo/client objects across tests
     skip_restore_keys = {'config_repo'}
     saved_attrs = {k: v for k, v in vars(config).items() if k not in skip_restore_keys}
@@ -126,7 +119,6 @@ def restore_config_state():
         if vars(config).get(key) is not val:
             setattr(config, key, val)
 
-    # restore in-place mutable state
     config.guilds.clear()
     config.guilds.update(saved_guilds)
     config.authorized_guilds.clear()
@@ -144,7 +136,6 @@ def restore_config_state():
     db.db = None
     _starboard_module._starboard_repo = None
 
-    # restore event set/clear states
     for k, was_set in saved_events.items():
         ev = config._events.get(k)
         if ev is None:
@@ -190,7 +181,7 @@ def make_guild():
 
     yield _make
 
-    # Cleanup
+    # cleanup
     for gid in created:
         config.guilds.pop(gid, None)
         config.authorized_guilds.discard(gid)
@@ -232,57 +223,49 @@ def mock_ctx_factory():
         """
         from discord.enums import ChannelType
 
-        # Create mock objects
         ctx = MagicMock()
         ctx.respond = AsyncMock()
         ctx.edit = AsyncMock()
         ctx.defer = AsyncMock()
 
-        # Guild
         ctx.guild = MagicMock()
         ctx.guild.id = guild_id
         ctx.guild.name = 'Test Guild'
         ctx.guild.get_channel = MagicMock()
         ctx.guild.get_channel_or_thread = MagicMock()
 
-        # User/Author
         ctx.user = MagicMock()
         ctx.user.id = user_id
         ctx.user.global_name = 'TestUser'
         ctx.user.mention = f'<@{user_id}>'
         ctx.author = ctx.user  # alias
 
-        # Channel
         ctx.channel = MagicMock()
         ctx.channel.id = channel_id
         ctx.channel.name = channel_name
         ctx.channel.type = channel_type if channel_type is not None else ChannelType.text
 
-        # Bot
         ctx.bot = MagicMock()
         ctx.bot.get_guild = MagicMock(return_value=ctx.guild)
         ctx.bot.user = MagicMock()
         ctx.bot.user.id = 1111111111
 
-        # Command
         ctx.command = MagicMock()
         ctx.command.name = 'test_command'
 
-        # Interaction (for commands that call original_response() after respond())
+        # interaction (for commands that call original_response() after respond())
         mock_message = MagicMock()
         mock_message.id = 9999999999
         mock_message.edit = AsyncMock()
         ctx.interaction = MagicMock()
         ctx.interaction.original_response = AsyncMock(return_value=mock_message)
 
-        # Convenience ids (pycord exposes these directly on ctx)
+        # convenience ids (pycord exposes these directly on ctx)
         ctx.guild_id = guild_id
         ctx.channel_id = channel_id
 
-        # Track if owner
         ctx._is_owner = is_owner
 
-        # Response tracking
         ctx._responses = []
 
         async def track_respond(*args, **kwargs):

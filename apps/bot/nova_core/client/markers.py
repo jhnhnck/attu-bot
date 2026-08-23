@@ -15,13 +15,13 @@ from nova_core.database.repositories import MessageRepository, YearMarkerReposit
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# Module-level repository instances
+# module-level repository instances
 _marker_repo: YearMarkerRepository | None = None
 _message_repo: MessageRepository | None = None
 
 
 def _get_repo() -> YearMarkerRepository:
-    """Get or create the marker override repository"""
+    """get or create the marker override repository."""
     global _marker_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _marker_repo is None:
         _marker_repo = YearMarkerRepository(db.get_db())
@@ -29,18 +29,18 @@ def _get_repo() -> YearMarkerRepository:
 
 
 def _get_message_repo() -> MessageRepository:
-    """Get or create the message repository for resolver queries"""
+    """get or create the message repository for resolver queries."""
     global _message_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _message_repo is None:
         _message_repo = MessageRepository(db.get_db())
     return _message_repo
 
 
-# --- Marker Detection ---
+# --- marker detection ---
 
 
 def has_year_marker(year: int, content: str) -> bool:
-    """Return True if message content looks like a year header for the given year.
+    """return True if message content looks like a year header for the given year.
 
     matches the bot's format_year_line output OR a human-authored year header
     of the form: (repeated char) (Year? <N> PC?) (repeated char)
@@ -52,12 +52,12 @@ def has_year_marker(year: int, content: str) -> bool:
     return False
 
 
-# --- Resolved Marker ---
+# --- resolved marker ---
 
 
 @dataclass
 class ResolvedMarker:
-    """Result of resolving the marker for a (guild, channel, year) triple."""
+    """result of resolving the marker for a (guild, channel, year) triple."""
 
     guild: int
     channel: int
@@ -72,9 +72,9 @@ class ResolvedMarker:
 
 
 async def resolve_marker(guild: int, channel: int, year: int) -> ResolvedMarker:
-    """Resolve the canonical marker message for a (guild, channel, year) triple.
+    """resolve the canonical marker message for a (guild, channel, year) triple.
 
-    Resolution order:
+    resolution order:
     1. admin override in year_markers collection
     2. bot rollover header in messages (format_year_line match)
     3. authorized marker-author header message
@@ -130,10 +130,10 @@ async def resolve_marker(guild: int, channel: int, year: int) -> ResolvedMarker:
 
 
 async def _get_year_window(guild: int, year: int) -> tuple[int, int]:
-    """Return (after, before) unix timestamps for a year's window.
+    """return (after, before) unix timestamps for a year's window.
 
-    Uses Year records if available, falls back to YearMarker timestamps.
-    Returns (0, current_time) as a last resort.
+    uses Year records if available, falls back to YearMarker timestamps.
+    returns (0, current_time) as a last resort.
     """
     from nova_core.client.years import Year
 
@@ -155,7 +155,7 @@ async def _get_year_window(guild: int, year: int) -> tuple[int, int]:
 
 
 async def _primary_fallback(guild: int, channel: int, year: int) -> ResolvedMarker:
-    """Fall back to the primary lore channel's marker when the target channel has none."""
+    """fall back to the primary lore channel's marker when the target channel has none."""
     try:
         primary_channel_id = config.guild(guild).channels.lore_channels[0]
     except (Exception, IndexError):
@@ -171,11 +171,11 @@ async def _primary_fallback(guild: int, channel: int, year: int) -> ResolvedMark
     return ResolvedMarker(guild=guild, channel=channel, year=year, message=0, exact=False, source='none')
 
 
-# --- Year Marker Override Model ---
+# --- year marker override model ---
 
 
 class YearMarker(BaseModel):
-    """Admin override marker stored in year_markers collection"""
+    """admin override marker stored in year_markers collection."""
 
     guild: int
     channel: int
@@ -185,7 +185,7 @@ class YearMarker(BaseModel):
     wiki_page: bool = False
 
     async def save(self):
-        """Save this override marker to MongoDB"""
+        """save this override marker to MongoDB."""
         await _get_repo().upsert(
             guild=self.guild,
             channel=self.channel,
@@ -196,19 +196,19 @@ class YearMarker(BaseModel):
         )
 
     async def update(self, **kwargs):
-        """Update specific fields and persist to database"""
+        """update specific fields and persist to database."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
         await _get_repo().update(self.channel, self.year, **kwargs)
 
     async def delete(self):
-        """Delete this override marker"""
+        """delete this override marker."""
         await _get_repo().delete(self.channel, self.year)
 
     @classmethod
     async def get(cls, channel: int, year: int) -> 'YearMarker | None':
-        """Get override by channel and year"""
+        """get override by channel and year."""
         doc = await _get_repo().get(channel, year)
         if doc:
             return cls(guild=doc.guild, channel=doc.channel, message=doc.message, year=doc.year, exact=doc.exact, wiki_page=doc.wiki_page)
@@ -216,7 +216,7 @@ class YearMarker(BaseModel):
 
     @classmethod
     async def get_any(cls, guild: int, year: int) -> 'YearMarker | None':
-        """Get any override for a guild+year"""
+        """get any override for a guild+year."""
         doc = await _get_repo().get_any_for_guild_year(guild, year)
         if doc:
             return cls(guild=doc.guild, channel=doc.channel, message=doc.message, year=doc.year, exact=doc.exact, wiki_page=doc.wiki_page)
@@ -224,7 +224,7 @@ class YearMarker(BaseModel):
 
     @classmethod
     async def total(cls, guild: int | None = None) -> int:
-        """Count total override markers for a guild"""
+        """count total override markers for a guild."""
         if guild is None:
             primary = config.get_guild_by_role('primary')
             guild = primary.id if primary is not None else 0
@@ -232,7 +232,7 @@ class YearMarker(BaseModel):
 
     @classmethod
     async def timestamp(cls, year: int, guild: int | None = None) -> int | None:
-        """Get timestamp from an override marker snowflake, or None if no override exists"""
+        """get timestamp from an override marker snowflake, or None if no override exists."""
         if guild is None:
             primary = config.get_guild_by_role('primary')
             guild = primary.id if primary is not None else 0
@@ -244,7 +244,7 @@ class YearMarker(BaseModel):
 
     @classmethod
     async def mark(cls, year: int, message_id: int, channel: int | None = None, guild: int | None = None):
-        """Store a bot rollover message as an exact override marker"""
+        """store a bot rollover message as an exact override marker."""
         primary = config.get_guild_by_role('primary')
         primary_id = primary.id if primary is not None else 0
         if channel is None:
@@ -257,18 +257,18 @@ class YearMarker(BaseModel):
 
     @classmethod
     async def all_for_guild(cls, guild: int) -> list['YearMarker']:
-        """List all override markers for a guild"""
+        """list all override markers for a guild."""
         docs = await _get_repo().all_for_guild(guild)
         return [cls(guild=doc.guild, channel=doc.channel, message=doc.message, year=doc.year, exact=doc.exact, wiki_page=doc.wiki_page) for doc in docs]
 
     @classmethod
     async def get_or_create(cls, guild: int, channel: int, year: int, message: int) -> tuple['YearMarker', bool]:
-        """Get or create an override marker. Returns (marker, created)"""
+        """get or create an override marker. returns (marker, created)."""
         doc, created = await _get_repo().get_or_create(guild, channel, year, message)
         marker = cls(guild=doc.guild, channel=doc.channel, message=doc.message, year=doc.year, exact=doc.exact, wiki_page=doc.wiki_page)
         return marker, created
 
     @classmethod
     async def exists(cls, channel: int, year: int) -> bool:
-        """Check if an override exists for the given channel and year"""
+        """check if an override exists for the given channel and year."""
         return await _get_repo().exists(channel, year)

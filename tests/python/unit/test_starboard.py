@@ -1,9 +1,5 @@
-"""
-AttuBot - Starboard Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_starboard | tests for starboard handlers."""
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -30,7 +26,7 @@ from nova_core.starboard.handlers import (
 )
 
 
-# ---- constants ----
+# --- constants ---
 
 # real guild/channel/message IDs from the dump - used only for pure function tests
 real_guild = 1001828025756819456
@@ -59,7 +55,7 @@ message = real_message
 jump_url = f'https://discord.com/channels/{guild}/{channel}/{message}'
 
 
-# ---- pure function unit tests ----
+# --- pure function unit tests ---
 
 
 def test_parse_color_standard():
@@ -262,7 +258,7 @@ async def test_build_embeds_not_forwarded_no_footer(monkeypatch):
     assert embeds[0].footer is None
 
 
-# ---- make_message_doc helper ----
+# --- make_message_doc helper ---
 
 
 def _make_msg_doc(**kwargs) -> MessageDocument:
@@ -303,7 +299,7 @@ def _make_star_doc(**kwargs) -> StarredMessageDocument:
     return StarredMessageDocument(**defaults)  # pyright: ignore[reportArgumentType]
 
 
-# ---- handle_star_add integration tests ----
+# --- handle_star_add integration tests ---
 
 
 @pytest.fixture
@@ -466,7 +462,7 @@ async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboar
     existing_doc = _make_star_doc(starboard_message_id=test_starboard_msg, message_id=test_message)
     sb_repo.get_by_starboard_message = AsyncMock(return_value=existing_doc)
 
-    # no pending key — this is a real user action, not bot-initiated
+    # no pending key - this is a real user action, not bot-initiated
     updated_doc = _make_star_doc(message_id=test_message)
     sb_repo.remove_reaction = AsyncMock(return_value=updated_doc)
 
@@ -477,7 +473,7 @@ async def test_handle_star_remove_user_initiated_on_starboard_post(make_starboar
     mock_sync.assert_called_once()
 
 
-# ---- one-vote-per-user, auto-remove, and threshold tests ----
+# --- one-vote-per-user, auto-remove, and threshold tests ---
 
 emoji_glow = '🌟'
 emoji_glow_color = '#FF0000'
@@ -719,7 +715,7 @@ async def test_backfill_removes_self_stars(make_starboard_guild, mock_sb_repo):
     mock_sb_repo.upsert.assert_not_called()
 
 
-# ---- reaction clear event handler tests ----
+# --- reaction clear event handler tests ---
 
 
 async def test_handle_star_clear_wipes_reactions_and_syncs(make_starboard_guild, mock_sb_repo):
@@ -797,7 +793,7 @@ async def test_handle_star_clear_redirects_starboard_channel(make_starboard_guil
     mock_sb_repo.clear_all_reactions.assert_called_once_with(test_message)
 
 
-# ---- recount starboard skip-unchanged tests ----
+# --- recount starboard skip-unchanged tests ---
 
 
 class TestRecountStarboard:
@@ -1066,7 +1062,7 @@ class TestStarReferenceRedirect:
         sb_repo.remove_reaction.assert_called_once_with(test_message, emoji_star, user_a)
 
 
-# ---- super reaction (burst) tests ----
+# --- super reaction (burst) tests ---
 
 
 def test_weighted_count_normal_only():
@@ -1193,7 +1189,7 @@ async def test_handle_star_remove_super_calls_remove_super_reaction(make_starboa
     sb_repo.remove_reaction.assert_not_called()
 
 
-# ---- parse_starboard_content against real dump samples ----
+# --- parse_starboard_content against real dump samples ---
 
 
 def test_parse_real_dump_samples():
@@ -1215,7 +1211,7 @@ def test_parse_real_dump_samples():
         assert parsed[2] == exp_msg_id
 
 
-# ---- _count_streak pure function tests ----
+# --- _count_streak pure function tests ---
 
 
 def test_count_streak_empty_list():
@@ -1282,7 +1278,7 @@ def test_count_streak_author_in_middle_only():
     assert _count_streak(docs, test_author) == 0
 
 
-# ---- _sweep_message pure function tests ----
+# --- _sweep_message pure function tests ---
 
 
 def test_sweep_message_streak_3():
@@ -1341,7 +1337,7 @@ def test_sweep_message_mention_format():
     assert result.startswith(f'<@{test_author}>')
 
 
-# ---- _check_and_announce_sweep integration tests ----
+# --- _check_and_announce_sweep integration tests ---
 
 
 @pytest.fixture

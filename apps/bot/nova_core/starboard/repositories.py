@@ -11,7 +11,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class StarboardRepository:
-    """Repository for starred message documents"""
+    """repository for starred message documents."""
 
     COLLECTION = 'starboard'
 
@@ -40,7 +40,6 @@ class StarboardRepository:
         return None
 
     async def upsert(self, doc: StarredMessageDocument):
-        """insert or update a starred message document"""
         data = doc.model_dump()
         await self.db[self.COLLECTION].update_one(
             {'message_id': doc.message_id},
@@ -49,7 +48,7 @@ class StarboardRepository:
         )
 
     async def _sync_totals(self, message_id: int) -> StarredMessageDocument | None:
-        """recompute and persist total_reactions and weighted_total atomically from stored arrays"""
+        """recompute and persist total_reactions and weighted_total atomically from stored arrays."""
         from pymongo import ReturnDocument
 
         result = await self.db[self.COLLECTION].find_one_and_update(

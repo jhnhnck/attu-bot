@@ -1,11 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""attu_server.webauthn_store | TTL-backed challenge storage for webauthn ceremonies.
-
-challenges are one-time and short-lived; storing them in the (signed) cookie session
-exposes a replay window if a cookie is captured. instead the cookie carries a
-session nonce that addresses an entry in this collection; the entry expires via a
-mongo TTL index five minutes after creation.
-"""
+"""attu_server.webauthn_store | TTL-backed challenge storage for webauthn ceremonies."""
 
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -43,7 +37,7 @@ async def pop(storage: MongoStorage, nonce: str) -> dict[str, Any] | None:
     if doc is None:
         return None
     # a doc that just expired but mongo has not yet purged is still atomically removed by find_one_and_delete;
-    # in that case its expires_at is in the past — treat as absent so callers don't replay
+    # in that case its expires_at is in the past - treat as absent so callers don't replay
     expires_at = doc.get('expires_at')
     if expires_at is not None and expires_at < datetime.now(tz=UTC):
         return None

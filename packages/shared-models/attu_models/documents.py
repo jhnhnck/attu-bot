@@ -1,9 +1,5 @@
-"""
-AttuBot - Pydantic Models for MongoDB Documents
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""attu_models.documents | pydantic models for MongoDB documents."""
 
 import time
 from typing import Literal
@@ -12,11 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class GuildConfigDocument(BaseModel):
-    """MongoDB document for guild configuration
-
-    Note: epoch dict stores rollover_minutes (int) instead of rollover_time (str)
-    for simpler storage and manipulation.
-    """
+    """MongoDB document for guild configuration."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='ignore')
 
@@ -31,7 +23,7 @@ class GuildConfigDocument(BaseModel):
 
 
 class ThemeDocument(BaseModel):
-    """MongoDB document for theme configuration"""
+    """MongoDB document for theme configuration."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -50,7 +42,7 @@ class ThemeDocument(BaseModel):
 
 
 class SystemConfigDocument(BaseModel):
-    """MongoDB document for system configuration"""
+    """MongoDB document for system configuration."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -62,7 +54,7 @@ class SystemConfigDocument(BaseModel):
 
 
 class YearMarkerDocument(BaseModel):
-    """MongoDB document for year markers"""
+    """MongoDB document for year markers."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -75,7 +67,7 @@ class YearMarkerDocument(BaseModel):
 
 
 class YearDocument(BaseModel):
-    """MongoDB document for year records"""
+    """MongoDB document for year records."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -88,7 +80,7 @@ class YearDocument(BaseModel):
 
 
 class MessageAuthor(BaseModel):
-    """Author info snapshot embedded in a MessageDocument"""
+    """author info snapshot embedded in a MessageDocument."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -98,7 +90,7 @@ class MessageAuthor(BaseModel):
 
 
 class MessageContent(BaseModel):
-    """Message body and media embedded in a MessageDocument"""
+    """message body and media embedded in a MessageDocument."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -112,7 +104,7 @@ class MessageContent(BaseModel):
 
 
 class MessageRefs(BaseModel):
-    """Cross-references to other messages embedded in a MessageDocument"""
+    """cross-references to other messages embedded in a MessageDocument."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -121,7 +113,7 @@ class MessageRefs(BaseModel):
 
 
 class MessageDocument(BaseModel):
-    """MongoDB document for a stored Discord message"""
+    """MongoDB document for a stored Discord message."""
 
     model_config = ConfigDict(extra='ignore')
 
@@ -140,9 +132,8 @@ class MessageDocument(BaseModel):
     deleted_at: int | None = None
 
 
-
 class ReloadSignalDocument(BaseModel):
-    """MongoDB document for cross-process config reload signals
+    """MongoDB document for cross-process config reload signals.
 
     written by the web process; consumed and deleted by a target consumer process.
     upserted by (target, signal_type, guild_id) so rapid saves coalesce per target.

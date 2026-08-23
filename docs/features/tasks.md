@@ -6,7 +6,7 @@ How the `TaskScheduler` and `BaseTask` system works, and how to use them.
 
 ## Overview
 
-`apps/bot/doom_bot/tasks/scheduler.py` exports a module-level singleton `scheduler` of type `TaskScheduler`. It manages two categories of work:
+`apps/bot/nova_core/tasks/scheduler.py` exports a module-level singleton `scheduler` of type `TaskScheduler`. It manages two categories of work:
 
 | Category | API | How it runs |
 |---|---|---|
@@ -17,7 +17,7 @@ How the `TaskScheduler` and `BaseTask` system works, and how to use them.
 
 ## Recurring Tasks - BaseTask
 
-All recurring tasks extend `BaseTask` (`apps/bot/doom_bot/tasks/base.py`). Key class attributes:
+All recurring tasks extend `BaseTask` (`apps/bot/nova_core/tasks/base.py`). Key class attributes:
 
 | Attribute | Type | Purpose |
 |---|---|---|
@@ -80,10 +80,10 @@ with `run_immediately = False`, the task sleeps one interval first, then calls `
 
 ### Registering a task
 
-bot tasks are instantiated as module-level singletons and added to the bot's scheduler via `register_bot_tasks()` in `apps/bot/doom_bot/tasks/__init__.py`:
+bot tasks are instantiated as module-level singletons and added to the bot's scheduler via `register_bot_tasks()` in `apps/bot/nova_core/tasks/__init__.py`:
 
 ```python
-from doom_bot.tasks.my_feature import MyFeatureTask
+from nova_core.tasks.my_feature import MyFeatureTask
 
 my_feature_task = MyFeatureTask()
 
@@ -93,9 +93,7 @@ def register_bot_tasks(s):
     s.register(my_feature_task)
 ```
 
-the bot calls `register_bot_tasks(scheduler)` from `apps/bot/doom_bot/client/events.py` right before `scheduler.start_all()` on `on_ready`. registration is intentionally not done at module-import time; the ingestor process imports the same package and would otherwise inherit (and start) every bot task, racing with the bot for shared db state like reload signals.
-
-the ingestor used to register its own task set explicitly in `doom_bot/ingestor/__init__.py`; that module now lives at `apps/chat/attu_chat/ingestor/__init__.py` and is dormant. on revival, the same separation pattern applies (the ingestor never calls `register_bot_tasks()`).
+the bot calls `register_bot_tasks(scheduler)` from `apps/bot/nova_core/client/events.py` right before `scheduler.start_all()` on `on_ready`. registration is intentionally not done at module-import time; any other process importing the same package would otherwise inherit (and start) every bot task, racing with the bot for shared db state like reload signals.
 
 ---
 
@@ -147,13 +145,13 @@ Tasks that call `scheduler.add_job()` on themselves or other tasks must use loca
 ```python
 async def run(self) -> None:
     ...
-    from doom_bot.tasks.presence import presence_update_task  # apps/bot/doom_bot/tasks/presence.py
-    from doom_bot.tasks.scheduler import scheduler  # local import avoids circular dep
+    from nova_core.tasks.presence import presence_update_task  # apps/bot/nova_core/tasks/presence.py
+    from nova_core.tasks.scheduler import scheduler  # local import avoids circular dep
 
     scheduler.add_job(presence_update_task.run(), 'PresenceUpdate', 'immediate')
 ```
 
-Command files (`apps/bot/doom_bot/commands/`) can import `scheduler` at the top of the module without issue.
+Command files (`apps/bot/nova_core/commands/`) can import `scheduler` at the top of the module without issue.
 
 ---
 

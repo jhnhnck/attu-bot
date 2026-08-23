@@ -1,12 +1,5 @@
-"""
-AttuBot - Marker Resolver and YearMarker Model Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests for resolve_marker(), has_year_marker(), and the YearMarker model.
-All repository and config access is mocked.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_markers | tests for resolve_marker() and the YearMarker model."""
 
 import os
 import time as _time

@@ -117,7 +117,7 @@ class TestCCBoardStarsRandom:
 
     async def test_random_only_returns_entries_with_board_post(self, cc_repos, mock_ctx_factory):
         """ccboard random: entry without starboard_message_id is excluded."""
-        # entry below threshold, no board post — should not be returned by random
+        # entry below threshold, no board post - should not be returned by random
         await cc_repos['entry'].upsert(_entry(msg_id_a, positive_points=1, starboard_message_id=None))
 
         ctx = mock_ctx_factory(guild_id=test_guild)
@@ -190,7 +190,6 @@ class TestCCBoardStarsRandom:
 class TestCCBoardLeaderboards:
     async def test_most_stars_ranks_by_positive_points(self, cc_repos, mock_ctx_factory):
         """ccboard most-stars ranks credited authors by sum of positive_points."""
-        # author_a: two entries with 3+2 points; author_b: one entry with 1 point
         await cc_repos['entry'].upsert(_entry(msg_id_a, author_a, positive_points=3, starboard_message_id=board_post_a))
         await cc_repos['entry'].upsert(_entry(msg_id_b, author_a, positive_points=2, starboard_message_id=board_post_a + 1))
         await cc_repos['entry'].upsert(_entry(msg_id_c, author_b, positive_points=1, starboard_message_id=board_post_a + 2))
@@ -242,7 +241,6 @@ class TestCCBoardLeaderboards:
                 source_channel_id=msg_channel,
             )
 
-        # reactor_a gave 2 reactions, reactor_b gave 1
         await cc_repos['reaction'].upsert_active(_rxn(reactor_a, msg_id_a))
         await cc_repos['reaction'].upsert_active(_rxn(reactor_a, msg_id_b))
         await cc_repos['reaction'].upsert_active(_rxn(reactor_b, msg_id_c))

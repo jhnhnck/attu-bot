@@ -11,23 +11,23 @@ from nova_core.database.repositories import YearRepository
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# Module-level repository instance
+# module-level repository instance
 _year_repo: YearRepository | None = None
 
 
 def _get_repo() -> YearRepository:
-    """Get or create the year repository"""
+    """get or create the year repository."""
     global _year_repo  # noqa: PLW0603 - lazy singleton initialization requires global
     if _year_repo is None:
         _year_repo = YearRepository(db.get_db())
     return _year_repo
 
 
-# --- Year Model ---
+# --- year model ---
 
 
 class Year(BaseModel):
-    """Year runtime model - represents a single calendar year for a guild"""
+    """year runtime model - represents a single calendar year for a guild."""
 
     guild: int
     year: int
@@ -37,7 +37,7 @@ class Year(BaseModel):
     notes: str = ''
 
     async def save(self):
-        """Save this year to MongoDB"""
+        """save this year to MongoDB."""
         await _get_repo().upsert(
             guild=self.guild,
             year=self.year,
@@ -48,18 +48,18 @@ class Year(BaseModel):
         )
 
     async def update(self, **kwargs):
-        """Update specific fields and persist to database"""
+        """update specific fields and persist to database."""
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
         await _get_repo().update(self.guild, self.year, **kwargs)
 
     async def delete(self):
-        """Delete this year from database"""
+        """delete this year from database."""
         await _get_repo().delete(self.guild, self.year)
 
     def to_span(self):
-        """Convert to AttuYearSpan for backward compatibility"""
+        """convert to AttuYearSpan for backward compatibility."""
         from nova_core.client.calendar import AttuYearSpan
 
         return AttuYearSpan(
@@ -68,23 +68,23 @@ class Year(BaseModel):
             duration=self.duration,
         )
 
-    # --- Navigation (Linking) ---
+    # --- navigation (linking) ---
 
     async def prev(self) -> 'Year | None':
-        """Get the previous year, or None if this is year 1"""
+        """get the previous year, or None if this is year 1."""
         if self.year <= 1:
             return None
         return await Year.get(self.guild, self.year - 1)
 
     async def next(self) -> 'Year | None':
-        """Get the next year, or None if not yet stored"""
+        """get the next year, or None if not yet stored."""
         return await Year.get(self.guild, self.year + 1)
 
-    # --- Class Methods ---
+    # --- class methods ---
 
     @classmethod
     async def get(cls, guild: int, year: int) -> 'Year | None':
-        """Get year by guild and year number"""
+        """get year by guild and year number."""
         doc = await _get_repo().get(guild, year)
         if doc:
             return cls(
@@ -99,7 +99,7 @@ class Year(BaseModel):
 
     @classmethod
     async def total(cls, guild: int | None = None) -> int:
-        """Count total stored years for a guild"""
+        """count total stored years for a guild."""
         if guild is None:
             primary = config.get_guild_by_role('primary')
             guild = primary.id if primary is not None else 0
@@ -107,12 +107,12 @@ class Year(BaseModel):
 
     @classmethod
     async def exists(cls, guild: int, year: int) -> bool:
-        """Check if a year record exists"""
+        """check if a year record exists."""
         return await _get_repo().exists(guild, year)
 
     @classmethod
     async def all_for_guild(cls, guild: int) -> list['Year']:
-        """Get all stored years for a guild, sorted by year ascending"""
+        """get all stored years for a guild, sorted by year ascending."""
         docs = await _get_repo().all_for_guild(guild)
         return [
             cls(
@@ -128,7 +128,7 @@ class Year(BaseModel):
 
     @classmethod
     async def get_latest(cls, guild: int) -> 'Year | None':
-        """Get the most recently stored year for a guild"""
+        """get the most recently stored year for a guild."""
         doc = await _get_repo().get_latest(guild)
         if doc:
             return cls(
@@ -143,7 +143,7 @@ class Year(BaseModel):
 
     @classmethod
     async def create_from_rollover(cls, guild: int, year: int, start_time: int) -> 'Year':
-        """Create a new Year record during rollover"""
+        """create a new Year record during rollover."""
         new_year = cls(
             guild=guild,
             year=year,
@@ -156,7 +156,7 @@ class Year(BaseModel):
 
     @classmethod
     async def finalize(cls, guild: int, year: int, end_time: int) -> 'Year | None':
-        """Finalize a year by setting its end_time and computing duration"""
+        """finalize a year by setting its end_time and computing duration."""
         existing = await cls.get(guild, year)
         if existing is None:
             logger.error(f'cannot finalize year {year} for guild {guild}: not found')

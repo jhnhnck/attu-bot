@@ -24,7 +24,7 @@ from nova_core.config import GuildCCBoard
 from tests.conftest import test_guild
 
 
-# --- Constants ---
+# --- constants ---
 
 guild_id = test_guild
 channel_id = 5555555555
@@ -40,7 +40,7 @@ emoji_fire = '🔥'
 emoji_skull = '💀'
 
 
-# --- Fixtures ---
+# --- fixtures ---
 
 
 @pytest.fixture
@@ -580,7 +580,7 @@ class TestRecountEntryWrapper:
         reaction_repo.upsert_active.assert_awaited_once()
 
 
-# --- Singleton / scheduler-wiring guards ---
+# --- singleton / scheduler-wiring guards ---
 
 
 def test_singleton_is_audit_task():
@@ -600,7 +600,7 @@ async def test_run_is_a_no_op():
     await auditor_task.run()
 
 
-# --- reconcile_guild tests (phase 2.4) ---
+# --- reconcile_guild tests ---
 
 
 def _make_entry(msg_id: int) -> MagicMock:
@@ -678,7 +678,7 @@ class TestReconcileGuild:
         assert received_dry_run == [False]
 
 
-# --- discover_guild tests (phase 2.4) ---
+# --- discover_guild tests ---
 
 
 def _make_discord_msg_with_reactions(msg_id: int, emoji_strs: list[str]) -> MagicMock:

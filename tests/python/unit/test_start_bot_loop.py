@@ -1,12 +1,5 @@
-"""
-AttuBot - start_bot_loop() Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Fast, offline tests for the pre-network startup pipeline in nova_core/client/__init__.py.
-No real Discord connection, no MongoDB, no filesystem access needed.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_start_bot_loop | unit tests for the bot startup pipeline."""
 
 import secrets
 from unittest.mock import call, patch
@@ -39,9 +32,7 @@ def _patch_all_startup(
     )
 
 
-# ============================================================
-# start_bot_loop() - full pipeline
-# ============================================================
+# --- start_bot_loop() - full pipeline ---
 
 
 class TestSetupDiscordLogging:
@@ -178,9 +169,7 @@ class TestStartBotLoopPipeline:
         mock_run.assert_called_once_with(run_value)
 
 
-# ============================================================
-# _check_deps()
-# ============================================================
+# --- _check_deps() ---
 
 
 class TestCheckDeps:
@@ -225,9 +214,7 @@ class TestCheckDeps:
         mock_run.assert_not_called()
 
 
-# ============================================================
-# _load_extensions()
-# ============================================================
+# --- _load_extensions() ---
 
 
 class TestLoadExtensions:
@@ -317,9 +304,7 @@ class TestLoadExtensions:
         mock_run.assert_not_called()
 
 
-# ============================================================
-# _register_core_commands()
-# ============================================================
+# --- _register_core_commands() ---
 
 
 class TestRegisterCoreCommands:
@@ -337,9 +322,7 @@ class TestRegisterCoreCommands:
         mock_add.assert_not_called()
 
 
-# ============================================================
-# extensions_list
-# ============================================================
+# --- extensions_list ---
 
 
 class TestEventHandlerModules:
@@ -408,9 +391,7 @@ class TestExtensionsList:
         assert len(nova_core.extensions_list) == 13
 
 
-# ============================================================
-# module-level singleton creation
-# ============================================================
+# --- module-level singleton creation ---
 
 
 class TestSingletonCreation:

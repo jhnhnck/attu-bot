@@ -12,7 +12,7 @@ _wiki: WikiClient | None = None
 
 
 def get_wiki() -> WikiClient:
-    global _wiki  # ruff: ignore[global-statement] - lazy singleton initialization requires global
+    global _wiki  # noqa: PLW0603 - lazy singleton initialization requires global
     if _wiki is None:
         _wiki = WikiClient(endpoint=config.wiki.endpoint, user_agent=f'{__title__}/{__version__} ({__email__})')
     return _wiki
@@ -26,7 +26,7 @@ def setup(bot):
     get_wiki()
 
 
-from nova_core.manifest import FeatureManifest  # ruff: ignore[module-import-not-at-top-of-file] - deferred to break circular import: manifest->tasks->nova_year->wiki
+from nova_core.manifest import FeatureManifest  # noqa: E402 - deferred to break circular import: manifest->tasks->nova_year->wiki
 
 
 manifest = FeatureManifest(name='wiki', setup=setup, document_classes=[WikiViewDocument], repository_classes=[WikiViewRepository])

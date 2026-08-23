@@ -1,8 +1,8 @@
 # bug log
 
-reported bugs live here, separate from the feature backlog in `notes/to-do.md`. run the `bug-triage` skill (`~/.claude/skills/bug-triage/`) to assign severity (`blocker` / `important` / `nit`) and disposition (`fix-now` / `fix-in-phase-N` / `defer` / `won't-fix`) — the skill is the cut-line authority and does not fix code itself.
+reported bugs live here, separate from the feature backlog in `docs/to-do.md`. run the `bug-triage` skill (`~/.claude/skills/bug-triage/`) to assign severity (`blocker` / `important` / `nit`) and disposition (`fix-now` / `fix-in-phase-N` / `defer` / `won't-fix`) — the skill is the cut-line authority and does not fix code itself.
 
-format and conventions match `notes/to-do.md` (all lowercase, `- ⭕` for open / `- 🔴` for resolved). see the [meta](#meta) section for the format reference.
+format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / `- 🔴` for resolved). see the [meta](#meta) section for the format reference.
 
 ---
 
@@ -127,11 +127,10 @@ the skill reads every entry in full, assigns severity + disposition, and surface
 ### metadata
 
 ```yaml
-last_updated: 09 August 2026
+last_updated: 2026-08-22
 total_resolved: 2
 ```
 
 ## open
 
 - **mkdocstrings cannot import attu_logging** — packages/attu-logging/pyproject.toml has `package = false`, so uv does not install attu_logging into the venv; mkdocstrings raises ModuleNotFoundError when the api reference page is added; phase 1 will need to either set `package = true` for attu-logging or configure a PYTHONPATH workaround before the api reference build can succeed
-- **stale agents.md link in nova-core.md** — docs/nova-core.md links to `agents.md` which does not exist (the file was renamed to architecture.md); mkdocs build warns but does not fail; pre-existing, unrelated to mkdocs scaffold

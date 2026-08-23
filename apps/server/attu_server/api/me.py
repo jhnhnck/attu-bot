@@ -20,11 +20,7 @@ class MeResponse(BaseModel):
 
 @router.get('/me', response_model=MeResponse)
 async def me(request: Request) -> dict[str, Any]:
-    """spa boot probe; later phases extend with user info + passkey count.
-
-    sessions ride on starlette's signed-cookie SessionMiddleware. csrf_token is
-    minted on first hit and persists for the session.
-    """
+    """spa boot probe; later phases extend with user info + passkey count."""
     session = request.session
     if 'csrf_token' not in session:
         session['csrf_token'] = secrets.token_urlsafe(32)
@@ -33,5 +29,5 @@ async def me(request: Request) -> dict[str, Any]:
         'authenticated': bool(session.get('user_id')),
         'csrf_token': session['csrf_token'],
         'active_guild': session.get('active_guild'),
-        'has_passkeys': False,  # phase 2 wires the passkey lookup
+        'has_passkeys': False,
     }

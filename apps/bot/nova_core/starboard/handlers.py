@@ -48,7 +48,7 @@ def _get_repo() -> StarboardRepository:
 
 
 def _parse_color(hex_str: str) -> int:
-    """convert '#RRGGBB' hex string to int"""
+    """convert '#RRGGBB' hex string to int."""
     return int(hex_str.lstrip('#'), 16)
 
 
@@ -119,12 +119,12 @@ def _hydrate_stored_embed(stored: dict) -> discord.Embed:
 
 
 def _weighted_count(emoji: str, reactions: dict[str, list[int]], super_reactions: dict[str, list[int]]) -> float:
-    """return the weighted reaction count for one emoji: normal = 1.0, super = 1.5"""
+    """return the weighted reaction count for one emoji: normal = 1.0, super = 1.5."""
     return len(reactions.get(emoji, [])) + len(super_reactions.get(emoji, [])) * 1.5
 
 
 def _fmt_count(value: float) -> str:
-    """format a weighted count - omit decimal if it's a whole number"""
+    """format a weighted count - omit decimal if it's a whole number."""
     return str(int(value)) if value == int(value) else str(value)
 
 
@@ -163,8 +163,6 @@ def _sweep_message(streak: int, author_id: int) -> str | None:
 async def _check_and_announce_sweep(guild_id: int, author_id: int, channel) -> None:
     """check for a sweeps milestone and announce it in the starboard channel if earned.
 
-    fetches all posted starboard docs for the guild, counts the tail streak for author_id,
-    and sends an announcement at streak lengths of exactly 3, 5, or 11.
     swallows all errors so a sweep failure never disrupts the post creation path.
     """
     try:
@@ -271,7 +269,6 @@ async def build_embeds(  # noqa: PLR0912, PLR0915 - embed assembly requires hand
 
     embeds: list[discord.Embed] = []
 
-    # --- reply context embed ---
     if message_doc.refs.reply_to:
         try:
             ref_doc = await _get_msg_repo().get(message_doc.refs.reply_to)
@@ -304,7 +301,6 @@ async def build_embeds(  # noqa: PLR0912, PLR0915 - embed assembly requires hand
                 reply_embed.set_image(url=ref_doc.content.attachments[0]['url'])
             embeds.append(reply_embed)
 
-    # --- main embed ---
     main_embed = discord.Embed(color=color)
     main_embed.set_author(name=message_doc.author.name, url=jump_url, icon_url=avatar_url)
     main_embed.timestamp = datetime.fromtimestamp(message_doc.created_at, tz=UTC)
@@ -336,7 +332,6 @@ async def build_embeds(  # noqa: PLR0912, PLR0915 - embed assembly requires hand
     if hydrated_embed is not None:
         embeds.append(hydrated_embed)
 
-    # --- extra image attachments as separate embeds ---
     for att in image_attachments[1:]:
         extra = discord.Embed(color=color)
         extra.set_image(url=att['url'])
@@ -362,8 +357,7 @@ def _is_image(attachment: dict) -> bool:
 async def _remove_reaction_from_discord(channel_id: int, message_id: int, user_id: int, emoji_str: str) -> None:
     """remove an invalid reaction from discord, suppressing all errors.
 
-    registers the removal in _pending_bot_removals so that the echoed
-    on_raw_reaction_remove event is ignored by handle_star_remove.
+    also suppresses the echoed on_raw_reaction_remove event.
     """
     from nova_core.client.core import bot
 
@@ -387,7 +381,7 @@ async def _fetch_store_and_backfill(
     skip_user: int,
     skip_emoji: str,
 ) -> 'MessageDocument | None':
-    """fetch a missing message from discord, store it, then backfill any existing star reactions.
+    """fetch a missing message from discord and backfill any existing star reactions.
 
     skips (skip_user, skip_emoji) since the caller will process that combination.
     returns the stored MessageDocument or None on failure.
@@ -851,7 +845,6 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
             except Exception as del_err:
                 logger.error(f'starboard: failed to delete orphan post {sb_msg.id}: {del_err}; manual cleanup may be needed')
             return
-        # bot reacts to its own starboard post with all active emojis
         for emoji in doc.reactions:
             if doc.reactions[emoji] and emoji in sb.emojis:
                 try:
@@ -872,10 +865,9 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         await _check_and_announce_sweep(guild_id, doc.author_id, channel)
         return
 
-    # update existing post (starboard_message_id is guaranteed non-None here)
+    # starboard_message_id is guaranteed non-None here
     if doc.starboard_message_id is None:
         return
-    # delete post if it fell below threshold
     max_weight = max(
         (_weighted_count(e, doc.reactions, doc.super_reactions) for e in (set(doc.reactions) | set(doc.super_reactions))),
         default=0.0,

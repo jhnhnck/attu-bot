@@ -54,8 +54,7 @@ def create_app(cfg: ServerConfig | None = None) -> FastAPI:
     app = FastAPI(title='attu_server', version=__version__, lifespan=_build_lifespan(cfg))
 
     # session signing reuses the legacy quart secret_key so existing cookies
-    # survive the cutover. csrf is enforced per-request in deps.require_csrf
-    # (added in phase 3 with the first write endpoint).
+    # survive the cutover. csrf is enforced per-request in deps.require_csrf.
     app.add_middleware(SessionMiddleware, secret_key=cfg.web.secret_key, session_cookie='attu_session', https_only=False)
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 

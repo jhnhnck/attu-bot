@@ -18,10 +18,10 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class MessageBackfillTask(BaseTask):
-    """One-shot task that runs at startup to backfill messages missed while the bot was offline.
+    """one-shot task that runs at startup to backfill messages missed while the bot was offline.
 
-    For each text channel in authorized guilds (excluding the logs channel), queries the
-    latest stored message_id and fetches anything newer from the Discord API. Runs once
+    for each text channel in authorized guilds (excluding the logs channel), queries the
+    latest stored message_id and fetches anything newer from the Discord API. runs once
     immediately on start, then idles indefinitely.
     """
 
@@ -42,7 +42,7 @@ class MessageBackfillTask(BaseTask):
         return datetime.now().astimezone() + timedelta(days=36500)
 
     async def _collect_channels(self, guild: discord.Guild, logs_channel_id: int, me: discord.Member) -> list[discord.TextChannel | discord.Thread]:
-        """Return all readable text channels and active threads, excluding logs."""
+        """return all readable text channels and active threads, excluding logs."""
         channels: list[discord.TextChannel | discord.Thread] = []
 
         for channel in guild.channels:
@@ -68,7 +68,7 @@ class MessageBackfillTask(BaseTask):
         return channels
 
     async def run(self) -> None:
-        """Backfill all text channels and active threads across all valid guilds."""
+        """backfill all text channels and active threads across all valid guilds."""
         total_new = 0
         total_channels = 0
         logger.debug('backfill: starting')
@@ -102,9 +102,9 @@ class MessageBackfillTask(BaseTask):
         logger.debug(f'backfill complete: {total_new} new messages stored across {total_channels} channels')
 
     async def _backfill_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread) -> int:
-        """Fetch and store any messages newer than the last stored message_id in this channel.
+        """fetch and store any messages newer than the last stored message_id in this channel.
 
-        Returns the number of new messages stored.
+        returns the number of new messages stored.
         """
         repo = _get_repo()
         count = 0
@@ -125,11 +125,9 @@ class MessageBackfillTask(BaseTask):
 
         try:
             if latest_id is not None:
-                # fetch only messages after the last known id
                 after = discord.Object(id=latest_id)
                 history = channel.history(after=after, oldest_first=True, limit=None)
             else:
-                # no history at all; fetch everything
                 history = channel.history(oldest_first=True, limit=None)
 
             async for message in history:
@@ -155,7 +153,7 @@ class MessageBackfillTask(BaseTask):
         return count
 
     async def _reconcile_recent_channel(self, guild_id: int, channel: discord.TextChannel | discord.Thread, lookback: timedelta | None = None) -> int:
-        """Force a recent lookback on a channel to pick up edits and reactions."""
+        """force a recent lookback on a channel to pick up edits and reactions."""
 
         lookback = lookback or timedelta(hours=24)
         repo = _get_repo()
@@ -189,7 +187,7 @@ class MessageBackfillTask(BaseTask):
         return count
 
     async def _reconcile_message(self, guild_id: int, message: discord.Message) -> bool:
-        """Fetches a single message, persists it, and refreshes starboard reactions."""
+        """fetches a single message, persists it, and refreshes starboard reactions."""
 
         try:
             doc = await build_message_doc(message)
@@ -201,7 +199,7 @@ class MessageBackfillTask(BaseTask):
             return False
 
     async def _reconcile_pending_starred_docs(self, guild_id: int) -> None:
-        """Re-check starred docs with no starboard post; catches stars added during an outage."""
+        """re-check starred docs with no starboard post; catches stars added during an outage."""
         from nova_core.client.core import config as _config
         from nova_core.starboard.handlers import _get_repo as _get_sb_repo
         from nova_core.starboard.handlers import _sync_starboard_post, backfill_message_reactions

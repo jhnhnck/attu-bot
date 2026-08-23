@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""
-AttuBot - Coverage Report Generator
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-Parses a pytest-cov / coverage.py JSON report and emits the markdown coverage
-section used in `notes/to-do.md`. Read from a file path or stdin.
-"""
+"""scripts.coverage_report | coverage report generator for pytest-cov output."""
 
 import argparse
 import json

@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for PresenceUpdateTask
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_task_presence | tests for PresenceUpdateTask."""
 
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,9 +9,7 @@ import discord
 from nova_core.tasks.presence import PresenceUpdateTask
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
+# --- helpers ---
 
 
 def _make_task() -> PresenceUpdateTask:
@@ -23,9 +17,7 @@ def _make_task() -> PresenceUpdateTask:
     return PresenceUpdateTask()
 
 
-# ---------------------------------------------------------------------------
-# on_start
-# ---------------------------------------------------------------------------
+# --- on_start ---
 
 
 class TestOnStart:
@@ -41,9 +33,7 @@ class TestOnStart:
         mock_cfg.wait_for_ready.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# run — happy path
-# ---------------------------------------------------------------------------
+# --- run - happy path ---
 
 
 class TestRunHappyPath:
@@ -95,9 +85,7 @@ class TestRunHappyPath:
         assert call_kwargs['activity'].name == '0 eggs hatched'
 
 
-# ---------------------------------------------------------------------------
-# run — egg_repo is None
-# ---------------------------------------------------------------------------
+# --- run - egg_repo is None ---
 
 
 class TestRunRepoNone:
@@ -118,9 +106,7 @@ class TestRunRepoNone:
         mock_bot.change_presence.assert_not_awaited()
 
 
-# ---------------------------------------------------------------------------
-# run — count_hatched raises
-# ---------------------------------------------------------------------------
+# --- run - count_hatched raises ---
 
 
 class TestRunCountError:
@@ -146,9 +132,7 @@ class TestRunCountError:
         mock_bot.change_presence.assert_not_awaited()
 
 
-# ---------------------------------------------------------------------------
-# run — change_presence raises
-# ---------------------------------------------------------------------------
+# --- run - change_presence raises ---
 
 
 class TestRunPresenceError:
@@ -173,9 +157,7 @@ class TestRunPresenceError:
         assert 'failed to update presence' in str(mock_logger.error.call_args)
 
 
-# ---------------------------------------------------------------------------
-# singleton and metadata
-# ---------------------------------------------------------------------------
+# --- singleton and metadata ---
 
 
 class TestSingleton:

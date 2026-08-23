@@ -204,7 +204,6 @@ class TestConvertMigration:
         from nova_core.ccboard.migration import job_convert_starboard_to_ccboard
 
         await convert_repos['sb'].upsert(_starred(msg_id, reactions={'⭐': [user_1]}))
-        # no message inserted; bot.get_channel returns None and fetch_channel raises NotFound
 
         with patch('nova_core.ccboard.migration.bot.get_channel', return_value=None), patch('nova_core.ccboard.migration.bot.fetch_channel', side_effect=discord.NotFound(MagicMock(), 'not found')):
             stats = await job_convert_starboard_to_ccboard(test_guild)

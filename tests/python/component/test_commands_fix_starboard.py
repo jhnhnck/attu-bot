@@ -1,12 +1,5 @@
-"""
-AttuBot - Fix Starboard Command Component Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests the /fix starboard purge command with a real StarboardRepository against live MongoDB.
-Discord gateway objects (bot, channel, message) are faked.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_commands_fix_starboard | /fix starboard purge command component tests."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -123,7 +116,6 @@ class TestFixStarboardPurge:
         with patch('nova_core.commands.fix.bot.get_channel', return_value=fake_channel):
             await fix_starboard_purge(ctx, message_link=message_link)
 
-        # doc still deleted despite discord.NotFound
         assert await sb.get(msg_id) is None
         response = ctx._responses[0]['args'][0]
         assert 'could not be deleted' in response

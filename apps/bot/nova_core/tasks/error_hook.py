@@ -17,9 +17,9 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class ErrorHookTask(BaseTask):
-    """Ensures the error webhook exists and refreshes it if needed.
+    """ensures the error webhook exists and refreshes it if needed.
 
-    Runs once at startup (via run_immediately) and then hourly to ensure the webhook is valid.
+    runs once at startup (via run_immediately) and then hourly to ensure the webhook is valid.
     """
 
     name: str = 'ErrorHookRefresh'
@@ -32,7 +32,7 @@ class ErrorHookTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
-        """Ensure error webhook exists."""
+        """ensure error webhook exists."""
         if config.test_mode:
             logger.debug('application in test mode; skipping error hook refresh')
             return
@@ -44,7 +44,6 @@ class ErrorHookTask(BaseTask):
             webhooks = await error_log.webhooks()
             webhook_urls = [hook.url for hook in webhooks]
 
-            # cleanup old urls
             for old in webhooks:
                 if old.user == bot.user and old.url != config.error_hook:
                     try:
@@ -70,12 +69,11 @@ class ErrorHookTask(BaseTask):
             logger.error(f'failed acquiring new webhook for error log: {err}')
 
 
-# singleton for backwards compatibility - standalone function too
+# singleton instance for registration
 error_hook_task = ErrorHookTask()
 
 
-# backwards compatible standalone function
+# backwards-compat standalone wrapper
 async def error_hook_refresh() -> None:
-    """Standalone function for running error hook refresh (used by core.py)."""
     task = ErrorHookTask()
     await task.run()

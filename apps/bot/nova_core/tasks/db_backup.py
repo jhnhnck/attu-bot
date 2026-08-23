@@ -19,9 +19,9 @@ _RETENTION_DAYS = 90
 
 
 def _next_daily_at(time_str: str) -> datetime:
-    """Return the next datetime matching the given HH:MM time string.
+    """return the next datetime matching the given HH:MM time string.
 
-    If that moment is in the past (or less than 60 seconds away), advances by one day
+    if that moment is in the past (or less than 60 seconds away), advances by one day
     so the task doesn't fire immediately on startup.
     """
     h, m = (int(x) for x in time_str.split(':'))
@@ -37,9 +37,9 @@ def _next_daily_at(time_str: str) -> datetime:
 
 
 class DatabaseBackupTask(BaseTask):
-    """Daily task that runs mongodump and writes a full database backup to disk.
+    """daily task that runs mongodump and writes a full database backup to disk.
 
-    Disabled (no-op) when config.backup.path is empty or mongodump is not found.
+    disabled (no-op) when config.backup.path is empty or mongodump is not found.
     """
 
     name: str = 'DatabaseBackupTask'
@@ -124,7 +124,7 @@ class DatabaseBackupTask(BaseTask):
 
 
 def _cleanup_old_backups(backup_path: str) -> None:
-    """Remove .tar.bz2 backup files older than _RETENTION_DAYS days."""
+    """remove .tar.bz2 backup files older than _RETENTION_DAYS days."""
     cutoff = datetime.now().astimezone() - timedelta(days=_RETENTION_DAYS)
     removed = 0
     for f in Path(backup_path).glob('*.tar.bz2'):

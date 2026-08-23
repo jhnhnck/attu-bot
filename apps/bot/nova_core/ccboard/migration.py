@@ -38,7 +38,7 @@ def _get_entry_repo():
 
 
 def _placeholder_message(message_id: int, channel_id: int, guild_id: int, author_id: int) -> MessageDocument:
-    """build a minimal MessageDocument when the original is unavailable from db or discord"""
+    """build a minimal MessageDocument when the original is unavailable from db or discord."""
     return MessageDocument(
         message_id=message_id,
         guild_id=guild_id,
@@ -98,7 +98,7 @@ async def _resolve_message_doc(message_id: int, channel_id: int, guild_id: int, 
 
 
 async def _resolve_reply_snapshot(snapshot: MessageDocument, guild_id: int) -> MessageDocument | None:
-    """fetch the reply target's MessageDocument if snapshot has refs.reply_to set"""
+    """fetch the reply target's MessageDocument if snapshot has refs.reply_to set."""
     if snapshot.refs.reply_to is None:
         return None
     msg_repo = _get_message_repo()

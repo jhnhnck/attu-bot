@@ -1,9 +1,5 @@
-"""
-AttuBot - Unit Tests for MongoDB Connection Management
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_connection | unit tests for mongodb connection management."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,9 +12,7 @@ from nova_core.database.connection import MongoStorage
 pytestmark = pytest.mark.unit
 
 
-# ============================================================
-# helpers
-# ============================================================
+# --- helpers ---
 
 
 def _make_mock_client(*, ping_side_effect=None):
@@ -30,9 +24,7 @@ def _make_mock_client(*, ping_side_effect=None):
     return mock_client
 
 
-# ============================================================
-# connect() — happy path
-# ============================================================
+# --- connect() - happy path ---
 
 
 class TestConnectHappyPath:
@@ -76,9 +68,7 @@ class TestConnectHappyPath:
         )
 
 
-# ============================================================
-# connect() — retry on ConnectionFailure
-# ============================================================
+# --- connect() - retry on ConnectionFailure ---
 
 
 class TestConnectRetry:
@@ -133,9 +123,7 @@ class TestConnectRetry:
         mock_client_fail.close.assert_awaited()
 
 
-# ============================================================
-# connect() — ConfigurationError (no retry)
-# ============================================================
+# --- connect() - ConfigurationError (no retry) ---
 
 
 class TestConnectConfigurationError:
@@ -167,9 +155,7 @@ class TestConnectConfigurationError:
             await storage.connect('not-a-url', 'testdb')
 
 
-# ============================================================
-# connect() — exhausts retries
-# ============================================================
+# --- connect() - exhausts retries ---
 
 
 class TestConnectExhaustsRetries:
@@ -205,9 +191,7 @@ class TestConnectExhaustsRetries:
         mock_sleep.assert_not_awaited()
 
 
-# ============================================================
-# get_db()
-# ============================================================
+# --- get_db() ---
 
 
 class TestGetDb:
@@ -226,9 +210,7 @@ class TestGetDb:
             storage.get_db()
 
 
-# ============================================================
-# close()
-# ============================================================
+# --- close() ---
 
 
 class TestClose:

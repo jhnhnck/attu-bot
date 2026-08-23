@@ -1,13 +1,6 @@
 #!/usr/bin/env python
-"""
-AttuBot - Command line entrypoint
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Usage:
-    python doom-bot.py bot       # Launch the Discord bot (default)
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""doom-bot | discord bot entry point."""
 
 # configure logging before any repo import so module-level loggers see the right
 # handlers/processors. structlog caches logger config on first emit, so anything
@@ -38,7 +31,6 @@ if 'DEBUG' in environ:
 else:
     logger.info('Debug Mode: Disabled')
 
-# Determine mode from CLI args (default: bot)
 mode = sys.argv[1] if len(sys.argv) > 1 else 'bot'
 
 if mode != 'bot':

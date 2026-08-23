@@ -46,7 +46,7 @@ def init_repos(db) -> None:
 
 def _starboard_enabled(guild_id: int) -> bool:
     """return True when the starboard is enabled for this guild; fails open so a
-    config error never silently suppresses the starboard"""
+    config error never silently suppresses the starboard."""
     from nova_core.client.core import config
 
     try:

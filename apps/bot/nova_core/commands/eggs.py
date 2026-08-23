@@ -241,7 +241,6 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str |
     to_mention = user.mention
     to_display = user.display_name
 
-    # build select menu with deduplicated entries and counts
     options: list[discord.SelectOption] = []
 
     if filter != 'hatched':

@@ -157,12 +157,10 @@ class TestFixCCBoardRecount:
 
         await fix_ccboard_recount(ctx, message_link=link, confirm=False)
 
-        # respond was called ephemerally with a dry-run summary
         assert ctx.defer.await_count == 1
         assert any('dry_run' in r['args'][0] for r in ctx._responses)
         assert any('add=1' in r['args'][0] for r in ctx._responses)
 
-        # repo should be untouched
         assert await fix_cc_repos['reaction'].list_for_message(msg_id, include_removed=True) == []
 
     async def test_apply_path_writes_reaction_and_marks_dirty(self, fix_cc_repos, mock_ctx_factory, monkeypatch):
@@ -221,7 +219,6 @@ class TestFixCCBoardRecount:
 
         await fix_ccboard_recount(ctx, message_link=link, confirm=True)
 
-        # exactly one active reaction; point_value reflects the new weight; last_recounted_at stamped
         live_reactions = await fix_cc_repos['reaction'].list_for_message(msg_id, include_removed=False)
         assert len(live_reactions) == 1
         assert live_reactions[0].point_value == 7
@@ -250,7 +247,6 @@ class TestFixCCBoardRecount:
         ctx = mock_ctx_factory(guild_id=test_guild)
         await fix_ccboard_recount(ctx, message_link=None, confirm=False)
 
-        # the no-link path now calls reconcile_guild; response contains processed count
         assert any('processed=1/1' in r['args'][0] for r in ctx._responses)
 
     async def test_distinct_channel_ids_returns_seeded_channels(self, fix_cc_repos):
@@ -307,7 +303,6 @@ class TestFixCCBoardRecount:
 
         live_reactions = await fix_cc_repos['reaction'].list_for_message(msg_id, include_removed=False)
         assert {r.user_id for r in live_reactions} == {reactor_a}
-        # _safe_remove_reaction called for both stripped users
         assert safe_remove.await_count == 2
 
 

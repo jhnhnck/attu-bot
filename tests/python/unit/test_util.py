@@ -1,16 +1,5 @@
-"""
-AttuBot - Permission Predicate Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Compensation tests for the mock boundary in command tests: all command tests call
-functions directly and bypass @commands.check decorators, so the predicate functions
-(is_bot_owner, is_authorized_guild, has_announcements_role) are never executed by those
-tests. This file covers the predicate logic directly.
-
-See notes/testing.md "Mock compensation" for the full rationale.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_util | compensation tests for permission predicate functions."""
 
 from unittest.mock import MagicMock
 
@@ -23,13 +12,10 @@ from tests.conftest import test_guild, test_user
 _ROLE_ID = 111222333444
 
 
-# ============================================================
-# is_bot_owner
-# ============================================================
+# --- is_bot_owner ---
 
 
 class TestIsBotOwner:
-    """unit: is_bot_owner predicate"""
 
     def test_returns_true_for_owner(self, mock_ctx_factory):
         from nova_core.client.core import config
@@ -50,13 +36,10 @@ class TestIsBotOwner:
         assert is_bot_owner(ctx) is False
 
 
-# ============================================================
-# is_authorized_guild
-# ============================================================
+# --- is_authorized_guild ---
 
 
 class TestIsAuthorizedGuild:
-    """unit: is_authorized_guild predicate"""
 
     def test_returns_true_for_authorized_guild(self, mock_ctx_factory, guild):
         # guild fixture registers test_guild in config.authorized_guilds
@@ -68,13 +51,10 @@ class TestIsAuthorizedGuild:
         assert is_authorized_guild(ctx) is False
 
 
-# ============================================================
-# has_announcements_role
-# ============================================================
+# --- has_announcements_role ---
 
 
 class TestHasAnnouncementsRole:
-    """unit: has_announcements_role predicate"""
 
     def test_returns_true_for_member_with_role(self, mock_ctx_factory, make_guild):
         gc = make_guild()
@@ -119,13 +99,10 @@ class TestHasAnnouncementsRole:
         assert has_announcements_role(ctx) is False
 
 
-# ============================================================
-# shift_hue
-# ============================================================
+# --- shift_hue ---
 
 
 class TestShiftHue:
-    """unit: shift_hue helper"""
 
     def test_shifts_color(self):
         from nova_core.client.util import shift_hue

@@ -12,7 +12,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class PagesApi:
-    """handles reading and writing wiki pages via the action api"""
+    """handles reading and writing wiki pages via the action api."""
 
     def __init__(self, client: httpx.AsyncClient, action_endpoint: str, auth: AuthApi):
         self._client = client
@@ -20,7 +20,7 @@ class PagesApi:
         self._auth = auth
 
     async def get(self, page_name: str) -> str:
-        """fetch the wikitext content of a page"""
+        """fetch the wikitext content of a page."""
         res = await self._client.get(
             self._endpoint,
             params={
@@ -35,7 +35,7 @@ class PagesApi:
         return res.json()['parse']['wikitext']
 
     async def edit(self, page_name: str, text: str, reason: str) -> None:
-        """overwrite a page with new wikitext content"""
+        """overwrite a page with new wikitext content."""
         csrf = await self._auth.get_csrf()
 
         data = {
@@ -54,7 +54,7 @@ class PagesApi:
         logger.debug(res.text)
 
     async def get_summary(self, page_name: str) -> PageSummary | None:
-        """fetch the intro extract and thumbnail for a specific page; returns None if the page doesn't exist"""
+        """fetch the intro extract and thumbnail for a specific page; returns None if the page doesn't exist."""
         res = await self._client.get(
             self._endpoint,
             params={
@@ -75,7 +75,7 @@ class PagesApi:
         return PageSummary.model_validate(pages[0])
 
     async def get_random_summary(self, namespace: int = 0) -> PageSummary:
-        """fetch the intro extract and thumbnail for a random page in the given namespace"""
+        """fetch the intro extract and thumbnail for a random page in the given namespace."""
         res = await self._client.get(
             self._endpoint,
             params={
@@ -95,7 +95,7 @@ class PagesApi:
         return PageSummary.model_validate(pages[0])
 
     async def get_with_revision(self, page_name: str) -> tuple[str, int, str, list[str]]:
-        """fetch wikitext along with the current revid, ISO timestamp, and page categories"""
+        """fetch wikitext along with the current revid, ISO timestamp, and page categories."""
         res = await self._client.get(
             self._endpoint,
             params={
@@ -116,7 +116,7 @@ class PagesApi:
         return rev['slots']['main']['content'], rev['revid'], rev['timestamp'], cats
 
     async def get_all_pages(self, namespace: str = '0') -> list[str]:
-        """fetch all page titles in the given namespace via allpages with pagination"""
+        """fetch all page titles in the given namespace via allpages with pagination."""
         titles: list[str] = []
         apcontinue: str | None = None
 
@@ -147,7 +147,7 @@ class PagesApi:
         return titles
 
     async def get_recent_changes(self, minutes: int = 65, namespace: str = '0') -> list[str]:
-        """fetch titles of pages changed in the last N minutes in the given namespace"""
+        """fetch titles of pages changed in the last N minutes in the given namespace."""
         import datetime
 
         since = (datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=minutes)).strftime('%Y-%m-%dT%H:%M:%SZ')

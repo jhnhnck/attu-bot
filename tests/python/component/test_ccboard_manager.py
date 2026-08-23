@@ -66,13 +66,9 @@ class TestFindSettled:
     async def test_returns_only_dirty_settled_entries(self, entry_repo):
         """only entries where is_dirty=True and last_reaction_at <= now-debounce are returned"""
         now = _now()
-        # dirty + settled
         await entry_repo.upsert(_entry(1001, is_dirty=True, last_reaction_at=now - 120))
-        # dirty but still within debounce window
         await entry_repo.upsert(_entry(1002, is_dirty=True, last_reaction_at=now - 30))
-        # not dirty
         await entry_repo.upsert(_entry(1003, is_dirty=False, last_reaction_at=now - 120))
-        # different guild
         await entry_repo.upsert(_entry(1004, guild=other_guild, is_dirty=True, last_reaction_at=now - 120))
 
         results = await entry_repo.find_settled(test_guild, now=now, debounce_seconds=60, limit=50)

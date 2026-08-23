@@ -20,7 +20,7 @@ from nova_core.client.core import config
 logger = structlog.stdlib.get_logger(__name__)
 
 
-# --- Repo Access ---
+# --- repo access ---
 
 
 def _get_reaction_repo():
@@ -43,11 +43,11 @@ def _get_message_repo():
     return _msg_repo()
 
 
-# --- Discord Helpers ---
+# --- discord helpers ---
 
 
 async def _fetch_message_from_discord(message_id: int, channel_id: int, guild_id: int) -> MessageDocument | None:
-    """fetch a discord message and convert to MessageDocument; None on any failure"""
+    """fetch a discord message and convert to MessageDocument; None on any failure."""
     from nova_core.client.core import bot
 
     try:
@@ -78,7 +78,7 @@ async def _fetch_message_from_discord(message_id: int, channel_id: int, guild_id
 
 
 async def _resolve_snapshot(message_id: int, channel_id: int, guild_id: int) -> MessageDocument | None:
-    """try the messages collection first, then fall back to a discord fetch"""
+    """try the messages collection first, then fall back to a discord fetch."""
     msg_repo = _get_message_repo()
     doc = await msg_repo.get(message_id)
     if doc is not None:
@@ -87,7 +87,7 @@ async def _resolve_snapshot(message_id: int, channel_id: int, guild_id: int) -> 
 
 
 async def _resolve_reply_snapshot(snapshot: MessageDocument, guild_id: int) -> MessageDocument | None:
-    """fetch the reply target's MessageDocument when snapshot.refs.reply_to is set"""
+    """fetch the reply target's MessageDocument when snapshot.refs.reply_to is set."""
     if snapshot.refs.reply_to is None:
         return None
     msg_repo = _get_message_repo()
@@ -125,7 +125,7 @@ async def _safe_remove_reaction(channel_id: int, message_id: int, user_id: int, 
     return ok
 
 
-# --- Redirect ---
+# --- redirect ---
 
 
 async def _resolve_redirect(channel_id: int, message_id: int, ccboard_channel_id: int) -> tuple[int, int, int, int]:
@@ -153,7 +153,7 @@ async def _resolve_redirect(channel_id: int, message_id: int, ccboard_channel_id
     return message_id, channel_id, source_message_id, source_channel_id
 
 
-# --- Backfill ---
+# --- backfill ---
 
 
 async def _backfill_existing_reactions(
@@ -304,11 +304,11 @@ async def _ensure_entry(
     return entry
 
 
-# --- Recompute ---
+# --- recompute ---
 
 
 async def _recompute_and_mark(message_id: int, *, now: int) -> None:
-    """re-aggregate points from active reactions and flag the entry for the manager"""
+    """re-aggregate points from active reactions and flag the entry for the manager."""
     reaction_repo = _get_reaction_repo()
     entry_repo = _get_entry_repo()
     net, positive = await reaction_repo.aggregate_points(message_id)
@@ -316,7 +316,7 @@ async def _recompute_and_mark(message_id: int, *, now: int) -> None:
     await entry_repo.mark_dirty(message_id, last_reaction_at=now)
 
 
-# --- Public Handlers ---
+# --- public handlers ---
 
 
 async def handle_reaction_add(  # noqa: PLR0911 - early returns mirror the 10-step spec flow; collapsing them obscures the gating order
@@ -444,7 +444,7 @@ async def handle_reaction_remove(  # noqa: PLR0911 - early returns mirror the 4-
     user_id: int,
     emoji_str: str,
 ) -> None:
-    """process a raw_reaction_remove event for a configured ccboard emoji"""
+    """process a raw_reaction_remove event for a configured ccboard emoji."""
     try:
         guild_cfg = config.guild(guild_id)
     except Exception:
@@ -483,7 +483,7 @@ async def handle_reaction_remove(  # noqa: PLR0911 - early returns mirror the 4-
 
 
 async def handle_reaction_clear(guild_id: int, channel_id: int, message_id: int) -> None:
-    """process a raw_reaction_clear event - all emojis cleared on a message"""
+    """process a raw_reaction_clear event - all emojis cleared on a message."""
     try:
         guild_cfg = config.guild(guild_id)
     except Exception:
@@ -505,7 +505,7 @@ async def handle_reaction_clear(guild_id: int, channel_id: int, message_id: int)
 
 
 async def handle_reaction_clear_emoji(guild_id: int, channel_id: int, message_id: int, emoji_str: str) -> None:
-    """process a raw_reaction_clear_emoji event - one emoji cleared on a message"""
+    """process a raw_reaction_clear_emoji event - one emoji cleared on a message."""
     try:
         guild_cfg = config.guild(guild_id)
     except Exception:

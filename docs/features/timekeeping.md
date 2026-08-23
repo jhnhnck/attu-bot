@@ -34,7 +34,7 @@ if (elapsed_days % year_length) == 0 and now < today_at_rollover:
     current_year -= 1
 ```
 
-See `get_year_status()` in `apps/bot/doom_bot/client/calendar.py` for the live implementation.
+See `get_year_status()` in `apps/bot/nova_core/client/calendar.py` for the live implementation.
 
 ---
 
@@ -47,7 +47,7 @@ A `AttuYearSpan` holds the start and end Unix timestamps for a given year and it
 - **next year** - start is the next rollover; end is one year length after that
 - **future years** - both start and end are projected forward from the next rollover
 
-See `get_year_span()` in `apps/bot/doom_bot/client/calendar.py`.
+See `get_year_span()` in `apps/bot/nova_core/client/calendar.py`.
 
 ---
 
@@ -72,13 +72,13 @@ There are two eras:
    - Fallback when no DB record is found: same approximation with current `epoch.length`
 4. **Format** - `day-month year PC` or `day-month year TT`
 
-See `haracalnde_date()` in `apps/bot/doom_bot/client/calendar.py`.
+See `haracalnde_date()` in `apps/bot/nova_core/client/calendar.py`.
 
 ---
 
 ## Rollover Check
 
-`NovaYearTask` (`apps/bot/doom_bot/tasks/nova_year.py`) runs on a schedule and checks whether the current year has advanced. When it detects a transition:
+`NovaYearTask` (`apps/bot/nova_core/tasks/nova_year.py`) runs on a schedule and checks whether the current year has advanced. When it detects a transition:
 
 1. the outgoing year's `Year` record is closed with its end timestamp
 2. a new `Year` record is created for the incoming year
@@ -104,18 +104,18 @@ See `haracalnde_date()` in `apps/bot/doom_bot/client/calendar.py`.
 
 | File | Role |
 |---|---|
-| `apps/bot/doom_bot/client/calendar.py` | `get_year_status()`, `get_next_year()`, `get_year_span()`, `move_epoch()`, `haracalnde_date()` (async) |
-| `apps/bot/doom_bot/tasks/nova_year.py` | scheduled rollover check and `job_construct_year_links()` |
-| `apps/bot/doom_bot/client/markers.py` | `YearMarker` - associates a Discord snowflake with a year and channel |
-| `apps/bot/doom_bot/client/years.py` | `Year` - database-backed record of each completed or active year |
-| `apps/bot/doom_bot/commands/time.py` | `/time advance`, `/time pause`, `/time resume`, `/time dilate` |
-| `apps/bot/doom_bot/commands/year.py` | `/year check`, `/year link`, `/year search` |
-| `apps/bot/doom_bot/config.py` | `GuildEpoch` - Pydantic model that holds and validates epoch config |
+| `apps/bot/nova_core/client/calendar.py` | `get_year_status()`, `get_next_year()`, `get_year_span()`, `move_epoch()`, `haracalnde_date()` (async) |
+| `apps/bot/nova_core/tasks/nova_year.py` | scheduled rollover check and `job_construct_year_links()` |
+| `apps/bot/nova_core/client/markers.py` | `YearMarker` - associates a Discord snowflake with a year and channel |
+| `apps/bot/nova_core/client/years.py` | `Year` - database-backed record of each completed or active year |
+| `apps/bot/nova_core/commands/time.py` | `/time advance`, `/time pause`, `/time resume`, `/time dilate` |
+| `apps/bot/nova_core/commands/year.py` | `/year check`, `/year link`, `/year search` |
+| `apps/bot/nova_core/config.py` | `GuildEpoch` - Pydantic model that holds and validates epoch config |
 
 ---
 
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 2026-08-22
 ```

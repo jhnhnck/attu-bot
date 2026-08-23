@@ -1,11 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.database | database package.
-
-Documents, repositories, and MongoStorage live in the `attu_models` workspace
-package; this module re-exports them so the existing `from nova_core.database
-import ...` sites keep working unchanged. `init_database()` and the bot-only
-repo wiring stay here - the bot is the index-creation leader.
-"""
+"""nova_core.database | re-exports from attu_models and wires bot-only repositories."""
 
 import asyncio
 

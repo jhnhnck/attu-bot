@@ -1,9 +1,5 @@
-"""
-AttuBot - Migration System Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_migrations | unit tests for the migration system."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,9 +8,7 @@ import pytest
 from nova_core.config import _version_gte
 
 
-# ============================================================
-# _version_gte
-# ============================================================
+# --- _version_gte ---
 
 
 class TestVersionGte:
@@ -48,9 +42,7 @@ class TestVersionGte:
         assert _version_gte('0.0.0', '1.0.0') is False
 
 
-# ============================================================
-# run_pending_migrations
-# ============================================================
+# --- run_pending_migrations ---
 
 
 class TestRunPendingMigrations:
@@ -165,9 +157,7 @@ class TestRunPendingMigrations:
         assert call_versions == ['2.5.3', '2.5.4']
 
 
-# ============================================================
-# migration_seed_ui_emojis (2.5.3 → 2.5.4)
-# ============================================================
+# --- migration_seed_ui_emojis (2.5.3 → 2.5.4) ---
 
 
 class TestMigrationSeedUiEmojis:
@@ -266,9 +256,7 @@ class TestMigrationSeedUiEmojis:
         mock_core_db.get_db.assert_not_called()
 
 
-# ============================================================
-# migration_target_signals (2.5.4 → 2.5.5)
-# ============================================================
+# --- migration_target_signals (2.5.4 → 2.5.5) ---
 
 
 class TestMigrationTargetSignals:

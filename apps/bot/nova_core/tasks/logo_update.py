@@ -20,9 +20,9 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class LogoUpdateTask(BaseTask):
-    """Recurring task to keep the logo in sync with theme settings.
+    """recurring task to keep the logo in sync with theme settings.
 
-    Runs on a fixed 10-minute interval. Color is derived from HSL values stored in theme config.
+    runs on a fixed 10-minute interval. color is derived from HSL values stored in theme config.
     """
 
     name: str = 'LogoUpdateEvent'
@@ -40,7 +40,6 @@ class LogoUpdateTask(BaseTask):
         except Exception as err:
             logger.error(f'logo update: failed to update guild icon: {err}')
 
-        # update the emoji too. why not?
         emoji_name = guild.name.replace(' ', '_').lower()
         try:
             for emoji in guild.emojis:
@@ -52,7 +51,6 @@ class LogoUpdateTask(BaseTask):
         except Exception as err:
             logger.error(f'logo update: failed to update guild emoji: {err}')
 
-        # update the bot_color role to match the current theme color
         role_id = config.primary().roles.bot_color
         if role_id:
             role = guild.get_role(role_id)
@@ -65,11 +63,10 @@ class LogoUpdateTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
-        """Update the bot and guild icons based on theme rotation."""
+        """update the bot and guild icons based on theme rotation."""
         theme = config.theme
         epoch = config.primary().epoch
 
-        # calculate new rotation
         if not epoch.paused:
             _, current_year = get_year_status()
             year_span = await get_year_span(current_year)
@@ -81,16 +78,13 @@ class LogoUpdateTask(BaseTask):
 
         logger.info(f'changing icon rotation from {theme.rotation} to {new_rotation}')
 
-        # derive hex color from hsl
         hue = (new_rotation % 360) / 360.0
         r, g, b = colorsys.hls_to_rgb(hue, config.theme.lightness, config.theme.saturation)
         computed_color = f'#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}'
 
-        # generate new icons
         bot_avatar = await generate_png(new_rotation, computed_color, theme.logo_rings, theme.logo_planet)
         guild_icon = await generate_png(new_rotation, theme.guild_color, theme.logo_rings, theme.logo_planet)
 
-        # guild-specific updates (icon, emoji, bot_color role); bot avatar runs unconditionally after
         primary = config.get_guild_by_role('primary')
         if primary is None:
             logger.warning('logo update: no primary guild configured; skipping guild icon update')

@@ -14,7 +14,6 @@ from nova_core.client.util import theme_color
 
 logger = structlog.stdlib.get_logger(__name__)
 
-# page size for leaderboard commands
 _PAGE_SIZE = 10
 
 stars_group = SlashCommandGroup('stars', description='Starboard browsing and leaderboards')
@@ -205,7 +204,6 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
         logger.info(f'recheck: complete for {message_id} - status=no stars counted weighted_total=0')
         return 'recheck complete; no stars counted'
 
-    # determine update status
     if (doc_before is None and doc_after.starboard_message_id is not None) or (doc_before is not None and doc_before.starboard_message_id is None and doc_after.starboard_message_id is not None):
         status = 'post created'
     elif doc_before is None or doc_before.total_reactions != doc_after.total_reactions:
@@ -215,7 +213,6 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
 
     logger.info(f'recheck: complete for {message_id} - status={status} weighted_total={doc_after.weighted_total}')
 
-    # format emoji breakdown
     emoji_parts = []
     all_emojis = set(doc_after.reactions) | set(doc_after.super_reactions)
     for emoji in sorted(all_emojis, key=lambda e: -(len(doc_after.reactions.get(e, [])) + len(doc_after.super_reactions.get(e, [])))):
@@ -239,7 +236,7 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
 
 @stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
 @discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
-async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PLR0911 — branchy validation chain with one early-return per precondition failure
+async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PLR0911 - branchy validation chain with one early-return per precondition failure
     from nova_core.starboard.handlers import backfill_message_reactions, parse_jump_url
 
     parsed = parse_jump_url(message_link.strip())

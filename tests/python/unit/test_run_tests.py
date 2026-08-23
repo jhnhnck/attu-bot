@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for scripts/run_tests.py
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_run_tests | tests for the run_tests script."""
 
 import subprocess
 from unittest.mock import patch
@@ -45,9 +41,7 @@ class _FakePopen:
         self.returncode = -9
 
 
-# ---------------------------------------------------------------------------
-# extract_counts
-# ---------------------------------------------------------------------------
+# --- extract_counts ---
 
 
 class TestExtractCounts:
@@ -94,9 +88,7 @@ class TestExtractCounts:
         assert extract_counts(output) == '2 failed | 21 passed'
 
 
-# ---------------------------------------------------------------------------
-# run_suite
-# ---------------------------------------------------------------------------
+# --- run_suite ---
 
 
 class TestRunSuite:

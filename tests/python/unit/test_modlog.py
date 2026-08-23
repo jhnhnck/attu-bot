@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for moderation log handlers
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_modlog | tests for moderation log handlers."""
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch

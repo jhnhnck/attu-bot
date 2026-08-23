@@ -25,7 +25,7 @@ def _get_repo() -> ReloadSignalRepository:
 
 
 class ReloadWatcherTask(BaseTask):
-    """Polls MongoDB for reload signals and applies them.
+    """polls MongoDB for reload signals and applies them.
 
     each consumer process (bot, ingestor) instantiates this task with its own
     `target` so it only consumes signals addressed to it. without per-target
@@ -44,7 +44,7 @@ class ReloadWatcherTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
-        """Poll for and process reload signals."""
+        """poll for and process reload signals."""
         repo = _get_repo()
 
         try:

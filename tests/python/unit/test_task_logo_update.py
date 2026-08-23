@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for LogoUpdateTask
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_task_logo_update | tests for LogoUpdateTask."""
 
 import colorsys
 from datetime import datetime, timedelta
@@ -14,9 +10,7 @@ import discord
 from nova_core.tasks.logo_update import LogoUpdateTask
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
+# --- helpers ---
 
 
 def _make_task() -> LogoUpdateTask:
@@ -102,9 +96,7 @@ def _make_year_span(start_time=1700000000, duration=14):
     return span
 
 
-# ---------------------------------------------------------------------------
-# on_start
-# ---------------------------------------------------------------------------
+# --- on_start ---
 
 
 class TestOnStart:
@@ -122,9 +114,7 @@ class TestOnStart:
         mock_sleep.assert_awaited_once_with(10 * 60)
 
 
-# ---------------------------------------------------------------------------
-# run — happy path (epoch not paused)
-# ---------------------------------------------------------------------------
+# --- run - happy path (epoch not paused) ---
 
 
 class TestRunHappyPath:
@@ -184,9 +174,7 @@ class TestRunHappyPath:
         assert 0 <= theme.rotation < 360
 
 
-# ---------------------------------------------------------------------------
-# run — epoch paused
-# ---------------------------------------------------------------------------
+# --- run - epoch paused ---
 
 
 class TestRunEpochPaused:
@@ -214,9 +202,7 @@ class TestRunEpochPaused:
         theme.save.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# color math
-# ---------------------------------------------------------------------------
+# --- color math ---
 
 
 class TestColorMath:
@@ -280,9 +266,7 @@ class TestColorMath:
         assert first_call_args[0][1] == expected_color
 
 
-# ---------------------------------------------------------------------------
-# run — guild avatar, emoji, and role updates
-# ---------------------------------------------------------------------------
+# --- run - guild avatar, emoji, and role updates ---
 
 
 class TestRunGuildAvatarUpdate:
@@ -433,9 +417,7 @@ class TestRunRoleColorUpdate:
         assert call_kwargs['reason'] == 'logo update task'
 
 
-# ---------------------------------------------------------------------------
-# run — error handling
-# ---------------------------------------------------------------------------
+# --- run - error handling ---
 
 
 class TestRunGuildEditFails:
@@ -554,9 +536,7 @@ class TestRunRoleUpdateFails:
         theme.save.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# run — no role configured
-# ---------------------------------------------------------------------------
+# --- run - no role configured ---
 
 
 class TestRunNoRoleId:
@@ -606,9 +586,7 @@ class TestRunNoRoleId:
         theme.save.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# run — theme persistence
-# ---------------------------------------------------------------------------
+# --- run - theme persistence ---
 
 
 class TestRunThemePersistence:
@@ -640,9 +618,7 @@ class TestRunThemePersistence:
         theme.save.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# run — guild fetched via fetch_guild fallback
-# ---------------------------------------------------------------------------
+# --- run - guild fetched via fetch_guild fallback ---
 
 
 class TestRunGuildFetchFallback:
@@ -678,9 +654,7 @@ class TestRunGuildFetchFallback:
         fallback_guild.edit.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# singleton and metadata
-# ---------------------------------------------------------------------------
+# --- singleton and metadata ---
 
 
 class TestSingleton:

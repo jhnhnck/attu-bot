@@ -179,7 +179,6 @@ async def debug_message(ctx: ApplicationContext, link):
         await ctx.respond('Failed: not a valid discord message link', ephemeral=True)
         return
 
-    # unpack url
     ids = link.split('/')[-3:]
     guild_id, channel_id, target = int(ids[0]), int(ids[1]), int(ids[2])
 
@@ -197,7 +196,6 @@ async def debug_message(ctx: ApplicationContext, link):
             await ctx.respond(f"Couldn't find message! {ui_emoji('rockball_player')}")
             return
 
-        # build summary embed
         content_preview = (message.content[:500] + '...') if len(message.content) > 500 else message.content
         embed = make_embed(
             f'Message {message.id}',
@@ -220,7 +218,6 @@ async def debug_message(ctx: ApplicationContext, link):
             meta_parts.append('reactions: ' + ' '.join(f'{r.emoji}x{r.count}' for r in message.reactions))
         embed.add_field(name='meta', value='\n'.join(meta_parts), inline=False)
 
-        # full dump as json attachment
         buf = io.BytesIO(json.dumps(_message_dump(message, channel_id, guild_id), indent=2).encode())
         buf.seek(0)
 
@@ -273,7 +270,6 @@ async def debug_dump_starboard(ctx: ApplicationContext):
         await ctx.respond('Failed: could not find starboard channel', ephemeral=True)
         return
 
-    # collect all messages from the starboard bot
     found = []
     async for msg in channel.history(limit=None):
         if msg.author.id == _STARBOARD_BOT_ID:

@@ -15,9 +15,9 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class PresenceUpdateTask(BaseTask):
-    """Updates bot presence to reflect the total hatched egg count.
+    """updates bot presence to reflect the total hatched egg count.
 
-    Only sets presence on hatch day. Triggered immediately on each egg hatch
+    only sets presence on hatch day. triggered immediately on each egg hatch
     via scheduler.add_job() and runs on a 30-minute fallback schedule.
     """
 

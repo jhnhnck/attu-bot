@@ -156,14 +156,14 @@ def configure(*, json: bool | None = None, level: str | None = None, webhook_url
     stdout_h = logging.StreamHandler(sys.stdout)
     stdout_h.setFormatter(formatter)
     stdout_h.addFilter(_MaxLevelFilter(logging.WARNING))
-    stdout_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stdout_h._nova_core_owned = True  # type: ignore[attr-defined]  # cross-package marker for dual-consumer compatibility
+    stdout_h._attu_owned = True  # type: ignore[attr-defined]
+    stdout_h._nova_core_owned = True  # type: ignore[attr-defined]
 
     stderr_h = logging.StreamHandler(sys.stderr)
     stderr_h.setFormatter(formatter)
     stderr_h.setLevel(logging.WARNING)
-    stderr_h._attu_owned = True  # type: ignore[attr-defined]  # marker for idempotent re-imports
-    stderr_h._nova_core_owned = True  # type: ignore[attr-defined]  # cross-package marker for dual-consumer compatibility
+    stderr_h._attu_owned = True  # type: ignore[attr-defined]
+    stderr_h._nova_core_owned = True  # type: ignore[attr-defined]
 
     root.addHandler(stdout_h)
     root.addHandler(stderr_h)

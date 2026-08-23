@@ -120,10 +120,8 @@ async def patch_guild_config(
     segments = key.split('.')
     terminal = segments[-1]
 
-    # validate path against model_fields (raises 422 on unknown top-level key)
     _traverse(doc, segments)
 
-    # resolve channel/role slug to integer snowflake when the terminal key suggests one
     resolved: Any = await _resolve_snowflake(terminal, body.value, guild_id, bridge)
 
     # reconstruct doc data without mutating the existing doc

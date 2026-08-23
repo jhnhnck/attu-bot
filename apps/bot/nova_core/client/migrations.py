@@ -21,14 +21,14 @@ ready_migration_table: list[MigrationFunc] = []
 
 
 class MigrationError(Exception):
-    """Raised when a migration fails; signals the bot should not continue initializing."""
+    """raised when a migration fails; signals the bot should not continue initializing."""
 
 
-# --- Runner ---
+# --- runner ---
 
 
 async def run_pending_migrations(*, stage: str = 'load') -> None:
-    """run all pending migrations for the given stage, re-reading the db version after each step"""
+    """run all pending migrations for the given stage, re-reading the db version after each step."""
     table = ready_migration_table if stage == 'ready' else load_migration_table
     system_config = await config.config_repo.get_system()
 
@@ -44,42 +44,42 @@ async def run_pending_migrations(*, stage: str = 'load') -> None:
     logger.info(f'{stage}-stage migrations complete: now at version {system_config.version}')
 
 
-# --- Backup / Restore Helpers ---
+# --- backup / restore helpers ---
 
 
 async def _backup_collection(db, name: str) -> list[dict]:
-    """Snapshot all documents in a collection for rollback purposes."""
+    """snapshot all documents in a collection for rollback purposes."""
     docs = await db[name].find({}).to_list(length=None)
     return [dict(doc) for doc in docs]
 
 
 async def _restore_collection(db, name: str, backup: list[dict]):
-    """Restore a collection from a snapshot, replacing all current contents."""
+    """restore a collection from a snapshot, replacing all current contents."""
     await db[name].delete_many({})
     if backup:
         clean = [{k: v for k, v in doc.items() if k != '_id'} for doc in backup]
         await db[name].insert_many(clean)
 
 
-# --- Decorator ---
+# --- decorator ---
 
 
 def migration(old: str, new: str, stage: str = 'load') -> Callable[[Callable[[], Awaitable[None]]], MigrationFunc]:
     def decorator_migration(func: Callable[[], Awaitable[None]]) -> MigrationFunc:
         async def wrapper(version: str) -> None:
-            # Bail out if we're past this patch
+            # bail out if we're past this patch
             if version != old:
                 logger.debug(f'patch for {new} already applied')
                 return
 
-            # call migrator — do NOT bump version if it fails
+            # call migrator - do NOT bump version if it fails
             try:
                 await func()
             except Exception as e:
                 logger.error(f'migration to {new} failed: {e}')
                 raise MigrationError(f'Migration to {new} failed') from e
 
-            # Bump version in MongoDB
+            # bump version in MongoDB
             logger.info(f'applied patch for {new}')
             from nova_core.client.core import db
 
@@ -98,46 +98,46 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable[[Callable[[],
     return decorator_migration
 
 
-# --- Migration Steps ---
+# --- migration steps ---
 # load-stage migrations run before the bot connects; ready-stage run after on_ready().
 # migrations must be defined in strict chronological order within each stage.
 
 
-# Bootstrap: fresh database with no prior version
+# bootstrap: fresh database with no prior version
 @migration(old='0.0.0', new='1.8.0-pre9')
 async def migration_bootstrap():
-    """Bootstrap migration for fresh databases"""
+    """bootstrap migration for fresh databases."""
     pass
 
 
-# Version 1.8.0
+# version 1.8.0
 @migration(old='1.8.0-pre9', new='1.8.0')
 async def migration_full_release():
     pass
 
 
-# Version 2.0.0
+# version 2.0.0
 @migration(old='1.8.0', new='2.0.0')
 async def migration_2_0_0():
     pass
 
 
-# Version 2.1.0
+# version 2.1.0
 @migration(old='2.0.0', new='2.1.0')
 async def migration_2_1_0():
     pass
 
 
-# Version 2.2.0
+# version 2.2.0
 @migration(old='2.1.0', new='2.2.0')
 async def migration_2_2_0():
     pass
 
 
-# Version 2.2.1
+# version 2.2.1
 @migration(old='2.2.0', new='2.2.1')
 async def migration_backfill_years():
-    """Backfill Year documents from existing YearMarker timestamps"""
+    """backfill Year documents from existing YearMarker timestamps."""
     from nova_core.client.calendar import get_year_status, seconds_per_day
     from nova_core.client.core import db
     from nova_core.client.markers import YearMarker
@@ -178,16 +178,16 @@ async def migration_backfill_years():
         logger.info(f'backfilled {count} year records for guild {guild_id}')
 
 
-# Version 2.2.3 - no-op; version bump only
+# version 2.2.3 - no-op; version bump only
 @migration(old='2.2.1', new='2.2.3')
 async def migration_2_2_3():
     pass
 
 
-# Version 2.2.4
+# version 2.2.4
 @migration(old='2.2.3', new='2.2.4')
 async def migration_fix_year_data():
-    """Fix year data: strip markdown headings, regenerate missing symbols, finalize past years"""
+    """fix year data: strip markdown headings, regenerate missing symbols, finalize past years."""
     from nova_core.client.calendar import get_year_status, seconds_per_day
     from nova_core.client.core import db
     from nova_core.database.repositories import YearRepository
@@ -222,16 +222,16 @@ async def migration_fix_year_data():
                 logger.info(f'fixed year {year_doc.year} for guild {guild_id}: {list(updates.keys())}')
 
 
-# Version 2.2.5
+# version 2.2.5
 @migration(old='2.2.4', new='2.2.5')
 async def migration_add_guild_to_markers():
-    """Add guild field to year markers and remove obsolete guild-proxy markers.
+    """add guild field to year markers and remove obsolete guild-proxy markers.
 
-    Previously, a dummy marker was stored with channel=guild_id as a timestamp
-    reference. All real per-channel markers lacked a guild field, making
-    all_for_guild() unable to find them. This migration:
-      - Adds guild to every real per-channel marker
-      - Deletes the obsolete guild-proxy markers (channel == guild_id)
+    previously, a dummy marker was stored with channel=guild_id as a timestamp
+    reference. all real per-channel markers lacked a guild field, making
+    all_for_guild() unable to find them. this migration:
+      - adds guild to every real per-channel marker
+      - deletes the obsolete guild-proxy markers (channel == guild_id)
     """
     from nova_core.client.core import db
     from nova_core.database.repositories import YearMarkerRepository
@@ -241,12 +241,12 @@ async def migration_add_guild_to_markers():
     database = db.get_db()
     collection = database[YearMarkerRepository.COLLECTION]
 
-    # Snapshot the collection for rollback
+    # snapshot the collection for rollback
     backup = await _backup_collection(database, YearMarkerRepository.COLLECTION)
     logger.info(f'snapshotted [{len(backup)}] marker documents for rollback')
 
     try:
-        # Build reverse map: channel_id -> guild_id from config
+        # build reverse map: channel_id -> guild_id from config
         guild_ids = set(config.authorized_guilds)
         channel_to_guild: dict[int, int] = {}
         for guild_id in guild_ids:
@@ -264,7 +264,7 @@ async def migration_add_guild_to_markers():
             channel = doc.get('channel')
 
             if channel in guild_ids:
-                # guild-proxy marker (channel field holds a guild ID) — no longer needed
+                # guild-proxy marker (channel field holds a guild ID) - no longer needed
                 await collection.delete_one({'_id': doc['_id']})
                 deleted += 1
 
@@ -292,42 +292,42 @@ async def migration_add_guild_to_markers():
         raise
 
 
-# Version 2.3.0
+# version 2.3.0
 @migration(old='2.2.5', new='2.3.0')
 async def migration_2_3_0():
-    """Config file format updated: secrets and connection settings moved from env vars into TOML."""
+    """config file format updated: secrets and connection settings moved from env vars into TOML."""
     logger.info('running migration to 2.3.0')
 
 
-# Version 2.4.0
+# version 2.4.0
 @migration(old='2.3.0', new='2.4.0')
 async def migration_2_4_0():
-    """Adds weekly database backup task."""
+    """adds weekly database backup task."""
     logger.info('running migration to 2.4.0')
 
 
-# Version 2.4.1 - no-op; version already written to DB before thread fix was ready
+# version 2.4.1 - no-op; version already written to DB before thread fix was ready
 @migration(old='2.4.0', new='2.4.1')
 async def migration_2_4_1():
     pass
 
 
-# Version 2.4.2 - no-op; thread backfill attempted here but bot cache not yet ready
+# version 2.4.2 - no-op; thread backfill attempted here but bot cache not yet ready
 @migration(old='2.4.1', new='2.4.2')
 async def migration_2_4_2():
     pass
 
 
-# Version 2.4.3 (ready)
+# version 2.4.3 (ready)
 @migration(old='2.4.2', new='2.4.3', stage='ready')
 async def migration_fix_thread_parent_ids():
-    """Backfill parent_channel_id on stored messages that were sent in threads.
+    """backfill parent_channel_id on stored messages that were sent in threads.
 
-    Previous attempts (2.4.1 and 2.4.2) ran during on_load() before the bot's
-    channel cache was populated, so all thread channels were skipped. This migration
+    previous attempts (2.4.1 and 2.4.2) ran during on_load() before the bot's
+    channel cache was populated, so all thread channels were skipped. this migration
     runs during on_ready() when active threads are fully cached.
 
-    Superseded by 2.4.4 which also covers archived threads via the API.
+    superseded by 2.4.4 which also covers archived threads via the API.
     """
     import discord as _discord
 
@@ -366,14 +366,14 @@ async def migration_fix_thread_parent_ids():
     logger.info(f'migration 2.4.3 complete: updated={fixed} skipped={skipped}')
 
 
-# Version 2.4.4 (ready)
+# version 2.4.4 (ready)
 @migration(old='2.4.3', new='2.4.4', stage='ready')
 async def migration_fix_thread_parent_ids_archived():
-    """Backfill parent_channel_id for messages in archived threads.
+    """backfill parent_channel_id for messages in archived threads.
 
-    Migration 2.4.3 only covered threads still in the bot's active cache.
-    Archived threads are evicted from the cache and were skipped, leaving their
-    messages with parent_channel_id=None. This migration fetches all threads
+    migration 2.4.3 only covered threads still in the bot's active cache.
+    archived threads are evicted from the cache and were skipped, leaving their
+    messages with parent_channel_id=None. this migration fetches all threads
     (active + archived public + archived private) for every text channel in each
     authorized guild via the Discord API, builds a complete thread->parent map,
     and applies it to any remaining unfixed messages.
@@ -459,13 +459,13 @@ async def migration_fix_thread_parent_ids_archived():
     logger.info(f'migration 2.4.4 complete: updated={fixed} unresolvable={still_missing}')
 
 
-# Version 2.5.0 (ready)
+# version 2.5.0 (ready)
 @migration(old='2.4.4', new='2.5.0', stage='ready')
 async def migration_drop_formatted():
-    """Remove the `formatted` field from all Year documents.
+    """remove the `formatted` field from all Year documents.
 
     `formatted` was the pre-computed year header string (e.g. '<<< Year 5 PC <<<').
-    It is now generated on demand via `format_year_line(year)` wherever needed, so
+    it is now generated on demand via `format_year_line(year)` wherever needed, so
     storing it is redundant and makes the schema harder to maintain.
     """
     from nova_core.client.core import db
@@ -480,13 +480,13 @@ async def migration_drop_formatted():
     logger.info(f'migration 2.5.0: unset formatted on {result.modified_count} year documents')
 
 
-# Version 2.5.1 (ready)
+# version 2.5.1 (ready)
 @migration(old='2.5.0', new='2.5.1', stage='ready')
 async def migration_purge_markers():
-    """Remove all existing year marker overrides.
+    """remove all existing year marker overrides.
 
-    The new marker resolver derives markers dynamically from stored messages,
-    so persisted overrides are no longer needed as a baseline. Any overrides
+    the new marker resolver derives markers dynamically from stored messages,
+    so persisted overrides are no longer needed as a baseline. any overrides
     that still need to exist can be re-created via /marker save or the web UI.
     """
     from nova_core.client.core import db
@@ -499,12 +499,12 @@ async def migration_purge_markers():
     logger.info(f'migration 2.5.1: deleted {result.deleted_count} year marker documents')
 
 
-# Version 2.5.2
+# version 2.5.2
 @migration(old='2.5.1', new='2.5.2')
 async def migration_restructure_messages():
-    """Reshape MessageDocument flat fields into sub-documents.
+    """reshape MessageDocument flat fields into sub-documents.
 
-    Groups the previously flat author, content, and cross-reference fields
+    groups the previously flat author, content, and cross-reference fields
     into nested sub-documents for a more organized and extensible schema:
       - author_id, author_name, author_bot  ->  author: {id, name, bot}
       - content (str), attachments, embeds, sticker_ids  ->  content: {text, attachments, embeds, sticker_ids}
@@ -567,17 +567,17 @@ async def migration_restructure_messages():
         raise
 
 
-# Version 2.5.3
+# version 2.5.3
 @migration(old='2.5.2', new='2.5.3')
 async def migration_2_5_3():
-    """Guild config: primary/secondary keys replace authorized list in attu-bot.toml."""
+    """guild config: primary/secondary keys replace authorized list in attu-bot.toml."""
     logger.info('running migration to 2.5.3')
 
 
-# Version 2.5.4
+# version 2.5.4
 @migration(old='2.5.3', new='2.5.4')
 async def migration_seed_ui_emojis():
-    """Seed ui_emojis on ThemeDocument with the previously hardcoded emoji IDs."""
+    """seed ui_emojis on ThemeDocument with the previously hardcoded emoji IDs."""
     from nova_core.client.core import db
 
     logger.info('running migration to 2.5.4: seeding ui_emojis')
@@ -607,10 +607,10 @@ async def migration_seed_ui_emojis():
         raise
 
 
-# Version 2.5.5
+# version 2.5.5
 @migration(old='2.5.4', new='2.5.5')
 async def migration_target_signals():
-    """Add target field to reload signals; drop legacy index and purge untargeted docs.
+    """add target field to reload signals; drop legacy index and purge untargeted docs.
 
     the (signal_type, guild_id) index is replaced by (target, signal_type, guild_id) so
     bot and ingestor consumers can each drain only their own queue. legacy untargeted

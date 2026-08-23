@@ -17,7 +17,6 @@ _db = MongoStorage()
 
 
 def _load_features(bot: discord.Bot, features: list) -> None:
-    """Stub feature loader — nova-w2 will populate this with FeatureManifest objects."""
     logger.info(f'feature loader: {len(features)} features configured (stub)')
 
 

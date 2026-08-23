@@ -29,11 +29,11 @@ def _get_repo() -> MessageRepository:
     return _message_repo
 
 
-# --- Helpers ---
+# --- helpers ---
 
 
 def _is_archive_channel(channel_id: int, guild_id: int, parent_channel_id: int | None = None) -> bool:
-    """Return True if the channel (or its thread parent) is a lore or canon channel."""
+    """return True if the channel (or its thread parent) is a lore or canon channel."""
     try:
         gc = config.guild(guild_id)
     except Exception:
@@ -47,16 +47,16 @@ def _is_archive_channel(channel_id: int, guild_id: int, parent_channel_id: int |
 
 
 def _backup_path() -> anyio.Path | None:
-    """Return the configured backup root, or None if backups are disabled."""
+    """return the configured backup root, or None if backups are disabled."""
     if config.backup and config.backup.path:
         return anyio.Path(config.backup.path)
     return None
 
 
 async def _save_attachment(attachment: discord.Attachment, message_id: int, guild_id: int, channel_id: int) -> dict:
-    """Download an attachment to disk and return a metadata dict.
+    """download an attachment to disk and return a metadata dict.
 
-    If download fails, falls back to URL-only entry.
+    if download fails, falls back to URL-only entry.
     """
     base = _backup_path()
     meta: dict = {
@@ -93,9 +93,9 @@ async def _build_attachments(
     channel_id: int,
     save_files: bool,
 ) -> list[dict]:
-    """Serialize a list of attachments.
+    """serialize a list of attachments.
 
-    Downloads file contents only when save_files is True (i.e. lore/canon channels).
+    downloads file contents only when save_files is True (i.e. lore/canon channels).
     """
     if not attachments:
         return []
@@ -117,7 +117,7 @@ async def _build_attachments(
 
 
 def _serialize_embeds(embeds: list[discord.Embed]) -> list[dict]:  # noqa: PLR0912 - embed serialization requires checking many optional fields
-    """Convert a list of embeds to plain dicts for storage."""
+    """convert a list of embeds to plain dicts for storage."""
     out = []
     for embed in embeds:
         d: dict = {}
@@ -154,7 +154,7 @@ def _serialize_embeds(embeds: list[discord.Embed]) -> list[dict]:  # noqa: PLR09
 
 
 def _is_public(message: Message) -> bool:
-    """Return True if @everyone can read the channel this message is in."""
+    """return True if @everyone can read the channel this message is in."""
     guild = message.guild
     if guild is None:
         return False
@@ -163,12 +163,12 @@ def _is_public(message: Message) -> bool:
 
 
 def _global_username(author: discord.User | discord.Member) -> str:
-    """Return the author's global username"""
+    """return the author's global username."""
     return author.name
 
 
 async def build_message_doc(message: Message) -> MessageDocument:
-    """Build a MessageDocument from a pycord Message object."""
+    """build a MessageDocument from a pycord Message object."""
     guild_id = message.guild.id
     channel_id = message.channel.id
 
@@ -245,7 +245,7 @@ async def build_message_doc(message: Message) -> MessageDocument:
 
 
 async def store_message(message: Message) -> None:
-    """Persist a message to MongoDB. Called from on_message."""
+    """persist a message to MongoDB. called from on_message."""
     try:
         doc = await build_message_doc(message)
         try:
@@ -257,7 +257,7 @@ async def store_message(message: Message) -> None:
         logger.error(f'failed to store message {message.id}: {err}')
 
 
-# --- Log Embed Builders ---
+# --- log embed builders ---
 
 
 def _truncate(text: str, limit: int = 1024) -> str:
@@ -267,7 +267,7 @@ def _truncate(text: str, limit: int = 1024) -> str:
 
 
 async def _get_logs_channel(guild_id: int) -> discord.TextChannel | None:
-    """Resolve the logs channel for a guild."""
+    """resolve the logs channel for a guild."""
     try:
         gc = config.guild(guild_id)
     except Exception:
@@ -303,7 +303,7 @@ def _resolve_avatar(guild_id: int, author_id: int) -> str | None:
 
 
 async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
-    """Look up stored record and return edit context; falls back to payload data on miss."""
+    """look up stored record and return edit context; falls back to payload data on miss."""
     try:
         stored = await _get_repo().get(payload.message_id)
         logger.debug(f'log_edit: db lookup result; found={stored is not None}')
@@ -327,7 +327,7 @@ async def _fetch_edit_context(payload: RawMessageUpdateEvent) -> _EditContext:
 
 
 def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_content: str) -> discord.Embed:
-    """Build the edit log embed from context and payload."""
+    """build the edit log embed from context and payload."""
     description = f'<@{ctx.author_id}> edited a message in <#{payload.channel_id}>' if ctx.author_id is not None else f'a message was edited in <#{payload.channel_id}>'
 
     embed = make_embed(
@@ -352,7 +352,7 @@ def _build_edit_embed(ctx: _EditContext, payload: RawMessageUpdateEvent, new_con
 
 
 async def log_edit(payload: RawMessageUpdateEvent) -> None:
-    """Post a message-edited embed to the guild's logs channel."""
+    """post a message-edited embed to the guild's logs channel."""
     if payload.guild_id is None:
         return
 
@@ -425,7 +425,7 @@ async def _get_message_delete_actor(guild: discord.Guild, author_id: int, channe
 
 
 async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, PLR0915 - multiple early-exit guard branches for bot/starboard filtering plus inline embed assembly
-    """Post a message-deleted embed to the guild's logs channel."""
+    """post a message-deleted embed to the guild's logs channel."""
     if payload.guild_id is None:
         return
 
@@ -513,7 +513,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, 
 
 
 async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
-    """Post a bulk-delete summary embed to the guild's logs channel."""
+    """post a bulk-delete summary embed to the guild's logs channel."""
     if payload.guild_id is None:
         return
 

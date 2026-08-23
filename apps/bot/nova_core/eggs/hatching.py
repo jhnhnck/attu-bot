@@ -62,7 +62,6 @@ async def ensure_eggs_ready() -> None:
         return
 
     if guild_cfg.channels.eggs == 0:
-        # find the category that contains general chat
         general_ch = guild.get_channel(guild_cfg.channels.general)
         category = general_ch.category if general_ch else None
 
@@ -86,7 +85,6 @@ async def get_or_create_user_thread(guild_id: int, user_id: int, username: str, 
         thread = bot.get_channel(user_doc.thread_id)
         if thread is not None:
             return thread  # type: ignore[return-value]
-        # thread not in cache; fetch from api
         guild = bot.get_guild(guild_id)
         if guild:
             try:
@@ -133,19 +131,13 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
             ready_at = user_doc.last_collected_at + cooldown
             return ('cooldown', ready_at)
 
-    # roll rarity
     rarity = random.choices(config.hatch.rarities, weights=config.hatch.drop_weights, k=1)[0]
-
-    # determine result (mythical is always dragon)
     result = random.choice(config.hatch.pools[rarity])
 
-    # ensure thread exists; pass user_doc to avoid a second db fetch
+    # pass user_doc to avoid a second db fetch
     thread = await get_or_create_user_thread(guild_id, user_id, username, user_doc=user_doc)
-
-    # post egg message (just the custom emoji)
     msg = await thread.send(_egg_emoji_str(rarity))
 
-    # persist egg
     egg_id = str(uuid.uuid4())
     egg = EggDocument(
         egg_id=egg_id,
@@ -157,13 +149,12 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
         result=result,
         message_id=msg.id,
     )
-    # update cooldown
     if user_doc is None:
         user_doc = EggUserDocument(guild_id=guild_id, user_id=user_id, thread_id=thread.id, last_collected_at=now)
     else:
         user_doc.last_collected_at = now
 
-    # persist egg and update cooldown concurrently (independent collections)
+    # independent operations; run concurrently
     await asyncio.gather(
         _egg_repo.insert(egg),
         _egg_user_repo.upsert(user_doc),
@@ -173,20 +164,14 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
 
 
 async def run_hatch_animation(message: discord.Message | discord.PartialMessage, result: str, rarity: str) -> None:
-    """Run the three-stage hatch animation on an existing thread message.
-
-    Stages:
-      1. keep egg emoji 10-15 seconds
-      2. edit to 💢 for 1 second
-      3. edit to result emoji
-    """
+    """Run the three-stage hatch animation on a thread message."""
     wait_time = random.randint(config.hatch.tuning.animation_wait_min, config.hatch.tuning.animation_wait_max)
     await asyncio.sleep(wait_time)
     await message.edit(content='💢')
     await asyncio.sleep(1)
     await message.edit(content=result)
 
-    # update presence to reflect the newly hatched egg (debounced)
+    # debounced presence update
     global _last_presence_update  # noqa: PLW0603 - module-level debounce timer shared with periodic presence task
     now = time.monotonic()
     if now - _last_presence_update >= _PRESENCE_DEBOUNCE_SECONDS:
@@ -215,13 +200,11 @@ async def hatch_egg(guild_id: int, user_id: int) -> tuple[str, float | None]:
 
     egg = await _egg_repo.get_oldest_ready(guild_id, user_id)
     if egg is None:
-        # check if there are any eggs at all
         next_egg = await _egg_repo.get_next_unhatched(guild_id, user_id)
         if next_egg is None:
             return ('no_eggs', None)
         return ('', next_egg.hatches_at)
 
-    # fetch the thread message
     user_doc = await _egg_user_repo.get(guild_id, user_id)
     if user_doc is None or not user_doc.thread_id:
         raise RuntimeError('no egg thread found for user')
@@ -263,7 +246,6 @@ async def transfer_egg(guild_id: int, egg_id: str, from_user_id: int, to_user_id
     if egg is None or egg.user_id != from_user_id or egg.guild_id != guild_id:
         raise ValueError('egg not found')
 
-    # delete original thread message
     from_user_doc = await _egg_user_repo.get(guild_id, from_user_id)
     if from_user_doc and from_user_doc.thread_id and egg.message_id:
         thread = bot.get_channel(from_user_doc.thread_id)
@@ -281,7 +263,6 @@ async def transfer_egg(guild_id: int, egg_id: str, from_user_id: int, to_user_id
             except (discord.NotFound, discord.Forbidden):
                 pass  # already gone or no permission; proceed with transfer
 
-    # repost in recipient's thread
     to_thread = await get_or_create_user_thread(guild_id, to_user_id, to_username)
     content = egg.result if egg.hatched else _egg_emoji_str(egg.rarity)
     new_msg = await to_thread.send(content)

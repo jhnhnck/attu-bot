@@ -12,7 +12,7 @@ from nova_core.tasks.base import BaseTask
 
 @dataclass
 class FeatureManifest:
-    """Manifest declaring all wiring for a loadable feature package."""
+    """manifest declaring all wiring for a loadable feature package."""
 
     name: str
     tasks: list[BaseTask] = field(default_factory=list)

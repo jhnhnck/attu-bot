@@ -13,7 +13,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
-- ⭕ `medium priority` `low effort` post-merge: reconcile `.gitignore` with `notes/dev/process.md` — the doc says plans live in `notes/plans/<project>.md` (implying tracked) but `.gitignore:56-57` ignores `notes/plans/` and `notes/reports/`. either drop those gitignore lines so plans/reports are tracked, or update the process doc to reflect that they're local-only. handle once the dev-tree WIP merges so we're not editing both trees in parallel
+- ⭕ `medium priority` `low effort` post-merge: reconcile `.gitignore` with `docs/dev/process.md` — the doc says plans live in `notes/plans/<project>.md` (implying tracked) but `.gitignore:56-57` ignores `notes/plans/` and `notes/reports/`. either drop those gitignore lines so plans/reports are tracked, or update the process doc to reflect that they're local-only. handle once the dev-tree WIP merges so we're not editing both trees in parallel
 
 ### eggs / hatch game
 
@@ -212,7 +212,7 @@ when an item is completed, move it to the `# completed` section under the approp
 
 when adding a new item, sort it into the appropriate section by topic, or add a new section if none fits. assign priority and effort tags. if the scope, priority, or effort is unclear, ask clarifying questions before adding. split larger projects into multiple entries.
 
-bugs go in `notes/bugs.md`, not here. this file is for features, refactors, audits, and other forward work; defects go to the bug log so the `bug-triage` skill can cut them.
+bugs go in `docs/bugs.md`, not here. this file is for features, refactors, audits, and other forward work; defects go to the bug log so the `bug-triage` skill can cut them.
 
 ### sections
 
@@ -224,6 +224,6 @@ bugs go in `notes/bugs.md`, not here. this file is for features, refactors, audi
 ### metadata
 
 ```yaml
-last_updated: 14 August 2026
+last_updated: 2026-08-22
 total_completed: 73
 ```

@@ -9,7 +9,7 @@ from nova_core.client.util import theme_color
 
 
 def ui_emoji(name: str, fallback: str = '') -> str:
-    """Format a custom UI emoji from the theme config, or return fallback."""
+    """format a custom UI emoji from the theme config, or return fallback."""
     from nova_core.client.core import config
 
     if config.theme is None:

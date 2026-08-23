@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for DatabaseBackupTask
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_task_db_backup | tests for DatabaseBackupTask."""
 
 import os
 import time
@@ -15,9 +11,7 @@ from freezegun import freeze_time
 from nova_core.tasks.db_backup import DatabaseBackupTask, _cleanup_old_backups, _next_daily_at
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
+# --- helpers ---
 
 
 def _make_task() -> DatabaseBackupTask:
@@ -48,9 +42,7 @@ def _make_proc(returncode: int = 0) -> AsyncMock:
     return mock
 
 
-# ---------------------------------------------------------------------------
-# _next_daily_at
-# ---------------------------------------------------------------------------
+# --- _next_daily_at ---
 
 
 class TestNextDailyAt:
@@ -68,7 +60,7 @@ class TestNextDailyAt:
     @freeze_time('2026-02-24 03:00:30', tz_offset=0)  # just past 03:00
     def test_advances_by_one_day_when_already_passed(self):
         result = _next_daily_at('03:00')
-        # 30s past target — should be tomorrow
+        # 30s past target - should be tomorrow
         delta = (result - datetime.now().astimezone()).total_seconds()
         assert delta > 60 * 60 * 23  # at least 23 hours away
 
@@ -80,9 +72,7 @@ class TestNextDailyAt:
         assert 0 < delta < 120
 
 
-# ---------------------------------------------------------------------------
-# on_start
-# ---------------------------------------------------------------------------
+# --- on_start ---
 
 
 class TestOnStart:
@@ -114,9 +104,7 @@ class TestOnStart:
         assert task._enabled is True
 
 
-# ---------------------------------------------------------------------------
-# next_run
-# ---------------------------------------------------------------------------
+# --- next_run ---
 
 
 class TestNextRun:
@@ -138,14 +126,12 @@ class TestNextRun:
             result = await task.next_run()
 
         assert result is not None
-        # frozen at 12:00, target is 03:00 — already past, so should be tomorrow (15h away)
+        # frozen at 12:00, target is 03:00 - already past, so should be tomorrow (15h away)
         delta = (result - datetime.now().astimezone()).total_seconds()
         assert delta > 60 * 60 * 14  # tomorrow's 03:00 is ~15h from noon
 
 
-# ---------------------------------------------------------------------------
-# run
-# ---------------------------------------------------------------------------
+# --- run ---
 
 
 class TestRun:
@@ -258,9 +244,7 @@ class TestRun:
         assert any('2026-02-22' in a for a in tar_args)
 
 
-# ---------------------------------------------------------------------------
-# _cleanup_old_backups
-# ---------------------------------------------------------------------------
+# --- _cleanup_old_backups ---
 
 
 class TestCleanupOldBackups:
@@ -278,7 +262,7 @@ class TestCleanupOldBackups:
     def test_keeps_recent_files(self, tmp_path):
         recent_file = tmp_path / '2026-03-10_030000.tar.bz2'
         recent_file.touch()
-        # mtime defaults to now — well within retention
+        # mtime defaults to now - well within retention
 
         _cleanup_old_backups(str(tmp_path))
 

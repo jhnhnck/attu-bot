@@ -1,11 +1,5 @@
-"""
-AttuBot - Year Command Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Integration tests for /year check, /year search, and /year link commands from year.py
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_year | integration tests for /year commands."""
 
 import os
 import time as _time
@@ -23,7 +17,7 @@ from freezegun import freeze_time
 from tests.conftest import test_guild
 
 
-# --- /year check Command Tests ---
+# --- /year check command tests ---
 
 
 class TestYearCheckCommand:
@@ -182,7 +176,7 @@ class TestYearCheckCommand:
         assert 'valid' in response.lower()
 
 
-# --- /year search Command Tests ---
+# --- /year search command tests ---
 
 
 class TestYearSearchCommand:
@@ -252,7 +246,7 @@ class TestYearSearchCommand:
         assert 'valid' in response.lower()
 
 
-# --- /year link Command Tests ---
+# --- /year link command tests ---
 
 
 class TestYearLinkCommand:

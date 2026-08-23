@@ -13,7 +13,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class AdminApi:
-    """handles privileged wiki operations that require authentication"""
+    """handles privileged wiki operations that require authentication."""
 
     def __init__(self, client: httpx.AsyncClient, action_endpoint: str, auth: AuthApi):
         self._client = client
@@ -21,7 +21,7 @@ class AdminApi:
         self._auth = auth
 
     async def block(self, user: str, reason: str, max_retries: int = 3) -> bool:
-        """block a user from the wiki; retries up to max_retries times on failure"""
+        """block a user from the wiki; retries up to max_retries times on failure."""
         csrf = await self._auth.get_csrf()
 
         data = {

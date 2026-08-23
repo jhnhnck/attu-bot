@@ -1,9 +1,5 @@
-"""
-AttuBot - Tests for scripts/deploy.py
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_deploy | tests for the deploy script."""
 
 import json
 import re
@@ -19,9 +15,7 @@ def _proc(returncode: int = 0, stdout: str = '', stderr: str = '') -> subprocess
     return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr=stderr)
 
 
-# ---------------------------------------------------------------------------
-# parse_version
-# ---------------------------------------------------------------------------
+# --- parse_version ---
 
 
 class TestParseVersion:
@@ -37,9 +31,7 @@ class TestParseVersion:
         assert exc_info.value.code == 1
 
 
-# ---------------------------------------------------------------------------
-# compute_new_version
-# ---------------------------------------------------------------------------
+# --- compute_new_version ---
 
 
 class TestComputeNewVersion:
@@ -83,9 +75,7 @@ class TestComputeNewVersion:
         assert tag == '1.2.0'
 
 
-# ---------------------------------------------------------------------------
-# check_container_health
-# ---------------------------------------------------------------------------
+# --- check_container_health ---
 
 
 class TestCheckContainerHealth:
@@ -168,14 +158,10 @@ class TestCheckContainerHealth:
         assert problems == ['?: state=dead']
 
 
-# ---------------------------------------------------------------------------
-# abort
-# ---------------------------------------------------------------------------
+# --- abort ---
 
 
-# ---------------------------------------------------------------------------
-# pyproject.toml version bump regex
-# ---------------------------------------------------------------------------
+# --- pyproject.toml version bump regex ---
 
 
 class TestPyprojectVersionBump:
@@ -202,9 +188,7 @@ class TestPyprojectVersionBump:
         assert 'version = "0.9"' in result
 
 
-# ---------------------------------------------------------------------------
-# abort
-# ---------------------------------------------------------------------------
+# --- abort ---
 
 
 class TestAbort:
@@ -220,9 +204,7 @@ class TestAbort:
         assert 'something went wrong' in captured.err
 
 
-# ---------------------------------------------------------------------------
-# deploy_only_run
-# ---------------------------------------------------------------------------
+# --- deploy_only_run ---
 
 
 class TestDeployOnlyRun:
@@ -346,9 +328,7 @@ class TestDeployOnlyRun:
             self._exit(patches)
 
 
-# ---------------------------------------------------------------------------
-# pyproject lock file in bump commit
-# ---------------------------------------------------------------------------
+# --- pyproject lock file in bump commit ---
 
 
 class TestUvLockInBumpCommit:

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class SearchResult(BaseModel):
-    """a single result from the wiki REST search api"""
+    """a single result from the wiki REST search api."""
 
     title: str
     key: str
@@ -15,7 +15,7 @@ class SearchResult(BaseModel):
 
 
 class SiteInfo(BaseModel):
-    """general site info returned by mediawiki action=siteinfo"""
+    """general site info returned by mediawiki action=siteinfo."""
 
     server: str
     article_path: str = Field(alias='articlepath')
@@ -23,14 +23,14 @@ class SiteInfo(BaseModel):
     generator: str = ''
 
     def page_url(self, key: str) -> str:
-        """build a full URL to a page by its key"""
+        """build a full URL to a page by its key."""
         return f'{self.server}{self.article_path}'.replace('$1', key)
 
     model_config = {'populate_by_name': True}
 
 
 class PageThumbnail(BaseModel):
-    """thumbnail image data returned by the pageimages prop"""
+    """thumbnail image data returned by the pageimages prop."""
 
     source: str
     width: int
@@ -38,7 +38,7 @@ class PageThumbnail(BaseModel):
 
 
 class PageSummary(BaseModel):
-    """intro extract and optional thumbnail for a single page"""
+    """intro extract and optional thumbnail for a single page."""
 
     title: str
     extract: str = ''

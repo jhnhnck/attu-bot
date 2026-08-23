@@ -112,7 +112,7 @@ class AdminCmd(cmd.Cmd):
         self.client = client
 
     def do_guilds(self, arg: str) -> None:
-        """list all guilds: guilds"""
+        """list all guilds: guilds."""
         guilds = self.session.get_guilds(self.client)
         if not guilds:
             print('(no guilds)')
@@ -121,7 +121,7 @@ class AdminCmd(cmd.Cmd):
             print(f'{g["slug"]:<30} {g["name"]}')
 
     def do_use(self, arg: str) -> None:
-        """select a guild by slug: use <guild-slug>"""
+        """select a guild by slug: use <guild-slug>."""
         slug = arg.strip()
         if not slug:
             print('usage: use <guild-slug>')
@@ -130,7 +130,7 @@ class AdminCmd(cmd.Cmd):
             print(f'switched to {slug!r}')
 
     def do_channels(self, arg: str) -> None:
-        """list cached channels for the selected guild: channels"""
+        """list cached channels for the selected guild: channels."""
         if not self.session.require_guild():
             return
         if not self.session.channels:
@@ -140,7 +140,7 @@ class AdminCmd(cmd.Cmd):
             print(f'{ch["slug"]:<30} {ch["name"]:<30} {ch["type"]}')
 
     def do_roles(self, arg: str) -> None:
-        """list cached roles for the selected guild: roles"""
+        """list cached roles for the selected guild: roles."""
         if not self.session.require_guild():
             return
         if not self.session.roles:
@@ -150,7 +150,7 @@ class AdminCmd(cmd.Cmd):
             print(f'{r["slug"]:<30} {r["name"]}')
 
     def do_config(self, arg: str) -> None:
-        """get or set a config value: config get <key> | config set <key> <value>"""
+        """get or set a config value: config get <key> | config set <key> <value>."""
         parts = arg.split(None, 2)
         if not parts:
             print('usage: config get <key> | config set <key> <value>')
@@ -186,7 +186,7 @@ class AdminCmd(cmd.Cmd):
             print('usage: config get <key> | config set <key> <value>')
 
     def do_feature(self, arg: str) -> None:
-        """enable or disable a feature: feature enable <name> | feature disable <name>"""
+        """enable or disable a feature: feature enable <name> | feature disable <name>."""
         parts = arg.split(None, 1)
         if len(parts) < 2 or parts[0] not in ('enable', 'disable'):
             print('usage: feature enable <name> | feature disable <name>')
@@ -201,7 +201,7 @@ class AdminCmd(cmd.Cmd):
             print(f'feature {result["feature"]!r} {state}')
 
     def do_reload(self, arg: str) -> None:
-        """trigger a config reload: reload guild | reload theme"""
+        """trigger a config reload: reload guild | reload theme."""
         target = arg.strip()
         if target == 'guild':
             if not self.session.require_guild():
@@ -218,7 +218,7 @@ class AdminCmd(cmd.Cmd):
             print('usage: reload guild | reload theme')
 
     def do_fix(self, arg: str) -> None:
-        """run a fix operation: fix recalculate-starboard"""
+        """run a fix operation: fix recalculate-starboard."""
         target = arg.strip()
         if target == 'recalculate-starboard':
             if not self.session.require_guild():
@@ -231,12 +231,12 @@ class AdminCmd(cmd.Cmd):
             print('usage: fix recalculate-starboard')
 
     def do_refresh(self, arg: str) -> None:
-        """re-fetch channels and roles for the current guild: refresh"""
+        """re-fetch channels and roles for the current guild: refresh."""
         if self.session.refresh(self.client):
             print('channels and roles refreshed')
 
     def do_exit(self, arg: str) -> bool:
-        """exit the repl: exit"""
+        """exit the repl: exit."""
         return True
 
     def do_EOF(self, arg: str) -> bool:

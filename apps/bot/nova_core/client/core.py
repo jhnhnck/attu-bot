@@ -18,6 +18,6 @@ intents.emojis_and_stickers = True
 intents.moderation = True
 
 bot = discord.Bot(intents=intents)
-bot._bot_initialized = False  # set True at the end of _do_ready_init(); used by bridge health endpoint
+bot._bot_initialized = False
 config = NovaConfig()
 db: MongoStorage = MongoStorage()

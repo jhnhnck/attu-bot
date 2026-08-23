@@ -46,7 +46,7 @@ Each phase repeats this five-step cycle:
 
 Before declaring a project done, run `ship-readiness`. it walks the bug log, classifies each remaining item as blocker or follow-up, produces an explicit cut-line, and emits a deferred-bug list for the next project. "we have bugs left" is normal. "we don't know which ones block ship" is the failure mode this catches.
 
-After `ship-readiness` returns `ship`, run `pre-merge` before the actual merge. it rebases the branch on trunk (handing back on conflicts), migrates the deferred-bug list into `notes/bugs.md` / `notes/to-do.md` / `notes/design-issues.md` (so it survives the plan dir's archival), promotes any durable invariants discovered during the plan into `notes/` reference docs, fixes stale cross-references that pointed into the plan dir, and archives the plan directory itself. it does not push, merge, open a PR, or force-push - those stay user-driven.
+After `ship-readiness` returns `ship`, run `pre-merge` before the actual merge. it rebases the branch on trunk (handing back on conflicts), migrates the deferred-bug list into `docs/bugs.md` / `docs/to-do.md` / `docs/design-issues.md` (so it survives the plan dir's archival), promotes any durable invariants discovered during the plan into `docs/` reference docs, fixes stale cross-references that pointed into the plan dir, and archives the plan directory itself. it does not push, merge, open a PR, or force-push - those stay user-driven.
 
 ---
 

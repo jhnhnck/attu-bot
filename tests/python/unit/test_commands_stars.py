@@ -1,12 +1,5 @@
-"""
-AttuBot - Stars Command Unit Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Unit tests for stars command helpers: recheck response formatting,
-leaderboard embed construction, random message display, and recheck target resolution.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_commands_stars | unit tests for stars command helper functions."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -138,7 +131,7 @@ class TestBuildRecheckResponse:
             weighted_total=4.0,
         )
         result = _build_recheck_response(None, doc_after, sb, test_guild, 5001)
-        # 🌟 has 3 reactions, ⭐ has 1 — 🌟 should come first
+        # 🌟 has 3 reactions, ⭐ has 1 - 🌟 should come first
         star_pos = result.index('⭐')
         glowing_pos = result.index('🌟')
         assert glowing_pos < star_pos

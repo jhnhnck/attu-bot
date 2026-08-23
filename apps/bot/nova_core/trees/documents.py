@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class FamilyDocument(BaseModel):
-    """MongoDB document for a registered FamilyEcho family tree"""
+    """MongoDB document for a registered FamilyEcho family tree."""
 
     model_config = ConfigDict(extra='ignore')
 

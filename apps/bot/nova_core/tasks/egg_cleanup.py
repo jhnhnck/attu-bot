@@ -14,9 +14,9 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 class EggCleanupTask(BaseTask):
-    """Periodic task that deletes non-egg messages from egg threads.
+    """periodic task that deletes non-egg messages from egg threads.
 
-    Runs on a configurable interval (default 6 hours). For each user's egg
+    runs on a configurable interval (default 6 hours). for each user's egg
     thread, deletes any message older than the cleanup cutoff whose id is not
     tracked in the egg database.
     """

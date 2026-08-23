@@ -8,7 +8,7 @@ Reference for the marker system - how markers are resolved, stored, and linked.
 
 A marker is the "header" message for a given year in a given channel. It lets `/year link` jump directly to the start of a year in any lore or canon channel.
 
-The system is backed by the existing `messages` collection (see `apps/bot/doom_bot/client/messages.py`). There is no separate runtime marker table; the `year_markers` collection only stores admin overrides.
+The system is backed by the existing `messages` collection (see `apps/bot/nova_core/client/messages.py`). There is no separate runtime marker table; the `year_markers` collection only stores admin overrides.
 
 ---
 
@@ -27,7 +27,7 @@ The `exact` flag is `True` for sources 1 and 2, `False` for sources 3 and 4.
 
 ## Resolver
 
-`apps/bot/doom_bot/client/markers.py` exports `resolve_marker(guild, channel, year) -> ResolvedMarker`.
+`apps/bot/nova_core/client/markers.py` exports `resolve_marker(guild, channel, year) -> ResolvedMarker`.
 
 ```python
 @dataclass
@@ -78,7 +78,7 @@ overrides are set via:
 
 ## `/year link` Command Flow
 
-command stays in `apps/bot/doom_bot/commands/year.py`. The search logic is in `apps/bot/doom_bot/client/markers.py`.
+command stays in `apps/bot/nova_core/commands/year.py`. The search logic is in `apps/bot/nova_core/client/markers.py`.
 
 ```
 /year link <year> [channel]
@@ -135,7 +135,7 @@ window boundaries are unix timestamps (int). `before` is exclusive.
 
 ---
 
-## Key Functions (`apps/bot/doom_bot/client/markers.py`)
+## Key Functions (`apps/bot/nova_core/client/markers.py`)
 
 | Name | Purpose |
 |---|---|
@@ -165,5 +165,5 @@ window boundaries are unix timestamps (int). `before` is exclusive.
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 2026-08-22
 ```

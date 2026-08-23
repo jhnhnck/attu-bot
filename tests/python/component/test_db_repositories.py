@@ -1,12 +1,5 @@
-"""
-AttuBot - Repository Component Tests (real MongoDB)
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-These tests run against a real MongoDB instance.  In docker-compose the service
-is reachable at mongodb://mongo:27017; locally it falls back to localhost.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_db_repositories | repository component tests against real MongoDB."""
 
 import os
 import time
@@ -152,9 +145,7 @@ def _make_star_doc(message_id=1, guild_id=2222222222, channel_id=3333333333, aut
     )
 
 
-# ============================================================
-# ConfigRepository
-# ============================================================
+# --- ConfigRepository ---
 
 
 class TestConfigRepositoryIndexes:
@@ -348,9 +339,7 @@ class TestConfigRepositorySystem:
         assert await repo.get_system() is None
 
 
-# ============================================================
-# YearRepository
-# ============================================================
+# --- YearRepository ---
 
 
 guild = 2222222222
@@ -456,9 +445,7 @@ class TestYearRepository:
         assert doc.start_time == 100  # not overwritten
 
 
-# ============================================================
-# YearMarkerRepository
-# ============================================================
+# --- YearMarkerRepository ---
 
 
 channel = 3333333333
@@ -564,9 +551,7 @@ class TestYearMarkerRepository:
         assert doc.message == 100  # not overwritten
 
 
-# ============================================================
-# MessageRepository
-# ============================================================
+# --- MessageRepository ---
 
 
 msg_guild = 5555555555
@@ -732,9 +717,7 @@ class TestMessageRepository:
         assert ids == {1, 2, 3}
 
 
-# ============================================================
-# StarboardRepository
-# ============================================================
+# --- StarboardRepository ---
 
 
 sb_guild = 7777777777
@@ -939,9 +922,7 @@ class TestStarboardRepository:
         assert result.total_reactions == 1
 
 
-# ============================================================
-# ReloadSignalRepository
-# ============================================================
+# --- ReloadSignalRepository ---
 
 
 class TestReloadSignalRepository:

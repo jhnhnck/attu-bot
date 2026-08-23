@@ -9,7 +9,7 @@ ccboard is gated by `GuildCCBoard.enabled` (default `False`); when off, the lega
 ## architecture
 
 ```
-apps/bot/doom_bot/ccboard/
+apps/bot/nova_core/ccboard/
   __init__.py        # shared per-message lock dict + _pending_bot_removals echo-suppression set
   watcher.py         # raw reaction event handlers; backfill, redirect, one-vote enforcement
   manager.py         # ManagerTask(BaseTask); 10s poll, 60s settle debounce
@@ -23,7 +23,7 @@ state lives in two collections:
 - **`ccboard_reactions`** — `ReactionDocument`, one per `(message_id, user_id)`. soft-deleted on remove, refreshed in place on same-emoji re-react, replaced on different-emoji vote change. `last_recounted_at` is stamped (None / unix timestamp) every time `point_value` is re-snapshotted (watcher refresh, auditor recount); the auditor's staleness predicate uses `(last_recounted_at or reacted_at) < cfg.weights_updated_at` to find records whose snapshot predates the most recent weight change.
 - **`ccboard_entries`** — `BoardEntryDocument`, one per tracked message. holds the static `MessageDocument` snapshot taken at first track, the `effective_author_id` (resolved credit author), `is_dirty` pickup flag, and the leaderboard-relevant aggregates (`net_points`, `positive_points`).
 
-both repositories live in `packages/shared-models/attu_models/`. the bot wires `_reaction_repo` and `_entry_repo` into `doom_bot.ccboard` at startup via `database/__init__.py`.
+both repositories live in `packages/shared-models/attu_models/`. the bot wires `_reaction_repo` and `_entry_repo` into `nova_core.ccboard` at startup via `database/__init__.py`.
 
 ---
 
@@ -175,6 +175,6 @@ these are load-bearing design constraints in the auditor and watcher. violating 
 ## metadata
 
 ```yaml
-last_updated: 2026-06-05
+last_updated: 2026-08-22
 status: all phases shipped (feat/ccboard, pending merge) — foundation, watcher, manager, auditor, /stars user surface, starboard gate + migration runbook
 ```

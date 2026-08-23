@@ -82,9 +82,9 @@ async def job_construct_year_links(guild_id: int):
 
 
 class NovaYearTask(BaseTask):
-    """Wakes up at the exact time of the next guild rollover and advances the year.
+    """wakes up at the exact time of the next guild rollover and advances the year.
 
-    Uses dynamic scheduling via next_run() - sleeps until the earliest rollover
+    uses dynamic scheduling via next_run() - sleeps until the earliest rollover
     time across all valid guilds rather than polling on a fixed interval.
     """
 
@@ -96,7 +96,7 @@ class NovaYearTask(BaseTask):
         await bot.wait_until_ready()
 
     async def next_run(self) -> datetime | None:
-        """Return the earliest upcoming rollover time across all valid guilds."""
+        """return the earliest upcoming rollover time across all valid guilds."""
         earliest: datetime | None = None
 
         for guild_id, guild in config.guilds.items():
@@ -120,7 +120,7 @@ class NovaYearTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
-        """Check all guilds for year rollover eligibility."""
+        """check all guilds for year rollover eligibility."""
         for guild_id, guild in config.guilds.items():
             if guild_id not in config.valid_guilds:
                 continue
@@ -129,7 +129,7 @@ class NovaYearTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def _rollover_guild(self, cfg: GuildConfig) -> None:
-        """Process a single guild's year rollover if the time has come."""
+        """process a single guild's year rollover if the time has come."""
         epoch = cfg.epoch
 
         if epoch.paused:
@@ -153,11 +153,10 @@ class NovaYearTask(BaseTask):
 
     @webhook_logging(scope=logger)
     async def _advance_year(self, cfg: GuildConfig, year: int) -> None:
-        """Execute the year advance for a guild."""
+        """execute the year advance for a guild."""
         logger.info(f'[{cfg!s}] advancing to year {year} PC')
         guild = bot.get_guild(cfg.id)
 
-        # --- Year Record Lifecycle ---
         now = int(datetime.now().astimezone().timestamp())
 
         if year > 1:
@@ -165,7 +164,6 @@ class NovaYearTask(BaseTask):
 
         await Year.create_from_rollover(cfg.id, year, start_time=now)
 
-        # --- Lore Channel Year Markers ---
         year_str = format_year_line(year)
         message_links = []
 
@@ -174,11 +172,9 @@ class NovaYearTask(BaseTask):
             message = await channel.send(year_str)
             message_links.append(message.jump_url)
 
-        # --- Increase Year VC ---
         year_vc = guild.get_channel_or_thread(cfg.channels.year_vc)
         await year_vc.edit(name=f'Current Year: {year} PC')
 
-        # --- Edit Wiki ---
         from nova_core.wiki import get_wiki
 
         wiki = get_wiki()
@@ -189,11 +185,9 @@ class NovaYearTask(BaseTask):
 
         await wiki.pages.edit(config.wiki.page, updated_page, f'Bumped to Year {year} PC')
 
-        # --- Make Announcement ---
         channel = guild.get_channel_or_thread(cfg.channels.announcements)
         await channel.send(f'<@&{cfg.roles.announcements}> Year {year} PC. (weap)')
 
-        # queue year links update
         from nova_core.tasks import scheduler
 
         scheduler.add_job(job_construct_year_links(cfg.id), 'NovaYearEvent', cfg)

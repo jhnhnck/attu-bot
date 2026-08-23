@@ -10,12 +10,12 @@ from nova_core.client.core import config
 from nova_core.config import GuildEpoch
 
 
-# --- Initialization ---
+# --- initialization ---
 
 logger = structlog.stdlib.get_logger(__name__)
 seconds_per_day = 86400
 
-# --- Components ---
+# --- components ---
 
 
 class AttuYearSpan(BaseModel):
@@ -24,7 +24,7 @@ class AttuYearSpan(BaseModel):
     duration: int
 
 
-# --- Utilities ---
+# --- utilities ---
 
 
 def format_year_line(year: int, level: int = 1) -> str:
@@ -84,22 +84,22 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
     _, current_year = get_year_status(guild)
     next_year = get_next_year(guild)
 
-    # Invalid Years
+    # invalid years
     if year <= 0 or year > 10000:
         logger.error(f'get_year() requested with invalid year: {year}')
         year = 10000 if year > 0 else 1
 
-    # Past Years — DB-first fast path via Year records
+    # past years - DB-first fast path via Year records
     elif year < current_year:
         year_record = await Year.get(guild_id, year)
         if year_record and year_record.end_time > 0:
             return year_record.to_span()
 
-        # Fallback to marker-based computation
+        # fallback to marker-based computation
         result.start_time = await YearMarker.timestamp(year, guild_id) or 0
         result.end_time = await YearMarker.timestamp(year + 1, guild_id) or 0
 
-    # Current Year — Year record for start_time, epoch math for projected end
+    # current year - year record for start_time, epoch math for projected end
     elif year == current_year:
         year_record = await Year.get(guild_id, year)
         if year_record and year_record.start_time > 0:
@@ -108,12 +108,12 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
             result.start_time = await YearMarker.timestamp(year, guild_id) or 0
         result.end_time = int(next_year.timestamp())
 
-    # Next Year
+    # next year
     elif year == (current_year + 1):
         result.start_time = int(next_year.timestamp())
         result.end_time = int((next_year + timedelta(days=(epoch.length * (year - current_year)))).timestamp()) if not epoch.paused else 0
 
-    # Future Years
+    # future years
     elif not epoch.paused:
         result.start_time = int((next_year + timedelta(days=(epoch.length * (year - current_year - 1)))).timestamp())
         result.end_time = int((next_year + timedelta(days=(epoch.length * (year - current_year)))).timestamp())
@@ -123,10 +123,10 @@ async def get_year_span(year: int, guild: int | None = None) -> AttuYearSpan:
 
 
 async def haracalnde_date(timestamp: int, guild: int | None = None) -> str:
-    """Convert a unix timestamp to a formatted Haracalnde date string.
+    """convert a unix timestamp to a formatted Haracalnde date string.
 
-    Returns strings like '15-3 5 PC' (day-month year ERA). Uses actual year spans
-    from the database to handle historically variable year lengths. Returns
+    returns strings like '15-3 5 PC' (day-month year ERA). uses actual year spans
+    from the database to handle historically variable year lengths. returns
     'Paused at N PC' when the calendar is paused.
     """
     epoch: GuildEpoch = (config.primary() if guild is None else config.guild(guild)).epoch

@@ -35,19 +35,18 @@ class WikiClient:
         self._action = '/api.php'
         self._rest = '/rest.php/v1'
 
-        # build the api surface from shared client + endpoints
         self.auth = AuthApi(self._http, self._action)
         self.pages = PagesApi(self._http, self._action, self.auth)
         self.search = SearchApi(self._http, self._action, self._rest)
         self.admin = AdminApi(self._http, self._action, self.auth)
 
     async def authenticate(self, user: str, key: str) -> None:
-        """log in to the wiki; required before any write/admin operations"""
+        """log in to the wiki; required before any write/admin operations."""
         logger.debug('authenticating to wiki', user=user)
         await self.auth.login(user, key)
         logger.info('wiki authenticated', user=user)
 
     async def close(self) -> None:
-        """close the underlying http client"""
+        """close the underlying http client."""
         logger.debug('closing wiki http client')
         await self._http.aclose()

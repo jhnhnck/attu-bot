@@ -1,13 +1,5 @@
-"""
-AttuBot - MessageBackfillTask Component Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests channel filtering and persistence behavior with a real MessageRepository and
-fake Discord guild/channel objects. `build_message_doc` is patched to avoid needing
-real discord.Message attributes - the focus is on channel selection and cursor logic.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_task_message_backfill | message backfill task component tests."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

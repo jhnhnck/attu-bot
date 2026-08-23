@@ -31,7 +31,6 @@ _config: 'NovaConfig'
 # --- Components ---
 
 
-# Type definition for the raw TOML config file structure
 class RawConfig(TypedDict):
     config_version: str
     paths: dict[str, Any]
@@ -74,11 +73,9 @@ class BotTheme(BaseModel):
     ui_emojis: dict[str, int] = {}
 
     async def save(self):
-        """Save theme to MongoDB"""
         await _config.config_repo.save_theme(self)
 
 
-# Wiki Credentials Container
 # NOTE: API Keys stored in .toml file
 class WikiAuth(BaseModel):
     key: str
@@ -110,13 +107,11 @@ class GuildEpoch(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def setup(cls, data: dict) -> dict:
-        # Handle legacy rollover_time string format
         if 'rollover_time' in data and isinstance(data['rollover_time'], str):
             h, m = data['rollover_time'].split(':')
             data['rollover_minutes'] = int(h) * 60 + int(m)
             del data['rollover_time']
         elif 'rollover_minutes' not in data:
-            # Default rollover time: 17:00
             data['rollover_minutes'] = 1020
 
         return data
@@ -187,7 +182,7 @@ class GuildStarboard(BaseModel):
 
 
 class GuildCCBoard(BaseModel):
-    """ccboard config — replacement reaction-board with signed emoji weights and attribution.
+    """ccboard config - replacement reaction-board with signed emoji weights and attribution.
 
     when `enabled` is False, the legacy starboard remains active and ccboard is dormant.
     on the False → True transition, the bot reloads the ccboard extension and re-syncs
@@ -216,11 +211,9 @@ class GuildConfig(BaseModel):
     _display_name: str | None = PrivateAttr(default=None)
 
     async def save(self):
-        """Save entire guild config to MongoDB"""
         await _config.config_repo.save_guild(self)
 
     async def set_epoch(self, time, year: int):
-        # Updates epoch start time and year number, persisting to database
         logger.warning(f'[{self.id}] epoch changed: old={self.epoch.time},{self.epoch.year} new={int(time)},{year}')
         self.epoch.time = int(time)
         self.epoch.year = year
@@ -228,25 +221,21 @@ class GuildConfig(BaseModel):
         await _config.config_repo.update_guild_field(self.id, 'epoch.year', year)
 
     async def set_year_length(self, length: int):
-        # Updates the duration of each in-game year, persisting to database
         logger.warning(f'[{self.id}] epoch length changed: old={self.epoch.length} new={length}')
         self.epoch.length = length
         await _config.config_repo.update_guild_field(self.id, 'epoch.length', length)
 
     async def pause_time(self):
-        # Freezes time progression, persisting to database
         logger.warning(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=True')
         self.epoch.paused = True
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', True)
 
     async def resume_time(self):
-        # Resumes time progression, persisting to database
         logger.warning(f'[{self.id}] epoch pause changed: old={self.epoch.paused} new=False')
         self.epoch.paused = False
         await _config.config_repo.update_guild_field(self.id, 'epoch.paused', False)
 
     async def reload(self) -> bool:
-        # Reloads this guild's configuration from the database
         return await _config.load_guild(self.id)
 
     @override
@@ -258,7 +247,6 @@ class GuildConfigExport(GuildConfig):
     name: str
 
 
-# Type definition for NovaConfig serialization
 class NovaConfigRepr(TypedDict):
     config_version: str
     path: str
@@ -273,14 +261,12 @@ class NovaConfigRepr(TypedDict):
 # --- Exceptions ---
 
 
-# Raised when configuration loading fails
 class ConfigLoadError(Exception):
     def __init__(self, reason: str):
         self.message = f'Unable to load config: {reason}'
         super().__init__(self.message)
 
 
-# Raised when accessing a non-authorized guild
 class UnauthorizedGuild(Exception):
     def __init__(self, guild):
         self.message = f'Guild "{guild}" not in the authorized guilds list'
@@ -290,25 +276,13 @@ class UnauthorizedGuild(Exception):
 # --- Config Class ---
 
 
-# New Config Rewrite
 class NovaConfig:
-    """
-    NovaConfig - Redesigned Config Storage System
-
-    design decisions tl;dr
-    - only stored in config file for security reasons or if needed before db init step
-    - split into three loading steps:
-      - on_init: ran first upon start, loads and unpacks config file
-      - on_load: ran after database connect, loads data from MongoDB
-      - on_ready: ran after all other init steps, maintainance tasks
-    """
+    """three-phase init: on_init loads the config file, on_load reads from MongoDB, on_ready runs after bot connects."""
 
     def __init__(self):
-        # Assign to module-level singleton
         global _config  # noqa: PLW0603 - lazy singleton initialization requires global
         _config = self
 
-        # Core attributes
         self.config_version: str = __schema__
         self.backup: BackupConfig = None
         self.wiki: WikiAuth = None
@@ -323,10 +297,8 @@ class NovaConfig:
         self.owner_ids: set[int] = set()
         self._raw: RawConfig = None
 
-        # MongoDB repositories
         self.config_repo: ConfigRepository = None
 
-        # Config sections loaded from TOML
         self.paths: PathsConfig = None
         self.database: DatabaseConfig = None
         self.hatch: HatchConfig = None
@@ -334,7 +306,6 @@ class NovaConfig:
         self.bridge: BridgeConfig = None
         self.features_enabled: list[str] = []
 
-        # Path and environment attributes
         self.path = Path(getenv('ATTU_CONFIG_FILE', './.secrets/attu-bot.toml')).resolve()
         self.timezone = ZoneInfo(getenv('TZ', 'UTC'))
         self.guilds: dict[int, GuildConfig] = {}
@@ -342,7 +313,6 @@ class NovaConfig:
         self.web_mode: bool = False  # set by web app to skip migrations
         self.ingestor_mode: bool = False  # set by ingestor to skip discord-specific migrations
 
-        # Event system
         self._events = {
             'init': asyncio.Event(),
             'load': asyncio.Event(),
@@ -350,9 +320,7 @@ class NovaConfig:
             'reload': asyncio.Event(),
         }
 
-    # --- Event Calls ---
-
-    def on_init(self):  # called first upon startup, load config file only  # noqa: PLR0915, PLR0912 - sequential config section loading with try/except per section
+    def on_init(self):  # noqa: PLR0915, PLR0912 - sequential config section loading with try/except per section
         logger.info('starting initial config loading stage')
 
         if not self.path.exists():
@@ -364,23 +332,19 @@ class NovaConfig:
         with self.path.open() as file:
             self._raw = cast(RawConfig, tomlkit.load(file))
 
-        # validate config file format version
         if not _version_gte(self._raw['config_version'], __config_version__):
             logger.critical(f'incompatible config version: file={self._raw["config_version"]} required>={__config_version__}')
             raise ConfigLoadError(f'config file version {self._raw["config_version"]} is below required {__config_version__}')
         else:
             logger.info(f'config file version {self._raw["config_version"]} satisfies >={__config_version__}')
 
-        # unpack into attributes
         self.bot_token = self._raw['auth']['bot']['token']
 
-        # detect old [discord.guilds] format and reject it
         discord_section = self._raw.get('discord', {})
         old_guilds = discord_section.get('guilds', {})
         if isinstance(old_guilds, dict) and ('primary' in old_guilds or 'secondary' in old_guilds):
             raise ConfigLoadError('old [discord.guilds] format detected; migrate to [[guilds]] array with role field')
 
-        # parse [[guilds]] array
         raw_entries = self._raw.get('guilds', [])
         if not raw_entries:
             raise ConfigLoadError('no [[guilds]] entries found in config file')
@@ -457,16 +421,14 @@ class NovaConfig:
                 logger.error(f'failed to validate bridge configuration: {err!s}')
                 raise ConfigLoadError('invalid bridge configuration (check [bridge] section)')
 
-        # parse [features] section (optional; no error if absent)
         features_raw = self._raw.get('features', {})
         self.features_enabled = list(features_raw.get('enabled', []))
 
         self._get_event('init').set()
 
-    async def on_load(self):  # called after init_database() connects and sets up config_repo
+    async def on_load(self):
         logger.info('starting post-connect config loading stage')
 
-        # Version check and load system config
         system_config = await self.config_repo.get_system()
         if system_config:
             logger.info(f'current schema version: {system_config.version}')
@@ -483,16 +445,13 @@ class NovaConfig:
             )
             await self.config_repo.save_system(system_config)
 
-        # Extract system config values (eliminates redundant query)
+        # avoids a redundant db query
         self.error_log = tuple(system_config.error_log)
         self.error_hook = system_config.error_hook
 
-        # Load other configurations
         await self.load_theme()
 
-        # Load guild configs in parallel
         async def _load_guild_safe(guild_id: int) -> tuple[int, bool]:
-            """Wrapper that catches exceptions for parallel loading"""
             try:
                 success = await self.load_guild(guild_id)
                 return (guild_id, success)
@@ -505,12 +464,11 @@ class NovaConfig:
             return_exceptions=False,
         )
 
-        # Log any failures
         for guild_id, success in results:
             if not success:
                 logger.warning(f'guild {guild_id} failed to load properly')
 
-        # Run migrations after guild configs are loaded (migrations may need guild data)
+        # migrations may need guild data loaded first
         if system_config.version != self.config_version:
             logger.info(f'schema version mismatch: {system_config.version} -> {self.config_version}')
 
@@ -523,13 +481,12 @@ class NovaConfig:
 
         self._get_event('load').set()
 
-    async def on_ready(self):  # called by Bot.on_ready after connect, low priority maintenance tasks
+    async def on_ready(self):
         from nova_core.client.core import bot
 
         logger.info('starting post-ready config loading stage')
 
         async def _update_guild_markers(guild_id: int, guild: GuildConfig) -> int | None:
-            """Add bot user to guild markers if needed"""
             if bot.user.id not in guild.users.markers:
                 logger.info(f'adding bot user to valid year marker authors for {guild_id}')
                 guild.users.markers.append(bot.user.id)
@@ -542,14 +499,14 @@ class NovaConfig:
                     return None
             return None
 
-        # Execute parallel updates (skip in test mode to avoid DB writes)
+        # skip in test mode to avoid DB writes
         if not self.test_mode:
             await asyncio.gather(
                 *[_update_guild_markers(idx, guild) for idx, guild in self.guilds.items()],
                 return_exceptions=False,
             )
 
-        # only chmod if not in test/web mode (volume may be read-only)
+        # volume may be read-only in test/web mode
         if not self.test_mode and not self.web_mode:
             await anyio.Path(self.path).chmod(0o660)
 
@@ -566,7 +523,6 @@ class NovaConfig:
             # logger.debug('Dumping NovaConfig:', tomlkit.dumps(self.to_dict(banned_keys=['config_repo', 'job_worker']), sort_keys=True), sep='\n')
             pass
 
-        # load guild names from discord and store in config object
         logger.debug('fetching guild names')
 
         async def _fetch_guild_name(guild_id: int) -> tuple[int, str | None]:
@@ -583,12 +539,11 @@ class NovaConfig:
 
         results = await asyncio.gather(*[_fetch_guild_name(idx) for idx in self.guilds])
 
-        # Apply results
         for guild_id, name in results:
             if guild_id in self.guilds:
                 self.guilds[guild_id]._display_name = name
 
-        # Run ready-stage migrations now that bot cache is populated
+        # bot cache is populated by this point
         if not self.test_mode and not self.web_mode:
             system_config = await self.config_repo.get_system()
             if system_config.version != self.config_version:
@@ -597,8 +552,6 @@ class NovaConfig:
                 await run_pending_migrations(stage='ready')
 
         self._get_event('ready').set()
-
-    # --- Public Methods ---
 
     def guild(self, guild: int) -> GuildConfig:
         if guild in self.authorized_guilds:
@@ -627,8 +580,6 @@ class NovaConfig:
     def is_owner(self, user: int):
         return user in self.owner_ids
 
-    # --- Private Methods ---
-
     async def load_globals(self):
         """Reload system config from database (for runtime updates only)
 
@@ -640,7 +591,6 @@ class NovaConfig:
             self.error_log = tuple(system.error_log)
             self.error_hook = system.error_hook
 
-        # trigger event if this is a reload
         if self._get_event('load').is_set():
             self._get_event('reload').set()
 
@@ -653,7 +603,6 @@ class NovaConfig:
             doc = await self.config_repo.get_guild(guild)
             if not doc:
                 logger.warning(f'no config found for guild {guild}, using defaults')
-                # Create default config
                 default_config = GuildConfig(
                     id=guild,
                     channels=GuildChannels(),
@@ -664,7 +613,6 @@ class NovaConfig:
                 await self.config_repo.save_guild(default_config)
                 self.guilds[guild] = default_config
             else:
-                # Convert document to runtime GuildConfig
                 self.guilds[guild] = GuildConfig(
                     id=guild,
                     channels=GuildChannels(**doc.channels),
@@ -678,7 +626,6 @@ class NovaConfig:
             if guild not in self.valid_guilds:
                 self.valid_guilds.append(guild)
 
-            # trigger event if this is a reload
             if self._get_event('load').is_set():
                 self._get_event('reload').set()
 
@@ -712,7 +659,6 @@ class NovaConfig:
                     ui_emojis=doc.ui_emojis,
                 )
             else:
-                # Create defaults
                 self.theme = BotTheme(
                     rotation=0.0,
                     max_rate=0.5,
@@ -721,7 +667,6 @@ class NovaConfig:
                 )
                 await self.config_repo.save_theme(self.theme)
 
-            # trigger event if this is a reload
             if self._get_event('load').is_set():
                 self._get_event('reload').set()
 
@@ -734,8 +679,6 @@ class NovaConfig:
                 self.theme = prev_state
 
             return False
-
-    # --- Config Events ---
 
     def _get_event(self, key: str) -> asyncio.Event:
         if key in self._events:
@@ -761,8 +704,6 @@ class NovaConfig:
 
         return await reload.wait()
 
-    # --- Debug ---
-
     def to_dict(self, banned_keys=[]) -> NovaConfigRepr:
         result = {}
 
@@ -783,7 +724,7 @@ class NovaConfig:
                 return value
 
         for key, value in vars(self).items():
-            if key == 'guilds':  # custom handling for guilds
+            if key == 'guilds':
                 guilds = []
 
                 for idx, guild in self.guilds.items():

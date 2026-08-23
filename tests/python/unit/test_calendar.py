@@ -1,17 +1,5 @@
-"""
-AttuBot - Calendar System Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Baseline tests for the epoch/calendar system. These verify the existing behavior
-of get_year_status(), get_next_year(), and related functions so that refactoring
-can be checked for regressions.
-
-All tests use freeze_time to pin wall-clock time for deterministic results.
-The test guild epoch starts at 2024-01-01 00:00:00 utc with:
-  - year = 1, length = 14 days, rollover at 17:00 utc
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_calendar | baseline tests for the epoch/calendar system."""
 
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
@@ -33,7 +21,7 @@ utc = ZoneInfo('UTC')
 
 class TestGetRolloverTime:
     def test_default_rollover(self, guild):
-        """Default 1020 minutes = 17:00"""
+        """default 1020 minutes = 17:00"""
         result = guild.epoch.get_rollover_time()
         assert result.hour == 17
         assert result.minute == 0
@@ -63,7 +51,7 @@ class TestGetRolloverTime:
 
 class TestEpochValidator:
     def test_legacy_rollover_time_string(self):
-        """Old rollover_time string format should be converted to rollover_minutes"""
+        """old rollover_time string format should be converted to rollover_minutes"""
         epoch = GuildEpoch.model_validate({'time': 0, 'year': 1, 'length': 14, 'paused': False, 'rollover_time': '17:00'})
         assert epoch.rollover_minutes == 1020
 
@@ -96,14 +84,14 @@ class TestGetYearStatus:
 
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
-        """Exactly 14 days, after rollover → year 2"""
+        """exactly 14 days, after rollover → year 2"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 14
         assert year == 2
 
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
-        """Exactly 14 days, before rollover → still year 1 (boundary correction)"""
+        """exactly 14 days, before rollover → still year 1 (boundary correction)"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 14
         assert year == 1
@@ -124,15 +112,15 @@ class TestGetYearStatus:
 
     @freeze_time('2024-01-01 12:00:00')
     def test_epoch_start_day_before_rollover(self, guild):
-        """Day zero, before rollover → boundary correction, year 0"""
+        """day zero, before rollover → boundary correction, year 0"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 0
-        # At boundary (0 % 14 == 0) and before rollover → year - 1 = 0
+        # at boundary (0 % 14 == 0) and before rollover → year - 1 = 0
         assert year == 0
 
     @freeze_time('2024-01-01 18:00:00')
     def test_epoch_start_day_after_rollover(self, guild):
-        """Day zero, after rollover → year 1"""
+        """day zero, after rollover → year 1"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 0
         assert year == 1
@@ -143,7 +131,7 @@ class TestGetYearStatus:
         make_guild(length=7)
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 7
-        # At boundary, before rollover → year correction
+        # at boundary, before rollover → year correction
         assert year == 1
 
     @freeze_time('2024-01-08 18:00:00')
@@ -156,7 +144,7 @@ class TestGetYearStatus:
 
     @freeze_time('2024-01-08 12:00:00')
     def test_uses_primary_guild_when_none(self, guild):
-        """Passing guild=None uses primary guild"""
+        """passing guild=None uses primary guild"""
         elapsed, year = get_year_status(None)
         assert elapsed == 7
         assert year == 1
@@ -183,14 +171,14 @@ class TestGetNextYear:
 
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
-        """At boundary after rollover → next year is one full length away"""
+        """at boundary after rollover → next year is one full length away"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 29, 17, 0, tzinfo=utc)
         assert result == expected
 
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
-        """At boundary before rollover → next year is today at rollover"""
+        """at boundary before rollover → next year is today at rollover"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 15, 17, 0, tzinfo=utc)
         assert result == expected
@@ -210,7 +198,7 @@ class TestGetNextYear:
         assert result == expected
 
     def test_paused_returns_epoch_zero(self, make_guild):
-        """When paused, returns unix epoch 0"""
+        """when paused, returns unix epoch 0"""
         make_guild(paused=True)
         result = get_next_year(test_guild)
         assert result == datetime.fromtimestamp(0, tz=utc)
@@ -243,13 +231,13 @@ class TestFormatYearLine:
         assert result.startswith('##')
 
     def test_different_years_get_different_separators(self):
-        """Adjacent years should get different separator patterns"""
+        """adjacent years should get different separator patterns"""
         r1 = format_year_line(1)
         r2 = format_year_line(2)
         assert r1 != r2
 
     def test_level_wraps(self):
-        """Level wraps at 7"""
+        """level wraps at 7"""
         r1 = format_year_line(1, level=1)
         r2 = format_year_line(1, level=8)
         assert r1 == r2
@@ -259,7 +247,7 @@ class TestFormatYearLine:
         assert 'Year 9999 PC' in result
 
     def test_year_zero(self):
-        """Year 0 shouldn't crash"""
+        """year 0 shouldn't crash"""
         result = format_year_line(0)
         assert 'Year 0 PC' in result
 
@@ -280,14 +268,14 @@ class TestHaracalndeDate:
     @freeze_time('2024-01-08 12:00:00')
     @pytest.mark.asyncio
     async def test_paused(self, make_guild):
-        """Paused calendar returns 'Paused at N PC' regardless of timestamp"""
+        """paused calendar returns 'Paused at N PC' regardless of timestamp"""
         make_guild(paused=True)
         result = await haracalnde_date(1704736800, test_guild)
         assert result == 'Paused at 1 PC'
 
     @pytest.mark.asyncio
     async def test_epoch_start(self, guild):
-        """Exact epoch rollover timestamp maps to 1-1 1 PC"""
+        """exact epoch rollover timestamp maps to 1-1 1 PC"""
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(self.EPOCH_ROLLOVER, test_guild)
@@ -337,7 +325,7 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_uses_year_span_not_epoch_length(self, guild):
-        """When year_span covers 30 real-world days, position scales to that length"""
+        """when year_span covers 30 real-world days, position scales to that length"""
         span_30d = AttuYearSpan(start_time=1704128400, end_time=1706720400, duration=30)
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = span_30d
@@ -348,7 +336,7 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_no_db_record_fallback(self, guild):
-        """When year_span has no data, fall back to epoch.length scaling"""
+        """when year_span has no data, fall back to epoch.length scaling"""
         empty_span = AttuYearSpan(start_time=0, end_time=0, duration=0)
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = empty_span

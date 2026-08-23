@@ -9,7 +9,7 @@ from nova_core.ccboard.documents import BoardEntryDocument
 from nova_core.config import GuildCCBoard
 
 
-# --- Constants ---
+# --- constants ---
 
 guild_id = 1234567890
 channel_id = 5555555555
@@ -26,7 +26,7 @@ negative_color_hex = '#DD2020'
 reply_color_int = 0x2B2D31
 
 
-# --- Fixtures ---
+# --- fixtures ---
 
 
 @pytest.fixture(autouse=True)
@@ -117,7 +117,7 @@ def make_config(**overrides) -> GuildCCBoard:
     return GuildCCBoard(**defaults)
 
 
-# --- Tests ---
+# --- tests ---
 
 
 def test_text_only_message_uses_positive_color():

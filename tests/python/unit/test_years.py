@@ -1,13 +1,5 @@
-"""
-AttuBot - Year Model Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests for the Year runtime model (years.py). The repository layer is mocked
-so these tests verify model logic, navigation, lifecycle methods, and the
-to_span() conversion without requiring a real MongoDB connection.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.unit.test_years | tests for the Year runtime model."""
 
 import os
 import time as _time

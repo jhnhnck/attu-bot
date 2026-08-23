@@ -1,13 +1,5 @@
-"""
-AttuBot - NovaYearTask Component Tests
-Author(s): @jhnhnck <john@jhnhnck.com>
-
-This file is licensed under the Apache License, Version 2.0; See LICENSE for full text.
-
-Tests rollover state changes with a real YearRepository and fake Discord/wiki gateway objects.
-`_advance_year` is decorated with @webhook_logging which swallows exceptions, so all
-fake discord/wiki objects must be set up to not raise - test failures show as missing DB state.
-"""
+# SPDX-License-Identifier: Apache-2.0
+"""tests.python.component.test_task_nova_year | nova year task component tests."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -44,7 +36,6 @@ async def _run_advance_year(cfg, year, year_repo, extra_lore_ids=None):
         announcements=announce_ch,
     )
 
-    # fake lore channels - each returns a fake message with jump_url
     lore_channels: dict[int, MagicMock] = {}
     for ch_id in all_lore_ids:
         ch = MagicMock()
