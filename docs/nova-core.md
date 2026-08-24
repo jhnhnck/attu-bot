@@ -9,7 +9,6 @@ architectural decisions and workstreams for the nova_core refactor: a fully modu
 - [feature manifest design](#feature-manifest-design)
 - [config restructure](#config-restructure)
 - [admin repl client](#admin-repl-client)
-- [second bot: casino](#second-bot-casino)
 - [workstreams](#workstreams)
 - [cutover gate](#cutover-gate)
 - [see also](#see-also)
@@ -23,7 +22,7 @@ doom-bot was built for one specific deployment (attu project) and has outgrown i
 - tasks manually listed in `tasks/__init__.py` `register_bot_tasks()`
 - guild config fields hard-typed into `GuildConfig` and `GuildConfigDocument`
 
-the driving goal is to build a second bot (a banking/casino/lottery bot) that shares the same core infrastructure but runs a completely different feature set. features must be independently loadable, removable, and portable without editing core files.
+the goal is a fully modular platform where features are independently loadable, removable, and portable without editing core files.
 
 ## naming decisions
 
@@ -43,7 +42,6 @@ the rename is a hard prerequisite. no other workstream starts until import paths
 | platform services | core-adjacent; other features may depend on them | message storage (`client/messages.py`) |
 | features | manifest-driven; independently loadable and removable | starboard, ccboard, eggs, wiki, reminders, trees, modlog, logo-update |
 | attu-specific features | features that will not travel to other bots | timekeeping (nova_year), markers, year links |
-| casino-specific features | new features in the second bot | banking, casino games, lottery |
 
 **note on starboard/ccboard coexistence:** both are features with manifests. the guild-level `ccboard.enabled` flag handles runtime switching during the transition. the toml features list controls whether either loads at all. when starboard is retired, remove it from the attu toml features list and delete the package.
 
@@ -232,17 +230,6 @@ implementation: `cmd.Cmd` from stdlib; no extra dependencies. `httpx` for http c
 
 the server grows an `/admin/` router, gated on `Authorization: Bearer` against `config.auth.api_keys`. endpoints cover: guild info, config get/set, feature enable/disable, reload triggers, fix/debug operations. the server calls the bridge internally for bot operations; the repl never touches the bridge directly.
 
-## second bot: casino
-
-lives in `apps/casino/` with its own entry point and toml. shares `nova_core` infrastructure; loads no doom-bot features.
-
-**casino-specific engineering constraints:**
-
-- banking requires atomic debit/credit; use mongodb multi-document sessions in the banking repository. current repository pattern does not use sessions; add session support to `BaseRepository` before building the banking feature
-- casino games require cryptographically secure randomness; use `secrets.choice()` / `secrets.randbelow()`, never `import random`. document this in the casino feature's pitfalls section
-
-casino features are built manifest-native from day one; no legacy coupling to clean up.
-
 ## workstreams
 
 ### workstream 1 - structural prerequisites
@@ -301,15 +288,7 @@ casino features are built manifest-native from day one; no legacy coupling to cl
 - workspace wiring: add `attu-wiki` to `apps/bot/pyproject.toml` and root `[tool.uv.workspace]`
 - walking skeleton first: create package + empty `__init__.py` and verify `uv sync` before moving any code
 
-### workstream 4 - casino bot scaffold
-
-- `apps/casino/` entry point with its own toml
-- add mongodb session support to base repository pattern
-- banking feature: `BankAccountDocument`, `TransactionDocument`, `TransactionRepository`; atomic debit/credit via sessions
-- casino and lottery features built manifest-native
-- no doom-bot features loaded; shares only `nova_core` infrastructure
-
-### workstream 5 - fastapi admin endpoints + repl client
+### workstream 4 - fastapi admin endpoints + repl client
 
 - fastapi server grows `/admin/` router; `Authorization: Bearer` gate against `config.auth.api_keys`
 - server exposes: guild/channel/role listing with slugs, config get/set, feature enable/disable, reload triggers, fix/debug operations

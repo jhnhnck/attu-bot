@@ -20,7 +20,6 @@ plugins:
         python:
           paths:
             - apps/bot
-            - apps/casino
             - apps/server
             - packages/shared-models
             - packages/attu-logging
@@ -55,4 +54,3 @@ nav:
     - Attu Logging: api/attu-logging.md
     - Attu Wiki: api/attu-wiki.md
     - Attu Server: api/attu-server.md
-    - Casino Bot: api/casino-bot.md
