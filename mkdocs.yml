@@ -36,7 +36,6 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Config system: config-system.md
-  - Nova Core: nova-core.md
   - Features:
     - Eggs: features/eggs.md
     - Markers: features/markers.md

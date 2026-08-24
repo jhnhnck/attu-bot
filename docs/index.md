@@ -4,6 +4,5 @@ Discord bot for the Attu Project automating in-universe timekeeping, year-transi
 
 - [architecture](architecture.md) - package layout, file roles, dependencies
 - [config system](config-system.md) - three-tier config, adding new fields
-- [nova core](nova-core.md) - nova-core contract and public API surface
 - [features](features/eggs.md) - eggs, markers, reminders, starboard, tasks, timekeeping, ccboard
 - [api reference](api/nova-core.md) - auto-generated from docstrings for all six workspace packages
