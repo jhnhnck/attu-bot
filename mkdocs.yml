@@ -47,6 +47,9 @@ nav:
   - Style:
     - Embeds: style/embed_usage.md
     - Buttons: style/button_usage.md
+    - Views: style/view_usage.md
+    - Selects: style/select_usage.md
+    - Commands: style/command_usage.md
   - API reference:
     - nova-core:
       - Core: api/nova-core/core.md
