@@ -48,8 +48,21 @@ nav:
     - Embeds: style/embed_usage.md
     - Buttons: style/button_usage.md
   - API reference:
-    - Nova Core: api/nova-core.md
-    - Attu Models: api/attu-models.md
-    - Attu Logging: api/attu-logging.md
-    - Attu Wiki: api/attu-wiki.md
-    - Attu Server: api/attu-server.md
+    - nova-core:
+      - Core: api/nova-core/core.md
+      - Bridge: api/nova-core/bridge.md
+      - Database: api/nova-core/database.md
+      - Commands: api/nova-core/commands.md
+      - Tasks: api/nova-core/tasks.md
+      - CCBoard: api/nova-core/ccboard.md
+      - Eggs: api/nova-core/eggs.md
+      - Starboard: api/nova-core/starboard.md
+      - Reminders: api/nova-core/reminders.md
+      - Trees: api/nova-core/trees.md
+      - Wiki: api/nova-core/wiki.md
+      - Modlog: api/nova-core/modlog.md
+    - Packages:
+      - Attu Models: api/attu-models.md
+      - Attu Logging: api/attu-logging.md
+      - Attu Wiki: api/attu-wiki.md
+      - Attu Server: api/attu-server.md
