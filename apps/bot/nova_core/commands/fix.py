@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.commands.fix | background job functions for repair operations.
+"""nova_core.commands.fix | background job functions for repair and maintenance operations.
 
 discord slash commands have been removed; these jobs are invoked via the bridge ops
-endpoints so the admin repl can trigger them without discord context.
+endpoints or used internally by other subsystems.
 """
 
 from datetime import timedelta
@@ -11,6 +11,7 @@ import discord
 import structlog
 from discord import Bot
 
+from nova_core.client import messages
 from nova_core.client.core import bot, config
 from nova_core.tasks.message_backfill import MessageBackfillTask
 
@@ -118,6 +119,49 @@ async def job_reconcile_guild(guild_id: int, status_msg: discord.Message | None 
 
     summary = f'Reconcile complete: {total_backfilled} backfilled, {total_reconciled} reconciled'
     logger.info(f'fix reconcile: {summary} (guild {guild_id})')
+    await _safe_edit(status_msg, summary)
+
+
+async def job_fix_author_names(guild_id: int, status_msg: discord.Message | None = None, user_id: int | None = None):
+    """resolve current global usernames and bulk-update author_name on all stored messages."""
+    from nova_core.client.core import bot as _bot
+    from nova_core.client.messages import _global_username
+
+    repo = messages._get_repo()
+
+    if user_id is not None:
+        author_ids = [user_id]
+    else:
+        author_ids = await repo.distinct_author_ids(guild_id)
+        logger.info(f'fix author_names: found {len(author_ids)} distinct authors for guild {guild_id}')
+
+    updated_msgs = 0
+    resolved = 0
+    not_found = 0
+
+    for i, author_id in enumerate(author_ids):
+        try:
+            user = await _bot.get_or_fetch(discord.User, author_id)
+            if user is None:
+                not_found += 1
+                logger.warning(f'fix author_names: could not resolve user {author_id}: user not found')
+                continue
+            name = _global_username(user)
+            count = await repo.update_author_name(author_id, name)
+            updated_msgs += count
+            resolved += 1
+        except Exception as err:
+            not_found += 1
+            logger.warning(f'fix author_names: could not resolve user {author_id}: {err}')
+
+        if (i + 1) % 50 == 0:
+            status_msg = await _safe_edit(status_msg, f'Progress: {i + 1}/{len(author_ids)} users processed...')
+
+    summary = f'Done - {resolved} users resolved, {updated_msgs:,} messages updated'
+    if not_found:
+        summary += f', {not_found} users not found'
+
+    logger.info(f'fix author_names: {summary} (guild {guild_id})')
     await _safe_edit(status_msg, summary)
 
 

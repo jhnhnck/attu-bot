@@ -71,13 +71,6 @@ async def ops_info_scheduler(
     return await bridge.get_op('/bridge/ops/info/scheduler')
 
 
-@router.get('/ops/trigger/logo')
-async def ops_trigger_logo_get(
-    bridge: Annotated[BridgeClient, Depends(get_bridge)],
-) -> Any:
-    return await bridge.post_op('/bridge/ops/trigger/logo')
-
-
 @router.post('/ops/trigger/logo')
 async def ops_trigger_logo(
     bridge: Annotated[BridgeClient, Depends(get_bridge)],

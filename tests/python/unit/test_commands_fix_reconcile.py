@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nova_core.commands.fix import fix_reconcile, job_reconcile_guild
+from nova_core.commands.fix import job_reconcile_guild
 from tests.conftest import test_guild
 
 
@@ -57,36 +57,6 @@ class TestReconcileComponents:
 
         final_call = mock_edit.call_args_list[-1][0]
         assert 'Reconcile complete: 0 backfilled' in final_call[1]
-
-
-@pytest.mark.asyncio
-async def test_fix_reconcile_requires_repo(mock_ctx_factory):
-    """fix_reconcile replies with an error when the message repo is unavailable"""
-    ctx = mock_ctx_factory()
-
-    with patch('nova_core.commands.fix.messages._get_repo', side_effect=RuntimeError('no repo')):
-        await fix_reconcile(ctx)
-
-    assert ctx._responses
-    response = ctx._responses[0]
-    assert 'message repo not initialized yet' in response['args'][0]
-    assert response['kwargs'].get('ephemeral') is True
-
-
-@pytest.mark.asyncio
-async def test_fix_reconcile_schedules_job(mock_ctx_factory):
-    """fix_reconcile schedules job_reconcile_guild when the repo is ready"""
-    ctx = mock_ctx_factory()
-
-    ctx.channel.send = AsyncMock(return_value=MagicMock())
-    with patch('nova_core.client.messages._get_repo', return_value=MagicMock()), patch('nova_core.commands.fix.job_reconcile_guild', new_callable=AsyncMock) as mock_job, patch('nova_core.commands.fix.scheduler.add_job') as mock_sched:
-        await fix_reconcile(ctx)
-
-    mock_sched.assert_called_once()
-    args, _ = mock_sched.call_args
-    assert args[1] == 'Job'
-    assert args[2] == 'fix_reconcile'
-    assert mock_job.call_args[0][0] == ctx.guild.id
 
 
 @pytest.mark.asyncio
