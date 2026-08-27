@@ -516,7 +516,7 @@ class AdminCmd(cmd.Cmd):
                 print(f'current year:  {result["current_year"]} PC')
                 print(f'elapsed days:  {result["elapsed_days"]}')
                 print(f'epoch time:    {result["epoch_time"]} (year {result["epoch_year"]} PC)')
-                span_d = result["year_span_duration"]
+                span_d = result['year_span_duration']
                 print(f'year span:     {result["year_span_start"]} - {result["year_span_end"]} ({span_d} days)')
 
         elif target == 'epoch':

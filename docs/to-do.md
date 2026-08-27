@@ -51,7 +51,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### debug commands
 
-- ⭕ `low priority` `low effort` audit debug commands for embed/theme consistency — `/debug version` already uses `make_embed` and bot theme; several others (message_stats, dump_config, dump_starboard, eggs_show, previews) respond with plain text
+- ⭕ `low priority` `low effort` audit debug commands for embed/theme consistency — `/version` uses `make_embed` and bot theme; `eggs_show` and `previews` still respond with plain text (message_stats, dump_config, dump_starboard were removed in repl-commands branch)
 
 ### moderation / logging
 
@@ -59,6 +59,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 ### admin / attu_server
 
+- 🔴 `27 Aug 2026` repl-commands branch: noun-first nova_admin.py REPL, bridge ops endpoints (`/bridge/ops/*`), server-side ops routes (`attu_server/api/admin/ops.py`), feature toggle bug fix; discord slash commands removed from fix.py and debug.py; smoke test gate still open (see below)
 - ⭕ `medium priority` `medium effort` implement `POST /bridge/fix/recalculate-starboard` in `doom_bot/bridge/router.py` — the `fix.py` admin endpoint ships with a 501 fallback until the bridge side lands; this is the bridge companion needed to make `fix recalculate-starboard` functional end-to-end. nova-w3 or standalone bridge task. carried from plan: nova-w5 (2026-08-12)
 - ⭕ `medium priority` `low effort` run `scripts/nova_admin.py` smoke test against dev server: verify `guilds`, `use <slug>`, `config get <key>`, `config set <key> <value>`, `feature enable <name>`, `reload guild` all complete without error; record results in `.claude/plans/nova-w5/log.md` before final merge (plan merge gate). carried from plan: nova-w5 (2026-08-12)
 - ⭕ `low priority` `low effort` `apps/server/pyproject.toml` declares only `attu-logging`; all other server runtime deps (fastapi, httpx, tomlkit, uvicorn, itsdangerous) live in `apps/bot/pyproject.toml`; uv workspace resolves transitively so no runtime failures, but dep ownership is wrong. carried from plan: nova-w5 (2026-08-12)

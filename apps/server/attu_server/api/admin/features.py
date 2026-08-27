@@ -81,10 +81,7 @@ async def list_features(
     features = []
     for name, default in _FEATURE_DEFAULTS.items():
         subdoc = getattr(doc, name, {})
-        if isinstance(subdoc, dict):
-            enabled = subdoc.get('enabled', default)
-        else:
-            enabled = default
+        enabled = subdoc.get('enabled', default) if isinstance(subdoc, dict) else default
         features.append({'name': name, 'enabled': bool(enabled)})
 
     return {'features': features}
