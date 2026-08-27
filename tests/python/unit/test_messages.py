@@ -64,9 +64,9 @@ def message_repo():
 
 @pytest.fixture
 def mock_message_repo():
-    """Patch nova_core.messages._get_repo and nova_core.commands.fix.messages._get_repo to return an AsyncMock repo."""
+    """Patch nova_core.client.messages._get_repo to return an AsyncMock repo."""
     repo = AsyncMock()
-    with patch('nova_core.client.messages._get_repo', return_value=repo), patch('nova_core.commands.fix.messages._get_repo', return_value=repo):
+    with patch('nova_core.client.messages._get_repo', return_value=repo):
         yield repo
 
 
@@ -1043,97 +1043,6 @@ class TestOnRawBulkMessageDelete:
         with patch('nova_core.client.messages.log_bulk_delete', new=AsyncMock()) as mock_log:
             await on_raw_bulk_message_delete(payload)
             mock_log.assert_not_called()
-
-
-# --- job_fix_author_names ---
-
-
-def _make_mock_user(global_name: str | None = 'GlobalName', name: str = 'username') -> MagicMock:
-    user = MagicMock()
-    user.global_name = global_name
-    user.name = name
-    return user
-
-
-class TestJobFixAuthorNames:
-    async def test_updates_all_users(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
-        mock_message_repo.update_author_name = AsyncMock(return_value=3)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user('GlobalName'))
-            await job_fix_author_names(test_guild)
-
-        mock_message_repo.update_author_name.assert_called_once_with(test_user, 'username')
-
-    async def test_falls_back_to_name_when_no_global_name(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
-        mock_message_repo.update_author_name = AsyncMock(return_value=1)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user(global_name=None, name='rawname'))
-            await job_fix_author_names(test_guild)
-
-        mock_message_repo.update_author_name.assert_called_once_with(test_user, 'rawname')
-
-    async def test_single_user_skips_distinct(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        mock_message_repo.update_author_name = AsyncMock(return_value=2)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
-            await job_fix_author_names(test_guild, user_id=test_user)
-
-        mock_message_repo.distinct_author_ids.assert_not_called()
-        mock_message_repo.update_author_name.assert_called_once_with(test_user, 'username')
-
-    async def test_user_not_found_is_skipped(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
-        mock_message_repo.update_author_name = AsyncMock(return_value=0)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(return_value=None)
-            await job_fix_author_names(test_guild)
-
-        mock_message_repo.update_author_name.assert_not_called()
-
-    async def test_fetch_error_is_swallowed(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        mock_message_repo.distinct_author_ids = AsyncMock(return_value=[test_user])
-        mock_message_repo.update_author_name = AsyncMock(return_value=0)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(side_effect=Exception('api error'))
-            # should not raise
-            await job_fix_author_names(test_guild)
-
-        mock_message_repo.update_author_name.assert_not_called()
-
-    async def test_posts_progress_to_status_msg(self, mock_message_repo, guild):
-        from nova_core.commands.fix import job_fix_author_names
-
-        # build a list of 50 users to trigger the progress update at i=49
-        author_ids = list(range(test_user, test_user + 50))
-        mock_message_repo.distinct_author_ids = AsyncMock(return_value=author_ids)
-        mock_message_repo.update_author_name = AsyncMock(return_value=1)
-
-        status_msg = AsyncMock()
-        status_msg.edit = AsyncMock(return_value=status_msg)
-
-        with patch('nova_core.client.core.bot') as mock_bot:
-            mock_bot.get_or_fetch = AsyncMock(return_value=_make_mock_user())
-            await job_fix_author_names(test_guild, status_msg=status_msg)
-
-        # edit is called once at the 50-user mark, then once more for the final summary
-        assert status_msg.edit.call_count >= 2
 
 
 # --- _serialize_embeds ---
