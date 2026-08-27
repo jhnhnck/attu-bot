@@ -46,12 +46,25 @@ class BridgeClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def _request(self, method: str, path: str, *, json: Any = None) -> httpx.Response:
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Any = None,
+        params: dict | None = None,
+        timeout: float | None = None,
+    ) -> httpx.Response:
         body = b'' if json is None else httpx.Request(method, path, json=json).content
         sig = _sign(self._cfg.secret, method, path, body)
         headers = {SIGNATURE_HEADER: sig}
         try:
-            return await self._client.request(method, path, content=body or None, headers=headers)
+            kw: dict[str, Any] = {'content': body or None, 'headers': headers}
+            if params:
+                kw['params'] = params
+            if timeout is not None:
+                kw['timeout'] = timeout
+            return await self._client.request(method, path, **kw)
         except httpx.HTTPError as e:
             raise BridgeError(f'bridge request failed: {e!s}') from e
 
@@ -140,13 +153,14 @@ class BridgeClient:
         r = await self._request('POST', '/bridge/reload', json=body)
         r.raise_for_status()
 
-    async def post_fix(self, operation: str, guild_id: int | None = None) -> Any:
-        """call a bridge fix endpoint; returns the raw response without raising on non-2xx.
+    async def post_op(self, path: str, json: Any = None, *, timeout: float | None = None) -> Any:
+        """call a bridge ops POST endpoint; raises on non-2xx, returns parsed json."""
+        r = await self._request('POST', path, json=json, timeout=timeout)
+        r.raise_for_status()
+        return r.json()
 
-        caller is responsible for inspecting the status code before calling raise_for_status().
-        guild_id is included in the request body when provided.
-        """
-        body: dict[str, Any] | None = None
-        if guild_id is not None:
-            body = {'guild_id': guild_id}
-        return await self._request('POST', f'/bridge/fix/{operation}', json=body)
+    async def get_op(self, path: str, params: dict | None = None, *, timeout: float | None = None) -> Any:
+        """call a bridge ops GET endpoint; raises on non-2xx, returns parsed json."""
+        r = await self._request('GET', path, params=params, timeout=timeout)
+        r.raise_for_status()
+        return r.json()

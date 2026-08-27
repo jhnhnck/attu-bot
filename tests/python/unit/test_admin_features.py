@@ -109,7 +109,7 @@ def test_enable_feature_db_write(client, sample_doc):
         r = client.post('/api/admin/guilds/test-guild/features/starboard/enable', headers=auth)
     assert r.status_code == 200
     assert r.json() == {'feature': 'starboard', 'enabled': True}
-    assert update_calls == [(111, 'features.starboard.enabled', True)]
+    assert update_calls == [(111, 'starboard.enabled', True)]
 
 
 def test_enable_feature_bridge_calls(client, sample_doc, mock_bridge):
@@ -130,7 +130,7 @@ def test_disable_feature_db_write(client, sample_doc):
         r = client.post('/api/admin/guilds/test-guild/features/ccboard/disable', headers=auth)
     assert r.status_code == 200
     assert r.json() == {'feature': 'ccboard', 'enabled': False}
-    assert update_calls == [(111, 'features.ccboard.enabled', False)]
+    assert update_calls == [(111, 'ccboard.enabled', False)]
 
 
 def test_disable_feature_bridge_calls(client, sample_doc, mock_bridge):
