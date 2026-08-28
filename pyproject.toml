@@ -128,6 +128,11 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 "apps/bot/nova_core/commands/debug.py" = ["S311"]
 "apps/bot/nova_core/eggs/hatching.py" = ["S311"]
 "apps/bot/nova_core/tasks/logo_update.py" = ["S311"]
+"scripts/nova_admin.py" = [
+  "PLR0911",  # cmd.Cmd do_* methods use early returns per branch; count scales with subcommand count
+  "PLR0912",  # cmd.Cmd do_* methods use if/elif chains; branch count scales with subcommand count
+  "PLR0915",  # cmd.Cmd do_* methods are inherently large; statement count scales with subcommand count
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python/unit", "tests/python/component", "tests/python/integration"]
