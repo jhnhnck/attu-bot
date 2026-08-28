@@ -98,7 +98,7 @@ async def invalidate_cache(req: CacheInvalidateRequest) -> dict[str, Any]:
 
 @signed.post('/reload')
 async def reload_config(req: ReloadRequest) -> dict[str, Any]:
-    """mirror the reload_watcher.py behavior; called synchronously from the server."""
+    """handle config reloads synchronously from the bridge server."""
     if req.signal_type == 'guild':
         if req.guild_id is None:
             raise HTTPException(status_code=400, detail='guild_id required for guild reload')
@@ -113,7 +113,7 @@ async def reload_config(req: ReloadRequest) -> dict[str, Any]:
         if not success:
             raise HTTPException(status_code=500, detail='theme reload failed validation')
 
-        # local imports avoid circular dependency with tasks/__init__.py; matches the existing reload_watcher pattern
+        # local imports avoid circular dependency with tasks/__init__.py
         from nova_core.tasks.logo_update import logo_update_task
         from nova_core.tasks.scheduler import scheduler
 

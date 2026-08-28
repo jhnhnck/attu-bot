@@ -621,12 +621,10 @@ async def migration_target_signals():
     from pymongo.errors import OperationFailure
 
     from nova_core.client.core import db
-    from nova_core.database.repositories import ReloadSignalRepository
-
     logger.info('running migration to 2.5.5: targeting reload signals')
 
     database = db.get_db()
-    collection = database[ReloadSignalRepository.COLLECTION]
+    collection = database['reload_signals']
 
     with contextlib.suppress(OperationFailure):
         await collection.drop_index('signal_type_1_guild_id_1')

@@ -130,27 +130,3 @@ class MessageDocument(BaseModel):
     edited_at: int | None = None
     deleted: bool = False
     deleted_at: int | None = None
-
-
-class ReloadSignalDocument(BaseModel):
-    """MongoDB document for cross-process config reload signals.
-
-    written by the web process; consumed and deleted by a target consumer process.
-    upserted by (target, signal_type, guild_id) so rapid saves coalesce per target.
-    """
-
-    model_config = ConfigDict(extra='ignore')
-
-    signal_type: Literal['guild', 'theme', 'system']
-    guild_id: int | None = None
-    timestamp: int = 0
-    target: Literal['bot', 'ingestor'] = 'bot'
-
-    @classmethod
-    def make(
-        cls,
-        signal_type: Literal['guild', 'theme', 'system'],
-        guild_id: int | None = None,
-        target: Literal['bot', 'ingestor'] = 'bot',
-    ) -> 'ReloadSignalDocument':
-        return cls(signal_type=signal_type, guild_id=guild_id, timestamp=int(time.time()), target=target)

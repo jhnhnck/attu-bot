@@ -9,7 +9,6 @@ from nova_core.tasks.error_hook import ErrorHookTask, error_hook_refresh, error_
 from nova_core.tasks.logo_update import LogoUpdateTask, logo_update_task
 from nova_core.tasks.message_backfill import MessageBackfillTask, message_backfill_task
 from nova_core.tasks.nova_year import NovaYearTask, nova_year_task
-from nova_core.tasks.reload_watcher import ReloadWatcherTask, reload_watcher_task
 from nova_core.tasks.scheduler import TaskScheduler, scheduler
 
 
@@ -24,7 +23,7 @@ def register_bot_tasks(s: TaskScheduler) -> None:
     bot task into the ingestor process, since both processes share this package.
     idempotent: tasks already registered are skipped.
     """
-    # db_backup_task, error_hook_task, and reload_watcher_task are now registered by
+    # db_backup_task and error_hook_task are now registered by
     # load_base(BASE_PACKAGE) in _do_ready_init(); removed here to avoid duplicate registration
     bot_tasks = (
         nova_year_task,
@@ -44,7 +43,6 @@ __all__ = [
     'LogoUpdateTask',
     'MessageBackfillTask',
     'NovaYearTask',
-    'ReloadWatcherTask',
     'TaskScheduler',
     'db_backup_task',
     'error_hook_refresh',
@@ -53,6 +51,5 @@ __all__ = [
     'message_backfill_task',
     'nova_year_task',
     'register_bot_tasks',
-    'reload_watcher_task',
     'scheduler',
 ]

@@ -12,7 +12,6 @@ import structlog
 from nova_core.manifest import FeatureManifest
 from nova_core.tasks.db_backup import db_backup_task
 from nova_core.tasks.error_hook import error_hook_task
-from nova_core.tasks.reload_watcher import reload_watcher_task
 
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -32,7 +31,6 @@ BASE_PACKAGE: tuple[BasePackageSpec, ...] = (
     BasePackageSpec(name='version', tasks=[], setup=None),  # no implementation yet; nova-w3 fills in
     BasePackageSpec(name='db-backup', tasks=[db_backup_task], setup=None),
     BasePackageSpec(name='error-hook', tasks=[error_hook_task], setup=None),
-    BasePackageSpec(name='reload-watcher', tasks=[reload_watcher_task], setup=None),
     BasePackageSpec(name='bridge-health', tasks=[], setup=None),  # HTTP GET /bridge/health in bridge/router.py; wired by FastAPI decorator at import time
 )
 

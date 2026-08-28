@@ -11,8 +11,6 @@ from attu_models import (
     MessageDocument,
     MessageRepository,
     MongoStorage,
-    ReloadSignalDocument,
-    ReloadSignalRepository,
     SystemConfigDocument,
     ThemeDocument,
     YearDocument,
@@ -77,12 +75,10 @@ async def init_database(url: str, name: str):
 
     marker_repo = YearMarkerRepository(database)
     year_repo = YearRepository(database)
-    signal_repo = ReloadSignalRepository(database)
     message_repo = MessageRepository(database)
 
     await _try_init_indexes(marker_repo, 'marker')
     await _try_init_indexes(year_repo, 'year')
-    await _try_init_indexes(signal_repo, 'signal')
     await _try_init_indexes(message_repo, 'message')
 
     _wire_repos(
@@ -100,8 +96,6 @@ __all__ = [
     'MessageDocument',
     'MessageRepository',
     'MongoStorage',
-    'ReloadSignalDocument',
-    'ReloadSignalRepository',
     'SystemConfigDocument',
     'ThemeDocument',
     'YearDocument',
