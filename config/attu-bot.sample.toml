@@ -1,8 +1,8 @@
 config_version = "2.8.0"
 
 [paths]
-# Path to the assets directory (templates, static files, favicon)
-# Can be relative (to working directory) or absolute
+# path to the assets directory (templates, static files, favicon)
+# can be relative (to working directory) or absolute
 assets = "apps/bot/assets"
 
 [database]
@@ -22,7 +22,7 @@ name = "doombot"
 api_keys = []
 
 [auth.bot]
-# Discord bot token — from the Discord Developer Portal
+# Discord bot token - from the Discord Developer Portal
 token = "TOKEN_GOES_HERE"
 
 [auth.web]
@@ -50,7 +50,7 @@ id = 2000000000000000000  # replace with your secondary guild id
 role = "secondary"
 
 [backup]
-# full database backup via mongodump — leave path empty to disable
+# full database backup via mongodump - leave path empty to disable
 # time: 24-hour time string ("HH:MM")
 path = ""
 time = "03:00"
