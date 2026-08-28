@@ -100,12 +100,20 @@ prod_base_url = "http://attu-tree:8000"
 # hmac secret shared between the discord bot and the attu-server web app
 # generate with: python -c "import secrets; print(secrets.token_hex(32))"
 secret = "CHANGE_ME"
-# host the bridge fastapi server binds to (localhost only; not exposed outside the compose network)
-bind_host = "127.0.0.1"
-# port the bridge server listens on; must match DISCORD_BOT_BRIDGE_PORT in the server .env
+# host the bridge fastapi server (runs inside the bot's container) binds to.
+# must be 0.0.0.0 - the attu-server container reaches it as http://core:5050,
+# and 127.0.0.1 binds to the bot container's own loopback, unreachable from
+# any sibling container. the compose network is already not exposed to the
+# host since core publishes no port for this.
+bind_host = "0.0.0.0"
+# port the bridge server listens on
 bot_port = 5050
 # max age in seconds for accepted request timestamps (replay attack window)
 replay_window = 60
+# attu-server reads this same [bridge] section with its own fields (defaults
+# shown); keep bot_url in sync with bind_host/bot_port above if you change them
+# bot_url = "http://core:5050"
+# request_timeout = 10.0
 
 # [features]
 # enabled = []
