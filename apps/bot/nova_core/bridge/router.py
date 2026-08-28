@@ -152,7 +152,7 @@ def start_bridge_task() -> None:
     app = build_app()
     server_config = uvicorn.Config(
         app,
-        host=config.bridge.bind_host,
+        host='0.0.0.0',  # noqa: S104 - exposure is controlled by compose (no published port), not the bind address
         port=config.bridge.bot_port,
         log_config=None,
         access_log=False,
@@ -161,7 +161,7 @@ def start_bridge_task() -> None:
     server = uvicorn.Server(server_config)
 
     async def _serve() -> None:
-        logger.info(f'starting bridge on {config.bridge.bind_host}:{config.bridge.bot_port}')
+        logger.info(f'starting bridge on 0.0.0.0:{config.bridge.bot_port}')
         try:
             await server.serve()
             bot._bridge_started = True

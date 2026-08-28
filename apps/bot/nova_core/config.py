@@ -159,7 +159,6 @@ class TreesConfig(BaseModel):
 
 class BridgeConfig(BaseModel):
     secret: str = Field(min_length=1)
-    bind_host: str = '127.0.0.1'
     bot_port: int = 5050
     replay_window: int = 60
 
