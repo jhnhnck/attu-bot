@@ -5,7 +5,6 @@ import asyncio
 import random
 import time
 import uuid
-from datetime import date
 
 import discord
 import structlog
@@ -29,22 +28,6 @@ _last_presence_update: float = 0.0
 _PRESENCE_DEBOUNCE_SECONDS: float = 15.0
 
 
-def hatch_date(year: int) -> date:
-    """Calculate the hatch day for the given year using the Meeus/Jones/Butcher algorithm."""
-    a = year % 19
-    b, c = divmod(year, 100)
-    d, e = divmod(b, 4)
-    f = (b + 8) // 25
-    g = (b - f + 1) // 3
-    h = (19 * a + b - d - g + 15) % 30
-    i, k = divmod(c, 4)
-    ll = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * ll) // 451
-    month = (h + ll - 7 * m + 114) // 31
-    day = (h + ll - 7 * m + 114) % 31 + 1
-    return date(year, month, day)
-
-
 def _egg_emoji_str(rarity: str) -> str:
     """Return the formatted custom emoji string for a rarity, or the key as fallback."""
     emoji_id = config.theme.egg_emojis.get(rarity)
@@ -53,31 +36,11 @@ def _egg_emoji_str(rarity: str) -> str:
     return f':{rarity}_egg:'
 
 
-async def ensure_eggs_ready() -> None:
-    """One-time setup for the egg event: create #eggs channel and post intro if needed."""
-    guild_cfg = config.primary()
-    guild = bot.get_guild(guild_cfg.id)
-    if guild is None:
-        logger.warning('primary guild not in cache during ensure_eggs_ready')
-        return
+async def get_or_create_user_thread(guild_id: int, user_id: int, username: str, user_doc: EggUserDocument | None = None) -> discord.Thread | None:
+    """Retrieve the egg thread for a user, creating it if it doesn't exist yet.
 
-    if guild_cfg.channels.eggs == 0:
-        general_ch = guild.get_channel(guild_cfg.channels.general)
-        category = general_ch.category if general_ch else None
-
-        logger.info('creating #eggs channel')
-        eggs_channel = await guild.create_text_channel('eggs', category=category)
-        guild_cfg.channels.eggs = eggs_channel.id
-        await config.config_repo.update_guild_field(guild_cfg.id, 'channels.eggs', eggs_channel.id)
-
-        await eggs_channel.send('run `/egg` for an egg')
-        logger.info(f'#eggs channel created: {eggs_channel.id}')
-
-    logger.info('egg event is ready')
-
-
-async def get_or_create_user_thread(guild_id: int, user_id: int, username: str, user_doc: EggUserDocument | None = None) -> discord.Thread:
-    """Retrieve the egg thread for a user, creating it if it doesn't exist yet."""
+    Returns None if the eggs channel is not configured (channels.eggs == 0 or channel not in cache).
+    """
     if user_doc is None:
         user_doc = await _egg_user_repo.get(guild_id, user_id)
 
@@ -98,7 +61,8 @@ async def get_or_create_user_thread(guild_id: int, user_id: int, username: str, 
     guild_cfg = config.guild(guild_id)
     eggs_channel = bot.get_channel(guild_cfg.channels.eggs)
     if eggs_channel is None:
-        raise RuntimeError('oops, all out of eggs right now')
+        logger.warning(f'eggs channel not configured or not in cache for guild {guild_id}')
+        return None
 
     thread = await eggs_channel.create_thread(  # type: ignore[union-attr]
         name=f"{username}'s eggs",
@@ -120,6 +84,7 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
 
     Returns (jump_url, None) on success.
     Returns ('cooldown', ready_at) when the user is still on cooldown (ready_at is a unix timestamp).
+    Returns ('no_channel', None) when the eggs channel is not configured.
     """
     cooldown = config.hatch.tuning.collect_cooldown_seconds
     now = int(time.time())
@@ -136,6 +101,8 @@ async def collect_egg(guild_id: int, user_id: int, username: str) -> tuple[str, 
 
     # pass user_doc to avoid a second db fetch
     thread = await get_or_create_user_thread(guild_id, user_id, username, user_doc=user_doc)
+    if thread is None:
+        return ('no_channel', None)
     msg = await thread.send(_egg_emoji_str(rarity))
 
     egg_id = str(uuid.uuid4())
@@ -264,6 +231,8 @@ async def transfer_egg(guild_id: int, egg_id: str, from_user_id: int, to_user_id
                 pass  # already gone or no permission; proceed with transfer
 
     to_thread = await get_or_create_user_thread(guild_id, to_user_id, to_username)
+    if to_thread is None:
+        raise ValueError('eggs channel not configured')
     content = egg.result if egg.hatched else _egg_emoji_str(egg.rarity)
     new_msg = await to_thread.send(content)
 

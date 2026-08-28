@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.commands.eggs | egg game slash commands (loaded dynamically on hatch day)."""
+"""nova_core.commands.eggs | egg game slash commands."""
 
 from typing import cast
 
@@ -172,6 +172,9 @@ async def egg_command(ctx: ApplicationContext):
     if result == 'cooldown':
         assert remaining is not None  # noqa: S101 - guaranteed by cooldown sentinel
         await ctx.respond(f'try again <t:{int(remaining)}:R>', ephemeral=True)
+        return
+
+    if result == 'no_channel':
         return
 
     await ctx.respond(f'you received an egg: {result}')

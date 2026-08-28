@@ -2,7 +2,6 @@
 """tests.python.unit.test_eggs | unit tests for the egg collection game."""
 
 import time
-from datetime import date
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import discord
@@ -13,8 +12,6 @@ from nova_core.eggs.documents import EggDocument, EggUserDocument
 from nova_core.eggs.hatching import (
     _egg_emoji_str,
     collect_egg,
-    ensure_eggs_ready,
-    hatch_date,
     hatch_egg,
     run_hatch_animation,
 )
@@ -55,21 +52,6 @@ def _make_user_doc(*, thread_id=test_thread, last_collected_at=0):
         thread_id=thread_id,
         last_collected_at=last_collected_at,
     )
-
-
-# --- hatch_date() ---
-
-
-class TestHatchDate:
-    def test_returns_date_type(self):
-        result = hatch_date(2026)
-        assert isinstance(result, date)
-
-    def test_known_years(self):
-        assert hatch_date(2024) == date(2024, 3, 31)
-        assert hatch_date(2025) == date(2025, 4, 20)
-        assert hatch_date(2026) == date(2026, 4, 5)
-        assert hatch_date(2019) == date(2019, 4, 21)
 
 
 # --- collect_egg() ---
@@ -270,61 +252,6 @@ class TestRunHatchAnimation:
         assert len(edit_calls) == 2
         assert edit_calls[0] == call(content='💢')
         assert edit_calls[1] == call(content='🐣')
-
-
-# --- ensure_eggs_ready() ---
-
-
-class TestEnsureEggsReady:
-    async def test_creates_channel_when_missing(self):
-        """channels.eggs == 0 - should create channel and persist ID"""
-        mock_channel = AsyncMock()
-        mock_channel.id = 777888999
-        mock_channel.send = AsyncMock()
-
-        mock_discord_guild = MagicMock()
-        mock_discord_guild.create_text_channel = AsyncMock(return_value=mock_channel)
-        mock_discord_guild.get_channel.return_value = MagicMock(category=None)
-
-        mock_guild_cfg = MagicMock()
-        mock_guild_cfg.id = test_guild
-        mock_guild_cfg.channels.eggs = 0
-        mock_guild_cfg.channels.general = 0
-
-        mock_config_repo = AsyncMock()
-
-        with (
-            patch('nova_core.eggs.hatching.bot') as mock_bot,
-            patch('nova_core.eggs.hatching.config') as mock_config,
-        ):
-            mock_bot.get_guild.return_value = mock_discord_guild
-            mock_config.primary.return_value = mock_guild_cfg
-            mock_config.config_repo = mock_config_repo
-
-            await ensure_eggs_ready()
-
-        mock_discord_guild.create_text_channel.assert_called_once_with('eggs', category=None)
-        mock_config_repo.update_guild_field.assert_called_once_with(test_guild, 'channels.eggs', mock_channel.id)
-
-    async def test_skips_if_channel_exists(self):
-        """channels.eggs already set - should not create another channel"""
-        mock_discord_guild = MagicMock()
-        mock_discord_guild.create_text_channel = AsyncMock()
-
-        mock_guild_cfg = MagicMock()
-        mock_guild_cfg.id = test_guild
-        mock_guild_cfg.channels.eggs = 12345
-
-        with (
-            patch('nova_core.eggs.hatching.bot') as mock_bot,
-            patch('nova_core.eggs.hatching.config') as mock_config,
-        ):
-            mock_bot.get_guild.return_value = mock_discord_guild
-            mock_config.primary.return_value = mock_guild_cfg
-
-            await ensure_eggs_ready()
-
-        mock_discord_guild.create_text_channel.assert_not_called()
 
 
 # --- _egg_emoji_str() ---
@@ -1342,27 +1269,6 @@ class TestEggsGiveCommand:
         assert response['kwargs'].get('ephemeral') is True
 
 
-# --- ensure_eggs_ready() coverage ---
-
-
-class TestEnsureEggsReadyExtra:
-    async def test_guild_not_in_cache_returns_early(self):
-        """bot.get_guild returns None - should log warn and return without creating channel"""
-        mock_guild_cfg = MagicMock()
-        mock_guild_cfg.id = test_guild
-
-        with (
-            patch('nova_core.eggs.hatching.bot') as mock_bot,
-            patch('nova_core.eggs.hatching.config') as mock_config,
-        ):
-            mock_bot.get_guild.return_value = None
-            mock_config.primary.return_value = mock_guild_cfg
-
-            await ensure_eggs_ready()
-
-        mock_bot.get_guild.assert_called_once_with(test_guild)
-
-
 # --- additional get_or_create_user_thread() coverage ---
 
 
@@ -1426,8 +1332,8 @@ class TestGetOrCreateUserThreadExtra:
         assert result is mock_thread
         self.egg_user_repo.upsert.assert_called_once()
 
-    async def test_no_eggs_channel_raises(self):
-        """eggs channel not in bot cache - raises RuntimeError"""
+    async def test_no_eggs_channel_returns_none(self):
+        """eggs channel not in bot cache - returns None instead of raising"""
         from nova_core.eggs.hatching import get_or_create_user_thread
 
         self.egg_user_repo.get.return_value = None
@@ -1437,8 +1343,8 @@ class TestGetOrCreateUserThreadExtra:
         self.mock_config.guild.return_value = mock_guild_cfg
         self.mock_bot.get_channel.return_value = None  # channel not in cache
 
-        with pytest.raises(RuntimeError):
-            await get_or_create_user_thread(test_guild, test_user, 'testuser')
+        result = await get_or_create_user_thread(test_guild, test_user, 'testuser')
+        assert result is None
 
 
 # --- additional hatch_egg() guard coverage ---
