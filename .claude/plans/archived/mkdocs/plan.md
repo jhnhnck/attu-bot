@@ -6,7 +6,7 @@ incorporate mkdocs-material with mkdocstrings into the doom-bot project: restruc
 
 1. `mkdocs serve` and `mkdocs build --strict` run cleanly from the project root
 2. all developer-facing notes (architecture, config, features, dev guides, style) appear in the nav as polished pages
-3. API reference auto-generated from docstrings for all six workspace packages: nova-core, casino-bot, attu-server, attu-models, attu-logging, attu-wiki
+3. API reference auto-generated from docstrings for all five workspace packages: nova-core, attu-server, attu-models, attu-logging, attu-wiki
 4. agent-internal files (bugs.md, to-do.md, plans/) stay on disk but excluded from nav
 
 ## non-goals
@@ -60,21 +60,20 @@ mkdocstrings API pages will surface internal modules not intended as public API.
 
 **scope:** create API reference pages in docs/api/ for each workspace package using mkdocstrings directives, wire into nav.
 
-- configure `paths:` in the mkdocstrings handler config in mkdocs.yml to point to all six package source dirs: `apps/bot`, `apps/server`, `apps/casino`, `packages/shared-models`, `packages/attu-logging`, `packages/attu-wiki` — required because all six packages have `package = false` and are not installed into the venv by uv
+- configure `paths:` in the mkdocstrings handler config in mkdocs.yml to point to all five package source dirs: `apps/bot`, `apps/server`, `packages/shared-models`, `packages/attu-logging`, `packages/attu-wiki` — required because all five packages have `package = false` and are not installed into the venv by uv
 - create `docs/api/` with one .md per package:
   - `nova-core.md` → `:::nova_core` with submodule filtering
   - `attu-models.md` → `:::attu_models`
   - `attu-logging.md` → `:::attu_logging`
   - `attu-wiki.md` → `:::attu_wiki`
   - `attu-server.md` → `:::attu_server`
-  - `casino-bot.md` → `:::casino_bot`
 - nova_core: use explicit `members` list or submodule-level directives rather than top-level `:::nova_core` to avoid a wall of internal command handlers
 - add "api reference" section to mkdocs nav
 - pivot criterion: if nova_core's PEP 562 exports produce empty/broken griffe output after 1 hour of debugging, replace `:::nova_core` with hand-authored stubs listing key public classes
 
 **dod:**
 - `mkdocs build --strict` exits 0
-- all six packages appear in API reference nav
+- all five packages appear in API reference nav
 - public classes and functions render with docstrings; spot-check: nova_core.loader.FeatureContext and attu_wiki.client.WikiClient both render
 
 **merge gate:** `mkdocs build --strict` exits 0; spot-check in browser confirms FeatureContext and WikiClient pages with full docstrings

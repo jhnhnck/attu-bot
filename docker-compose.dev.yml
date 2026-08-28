@@ -51,24 +51,6 @@ services:
       - ./scripts/ferret_init.sh:/ferret_init.sh:ro
     command: bash /ferret_init.sh
 
-  casino:
-    profiles: [casino]
-    build:
-      context: .
-      dockerfile: apps/casino/Dockerfile
-    restart: no
-    environment:
-      CASINO_CONFIG_FILE: /home/casino/.secrets/casino.toml
-      DEBUG: "1"
-    env_file:
-      - ./.env
-    volumes:
-      - ./.secrets/casino.toml:/home/casino/.secrets/casino.toml:ro
-    user: casino:casino
-    depends_on:
-      ferret:
-        condition: service_started
-
   tests:
     profiles: [tests]
     build:
