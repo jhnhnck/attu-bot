@@ -22,10 +22,6 @@ fastapi web server for guild config management.
 
 ::: attu_server.bridge_client
 
-## attu_server.webauthn_store
-
-::: attu_server.webauthn_store
-
 ## attu_server.api.me
 
 ::: attu_server.api.me

@@ -12,7 +12,6 @@ Entry point: `apps/bot/doom-bot.py` launches the Discord bot (pycord).
 |---|---|
 | `__init__.py` | module metadata constants (`__version__`, `__schema__`, `__config_version__`, etc.) |
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); pydantic models for all config sections including `GuildConfig` |
-| `signals.py` | cross-process reload signaling via MongoDB; `send_signal()` writes a signal the bot picks up via `ReloadWatcherTask` |
 | `loader.py` | feature manifest loader; calls `mod.init_repos(db)` on each feature module after loading its manifest |
 | `manifest.py` | `FeatureManifest` dataclass; describes a loadable bot feature |
 | `webhook.py` | error webhook reporter; forwards unhandled exceptions to a Discord webhook |
@@ -87,7 +86,7 @@ background tasks managed by `TaskScheduler`. each task extends `BaseTask` (`on_s
 | `logo_update.py` | `LogoUpdateTask` - refreshes the bot's avatar on a schedule |
 | `db_backup.py` | `DatabaseBackupTask` - weekly mongodump to the configured backup path |
 | `error_hook.py` | `ErrorHookTask` - periodic flush of queued webhook error notifications |
-| `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals sent via `nova_core.signals` |
+| `reload_watcher.py` | `ReloadWatcherTask` - polls MongoDB for reload signals |
 | `presence.py` | `PresenceUpdateTask` - updates bot presence to reflect hatched egg count; 30-minute schedule |
 | `egg_cleanup.py` | `EggCleanupTask` - deletes non-egg messages from egg threads |
 | `reminder.py` | `ReminderTask` - dynamic scheduling; delivers in-universe date reminders when haracalnde dates arrive |
@@ -167,11 +166,10 @@ use `from attu_logging import get_logger` everywhere; never the stdlib `logging`
 | file | role |
 |---|---|
 | `main.py` | fastapi app factory + lifespan + gzip middleware |
-| `config.py` | `ServerConfig`, `BridgeConfig`, `DatabaseConfig`, `WebConfig`, `WebAuthnConfig` - loaded from `attu-bot.toml` |
+| `config.py` | `ServerConfig`, `BridgeConfig`, `DatabaseConfig`, `WebConfig` - loaded from `attu-bot.toml` |
 | `bridge_client.py` | async httpx client for calling the bridge using the identical HMAC signing scheme |
 | `deps.py` | fastapi dependency providers (db, config, current user) |
 | `preflight.py` | startup checks (bridge reachable, db connected) |
-| `webauthn_store.py` | webauthn ceremony state storage |
 | `api/me.py` | `/api/me` - current user endpoint |
 
 ---
@@ -198,7 +196,7 @@ apps/
     Dockerfile
     pyproject.toml
   server/                    # fastapi server + future svelte spa entry point
-    attu_server/             # server package (config, bridge client, api routes, webauthn)
+    attu_server/             # server package (config, bridge client, api routes)
     Dockerfile
     pyproject.toml
 packages/

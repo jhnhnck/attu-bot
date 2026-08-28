@@ -11,7 +11,6 @@ from pymongo.asynchronous.database import AsyncDatabase
 from .documents import (
     GuildConfigDocument,
     MessageDocument,
-    ReloadSignalDocument,
     SystemConfigDocument,
     ThemeDocument,
     YearDocument,
@@ -494,54 +493,3 @@ class MessageRepository:
         return [MessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
 
 
-class ReloadSignalRepository:
-    """repository for cross-process config reload signals.
-
-    the web process writes signals; consumers (bot, ingestor) each poll and consume
-    only documents addressed to their own `target`. documents are upserted by
-    (target, signal_type, guild_id) so rapid saves coalesce per target without one
-    consumer stealing another's signal.
-    """
-
-    COLLECTION = 'reload_signals'
-
-    def __init__(self, db: AsyncDatabase):
-        self.db = db
-
-    async def init_indexes(self):
-        # no unique=True: FerretDB uses accessexclusivelock for unique constraints; rapid-save coalescing happens via upsert filter match instead
-        # the legacy (signal_type, guild_id) index is dropped by the 2.5.5 migration; recover from a leftover conflict (code 86) just in case
-        from pymongo.errors import OperationFailure
-
-        try:
-            await self.db[self.COLLECTION].create_index(
-                [('target', ASCENDING), ('signal_type', ASCENDING), ('guild_id', ASCENDING)],
-            )
-        except OperationFailure as e:
-            if e.code == 86:
-                await self.db[self.COLLECTION].drop_index('target_1_signal_type_1_guild_id_1')
-                await self.db[self.COLLECTION].create_index(
-                    [('target', ASCENDING), ('signal_type', ASCENDING), ('guild_id', ASCENDING)],
-                )
-            else:
-                raise
-
-    async def send(self, signal_type: str, guild_id: int | None = None, target: str = 'bot'):
-        """upsert a reload signal addressed to a single consumer (target)."""
-        doc = ReloadSignalDocument.make(signal_type, guild_id, target).model_dump()  # type: ignore[arg-type]
-        await self.db[self.COLLECTION].update_one(
-            {'target': target, 'signal_type': signal_type, 'guild_id': guild_id},
-            {'$set': doc},
-            upsert=True,
-        )
-
-    async def consume_all(self, target: str = 'bot') -> list[ReloadSignalDocument]:
-        """fetch and delete all pending signals for the given target (find_one_and_delete avoids $in on _id which has FerretDB compat issues)."""
-        results = []
-        while True:
-            doc = await self.db[self.COLLECTION].find_one_and_delete({'target': target})
-            if doc is None:
-                break
-            doc.pop('_id', None)
-            results.append(ReloadSignalDocument(**doc))
-        return results

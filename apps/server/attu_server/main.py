@@ -11,7 +11,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from attu_models.connection import MongoStorage
-from attu_server import __version__, webauthn_store
+from attu_server import __version__
 from attu_server.api.admin import router as admin_router
 from attu_server.api.me import router as me_router
 from attu_server.bridge_client import BridgeClient
@@ -30,7 +30,6 @@ def _build_lifespan(cfg: ServerConfig):
 
         # belt-and-braces; compose's healthcheck-gated depends_on is the primary gate
         await check_schema(storage)
-        await webauthn_store.ensure_indexes(storage)
 
         bridge = BridgeClient(cfg.bridge)
 

@@ -22,12 +22,12 @@ pytestmark = pytest.mark.unit
 @pytest.fixture
 def client():
     from attu_server.api.admin import router as admin_router
-    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, ServerConfig, WebAuthnConfig, WebConfig
+    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, ServerConfig, WebConfig
 
     cfg = ServerConfig(
         database=DatabaseConfig(url='mongodb://localhost:27017', name='test'),
         web=WebConfig(secret_key='test-session-secret'),
-        webauthn=WebAuthnConfig(),
+
         bridge=BridgeConfig(secret='test-bridge-secret'),
         auth=AuthConfig(api_keys=['valid-key']),
     )

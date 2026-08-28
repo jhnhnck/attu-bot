@@ -197,7 +197,7 @@ if the field gates an extension (`False → True` flips it on), there are two mo
 
 simpler; two locations:
 
-1. add the field to the relevant pydantic model in `config.py` (e.g. `ChatConfig`, `WebAuthnConfig`, `TreesConfig`).
+1. add the field to the relevant pydantic model in `config.py` (e.g. `ChatConfig`, `TreesConfig`).
 2. add it with a placeholder to `config/attu-bot.sample.toml` so a fresh deploy has a working stub.
 
 if the toml file *format* changes (renamed key, new required section), bump `__config_version__` in `doom_bot/__init__.py` so `_version_gte` rejects out-of-date config files. db schema migrations bump `__schema__` instead; do not confuse them.
@@ -219,7 +219,7 @@ try:
     old_section = guild.epoch.model_dump()
     guild.epoch = GuildEpoch(**validated.model_dump())
     await guild.save()
-    await send_signal('guild', guild_id)  # cross-process reload signal
+    await bridge.trigger_reload('guild', guild_id)  # trigger bot reload via bridge
 
     new_section = guild.epoch.model_dump()
     changes = compare_configs(old_section, new_section, prefix='epoch')
@@ -239,7 +239,7 @@ mandatory parts when adding a new mutation route:
 - validate with a pydantic form model from `web/forms.py`; never trust raw json.
 - on `ValidationError`, return `400` with `{'error': 'Validation failed', 'fields': _validation_error_fields(e)}`. the helper reshapes `e.errors()` into a `'channels.activity' → 'msg'` dict that the frontend renders inline.
 - on success, return `{'success': True, 'message': '...'}`.
-- always call `send_signal(...)` after a successful save so the bot process reloads; missing this causes the bot's in-memory config to drift from mongodb until restart.
+- always call `bridge.trigger_reload(...)` after a successful save so the bot process reloads; missing this causes the bot's in-memory config to drift from mongodb until restart.
 - audit-log diffs via `web_app.audit_logger.log_change(...)` (or `log_audit(...)` helper).
 
 `ValidationError.errors()` returns a list of dicts with `loc` (tuple of str/int), `msg`, `type`, `input`, and optional `ctx`. `loc` is a path tuple - join with `.` to display field paths.

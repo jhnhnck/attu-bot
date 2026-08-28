@@ -18,12 +18,6 @@ class WebConfig(BaseModel):
     secret_key: str
 
 
-class WebAuthnConfig(BaseModel):
-    rp_id: str = 'localhost'
-    rp_name: str = 'AttuBot Configurator'
-    origin: str = 'http://localhost:5000'
-
-
 class BridgeConfig(BaseModel):
     secret: str
     bot_url: str = 'http://core:5050'  # compose service name; overridable per env
@@ -43,7 +37,6 @@ class AuthConfig(BaseModel):
 class ServerConfig(BaseModel):
     database: DatabaseConfig
     web: WebConfig
-    webauthn: WebAuthnConfig
     bridge: BridgeConfig
     auth: AuthConfig = AuthConfig()
     guilds: list[GuildEntry] = []
@@ -66,7 +59,6 @@ def load_config(path: Path | None = None) -> ServerConfig:
         return ServerConfig(
             database=DatabaseConfig(**raw['database']),
             web=WebConfig(**raw['auth']['web']),
-            webauthn=WebAuthnConfig(**raw['auth'].get('webauthn', {})),
             bridge=BridgeConfig(**raw['bridge']),
             auth=AuthConfig(api_keys=list(raw['auth'].get('api_keys', []))),
             guilds=[GuildEntry(**g) for g in raw.get('guilds', [])],

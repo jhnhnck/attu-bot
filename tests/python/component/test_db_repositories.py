@@ -20,7 +20,6 @@ from nova_core.database.models import (
 from nova_core.database.repositories import (
     ConfigRepository,
     MessageRepository,
-    ReloadSignalRepository,
     YearMarkerRepository,
     YearRepository,
 )
@@ -922,69 +921,3 @@ class TestStarboardRepository:
         assert result.total_reactions == 1
 
 
-# --- ReloadSignalRepository ---
-
-
-class TestReloadSignalRepository:
-    async def test_send_and_consume(self, db):
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('guild', guild_id=1111111111)
-        signals = await repo.consume_all()
-        assert len(signals) == 1
-        assert signals[0].signal_type == 'guild'
-        assert signals[0].guild_id == 1111111111
-
-    async def test_consume_deletes_signals(self, db):
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('theme')
-        await repo.consume_all()
-        signals = await repo.consume_all()
-        assert signals == []
-
-    async def test_coalesces_duplicate_signals(self, db):
-        """rapid sends of same (type, guild) should produce only one document"""
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('guild', guild_id=1111111111)
-        await repo.send('guild', guild_id=1111111111)
-        await repo.send('guild', guild_id=1111111111)
-        signals = await repo.consume_all()
-        assert len(signals) == 1
-
-    async def test_different_guilds_separate_signals(self, db):
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('guild', guild_id=1111111111)
-        await repo.send('guild', guild_id=2222222222)
-        signals = await repo.consume_all()
-        assert len(signals) == 2
-
-    async def test_consume_empty_returns_empty_list(self, db):
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        assert await repo.consume_all() == []
-
-    async def test_send_system_signal(self, db):
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('system')
-        signals = await repo.consume_all()
-        assert signals[0].signal_type == 'system'
-        assert signals[0].guild_id is None
-
-    async def test_target_isolates_consumers(self, db):
-        """signals addressed to different targets do not steal each other's docs"""
-        repo = ReloadSignalRepository(db)
-        await repo.init_indexes()
-        await repo.send('system', target='bot')
-        await repo.send('system', target='ingestor')
-
-        bot_signals = await repo.consume_all(target='bot')
-        ingestor_signals = await repo.consume_all(target='ingestor')
-
-        assert len(bot_signals) == 1
-        assert bot_signals[0].target == 'bot'
-        assert len(ingestor_signals) == 1
-        assert ingestor_signals[0].target == 'ingestor'

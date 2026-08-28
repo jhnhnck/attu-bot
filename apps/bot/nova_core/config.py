@@ -41,10 +41,6 @@ class RawConfig(TypedDict):
     features: NotRequired[dict[str, Any]]
 
 
-class NovaGlobals(BaseModel):
-    pass
-
-
 class PathsConfig(BaseModel):
     assets: str = 'apps/bot/assets'
 
