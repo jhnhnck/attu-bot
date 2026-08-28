@@ -8,7 +8,6 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 - retrieves year info and links to specific years in lore channels
 - manages a starboard, message backfill, and moderation logging
 - egg collection game with rarity-based hatching and trading
-- provides an admin web interface for runtime configuration
 
 ## Commands
 
@@ -41,7 +40,7 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 
 ### Admin
 
-- **/time**: controls passage of in-universe time (admin only; see [notes/features/timekeeping.md](notes/features/timekeeping.md))
+- **/time**: controls passage of in-universe time (admin only; see [docs/features/timekeeping.md](docs/features/timekeeping.md))
   - **/time advance**: manually advances to the next year, ignoring all checks
   - **/time pause**: pauses the passage of time
   - **/time resume**: resumes the passage of time
@@ -85,7 +84,7 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 
 1. copy `config/sample.env` to `.env` and fill in postgres credentials
 2. copy `config/attu-bot.sample.toml` to `.secrets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.); the compose stack mounts both files into each container
-3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands or the web interface
+3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands
 
 ### Docker (recommended)
 
@@ -108,20 +107,12 @@ uv venv && source .venv/bin/activate
 uv sync
 pnpm install
 cp config/attu-bot.sample.toml .secrets/attu-bot.toml
-python apps/bot/doom-bot.py bot   # or: python apps/bot/doom-bot.py web
+python apps/bot/doom-bot.py bot
 ```
-
-## Run Modes
-
-Both modes are launched from `apps/bot/doom-bot.py`:
-
-- `bot` - the Discord bot (pycord)
-- `web` - a Quart-based admin web interface
-
 
 ## Development
 
-See [notes/agents.md](notes/agents.md) for full architecture, coding conventions, and contributor guidelines.
+See [docs/architecture.md](docs/architecture.md) for full architecture, coding conventions, and contributor guidelines.
 
 ### Tests
 
