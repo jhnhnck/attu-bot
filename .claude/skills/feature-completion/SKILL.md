@@ -47,7 +47,7 @@ See the `pydantic` skill for the document/runtime model split, `ConfigDict(extra
 
 - [ ] did you follow the relevant guide in `docs/features/web.md` (adding a config field; adding a page or endpoint)?
 - [ ] every mutation: did you add audit logging via `web_app.audit_logger.log_change(...)`?
-- [ ] every mutation: did you send a reload signal via `send_signal()` after save so the bot process picks up the change?
+- [ ] every mutation: did you call `bridge.trigger_reload()` after save so the bot process picks up the change?
 - [ ] new API endpoints: do they return `{'error': '...'}` on failure and `{'success': True, 'message': '...'}` on success?
 - [ ] are Discord snowflake IDs serialized as strings in JSON responses to avoid JavaScript precision loss?
 

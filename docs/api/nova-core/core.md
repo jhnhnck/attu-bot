@@ -1,6 +1,6 @@
 # core
 
-entry point, config, manifest, and signals.
+entry point, config, and manifest.
 
 ## nova_core.loader
 
@@ -13,10 +13,6 @@ entry point, config, manifest, and signals.
 ## nova_core.config
 
 ::: nova_core.config
-
-## nova_core.signals
-
-::: nova_core.signals
 
 ## nova_core.webhook
 

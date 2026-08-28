@@ -26,21 +26,9 @@ api_keys = []
 token = "TOKEN_GOES_HERE"
 
 [auth.web]
-# Secret key for Quart/Flask session signing — REQUIRED for production
-# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+# secret key for session signing (attu-server) - required for production
+# generate with: python -c "import secrets; print(secrets.token_hex(32))"
 secret_key = "your-secret-key-here"
-
-[auth.webauthn]
-# WebAuthn / Passkey authentication settings
-# rp_id must match the domain users access the web interface on
-# For local access via localhost: use "localhost"
-# For a real domain: use e.g. "example.com"
-rp_id = "localhost"
-rp_name = "AttuBot Configurator"
-# origin must be the full origin including scheme and port
-# For local access: "http://localhost:5000"
-# Behind a reverse proxy on HTTPS: "https://example.com"
-origin = "http://localhost:5000"
 
 [auth.wiki]
 # MediaWiki bot credentials

@@ -135,51 +135,15 @@ class TestReloadSignalRepository:
         assert signal_repo.COLLECTION == 'reload_signals'
 
 
-# --- send_signal() helper ---
+# --- ReloadWatcher cog ---
 
 
 @pytest.fixture
 def mock_signal_repo():
-    """Patch nova_core.database.signals._get_repo and reload_watcher._get_repo to return an AsyncMock repository."""
+    """patch reload_watcher._get_repo to return an AsyncMock repository."""
     repo = AsyncMock()
-    with patch('nova_core.signals._get_repo', return_value=repo), patch('nova_core.tasks.reload_watcher._get_repo', return_value=repo):
+    with patch('nova_core.tasks.reload_watcher._get_repo', return_value=repo):
         yield repo
-
-
-class TestSendSignalHelper:
-    async def test_sends_guild_signal(self, mock_signal_repo):
-        from nova_core.signals import send_signal
-
-        await send_signal('guild', test_guild)
-        mock_signal_repo.send.assert_called_once_with('guild', test_guild, target='bot')
-
-    async def test_sends_theme_signal(self, mock_signal_repo):
-        from nova_core.signals import send_signal
-
-        await send_signal('theme')
-        mock_signal_repo.send.assert_called_once_with('theme', None, target='bot')
-
-    async def test_sends_system_signal(self, mock_signal_repo):
-        from nova_core.signals import send_signal
-
-        await send_signal('system')
-        mock_signal_repo.send.assert_called_once_with('system', None, target='bot')
-
-    async def test_swallows_exception(self, mock_signal_repo):
-        from nova_core.signals import send_signal
-
-        mock_signal_repo.send = AsyncMock(side_effect=Exception('db gone'))
-        # should not raise - errors are logged but never re-raised
-        await send_signal('guild', test_guild)
-
-    async def test_swallows_connection_error(self, mock_signal_repo):
-        from nova_core.signals import send_signal
-
-        mock_signal_repo.send = AsyncMock(side_effect=ConnectionError('mongo down'))
-        await send_signal('theme')
-
-
-# --- ReloadWatcher cog ---
 
 
 @pytest.fixture

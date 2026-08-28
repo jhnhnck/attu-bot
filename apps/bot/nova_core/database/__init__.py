@@ -44,18 +44,15 @@ def _wire_repos(
     *,
     marker_repo,
     year_repo,
-    signal_repo,
     message_repo,
 ) -> None:
     """wire repository singletons into their respective modules after db init"""
     import nova_core.client.markers as _markers
     import nova_core.client.messages as _messages
     import nova_core.client.years as _years
-    import nova_core.signals as _signals
 
     _markers._marker_repo = marker_repo
     _years._year_repo = year_repo
-    _signals._repo = signal_repo
     _messages._message_repo = message_repo
 
 
@@ -91,7 +88,6 @@ async def init_database(url: str, name: str):
     _wire_repos(
         marker_repo=marker_repo,
         year_repo=year_repo,
-        signal_repo=signal_repo,
         message_repo=message_repo,
     )
 

@@ -34,7 +34,7 @@ question: does this fit how the rest of the codebase is shaped, or did it grow a
 - new slash command? must be a pycord extension with `setup(bot)` registering a `SlashCommandGroup` (see the `pycord` skill); `/ping` is the only intentional exception
 - new background task? must extend `BaseTask` and register through `TaskScheduler`; never `asyncio.create_task()` at module import
 - new singleton? prefer adding to `client/core.py` rather than a fresh module-level global
-- new web mutation? must go through `web_app.audit_logger.log_change(...)` and emit `send_signal()` after save
+- new web mutation? must go through `web_app.audit_logger.log_change(...)` and call `bridge.trigger_reload()` after save
 - new config field? must follow the **six-step tier-3 plumbing** if it's per-guild (see `pydantic` skill or `feature-completion` for the full list); skipping any step makes the field a silent default in production
 - abstraction temperature: a one-call helper isn't an abstraction, it's a rename - inline it. three near-identical blocks are not yet a generic - copy is fine until pattern #4
 
