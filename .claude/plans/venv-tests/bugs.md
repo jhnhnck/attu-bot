@@ -1,0 +1,6 @@
+# venv-tests - bugs
+
+## parked - out of scope for this plan
+
+- **docker-path integration test gap**: `docker-compose.dev.yml`'s `tests` service has had no `.secrets` mount and no `ATTU_CONFIG_FILE` since `36f6fee` (2026-08-02, "fix(tests): test container no longer needs .env or secrets mount") stripped both in favor of `TEST_DB_URL`. that fix covered unit/component db access but never accounted for integration tests, which call `start_bot_loop()` -> `config.on_init()` and need the full toml, not just a connection string. every integration run through the sanctioned docker path (`docker compose run --build --rm tests`) has had zero chance of finding a config file since. docker-path problem, not a venv problem - needs its own fix (mount `.secrets` back in read-only for that one service, or accept integration tests don't run in that container). found 2026-08-28.
+- **`.env`'s `ATTU_CONFIG_FILE` misconfiguration**: points at `./assets/attu-bot.toml`, which doesn't exist anywhere in the repo (README documents `.secrets/attu-bot.toml` as the default). doesn't actually reach the `tests` container (no `env_file:` line on that service) so it isn't the cause of the docker-path gap above, but it's still wrong and would bite anything else that reads `.env` for this var. found 2026-08-28.
