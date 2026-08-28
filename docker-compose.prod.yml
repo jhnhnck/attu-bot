@@ -29,6 +29,34 @@ services:
       retries: 20
       start_period: 30s
 
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: server
+    command: uvicorn attu_server.main:app --host 0.0.0.0 --port 5000
+    environment:
+      ATTU_CONFIG_FILE: /home/attu/.secrets/attu-bot.toml
+    logging:
+      driver: journald
+    restart: always
+    user: attu:attu
+    ports:
+      - "127.0.0.1:8080:5000"
+    volumes:
+      - ./.secrets/attu-bot.toml:/home/attu/.secrets/attu-bot.toml:ro
+    depends_on:
+      core:
+        condition: service_healthy
+      ferret:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
   ferret:
     image: ghcr.io/ferretdb/ferretdb:latest
     restart: always

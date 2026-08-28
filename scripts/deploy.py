@@ -151,7 +151,7 @@ def check_container_health(cwd: Path) -> list[str]:
 
 
 def revert_to_tag(tag: str, dry_run: bool = False) -> None:
-    """revert trunk to a previous version tag and rebuild containers."""
+    """revert prod to a previous version tag and rebuild containers."""
     total = 5
     n = 0
 
@@ -164,25 +164,25 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     print(colored(f'  tag {tag} found', 'green'))
 
     n += 1
-    header(n, total, 'checking trunk working directory')
+    header(n, total, 'checking prod working directory')
     trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
     trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
     if trunk_dirty:
-        abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+        abort('prod working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
     current_sha = git_cmd(['rev-parse', '--short', 'HEAD'], cwd=prod_dir)
-    print(colored(f'  trunk is clean (currently at {current_sha})', 'green'))
+    print(colored(f'  prod is clean (currently at {current_sha})', 'green'))
 
     n += 1
-    header(n, total, f'resetting trunk to {tag}')
+    header(n, total, f'resetting prod to {tag}')
     if not dry_run:
         try:
             git_cmd(['reset', '--hard', tag], cwd=prod_dir)
-            git_cmd(['push', '--force', 'origin', 'trunk'], cwd=prod_dir)
+            git_cmd(['push', '--force', 'origin', 'prod'], cwd=prod_dir)
         except RuntimeError as e:
             abort(f'revert failed: {e}')
-        print(colored(f'  trunk reset to {tag} and pushed', 'green'))
+        print(colored(f'  prod reset to {tag} and pushed', 'green'))
     else:
-        print(colored(f'  (dry run) would git reset --hard {tag} and force-push origin trunk', 'dark_grey'))
+        print(colored(f'  (dry run) would git reset --hard {tag} and force-push origin prod', 'dark_grey'))
 
     n += 1
     header(n, total, 'rebuilding containers')
@@ -204,29 +204,29 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
         print(colored('  (dry run) would check container health', 'dark_grey'))
 
     print(colored(f'\nreverted to {tag} successfully', 'light_green'))
-    print(colored('  note: dev branch still points to the pre-revert state; adjust manually if needed', 'cyan'))
+    print(colored('  note: trunk branch still points to the pre-revert state; adjust manually if needed', 'cyan'))
 
 
 def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
-    """resume a deploy: trunk is already at the new tag from a prior bump run; restart containers and push."""
-    total = 2  # trunk check + restart
+    """resume a deploy: prod is already at the new tag from a prior bump run; restart containers and push."""
+    total = 2  # prod check + restart
     if not skip_tests:
-        total += 1  # trunk tests
+        total += 1  # prod tests
     n = 0
 
     n += 1
-    header(n, total, 'checking trunk working directory')
+    header(n, total, 'checking prod working directory')
     trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
     trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
     if trunk_dirty:
-        abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+        abort('prod working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
     saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
-    print(colored('  trunk is clean', 'green'))
+    print(colored('  prod is clean', 'green'))
 
     try:
         if not skip_tests:
             n += 1
-            header(n, total, 'running tests in trunk')
+            header(n, total, 'running tests in prod')
             run_cmd(
                 ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
                 cwd=prod_dir,
@@ -250,21 +250,21 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
             if problems:
                 raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
             print(colored('  all containers healthy', 'green'))
-            git_cmd(['push', 'origin', 'trunk', deploy_tag], cwd=prod_dir)
-            print(colored('  pushed trunk to remote', 'green'))
+            git_cmd(['push', 'origin', 'prod', deploy_tag], cwd=prod_dir)
+            print(colored('  pushed prod to remote', 'green'))
         else:
             print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
 
     except (RuntimeError, subprocess.CalledProcessError) as exc:
         print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
         if not dry_run:
-            print(colored('rolling back trunk to previous state', 'yellow'), file=sys.stderr)
+            print(colored('rolling back prod to previous state', 'yellow'), file=sys.stderr)
             trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
             rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
             if trunk_reset.returncode != 0 or rebuild.returncode != 0:
-                print(colored('warning: rollback may have failed; check trunk manually', 'red'), file=sys.stderr)
+                print(colored('warning: rollback may have failed; check prod manually', 'red'), file=sys.stderr)
             else:
-                print(colored('rollback complete: trunk reset, containers rebuilt', 'yellow'), file=sys.stderr)
+                print(colored('rollback complete: prod reset, containers rebuilt', 'yellow'), file=sys.stderr)
         sys.exit(1)
 
     print(colored(f'\ndeployed {deploy_tag} successfully', 'light_green'))
@@ -315,19 +315,19 @@ if __name__ == '__main__':
     n += 1
     header(n, total, 'checking branch')
     branch = git_cmd(['rev-parse', '--abbrev-ref', 'HEAD'])
-    if branch != 'dev':
-        abort(f"must be on the dev branch (currently on '{branch}')")
-    print(colored('  on dev', 'green'))
+    if branch != 'trunk':
+        abort(f"must be on the trunk branch (currently on '{branch}')")
+    print(colored('  on trunk', 'green'))
 
     n += 1
     header(n, total, 'checking for new commits')
-    new_commits = git_cmd(['log', 'trunk..dev', '--oneline'])
+    new_commits = git_cmd(['log', 'prod..trunk', '--oneline'])
     if not new_commits:
-        abort('dev has no new commits ahead of trunk; nothing to deploy')
-    print(colored(f'  {len(new_commits.splitlines())} commit(s) ahead of trunk', 'green'))
+        abort('trunk has no new commits ahead of prod; nothing to deploy')
+    print(colored(f'  {len(new_commits.splitlines())} commit(s) ahead of prod', 'green'))
 
     n += 1
-    header(n, total, 'stashing dev changes')
+    header(n, total, 'stashing trunk changes')
     dev_status = git_cmd(['status', '--porcelain'])
     dev_dirty = [line for line in dev_status.splitlines() if not line.startswith('??')]
     stashed = False
@@ -344,7 +344,7 @@ if __name__ == '__main__':
         else:
             print(colored('  (dry run) would stash uncommitted changes', 'dark_grey'))
     else:
-        print(colored('  dev is clean', 'green'))
+        print(colored('  trunk is clean', 'green'))
 
     merged = False
     committed = False
@@ -358,17 +358,17 @@ if __name__ == '__main__':
 
     try:
         n += 1
-        header(n, total, 'checking trunk working directory')
+        header(n, total, 'checking prod working directory')
         trunk_status = git_cmd(['status', '--porcelain'], cwd=prod_dir)
         trunk_dirty = [line for line in trunk_status.splitlines() if not line.startswith('??')]
         if trunk_dirty:
-            abort('trunk working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
+            abort('prod working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
         saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
-        print(colored('  trunk is clean', 'green'))
+        print(colored('  prod is clean', 'green'))
 
         if not skip_tests:
             n += 1
-            header(n, total, 'running tests in dev')
+            header(n, total, 'running tests in trunk')
             try:
                 run_cmd(
                     ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
@@ -377,7 +377,7 @@ if __name__ == '__main__':
                     dry_run=dry_run,
                 )
             except RuntimeError as e:
-                abort(f'dev tests failed: {e}')
+                abort(f'trunk tests failed: {e}')
             print(colored('  tests passed', 'green'))
 
         n += 1
@@ -415,30 +415,30 @@ if __name__ == '__main__':
             print(colored(f'  (dry run) would commit version bump and create tag {new_tag}', 'dark_grey'))
 
         n += 1
-        header(n, total, 'merging dev into trunk')
+        header(n, total, 'merging trunk into prod')
         if not dry_run:
             try:
-                git_cmd(['merge', '--ff-only', 'dev'], cwd=prod_dir)
+                git_cmd(['merge', '--ff-only', 'trunk'], cwd=prod_dir)
                 merged = True
                 print(colored('  merged', 'green'))
             except RuntimeError as e:
                 # undo the version bump commit and tag before aborting
                 subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on merge failure
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on merge failure
-                abort(f'merge into trunk failed (version bump rolled back): {e}')
+                abort(f'merge into prod failed (version bump rolled back): {e}')
         else:
-            print(colored('  (dry run) would merge dev into trunk', 'dark_grey'))
+            print(colored('  (dry run) would merge trunk into prod', 'dark_grey'))
 
         if not do_deploy:
             print()
-            print(colored(f'version {new_ver} tagged and trunk fast-forwarded', 'white'))
+            print(colored(f'version {new_ver} tagged and prod fast-forwarded', 'white'))
             print(colored('  run with --deploy to rebuild containers and push to remote', 'cyan'))
             sys.exit(0)
 
         try:
             if not skip_tests:
                 n += 1
-                header(n, total, 'running tests in trunk')
+                header(n, total, 'running tests in prod')
                 run_cmd(
                     ['docker', 'compose', '-f', 'docker-compose.dev.yml', 'run', '--build', '--rm', '--quiet-build', 'tests'],
                     cwd=prod_dir,
@@ -462,23 +462,23 @@ if __name__ == '__main__':
                     raise RuntimeError('unhealthy containers after deploy:\n  ' + '\n  '.join(problems))
                 print(colored('  all containers healthy', 'green'))
                 # push only after everything is confirmed good
-                git_cmd(['push', 'origin', 'trunk', new_tag], cwd=prod_dir)
-                print(colored('  pushed trunk to remote', 'green'))
+                git_cmd(['push', 'origin', 'prod', new_tag], cwd=prod_dir)
+                print(colored('  pushed prod to remote', 'green'))
             else:
                 print(colored('  (dry run) would run docker compose up --build -d, health check, then push', 'dark_grey'))
 
         except (RuntimeError, subprocess.CalledProcessError) as exc:
             print(colored(f'\ndeploy failed: {exc}', 'red'), file=sys.stderr)
             if merged and not dry_run:
-                print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
+                print(colored('rolling back prod and trunk to previous state', 'yellow'), file=sys.stderr)
                 trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
-                dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - undo version bump commit on dev
-                subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on dev
+                dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - undo version bump commit on trunk
+                subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on trunk
                 rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
-                    print(colored('warning: rollback may have failed; check trunk and dev manually', 'red'), file=sys.stderr)
+                    print(colored('warning: rollback may have failed; check prod and trunk manually', 'red'), file=sys.stderr)
                 else:
-                    print(colored('rollback complete: trunk and dev reset, containers rebuilt from previous state', 'yellow'), file=sys.stderr)
+                    print(colored('rollback complete: prod and trunk reset, containers rebuilt from previous state', 'yellow'), file=sys.stderr)
             sys.exit(1)
 
         print(colored(f'\ndeployed version {new_ver} successfully', 'light_green'))
@@ -487,7 +487,7 @@ if __name__ == '__main__':
         print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
         if not dry_run:
             if merged and saved_sha and new_tag:
-                print(colored('rolling back trunk and dev to previous state', 'yellow'), file=sys.stderr)
+                print(colored('rolling back prod and trunk to previous state', 'yellow'), file=sys.stderr)
                 subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback on interrupt
                 subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on interrupt
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
