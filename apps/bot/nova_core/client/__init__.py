@@ -30,7 +30,7 @@ class PycordBridgeHandler(logging.Handler):
     (stdout < WARNING, stderr >= WARNING) via the standard stdlib propagation chain.
     """
 
-    def emit(self, record: logging.LogRecord) -> None:
+    def emit(self, _record: logging.LogRecord) -> None:
         pass
 
 
