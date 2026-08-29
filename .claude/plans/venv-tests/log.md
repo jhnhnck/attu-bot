@@ -81,3 +81,19 @@ all run inline by the main agent (not a subagent):
 - component: two full runs both hit a reproducible `mongo:8` container segfault (exit 139) partway through the suite - not this phase's regression, not caused by phase 1's code changes (phase 0's own service). logged as an in-scope bug needing a decision in bugs.md. mongo restarted and confirmed reachable again after each crash; small-scope component runs (a handful of tests) pass cleanly.
 
 phase 1 dod: met on its own mechanical terms (runner behavior, vitest cleanup, fallback URL, ruff clean). full green suite remains out of reach - for the same pre-existing reasons as phase 0 (unit/integration) plus a newly-discovered container reliability issue (component) that's now logged for a decision, not silently absorbed.
+
+## phase 1 retro - 2026-08-29
+
+**what landed vs spec:** full dod met, no scope narrowing (scope was already expanded pre-execution during the phase 0 audit - three vitest-named test methods, not one comment). `scripts/run_tests.py`'s 12-line docker auto-relaunch block removed; the runner now runs suites directly regardless of context. stale vitest docstring/comment references removed from `extract_counts()`. `test_run_tests.py`'s three vitest-named methods resolved: `test_vitest_single_suite` deleted (duplicate coverage of the "(N)" total-stripping case, already covered by the renamed multi-suite test), the other two renamed to `test_last_of_multiple_matching_lines_wins` and `test_combined_failed_passed_on_one_line` to describe actual behavior instead of a tool that's gone. `tests/conftest.py`'s fallback URL fixed to `mongodb://localhost:27017`. `ruff check .` held at the same 13-error baseline (same files, no new issues). runner's real exit code confirmed as `1`, correctly - suites failed for pre-existing reasons, not masked by a pipe this time.
+
+**what surprised us:** no implementer notes were relayed beyond what's already in this file. two things worth flagging for downstream readers: (1) the phase-0 "starting phase 0" baseline note above (line ~30) says "2 unit failures" - phase 1's verification run resolved this more precisely to 3 failed (2 pre-existing regressions + 1 test that's environment-dependent on `DEBUG=1`, not a new issue). carrying the "3 failed without DEBUG=1" framing forward from here so phase 2 doesn't inherit the earlier "2" as canonical. (2) a reproducible `mongo:8` container segfault (exit 139) surfaced during phase 1's full-suite verification runs - phase 0's service, not phase 1's regression; already logged and triaged in `bugs.md`, not re-triaged here.
+
+**what residual debt remains:** none new from phase 1 itself. pre-existing unit/integration failures and the `mongo:8` segfault remain tracked in `bugs.md` from earlier phases.
+
+## revision after phase 1 - 2026-08-29
+
+bug-triage: 5 entries reviewed, 0 gc'd (nothing closed with a commit hash yet), 0 new. 2 entries (`mongo:8` segfault, `uv.lock`/vulture drift) explicitly not re-triaged per this phase's handoff notes - already correctly classified as phase 0's issue and pre-existing/parked, respectively. the other 3 (docker-path integration gap, `.env` misconfiguration, `TEST_DB_URL`-vs-`database.url` precedence) confirmed still accurate from phase 0's triage - no disposition changes.
+
+plan-revise: phase 2 - valid, no change. its scope already reflects phase 0's triage-driven revisions (docker-path integration gap called out instead of documented as a working alternative; `TEST_DB_URL`/`database.url` precedence flagged as unresolved and blocking its readme bullet specifically, not phase 2 as a whole). phase 1's findings (clarified unit-failure baseline, `mongo:8` segfault) don't change phase 2's scope or merge gate.
+
+status table: phase 1 flipped from "in progress" to "pending merge" (no merges this run per user instruction; `closed in <sha>` is reserved for merged-to-trunk).
