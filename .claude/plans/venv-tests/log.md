@@ -97,3 +97,12 @@ bug-triage: 5 entries reviewed, 0 gc'd (nothing closed with a commit hash yet), 
 plan-revise: phase 2 - valid, no change. its scope already reflects phase 0's triage-driven revisions (docker-path integration gap called out instead of documented as a working alternative; `TEST_DB_URL`/`database.url` precedence flagged as unresolved and blocking its readme bullet specifically, not phase 2 as a whole). phase 1's findings (clarified unit-failure baseline, `mongo:8` segfault) don't change phase 2's scope or merge gate.
 
 status table: phase 1 flipped from "in progress" to "pending merge" (no merges this run per user instruction; `closed in <sha>` is reserved for merged-to-trunk).
+
+## starting phase 2 - 2026-08-29
+
+worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/venv-tests (unchanged, reused)
+branch: worktree-venv-tests
+parent branch: trunk
+confirmed dod: mock-compensation skill's doom_bot refs gone and its line reference re-verified; README Tests section documents both paths per the phase 0/1-revised scope (docker downgraded to unit/component-only, TEST_DB_URL/database.url precedence to be confirmed before calling either canonical, worktree workaround documented); run_tests.py in settings.json allow list; CLAUDE.md sub-agents bullet updated.
+note: CLAUDE.md's `## rules` section says "do not edit the rules" - this phase's CLAUDE.md edit is scoped to the sub-agents section only, not the rules section; implementer briefed accordingly.
+open item carried from phase 0 triage, must resolve before writing the readme's db-pointer claim: does config.on_init() prefer TEST_DB_URL or database.url once past the version gate? unconfirmed since the version gate blocks before that code runs (see bugs.md). main agent will check this inline before/during this phase.
