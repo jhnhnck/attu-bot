@@ -4,9 +4,12 @@
 
 none.
 
+### resolved since original ship pass
+
+- **[resolved, 2026-08-29]** `mongo:8` dev-compose service segfaults (exit 139): root-caused via `/bug-hunt` as two distinct bugs (host-kernel rseq incompatibility causing an idle crash; docker's default fd ulimit causing a load crash under component-test collection churn). both fixed in `dfe7a90` and empirically verified - idle survival past the prior crash point, then a full component-suite run reproducing the original load pattern with no crash. see `bugs.md`'s closed section for full detail. was `[high]` deferred at the original shipdown pass; no longer deferred.
+
 ### deferred
 
-- [high] `mongo:8` dev-compose service segfaults (exit 139), reproduced three times - twice under sustained component-test load, and once **idle**, 28 seconds after a clean restart with zero test traffic. not purely a load issue; the container isn't reliably stable at all. new-feature reliability gap, not a regression of prior working functionality (docker's own path never hit this - it runs FerretDB, not real mongod). already honestly disclosed in `README.md`'s Tests section rather than papered over. needs a user decision: try `mongo:7`, check for a known `mongo:8` issue on this platform, or accept the instability. root-causing a mongod segfault is outside this plan's scope. left in its crashed state at session end as forensic evidence - see `bugs.md` for inspect/restart commands.
 - [low] docker-path integration test gap: the `tests` compose service has had no way to find a config file since `36f6fee` (2026-08-02), pre-existing and unrelated to this plan; already separately surfaced to the user.
 - [low] `.env`'s `ATTU_CONFIG_FILE` points at a nonexistent path; pre-existing, unrelated, already separately surfaced.
 - [low] `uv.lock`/`vulture` lockfile drift; pre-existing, repo-wide, unrelated to this plan.
