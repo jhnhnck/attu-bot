@@ -60,7 +60,6 @@ select = [
   "DTZ",
   "FLY",
   "FURB",
-  "G",
   "ISC",
   "LOG",
   "N",
