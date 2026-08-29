@@ -122,7 +122,7 @@ primary path: run from the venv, no docker relaunch needed.
 python scripts/run_tests.py
 ```
 
-docker is available as an alternative, but only for unit and component suites; the `tests` service has had no `.secrets` mount since a prior commit, so integration tests can't find a config file that way (see `.claude/plans/venv-tests/bugs.md` for the history).
+docker is available as an alternative, but only for unit and component suites; the `tests` container has no `.secrets` mount, so integration tests can't find a config file that way.
 
 ```bash
 docker compose run --build --rm --quiet-build tests scripts/run_tests.py
