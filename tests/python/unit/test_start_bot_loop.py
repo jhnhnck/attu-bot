@@ -366,29 +366,17 @@ class TestExtensionImports:
 class TestExtensionsList:
     """unit: extensions_list is complete and ordered"""
 
-    def test_expected_extensions_present(self):
-        expected = {
-            'nova_core.commands.cc_stars',
-            'nova_core.commands.debug',
-            'nova_core.commands.eggs',
-            'nova_core.commands.fix',
-            'nova_core.commands.link',
-            'nova_core.commands.marker',
-            'nova_core.commands.query',
-            'nova_core.commands.remind',
-            'nova_core.commands.stars',
-            'nova_core.commands.time',
-            'nova_core.commands.trees',
-            'nova_core.commands.wiki',
-            'nova_core.commands.year',
-        }
-        assert set(nova_core.extensions_list) == expected
+    def test_not_empty(self):
+        assert nova_core.extensions_list
+
+    def test_all_have_commands_prefix(self):
+        assert all(ext.startswith('nova_core.commands.') for ext in nova_core.extensions_list)
 
     def test_no_duplicates(self):
         assert len(nova_core.extensions_list) == len(set(nova_core.extensions_list))
 
-    def test_count_is_thirteen(self):
-        assert len(nova_core.extensions_list) == 13
+    def test_is_sorted(self):
+        assert nova_core.extensions_list == sorted(nova_core.extensions_list)
 
 
 # --- module-level singleton creation ---

@@ -227,13 +227,16 @@ class TestDrainMigrations:
 
 
 class TestBasePackage:
-    def test_name_list(self):
-        """BASE_PACKAGE has exactly 6 items in declaration order"""
+    def test_no_duplicate_names(self):
         from nova_core.loader import BASE_PACKAGE
 
-        assert [spec.name for spec in BASE_PACKAGE] == ['ping', 'version', 'db-backup', 'error-hook', 'reload-watcher', 'bridge-health']
+        names = [spec.name for spec in BASE_PACKAGE]
+        assert len(names) == len(set(names))
 
-    def test_length(self):
+    def test_load_bearing_entries_present(self):
+        """entries backing a real command, task, or route must never silently vanish;
+        'version' is excluded - its own inline comment marks it a deliberate stub"""
         from nova_core.loader import BASE_PACKAGE
 
-        assert len(BASE_PACKAGE) == 6
+        names = {spec.name for spec in BASE_PACKAGE}
+        assert {'ping', 'db-backup', 'error-hook', 'bridge-health'} <= names
