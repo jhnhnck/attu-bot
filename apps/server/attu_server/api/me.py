@@ -15,12 +15,11 @@ class MeResponse(BaseModel):
     authenticated: bool
     csrf_token: str
     active_guild: int | None = None
-    has_passkeys: bool = False
 
 
 @router.get('/me', response_model=MeResponse)
 async def me(request: Request) -> dict[str, Any]:
-    """spa boot probe; later phases extend with user info + passkey count."""
+    """spa boot probe; later phases extend with user info."""
     session = request.session
     if 'csrf_token' not in session:
         session['csrf_token'] = secrets.token_urlsafe(32)
@@ -29,5 +28,4 @@ async def me(request: Request) -> dict[str, Any]:
         'authenticated': bool(session.get('user_id')),
         'csrf_token': session['csrf_token'],
         'active_guild': session.get('active_guild'),
-        'has_passkeys': False,
     }

@@ -81,7 +81,7 @@ defer to: `comment-style` skill (case, brevity, todo tags, noqa reasons), `file-
 
 question: does this expose anything to an unauthorized actor, leak anything sensitive, or trust input it shouldn't?
 
-threat model is small: web admin (passkey + discord oauth) and discord slash commands (per-guild authorization). this pass watches the seams.
+threat model is small: web admin (discord oauth) and discord slash commands (per-guild authorization). this pass watches the seams.
 
 - **web auth gates.** every new route must opt into the right gate (`@login_required`, csrf check on state-changing requests, rate limit on auth endpoints). failure mode shipped: `fix(security): session hardening, xss and open redirect fixes`
 - **open redirect via `?next=`.** if you accept a `next` parameter, store and redirect to a *path*, not a full url; rejecting absolute urls is the standing remedy

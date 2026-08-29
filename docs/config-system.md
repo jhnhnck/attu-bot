@@ -3,7 +3,7 @@
 ## three tiers
 
 1. **`.env`** - only `ATTU_CONFIG_FILE`
-2. **`apps/bot/assets/attu-bot.toml`** - secrets and static config (tokens, DB URL, wiki credentials, WebAuthn, authorized guilds); copy from `config/attu-bot.sample.toml`
+2. **`apps/bot/assets/attu-bot.toml`** - secrets and static config (tokens, DB URL, wiki credentials, authorized guilds); copy from `config/attu-bot.sample.toml`
 3. **MongoDB** - runtime guild-level settings (epoch, channels, roles, users, theme)
 
 `NovaConfig` loads in three stages - code that touches the DB or bot must wait for the appropriate stage. use the provided `wait_for_*` async methods to gate on a stage.
