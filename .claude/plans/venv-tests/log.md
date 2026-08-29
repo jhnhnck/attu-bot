@@ -68,3 +68,16 @@ branch: worktree-venv-tests
 parent branch: trunk
 confirmed dod: run_tests.py runs all three suites directly outside docker and exits with correct code; no .dockerenv/docker-compose-run references remain; no test method name still says vitest unless deliberately kept and correctly named; ruff check clean (no new issues vs baseline)
 scope confirmed unchanged from plan.md's phase 1 section (already revised pre-execution: vitest cleanup scope expanded beyond one comment, per audit).
+
+## phase 1 verification - 2026-08-29
+
+all run inline by the main agent (not a subagent):
+
+- grep checks: `grep '\.dockerenv\|docker compose run' scripts/run_tests.py` -> clean; `grep -i vitest scripts/run_tests.py tests/python/unit/test_run_tests.py` -> clean
+- `uv run ruff check .` -> 13 errors, same count and same files as the pre-existing baseline established at session start (S105/RUF103 in test_wiki_http.py etc.) - no new issues from this phase's changes
+- full run: `uv run python scripts/run_tests.py` (outside docker, ATTU_CONFIG_FILE pointed at main checkout's secrets, TEST_DB_URL at local mongo) -> real exit code confirmed `1` (captured properly this time, not masked by a tail pipe) - correct: the runner exits 1 because suites failed, matching its own `sys.exit(1)` logic. mechanical dod item ("runs all three suites directly, no docker relaunch, exits with the correct return code") is fully met.
+- unit: 3 failed, 1191 passed, 14 errors - matches the known local-without-DEBUG baseline exactly (2 pre-existing regressions + 1 DEBUG-env-dependent test that only passes with DEBUG=1 set, not a new issue)
+- integration: 12 passed, 9 errors - identical to phase 0's probe, the same pre-documented config-version-staleness error, nothing new
+- component: two full runs both hit a reproducible `mongo:8` container segfault (exit 139) partway through the suite - not this phase's regression, not caused by phase 1's code changes (phase 0's own service). logged as an in-scope bug needing a decision in bugs.md. mongo restarted and confirmed reachable again after each crash; small-scope component runs (a handful of tests) pass cleanly.
+
+phase 1 dod: met on its own mechanical terms (runner behavior, vitest cleanup, fallback URL, ruff clean). full green suite remains out of reach - for the same pre-existing reasons as phase 0 (unit/integration) plus a newly-discovered container reliability issue (component) that's now logged for a decision, not silently absorbed.

@@ -1,5 +1,13 @@
 # venv-tests - bugs
 
+## needs a decision - in scope (this plan created the affected service)
+
+- **`mongo:8` container segfaults during the component suite**: reproduced twice, back to back. `docker-compose.dev.yml`'s new `mongo` service (added phase 0) crashes with exit code 139 (SIGSEGV) partway through `tests/python/component/` when run via `python scripts/run_tests.py` (coverage-wrapped, full suite). both crashes happened during heavy collection-drop/index-teardown activity, ~40+ minutes apart, same signature. after the crash, every remaining component test in that run fails with `pymongo.errors.ServerSelectionTimeoutError` (connection refused) instead of its real result - the "component tests FAILED, 1628s, no pass/fail count" line in `run_tests.py`'s results table is this crash, not a slow/hanging suite.
+  - ruled out: not OOM (`docker inspect`: `OOMKilled: false`, no memory limit set, host had 9.8Gi free both times); not the common MongoDB-5.0+-needs-AVX crash (host CPU: AMD Ryzen 7 5700G, `avx`/`avx2` both present in `/proc/cpuinfo`).
+  - not reproduced on a small/short run: the phase 0 walking-skeleton proof (2 tests, `TestConfigRepositoryIndexes`) passed cleanly both times, before either crash - so the container works, it just doesn't survive a long run.
+  - docker's own `tests` service never hits this failure mode because it runs against FerretDB (Postgres-backed), not real `mongod` - this crash is unique to the new local `mongo:8` service this plan introduced, so a full green venv component run may not be achievable until this is root-caused or the image/version is changed.
+  - **not fixed here** - root-causing a mongod segfault is outside this plan's scope and time budget. flagging for the user: worth a closer look (try `mongo:7`, check for a known mongo:8 issue, or just accept short-run-only reliability) before anyone relies on this service for a full local component-test pass.
+
 ## parked - out of scope for this plan
 
 - **`uv.lock` lockfile drift**: `pyproject.toml` gained `vulture` as a dev dep in `f3aafc2` ("add vulture") but the lockfile was never regenerated; `uv sync` silently fixes it locally on every run. pre-existing and repo-wide (present in the main checkout's git status before this session started too), unrelated to this plan; discarded from this worktree's diff each time it reappears rather than committed here to keep this branch scoped. found 2026-08-29, surfaced by phase 0's integration-check.
