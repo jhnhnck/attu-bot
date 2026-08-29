@@ -28,3 +28,15 @@ parent branch: trunk
 confirmed dod: mongo service added to docker-compose.dev.yml and starts cleanly; at least one component test passes from venv with no docker test container; integration test venv behavior documented (config-version staleness expected, not a new failure); coverage available in venv
 run mode: auto, no merges this run (user instruction) - phases stack on this one branch, merge deferred to end
 baseline: suite is already red for reasons outside this plan (2 unit failures + 14 collection errors + 11 component failures from prior stale-test commits; docker integration blocked entirely) - gates this run evaluate as "no new failures vs this baseline", not "green suite"
+
+## phase 0 verification - 2026-08-29
+
+all run inline by the main agent (not a subagent - CLAUDE.md forbids sub-agents from running docker/pytest):
+
+- `docker compose -f docker-compose.dev.yml up -d mongo` - clean start, `doom-bot-dev-mongo-1` up, `0.0.0.0:27017->27017/tcp`
+- component proof: `TEST_DB_URL=mongodb://localhost:27017/doombot uv run pytest tests/python/component/test_db_repositories.py::TestConfigRepositoryIndexes -m component -v` -> 2 passed, 0 docker test container involved
+- integration probe: `ATTU_CONFIG_FILE=/home/jhn/Projects/doom-bot/.secrets/attu-bot.toml TEST_DB_URL=mongodb://localhost:27017/doombot uv run pytest tests/python/integration/ -v` -> 12 passed, 9 errors. all 9 errors are the exact predicted `ConfigLoadError: config file version 2.6.0 is below required 2.8.0` from accepted risks - confirmed pre-existing secrets staleness, not a new regression, not this plan's bug. `config.on_init()` reads the toml path directly for the version gate before ever touching `TEST_DB_URL`/`database.url`, so the downstream question (does it prefer `TEST_DB_URL` over the toml's `database.url` once past the gate) is still unconfirmed - the gate blocks before that code runs.
+- `uv run python -m coverage --version` -> 7.13.5, present in venv
+- toml `[database]` section (read from main checkout's `.secrets/attu-bot.toml` directly, worktree has none): keys are `url`, `name` - matches what `_read_db_config()` expects
+
+phase 0 dod: met in full. mongo service added and starts cleanly; component proof passes from venv; integration behavior documented exactly as predicted; coverage confirmed.
