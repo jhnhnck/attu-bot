@@ -56,3 +56,7 @@ bug-triage: 4 entries classified, 0 gc'd (nothing closed yet, nothing aged). new
 plan-revise: phase 1 - valid, no change (its scope expansion is already reflected in `plan.md` from the earlier audit; retro found nothing new). phase 2 - revise, three in-place edits to its `plan.md` section: (1) readme bullet now notes the docker-path integration gap (`bugs.md`) so it isn't documented as a working alternative, (2) readme bullet now requires confirming `TEST_DB_URL` vs `database.url` precedence before calling either "canonical", (3) merge gate changed from "phase 1 merged to trunk" (contradicts this run's no-merge instruction) to "phase 1 gate passed; merge to trunk deferred to end of run (user instruction, see log.md)".
 
 status table: phase 0 flipped from "in progress" to "closed in b1f8998".
+
+## status correction - 2026-08-29
+
+phase-close set phase 0's status to `closed in b1f8998` - corrected to `pending merge`. `closed in <sha>` specifically means merged to trunk (plan-manager reference.md's status table); no merge happened this run per explicit user instruction ("run it all. no merges yet"). all phases in this run end at `pending merge`, collapsing into one eventual ff-merge once the user gives go-ahead.
