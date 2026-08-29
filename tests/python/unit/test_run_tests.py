@@ -75,15 +75,12 @@ class TestExtractCounts:
         # "errors" don't match the pattern - only passed/failed
         assert extract_counts('1 error in 0.1s') is None
 
-    def test_vitest_single_suite(self):
-        output = ' Test Files  1 passed (1)\n      Tests  15 passed (15)\n'
-        assert extract_counts(output) == '15 passed'
-
-    def test_vitest_multi_suite(self):
+    def test_last_of_multiple_matching_lines_wins(self):
+        # multiple lines match the count pattern; the last one is used, trailing "(N)" total stripped
         output = ' Test Files  2 passed (2)\n      Tests  23 passed (23)\n'
         assert extract_counts(output) == '23 passed'
 
-    def test_vitest_with_failures(self):
+    def test_combined_failed_passed_on_one_line(self):
         output = ' Test Files  1 failed | 1 passed (2)\n      Tests  2 failed | 21 passed (23)\n'
         assert extract_counts(output) == '2 failed | 21 passed'
 

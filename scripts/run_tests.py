@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 
 try:
@@ -23,12 +22,12 @@ def header(n: int, total: int, title: str) -> None:
 
 
 def extract_counts(output: str) -> str | None:
-    """extract a short count summary from pytest or vitest output."""
+    """extract a short count summary from pytest output."""
     matches = re.findall(r'(\d+ (?:passed|failed)[^\n]*)', output)
     if not matches:
         return None
     raw = matches[-1]
-    # strip trailing "in X.Xs", warning counts, and vitest "(N)" suffixes
+    # strip trailing "in X.Xs", warning counts, and parenthesized totals
     counts = re.sub(r',?\s*\d+ warning[s]?', '', raw)
     counts = re.sub(r'\s+in\s+[\d.]+s.*', '', counts)
     counts = re.sub(r'\s*\(\d+\)', '', counts).strip()
@@ -63,20 +62,6 @@ def run_suite(title: str, cmd: list[str], quiet: bool, step: int, total: int) ->
 
 
 if __name__ == '__main__':
-    if not Path('/.dockerenv').exists():
-        dev_dir = Path(__file__).parent.parent.resolve()
-        cmd = ['docker', 'compose', 'run', '--build', '--rm', '--quiet-build', 'tests', 'scripts/run_tests.py', *sys.argv[1:]]
-        proc = subprocess.Popen(cmd, cwd=dev_dir)  # noqa: S603 - cmd is a trusted list; docker compose shares process group by design
-        # docker compose run shares our process group, so ^C reaches it directly; keep waiting
-        # while it forwards the signal and tears down the container instead of exiting early
-        while True:
-            try:
-                rc = proc.wait()
-                break
-            except KeyboardInterrupt:
-                pass
-        sys.exit(rc)
-
     parser = argparse.ArgumentParser(description='run nova_core test suites')
     parser.add_argument('-v', '--verbose', action='store_true', help='show full test output')
     parser.add_argument('-x', action='store_true', dest='exit_early', help='stop pytest on first failure within each suite')
@@ -111,10 +96,10 @@ if __name__ == '__main__':
     if args.coverage:
         print()
         report_stdout = sys.stderr if args.coverage_json else None
-        subprocess.run(['coverage', 'report'], stdout=report_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH inside the container
+        subprocess.run(['coverage', 'report'], stdout=report_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH in the dev venv
 
     if args.coverage_json:
-        subprocess.run(['coverage', 'json', '-o', '-'], stdout=real_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH inside the container
+        subprocess.run(['coverage', 'json', '-o', '-'], stdout=real_stdout, check=False)  # noqa: S607 - partial path intentional; coverage is on PATH in the dev venv
 
     print()
     print(colored('results:', 'white', attrs=['bold']))
