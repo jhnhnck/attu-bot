@@ -40,3 +40,19 @@ all run inline by the main agent (not a subagent - CLAUDE.md forbids sub-agents 
 - toml `[database]` section (read from main checkout's `.secrets/attu-bot.toml` directly, worktree has none): keys are `url`, `name` - matches what `_read_db_config()` expects
 
 phase 0 dod: met in full. mongo service added and starts cleanly; component proof passes from venv; integration behavior documented exactly as predicted; coverage confirmed.
+
+## phase 0 retro - 2026-08-29
+
+**what landed vs spec:** full dod met, no scope narrowing. `mongo` service added to `docker-compose.dev.yml` (`c52f4da`), component test passes from venv against it with zero docker test container, integration probe documented, coverage confirmed in venv. one accepted-risk question was deliberately left open rather than answered: whether `config.on_init()` prefers `TEST_DB_URL` over the toml's `database.url` once past the version gate - the gate rejects on `config_version` before that code path ever runs, so it's unconfirmable without either fixing local secrets or stubbing the gate, both out of phase 0's "probe, don't fix" scope.
+
+**what surprised us:** the version-gate failure landed exactly as predicted in accepted risks - no surprise there, which is itself worth noting (the pre-mortem's direct-verification pass paid off). a pre-existing, unrelated `uv.lock`/vulture lockfile drift surfaced during verification (`f3aafc2` added the dep, lockfile never regenerated); not this plan's issue, parked in `bugs.md`. phase 1's scope had already expanded pre-execution (vitest cleanup is three test methods, not one comment) - already reflected in `plan.md`, not new this phase.
+
+**what residual debt remains:** the `TEST_DB_URL`-vs-`database.url` precedence question - phase 2's readme rewrite plans to document `TEST_DB_URL`/`database.url` as "the canonical db pointer," which needs this confirmed first. added to `bugs.md` below.
+
+## revision after phase 0 - 2026-08-29
+
+bug-triage: 4 entries classified, 0 gc'd (nothing closed yet, nothing aged). new entry added for the `TEST_DB_URL`-vs-`database.url` precedence gap found during retro.
+
+plan-revise: phase 1 - valid, no change (its scope expansion is already reflected in `plan.md` from the earlier audit; retro found nothing new). phase 2 - revise, three in-place edits to its `plan.md` section: (1) readme bullet now notes the docker-path integration gap (`bugs.md`) so it isn't documented as a working alternative, (2) readme bullet now requires confirming `TEST_DB_URL` vs `database.url` precedence before calling either "canonical", (3) merge gate changed from "phase 1 merged to trunk" (contradicts this run's no-merge instruction) to "phase 1 gate passed; merge to trunk deferred to end of run (user instruction, see log.md)".
+
+status table: phase 0 flipped from "in progress" to "closed in b1f8998".

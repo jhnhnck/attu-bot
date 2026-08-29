@@ -86,7 +86,7 @@ two pre-mortem risks from the original draft, both now partially retired by dire
 
 - `CLAUDE.md` sub-agents section: change "do not run tests - never invoke `pytest`, `docker compose run ... tests`, `npm test`, or any test runner" to "do not run tests - never invoke `pytest`, `npm test`, `python scripts/run_tests.py`, or any test runner; testing is the responsibility of the main agent only"; note explicitly that the main agent runs `python scripts/run_tests.py` from the worktree
 - `.claude/settings.json` (project-level, not global): `Bash(python -m pytest:*)` is already in `permissions.allow` (landed via unrelated commit `4a7d9df`) - just add `python scripts/run_tests.py` to the allow list, don't re-add pytest
-- `README.md`'s "### Tests" section (currently one line, `README.md:117-120`): rewrite to cover both paths - venv workflow as primary, docker as the alternative; who-can-run-what per suite (unit: either; component: needs the `mongo` service - venv or docker; integration: needs a valid, current `.secrets/attu-bot.toml` - flag the config-version gate); document `ATTU_CONFIG_FILE`/`TEST_DB_URL` as the canonical db pointers; document the worktree workaround: `ATTU_CONFIG_FILE=/home/jhn/Projects/doom-bot/.secrets/attu-bot.toml python scripts/run_tests.py` (or symlink `.secrets` from the main checkout) since a worktree never carries `.secrets/` on its own
+- `README.md`'s "### Tests" section (currently one line, `README.md:117-120`): rewrite to cover both paths - venv workflow as primary, docker as the alternative; who-can-run-what per suite (unit: either; component: needs the `mongo` service - venv or docker; integration: needs a valid, current `.secrets/attu-bot.toml` - flag the config-version gate); **revised (phase 0 triage, 2026-08-29): docker is not a working alternative for integration tests today - the `tests` service has had no `.secrets` mount since `36f6fee` (see `bugs.md`); document docker as unit/component-only, not integration, until that gap is fixed separately**; document `ATTU_CONFIG_FILE`/`TEST_DB_URL` as the canonical db pointers - **revised (phase 0 triage, 2026-08-29): confirm which of `TEST_DB_URL` / `database.url` wins in `config.on_init()` once past the version gate before documenting either as canonical (see `bugs.md`, unresolved as of phase 0)**; document the worktree workaround: `ATTU_CONFIG_FILE=/home/jhn/Projects/doom-bot/.secrets/attu-bot.toml python scripts/run_tests.py` (or symlink `.secrets` from the main checkout) since a worktree never carries `.secrets/` on its own
 - `.claude/skills/mock-compensation/SKILL.md`: replace all `doom_bot` path references with `nova_core` (description field, trigger lines, file path references, `extensions_list` reference); re-verify the `tests/python/unit/test_start_bot_loop.py:350` line reference while in there - line numbers have likely drifted since this skill was last touched
 
 **dod:**
@@ -96,7 +96,7 @@ two pre-mortem risks from the original draft, both now partially retired by dire
 - `python scripts/run_tests.py` in `.claude/settings.json` allow list
 - CLAUDE.md sub-agents "do not run tests" bullet updated
 
-**merge gate:** phase 1 merged to trunk
+**merge gate:** phase 1 gate passed; merge to trunk deferred to end of run (user instruction: no merges this run, see `log.md`)
 
 ---
 
@@ -104,6 +104,6 @@ two pre-mortem risks from the original draft, both now partially retired by dire
 
 | phase | status |
 |---|---|
-| 0 - walking skeleton | in progress |
+| 0 - walking skeleton | closed in b1f8998 |
 | 1 - fix run_tests.py | not started |
 | 2 - CLAUDE.md + settings + docs + skill | not started |
