@@ -116,9 +116,38 @@ See [docs/architecture.md](docs/architecture.md) for full architecture, coding c
 
 ### Tests
 
+primary path: run from the venv, no docker relaunch needed.
+
+```bash
+python scripts/run_tests.py
+```
+
+docker is available as an alternative, but only for unit and component suites; the `tests` service has had no `.secrets` mount since a prior commit, so integration tests can't find a config file that way (see `.claude/plans/venv-tests/bugs.md` for the history).
+
 ```bash
 docker compose run --build --rm --quiet-build tests scripts/run_tests.py
 ```
+
+what each suite needs:
+
+- unit: no db needed; either path works
+- component: needs a mongo instance - `docker compose up -d mongo` before a venv run, or the docker `tests` path; point a venv run at it with `TEST_DB_URL=mongodb://localhost:27017/doombot`
+- integration: needs a valid, current `.secrets/attu-bot.toml`; its `config_version` must be at or above what `nova_core/config.py`'s `__config_version__` requires, or the run fails with a version-gate error - a stale local secrets file fails this way
+
+`ATTU_CONFIG_FILE` and `TEST_DB_URL` point at two different things, not one value with a precedence order:
+
+- `ATTU_CONFIG_FILE` (and the toml's `database.url`) govern integration tests and real bot startup
+- `TEST_DB_URL` only governs `tests/conftest.py`'s component-test fixtures, which connect to mongo directly and never call `config.on_init()`
+
+a git worktree never carries `.secrets/` (gitignored, not copied by `git worktree add`), so integration tests run from a worktree need `ATTU_CONFIG_FILE` pointed at the main checkout's copy:
+
+```bash
+ATTU_CONFIG_FILE=/home/jhn/Projects/doom-bot/.secrets/attu-bot.toml python scripts/run_tests.py
+```
+
+or symlink `.secrets` from the main checkout into the worktree instead.
+
+a full local component run against the dev-compose `mongo:8` service can hit a reproducible container crash on long runs (known issue, still open); the venv component path isn't unconditionally solid yet.
 
 ### Linting
 
