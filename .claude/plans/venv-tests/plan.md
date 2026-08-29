@@ -104,6 +104,6 @@ two pre-mortem risks from the original draft, both now partially retired by dire
 
 | phase | status |
 |---|---|
-| 0 - walking skeleton | not started |
+| 0 - walking skeleton | in progress |
 | 1 - fix run_tests.py | not started |
 | 2 - CLAUDE.md + settings + docs + skill | not started |

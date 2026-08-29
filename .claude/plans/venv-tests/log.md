@@ -19,3 +19,12 @@ cross-plan: `.claude/plans/mongo-cutover/plan.md` phase 1 independently plans a 
 two items found during the audit that are real but out of this plan's scope, parked in `bugs.md`: the docker-path integration test gap (`36f6fee` stripped the tests container's only path to a config file, integration tests can't run through docker at all) and `.env`'s dangling `ATTU_CONFIG_FILE` path.
 
 plan.md revised in place to reflect all of the above. no phases marked started; nothing implemented this session.
+
+## starting phase 0 - 2026-08-29
+
+worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/venv-tests
+branch: worktree-venv-tests (deviates from phase/<slug> convention - EnterWorktree names it, kept as-is)
+parent branch: trunk
+confirmed dod: mongo service added to docker-compose.dev.yml and starts cleanly; at least one component test passes from venv with no docker test container; integration test venv behavior documented (config-version staleness expected, not a new failure); coverage available in venv
+run mode: auto, no merges this run (user instruction) - phases stack on this one branch, merge deferred to end
+baseline: suite is already red for reasons outside this plan (2 unit failures + 14 collection errors + 11 component failures from prior stale-test commits; docker integration blocked entirely) - gates this run evaluate as "no new failures vs this baseline", not "green suite"
