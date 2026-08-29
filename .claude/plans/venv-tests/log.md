@@ -141,3 +141,11 @@ bug-triage: 5 entries reviewed (1 gc'd to `## closed`, 4 remain open). the `TEST
 plan-revise: zero downstream phases to classify - phase 2 is this plan's last phase. explicitly not treated as gaps: no next phase means no shipdown dispatch from this agent (shipdown itself is curtailed this run, per user instruction - only integration-check + ship-readiness happen, done separately); the mongo-cutover cross-plan pending edit stays un-actioned, flagged for the user at merge time per the plan's own constraints (`plan.md` line 23); `docs/to-do.md` promotion stays deferred to shipdown's pre-merge step, itself deferred past this run.
 
 status table: phase 2 flipped from "in progress" to "pending merge" - not "closed in <sha>", since no merge to trunk happened this run (explicit user instruction, see "status correction" entry above from phase 0). phases 0 and 1 rows unchanged.
+
+## shipdown - final integration-check + ship-readiness - 2026-08-29
+
+s1 (final integration-check, whole-plan, all 3 phases): pass. dispatched integration-check against the full accumulated branch state; it independently re-derived (not just trusted log.md) every one of plan.md's 6 goals against the actual current files (docker-compose.dev.yml, scripts/run_tests.py, tests/conftest.py, apps/bot/nova_core/config.py, README.md, CLAUDE.md, .claude/settings.json, the mock-compensation skill) - all 6 pass. commit history (19 commits since e710811) confirmed coherent, no stray commits. bugs.md end-state confirmed sensible.
+
+s2 (ship-readiness): verdict **ship**. zero blockers - the mongo:8 segfault is real and unresolved but classified as a deferred follow-up, not a blocker: it's a new-feature reliability gap (not a regression), doesn't violate any phase's actual dod, and is already honestly disclosed in README rather than hidden. full classification and reasoning in ship.md.
+
+**stopping here per explicit user instruction ("run it all. no merges yet").** s3 (pre-merge go-ahead), s4 (pre-merge: migrate deferred items, promote docs, archive plan dir), and s5 (final merge) are all deferred past this run. the branch (worktree-venv-tests) and worktree stay exactly as-is, unmerged, until the user gives explicit go-ahead in a future turn.
