@@ -37,6 +37,23 @@ services:
   mongo:
     image: mongo:8
     restart: no
+    environment:
+      # the mongo:8 image bakes in GLIBC_TUNABLES=glibc.pthread.rseq=0 (for a tcmalloc
+      # perf warning, unrelated to this); on host kernels >=6.19 that setting triggers a
+      # kernel-level rseq bug that SIGSEGVs mongod ~30s after startup, even fully idle -
+      # confirmed via docker-library/mongo#748, tracked upstream at
+      # https://lore.kernel.org/all/20260428221058.149538293@kernel.org/. re-enabling
+      # rseq works around it until the kernel fix lands.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+    ulimits:
+      # docker's default nofile (1024) is well below WiredTiger's needs; the component
+      # suite's rapid create/drop churn across many ephemeral test collections exhausts
+      # it mid-run, WiredTiger panics ("Too many open files"), and mongod aborts/crashes -
+      # a separate bug from the rseq crash above, confirmed via docker logs (WT_PANIC,
+      # "Too many open files", error_code 24)
+      nofile:
+        soft: 64000
+        hard: 64000
     ports:
       - "27017:27017"
 
