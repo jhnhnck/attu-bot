@@ -10,6 +10,7 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebSearch",
       "Bash(python -m pytest:*)",
+      "Bash(python scripts/run_tests.py:*)",
       "Bash(ruff check:*)",
       "Bash(ruff format:*)",
       "Bash(git apply:*)",

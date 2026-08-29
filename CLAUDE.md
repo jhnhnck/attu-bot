@@ -27,7 +27,7 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 - do not assume exclusive access to any file or the working directory
 - prefer additive changes; avoid deleting or overwriting files without checking for concurrent edits
 - if isolated git work is needed, use a worktree (`EnterWorktree`) rather than modifying the main tree
-- **do not run tests** - never invoke `pytest`, `docker compose run ... tests`, `npm test`, or any test runner; testing is the responsibility of the main agent only
+- **do not run tests** - never invoke `pytest`, `npm test`, `python scripts/run_tests.py`, or any test runner; testing is the responsibility of the main agent only
 - **do not run docker commands** - never invoke `docker`, `docker compose`, or any container tooling
 
 ## pitfalls
