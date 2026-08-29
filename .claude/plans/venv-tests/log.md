@@ -106,3 +106,20 @@ parent branch: trunk
 confirmed dod: mock-compensation skill's doom_bot refs gone and its line reference re-verified; README Tests section documents both paths per the phase 0/1-revised scope (docker downgraded to unit/component-only, TEST_DB_URL/database.url precedence to be confirmed before calling either canonical, worktree workaround documented); run_tests.py in settings.json allow list; CLAUDE.md sub-agents bullet updated.
 note: CLAUDE.md's `## rules` section says "do not edit the rules" - this phase's CLAUDE.md edit is scoped to the sub-agents section only, not the rules section; implementer briefed accordingly.
 open item carried from phase 0 triage, must resolve before writing the readme's db-pointer claim: does config.on_init() prefer TEST_DB_URL or database.url once past the version gate? unconfirmed since the version gate blocks before that code runs (see bugs.md). main agent will check this inline before/during this phase.
+
+## phase 2 verification - 2026-08-29
+
+all run inline by the main agent (not a subagent):
+
+- `grep -r "doom_bot" .claude/skills/mock-compensation/` -> clean
+- `.claude/settings.json` -> `"Bash(python scripts/run_tests.py:*)"` present, pytest entry untouched (not duplicated)
+- README.md Tests section -> rewritten; docker shown as an alternative (unit/component only, explicit integration limitation noted), not the sole path; who-can-run-what per suite documented; ATTU_CONFIG_FILE/TEST_DB_URL documented as two separate pointers (not a precedence question, per the phase 2 resolution); worktree workaround documented; mongo:8 segfault reliability caveat included so the venv component path isn't oversold
+- CLAUDE.md -> diffed against trunk (`git diff e710811 -- CLAUDE.md`): single line changed inside `## sub-agents`, `## rules` section (lines 1-19, "do not edit the rules") fully untouched, confirmed
+- mock-compensation's `test_start_bot_loop.py` line reference: implementer found `:350` pointed at the class line, not the method; corrected to `:360` (the actual `def test_extension_imports_cleanly` line) - re-verified directly by reading the file, confirmed accurate
+- additional fix beyond the original brief: mock-compensation SKILL.md linked `docs/dev/testing.md`, deleted in `49d2e88` - repointed to `README.md#tests` (this plan's actual replacement content) since it was a dead link directly adjacent to the file already being edited this phase
+- `uv run ruff check .` -> 13 errors, same baseline, no new issues
+- `uv run ruff format --check .` -> 14 files, same baseline count, no new issues (none of this phase's four touched files are in that count)
+
+phase 2 dod: met in full, plus one extra dead-link fix folded in (small, directly adjacent, not scope creep beyond what "update the tooling and documentation" already covered).
+
+note on plan.md's original phase 2 scope line: it also asked CLAUDE.md's edit to "note explicitly that the main agent runs python scripts/run_tests.py from the worktree." the landed wording ("testing is the responsibility of the main agent only") already conveys this implicitly and satisfies the literal dod bullet ("CLAUDE.md sub-agents bullet updated") - treated as resolved, no further edit needed.
