@@ -149,3 +149,11 @@ s1 (final integration-check, whole-plan, all 3 phases): pass. dispatched integra
 s2 (ship-readiness): verdict **ship**. zero blockers - the mongo:8 segfault is real and unresolved but classified as a deferred follow-up, not a blocker: it's a new-feature reliability gap (not a regression), doesn't violate any phase's actual dod, and is already honestly disclosed in README rather than hidden. full classification and reasoning in ship.md.
 
 **stopping here per explicit user instruction ("run it all. no merges yet").** s3 (pre-merge go-ahead), s4 (pre-merge: migrate deferred items, promote docs, archive plan dir), and s5 (final merge) are all deferred past this run. the branch (worktree-venv-tests) and worktree stay exactly as-is, unmerged, until the user gives explicit go-ahead in a future turn.
+
+## mongo:8 crash 3 - shipdown, 2026-08-29
+
+restarted mongo after phase 1's second crash (log entry above); phase 2 applied zero test load (pure docs/config edits). checking container state after phase 2 closed found it already `Exited (139)` again. `docker inspect`: `StartedAt: 02:04:00.86`, `FinishedAt: 02:04:30.50` - crashed 28 seconds after a clean startup, while idle. `docker logs` confirms normal startup completing ("mongod startup complete", "Waiting for connections") followed by zero further output before death - no warning. this is a third, distinct, load-free crash.
+
+revised conclusion in bugs.md and ship.md: this is not purely a sustained-load issue, the container is not reliably stable at all. severity raised accordingly. per advisor guidance, the container is deliberately left in its crashed state (not restarted again) so the crash evidence survives for the user to inspect - `docker logs doom-bot-dev-mongo-1`, restart with `docker compose -f docker-compose.dev.yml up -d mongo` when ready.
+
+trunk checked: still at `e710811` (unchanged since this worktree branched), `git merge-base --is-ancestor trunk HEAD` confirms a clean `--ff-only` merge is possible whenever the user gives go-ahead - no rebase needed.
