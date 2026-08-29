@@ -60,3 +60,11 @@ status table: phase 0 flipped from "in progress" to "closed in b1f8998".
 ## status correction - 2026-08-29
 
 phase-close set phase 0's status to `closed in b1f8998` - corrected to `pending merge`. `closed in <sha>` specifically means merged to trunk (plan-manager reference.md's status table); no merge happened this run per explicit user instruction ("run it all. no merges yet"). all phases in this run end at `pending merge`, collapsing into one eventual ff-merge once the user gives go-ahead.
+
+## starting phase 1 - 2026-08-29
+
+worktree: /home/jhn/Projects/doom-bot/.claude/worktrees/venv-tests (unchanged, reused)
+branch: worktree-venv-tests
+parent branch: trunk
+confirmed dod: run_tests.py runs all three suites directly outside docker and exits with correct code; no .dockerenv/docker-compose-run references remain; no test method name still says vitest unless deliberately kept and correctly named; ruff check clean (no new issues vs baseline)
+scope confirmed unchanged from plan.md's phase 1 section (already revised pre-execution: vitest cleanup scope expanded beyond one comment, per audit).
