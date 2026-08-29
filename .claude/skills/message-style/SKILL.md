@@ -3,24 +3,18 @@ name: message-style
 description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `doom_bot/commands/`, `doom_bot/client/`, `doom_bot/tasks/`, or `doom_bot/web/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo.
 ---
 
-# message-style
+# message-style (AttuBot overlay)
 
-Authoritative reference for log messages and Discord response strings in this repo. This skill is canonical; update it directly.
+read `~/.claude/skills/message-style/SKILL.md` once for the universal log message rules (lowercase, no terminal punctuation, f-strings only, embed variables in the message). this skill is canonical for AttuBot; update it directly.
 
-The model's default register - formal, capitalized, complete-sentence ("Successfully updated configuration.") - is wrong here for both logs and Discord. Lift tone from the examples below; do not paraphrase into something more polished.
+the model's default register - formal, capitalized, complete-sentence ("Successfully updated configuration.") - is wrong here for both logs and Discord. lift tone from the examples below.
 
-## log messages
+## log messages - AttuBot additions
 
-**tone:** purely technical and diagnostic. no personality, no humor.
+universal rules apply. AttuBot-specific patterns on top:
 
-**hard rules:**
-- always lowercase; never sentence-case
-  - exception: in-universe proper terms (e.g. `PC`) and content inside bracket prefixes
-  - software/platform names (discord, python, etc.) are also lowercase
-- no terminal punctuation - no periods, no ellipses, no exclamation marks
-- active voice, present tense - what is happening, not what happened
-- brief - 8 to 30 words; signal only, no prose
-- f-strings for interpolation; never `%s` or `.format()`
+- exception: in-universe proper terms (e.g. `PC`) and content inside bracket prefixes may be capitalized
+- brief - 8 to 30 words
 - prefer readable names over raw snowflakes - `.name`, `.global_name`, `.display_name`; only fall back to `.id` when no human-readable alternative exists
 - per-guild operations: prefix with `[{cfg!s}]` or `[{guild!s}]` to group related lines
 - mutation log pattern: `old={x},{y} new={a},{b}`
