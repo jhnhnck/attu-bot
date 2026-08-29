@@ -54,11 +54,30 @@ select = [
   "ASYNC",
   "S",
   "A",
+  "B",
+  "C4",
   "COM",
+  "DTZ",
+  "FLY",
+  "FURB",
+  "G",
+  "ISC",
+  "LOG",
+  "N",
+  "PERF",
+  "PIE",
+  "PT",
+  "RET",
+  "RSE",
   "SIM",
   "PTH",
+  "T10",
+  "T20",
+  "TC",
+  "TRY",
   "PL",
   "RUF",
+  "YTT",
 ]
 
 ignore = [
@@ -66,6 +85,7 @@ ignore = [
   "E114",
   "E117",
   "E303",
+  "ISC001",
   "PLC1901",
   "PLC2701",
   "PLR0904",
@@ -76,6 +96,9 @@ ignore = [
   "PLR6201",
   "PLR6301",
   "PLW1514",
+  "RET501",
+  "RET502",
+  "RET503",
   "RUF029",
   "RUF052",
   "RUF067",
@@ -87,6 +110,11 @@ ignore = [
   "PLE1205",
   "PLR2004",
   "RUF012",
+  "TC001",
+  "TC002",
+  "TC003",
+  "TRY002",
+  "TRY003",
   "UP037",
   "COM812",
 ]
@@ -104,9 +132,6 @@ skip-magic-trailing-comma = false
 lines-after-imports = 2
 known-first-party = ["nova_core", "attu_models", "attu_logging", "attu_wiki"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
 [tool.basedpyright]
 pythonPlatform = "Linux"
 typeCheckingMode = "standard"
@@ -120,6 +145,9 @@ reportAttributeAccessIssue = false
 exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.ruff.lint.per-file-ignores]
+"scripts/**" = [
+  "T201",
+]
 "tests/**" = [
   "S101",
   "S106",
