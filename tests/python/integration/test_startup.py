@@ -29,17 +29,17 @@ def _make_fake_app_info(owner_id: int = 222222222222):
 @contextmanager
 def _bot_patched(*, owner_id: int = 222222222222):
     """patches all discord bot network methods used by startup; yields dict of mocks"""
-    import nova_core
+    from nova_core.client.core import bot
 
     fake_guild = MagicMock()
     fake_guild.name = 'Test Guild'
 
     with (
-        patch.object(nova_core.bot, 'login', new_callable=AsyncMock) as m_login,
-        patch.object(nova_core.bot, 'sync_commands', new_callable=AsyncMock) as m_sync,
-        patch.object(nova_core.bot, 'application_info', new_callable=AsyncMock, return_value=_make_fake_app_info(owner_id)) as m_info,
-        patch.object(nova_core.bot, 'get_guild', return_value=fake_guild),
-        patch.object(nova_core.bot, 'fetch_guild', new_callable=AsyncMock, return_value=fake_guild),
+        patch.object(bot, 'login', new_callable=AsyncMock) as m_login,
+        patch.object(bot, 'sync_commands', new_callable=AsyncMock) as m_sync,
+        patch.object(bot, 'application_info', new_callable=AsyncMock, return_value=_make_fake_app_info(owner_id)) as m_info,
+        patch.object(bot, 'get_guild', return_value=fake_guild),
+        patch.object(bot, 'fetch_guild', new_callable=AsyncMock, return_value=fake_guild),
     ):
         yield {'login': m_login, 'sync_commands': m_sync, 'application_info': m_info}
 
