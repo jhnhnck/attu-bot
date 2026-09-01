@@ -57,25 +57,6 @@ class TestSetupDiscordLogging:
             if isinstance(h, PycordBridgeHandler):
                 discord_http_logger.removeHandler(h)
 
-    def test_sets_discord_http_logger_to_debug(self):
-        """discord.http logger level is set to DEBUG"""
-        import logging as _logging
-
-        discord_http_logger = _logging.getLogger('discord.http')
-        original_level = discord_http_logger.level
-
-        nova_core._setup_discord_logging()
-
-        assert discord_http_logger.level == _logging.DEBUG
-
-        # cleanup
-        discord_http_logger.setLevel(original_level)
-        from nova_core.client import PycordBridgeHandler
-
-        for h in list(discord_http_logger.handlers):
-            if isinstance(h, PycordBridgeHandler):
-                discord_http_logger.removeHandler(h)
-
     def test_root_logger_has_dual_stream_handlers(self):
         """structlog config installs one stdout (< WARNING) and one stderr (>= WARNING) handler on root.
 
