@@ -11,6 +11,12 @@ from pathlib import Path
 os.environ['TZ'] = 'UTC'
 _time.tzset()
 
+# same reason: NovaConfig reads ATTU_CONFIG_FILE in __init__, before any fixture
+# could set it. default to the checked-in dummy config so integration tests can
+# call on_init() without real secrets; a real ATTU_CONFIG_FILE (e.g. local dev
+# with actual .secrets/attu-bot.toml) still takes precedence if already set.
+os.environ.setdefault('ATTU_CONFIG_FILE', str(Path(__file__).parent / 'fixtures' / 'test-attu-bot.toml'))
+
 # configure logging before any repo import so module-level loggers see the right
 # handlers/processors. tests don't run an app entrypoint, so without this call
 # the first emit binds to structlog's default config instead of ours.

@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# dummy config for integration tests (tests/python/integration/) - loaded via
+# ATTU_CONFIG_FILE by tests/conftest.py's autouse fixture. no real secrets;
+# on_init() only validates structure, and test_startup.py mocks every real
+# discord network call. mongo is real, so database.url points at the same
+# localhost instance the rest of the suite uses.
+config_version = "2.8.0"
+
+[auth.bot]
+token = "test-token-not-real"
+
+[auth.wiki]
+key = "test-key-not-real"
+page = "Test:Page"
+user = "TestBot@TestBot"
+endpoint = "https://wiki.example.invalid"
+
+[[guilds]]
+id = 123456789012345678
+role = "member"
+
+[bot]
+name = "Test Bot"
+welcome_message = "welcome"
+
+[trees]
+hmac_secret = "test-secret-not-real"
+dev_base_url = "https://dev.example.invalid"
+prod_base_url = "https://prod.example.invalid"
+
+[database]
+url = "mongodb://localhost:27017/doombot"
+name = "doombot"
