@@ -11,6 +11,7 @@ format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / 
 ### testing
 
 - ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice. carried from plan: nova-w2 (2026-08-09)
+- ⭕ `bug` `docker-compose.dev.yml` `tests` service has had no `.secrets` mount and no `ATTU_CONFIG_FILE` since `36f6fee` (2026-08-02), so integration tests run through `docker compose run --build --rm tests` cannot find a config file; `TEST_DB_URL` covers unit/component only. fix: mount `.secrets` read-only into that one service, or accept that integration tests are venv-only (README already documents docker as unit/component-only). carried from plan: venv-tests (2026-09-03)
 
 
 ### starboard
@@ -63,6 +64,7 @@ format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / 
 
 ### deploy
 
+- ⭕ `bug` `.env` sets `ATTU_CONFIG_FILE=./assets/attu-bot.toml`, a path that does not exist anywhere in the repo (README documents `.secrets/attu-bot.toml`); nothing in compose currently reads it (the `tests` service has no `env_file:`), so it is inert today but wrong for anything else that sources `.env`. carried from plan: venv-tests (2026-09-03)
 - ⭕ `smell` `scripts/deploy.py:37-44` the attu-year epoch snapshot (`_epoch_toml`) is hardcoded inline and manually re-pasted from `/fix epoch` whenever it changes. tree-editor's `publish-package.zsh` (attu-standalone-packaging plan) now reads the same epoch from a shared `~/.attu-epoch.toml` file on the host instead of duplicating the snapshot a third time. `deploy.py` should migrate `compute_attu_year()` to read that same file instead of `_epoch_toml`, so there's one canonical epoch copy on the host, not two independently-updated ones (from cross-repo work in tree-editor, not yet actioned here)
 
 ---
