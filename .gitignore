@@ -26,12 +26,8 @@ venv/
 # type checker / linter caches
 .ruff_cache/
 
-# node.js
-node_modules/
-
 # mkdocs build output
 site/
-package-lock.json
 
 # config files
 attu-bot.toml
@@ -55,7 +51,6 @@ wip/
 .claude/conflicts.md
 .claude/worktrees
 
-
 # docker prod/dev split
 docker-compose.yml
 
@@ -66,9 +61,3 @@ apps/bot/assets/doombot-seed/
 notes/plans/
 notes/reports/
 
-# Playwright
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/

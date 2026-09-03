@@ -19,13 +19,6 @@ venv/
 coverage.xml
 htmlcov/
 
-# playwright
-blob-report/
-playwright-report/
-playwright/.auth/
-playwright/.cache/
-test-results/
-
 # editor
 .claude/
 .vscode/
@@ -52,10 +45,7 @@ apps/chat/
 
 # misc
 backups/
-node_modules/
 wip/
 
 # allow workspace metadata for test runner
-!package.json
-!pnpm-lock.yaml
 !pyproject.toml
