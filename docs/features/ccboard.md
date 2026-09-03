@@ -133,6 +133,8 @@ only announces at exactly those counts. sent as an embed in the ccboard channel 
 
 all user-facing `/stars` commands route per-guild: when `ccboard.enabled=True` the ccboard path runs; `enabled=False` guilds get the legacy starboard path unchanged.
 
+
+repair and inspection ops are admin api routes under `/admin/ops/{slug}/ccboard/*`, listed here in their `scripts/nova_admin.py` REPL form (the `/fix` and `/debug` slash groups no longer exist)
 | command | purpose |
 |---|---|
 | `/stars random` | returns a random `ccboard_entries` entry (ccboard) or a legacy starboard message; ccboard response id appended to `display_message_ids` (cap 20) |
@@ -142,13 +144,13 @@ all user-facing `/stars` commands route per-guild: when `ccboard.enabled=True` t
 | `/stars leaderboard most-starred` | top users by number of board entries (ccboard-backed) |
 | `/stars leaderboard most-given` | top users by total points given (ccboard-backed) |
 | `/stars leaderboard top-messages` | top entries by total points (ccboard-backed); shows "coming soon" on non-enabled guilds |
-| `/fix stars convert` | one-shot migration; copies `starboard` records into `ccboard_reactions` + `ccboard_entries`. idempotent. requires `confirm=True` and a non-empty `ccboard.emojis`. |
-| `/fix ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
-| `/fix ccboard purge <link>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
-| `/fix ccboard recover` | auditor discovery pass — calls `auditor_task.discover_guild(dry_run=True)`; scans channel history for messages with configured-emoji reactions that have no `BoardEntryDocument`; scoped to channels with existing entries (never unbounded); 90s budget; dry-run only at the command level |
-| `/fix ccboard recount [message_link] [confirm]` | auditor reconcile + recount pass. with `message_link` runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state and additionally re-snapshots `point_value` for any active record stale per `(last_recounted_at or reacted_at) < cfg.weights_updated_at`. default dry-run; `confirm=True` writes adds/replaces/recounts, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`. degrades to add+replace-only when discord pagination is partial. summary fields: `add` / `replace` / `remove` / `recount` / `match` / `strip_invalid` / `strip_extras`. without a link calls `reconcile_guild`: iterates every entry in the guild with a 90s budget; guild-wide recount inherited free via the staleness predicate |
-| `/fix ccboard cleanup [confirm]` | orphan-post cleanup pass — calls `auditor_task.cleanup_orphans`; scans the ccboard output channel (`cfg.channel_id`) for bot-authored messages that have no corresponding `BoardEntryDocument.starboard_message_id`; only considers posts older than the grace period (default 7 days). default dry-run; `confirm=True` deletes the orphan posts. 90s budget |
-| `/debug ccboard show_reactions <link>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, `reacted_at`, and `last_recounted_at` (when set) |
+| `job_convert_starboard_to_ccboard` (`ccboard/migration.py`; no command or api entry point today) | one-shot migration; copies `starboard` records into `ccboard_reactions` + `ccboard_entries`. idempotent. requires a non-empty `ccboard.emojis`. |
+| `ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
+| `ccboard purge <id>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |
+| `ccboard recover` | auditor discovery pass: calls `auditor_task.discover_guild(dry_run=True)`; scans channel history for messages with configured-emoji reactions that have no `BoardEntryDocument`; scoped to channels with existing entries (never unbounded); 90s budget; dry-run only at the command level |
+| `ccboard recount [<id>] [--confirm]` | auditor reconcile + recount pass. with an id runs `reconcile_entry` on that entry: diffs `ccboard_reactions` against live discord state and additionally re-snapshots `point_value` for any active record stale per `(last_recounted_at or reacted_at) < cfg.weights_updated_at`. default dry-run; `--confirm` writes adds/replaces/recounts, soft-deletes phantom votes, strips self/bot/extra reactions via `_safe_remove_reaction`. degrades to add+replace-only when discord pagination is partial. summary fields: `add` / `replace` / `remove` / `recount` / `match` / `strip_invalid` / `strip_extras`. without a link calls `reconcile_guild`: iterates every entry in the guild with a 90s budget; guild-wide recount inherited free via the staleness predicate |
+| `ccboard cleanup [--confirm]` | orphan-post cleanup pass: calls `auditor_task.cleanup_orphans`; scans the ccboard output channel (`cfg.channel_id`) for bot-authored messages that have no corresponding `BoardEntryDocument.starboard_message_id`; only considers posts older than the grace period (default 7 days). default dry-run; `--confirm` deletes the orphan posts. 90s budget |
+| `ccboard reactions <id>` | lists every `ReactionDocument` (active and removed) for one entry with point value, super flag, source location, `reacted_at`, and `last_recounted_at` (when set) |
 
 ---
 
@@ -165,8 +167,8 @@ these are load-bearing design constraints in the auditor and watcher. violating 
 
 ## known gaps
 
-- **missed `reaction_add`**: no self-healing in the watcher; reaction exists on discord but no `ReactionDocument` is created. `/fix ccboard recount <link>` corrects this per-entry; `/fix ccboard recover` scans channel history scoped to channels with existing entries.
-- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until `/fix ccboard recount <link>` or `/fix ccboard recount` (guild-wide) runs over the entry.
+- **missed `reaction_add`**: no self-healing in the watcher; reaction exists on discord but no `ReactionDocument` is created. `ccboard recount <id>` corrects this per-entry; `ccboard recover` scans channel history scoped to channels with existing entries.
+- **missed `reaction_clear` aggregate**: individual users who re-react self-heal, but phantom votes from users who don't return persist until `ccboard recount <id>` or `ccboard recount` (guild-wide) runs over the entry.
 - **`effective_author_id` re-resolution**: once set (or left None) during backfill, attribution is never revisited. no command or automatic path exists to re-resolve.
 - **config weight retroactive recalculation**: changing emoji weights leaves existing `ReactionDocument.point_value` snapshots at old values. self-healing via three paths: (1) same-emoji re-react refreshes `point_value` and stamps `last_recounted_at` (watcher); (2) `/fix ccboard recount <link> confirm:True` re-snapshots every stale active record on one entry; (3) `/fix ccboard recount confirm:True` (no link) runs `reconcile_guild` which iterates all entries and inherits the staleness predicate for free.
 
@@ -175,6 +177,6 @@ these are load-bearing design constraints in the auditor and watcher. violating 
 ## metadata
 
 ```yaml
-last_updated: 2026-08-22
+last_updated: 2026-09-03
 status: all phases shipped (feat/ccboard, pending merge) — foundation, watcher, manager, auditor, /stars user surface, starboard gate + migration runbook
 ```

@@ -20,7 +20,7 @@ An egg collection mini-game. Players can run `/egg` to collect eggs that hatch i
 6. The egg is marked hatched in MongoDB **before** the animation starts. A restart during the animation will not double-hatch the egg.
 7. Animation sequence: egg emoji sits unchanged for 10-15s → edit to 💢 → 1s pause → edit to result creature emoji.
 8. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. Channel ID is persisted in `channels.eggs`.
-9. Custom egg emojis (one per rarity) must be generated once via `/fix eggs generate`. They are stored in `BotTheme.egg_emojis` (MongoDB) and survive restarts.
+9. Custom egg emojis (one per rarity) must be generated once via the admin api emoji-sync trigger (`trigger emoji-sync` in `scripts/nova_admin.py`, `POST /admin/ops/trigger/emoji-sync`). They are stored in `BotTheme.egg_emojis` (MongoDB) and survive restarts.
 
 ---
 
@@ -95,10 +95,9 @@ Slash commands are defined in `apps/bot/nova_core/commands/eggs.py`.
 | `/eggs view` | link to your egg collection thread |
 | `/eggs give @user [rarity]` | give one of your eggs to another user |
 | `/eggs progress` | show per-rarity and total unique creature progress with progress bars |
-| `/fix eggs generate` | upload custom egg emojis to secondary server and save IDs (owner only, run once) |
-| `/fix emoji progress` | upload progress bar emojis to secondary server and save IDs (owner only, run once) |
-| `/debug eggs show <rarity>` | display the emoji and full hatch pool for a rarity (owner only) |
-| `/debug eggs preview <rarity>` | run a full hatch animation in the current channel with no DB writes (owner only) |
+| `/eggs leaderboard hatched` | top collectors by total hatched |
+| `/eggs leaderboard collected` | top collectors by most complete set |
+| `trigger emoji-sync` (admin api, not a slash command) | upload custom egg emojis and progress bar emojis to the secondary server and save their IDs; idempotent |
 
 ---
 
@@ -166,15 +165,13 @@ Segment keys in `BotTheme.progress_emojis`: `left_full`, `left_empty`, `none_ful
 
 ## Setup
 
-1. Run `/fix eggs generate` once in the secondary (emoji) server to create the five custom emojis and store their IDs.
-2. Run `/fix emoji progress` once in the secondary (emoji) server to upload the six progress bar segment emojis and store their IDs.
-3. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. No manual setup required.
-4. Use `/debug eggs preview` to test the animation any time.
+1. Run the admin api emoji-sync trigger once (`trigger emoji-sync` in `scripts/nova_admin.py`) to create the five custom egg emojis and the six progress bar segment emojis in the secondary (emoji) server and store their IDs.
+2. The `#eggs` channel is created automatically on first use via `ensure_eggs_ready()`. No manual setup required.
 
 ---
 
 ## metadata
 
 ```yaml
-last_updated: 2026-08-22
+last_updated: 2026-09-03
 ```

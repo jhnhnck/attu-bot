@@ -106,13 +106,11 @@ color comes from the emoji in `emojis` with the highest count. falls back to `0x
 | `/stars random` | random message with 2+ stars |
 | `/stars lost` | random message with exactly 1 star |
 | `/stars recheck <link>` | force-update the starboard post for a specific message |
-| `/stars most-stars` | leaderboard - top users by stars received |
-| `/stars most-starred` | leaderboard - top users by messages on the starboard |
-| `/stars most-given` | leaderboard - top users by stars given |
-| `/fix starboard recover [days]` | scan the starboard channel for bot posts and restore missing db records or fix broken links (default 7 days) |
-| `/fix starboard recount` | re-fetch live discord reactions for all starred messages and rebuild reaction lists |
-| `/fix starboard regen` | rebuild every starboard post for this guild |
-| `/fix starboard purge <message_link>` | remove a message from the starboard db (and delete its discord post if possible) |
+| `/stars leaderboard most-stars` | leaderboard - top users by stars received |
+| `/stars leaderboard most-starred` | leaderboard - top users by messages on the starboard |
+| `/stars leaderboard most-given` | leaderboard - top users by stars given |
+
+the legacy `/fix starboard recover|recount|regen|purge` commands were removed with the `/fix` slash group; the ccboard equivalents are admin api ops (see [ccboard.md](ccboard.md)), the legacy starboard has no replacement
 
 ---
 
@@ -154,5 +152,5 @@ only announces at exactly those counts - no announcement at 4, 6, etc. errors du
 ## metadata
 
 ```yaml
-last_updated: 6 May 2026
+last_updated: 3 September 2026
 ```
