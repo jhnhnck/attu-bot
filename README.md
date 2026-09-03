@@ -2,43 +2,69 @@
 
 A Discord bot for the Attu Project that automates in-universe timekeeping, year-transition announcements, wiki management, and related server utilities.
 
-## Features
+## features
 
-- tracks in-universe time and automates year transitions - announcements, channel name updates, wiki edits
+- tracks in-universe time and automates year transitions: announcements, channel name updates, wiki edits
 - retrieves year info and links to specific years in lore channels
-- manages a starboard, message backfill, and moderation logging
-- egg collection game with rarity-based hatching and trading
+- starboard and ccboard reaction boards, message backfill, and moderation logging
+- egg collection game with rarity-based hatching, trading, and leaderboards
+- reminders for in-universe dates
+- FamilyEcho family tree links and family tree editor account linking
+- admin API (attu_server) for config, feature toggles, and repair operations; talks to the bot over an HMAC-signed bridge
 
-## Commands
+## commands
 
-### Users
+### users
 
-- **/ping**: checks if the bot is online
+- **/ping**, **/pong**: checks if the bot is online
+- **/version**: current version and container build time
+- **/color**: shows the current bot theme color
 
 - **/year**: utilities related to current, past, or future years
   - **/year check [year]**: prints year info (start date, end date, duration); defaults to next year if omitted
   - **/year link \<year\> [channel]**: links to the specified year in a lore channel; defaults to #lore-news
   - **/year search \<year\>**: prints a search query for timelining
 
-- **/wiki**: wiki lookup and management
+- **/wiki**: wiki lookup
   - **/wiki random**: gets a random page from the wiki
   - **/wiki lookup \<query\>**: searches the wiki for relevant pages
 
+- **/remind**: reminders for in-universe (Haracalnde) dates
+  - **/remind add**: sets a reminder for a date
+  - **/remind list**: views your active reminders
+  - **/remind cancel**: cancels an active reminder
+
+- **/egg**: collects an egg
 - **/eggs**: egg collection game
-  - **/eggs hatch**: hatch your next ready egg
-  - **/eggs view**: view your egg collection thread
-  - **/eggs give \<user\> [rarity]**: give one of your eggs to another user
-  - **/eggs progress**: view your collection progress by rarity with progress bars
+  - **/eggs hatch**: hatches your next ready egg
+  - **/eggs view**: views your egg collection thread
+  - **/eggs give \<user\> [rarity]**: gives one of your eggs to another user
+  - **/eggs progress**: views your collection progress by rarity with progress bars
+  - **/eggs leaderboard hatched**: top collectors by total hatched
+  - **/eggs leaderboard collected**: top collectors by most complete set
 
 - **/stars**: starboard browsing and leaderboards
   - **/stars random**: shows a random message with 2 or more stars
   - **/stars lost**: shows a random message with exactly 1 star
   - **/stars recheck \<message_link\>**: force-updates the starboard post for a specific message
-  - **/stars most-stars**: top users by total stars received
-  - **/stars most-starred**: top users by number of messages on the starboard
-  - **/stars most-given**: top users by total stars given
+  - **/stars leaderboard most-stars**: top users by total stars received
+  - **/stars leaderboard most-starred**: top users by number of messages on the starboard
+  - **/stars leaderboard most-given**: top users by total stars given
+  - **/stars leaderboard top-messages**: top messages by stars (ccboard only)
 
-### Admin
+- **/link family**: FamilyEcho family trees
+  - **/link family list**: lists all registered family trees
+  - **/link family view**: gets a temporary FamilyEcho viewer link for a registered family
+  - **/link family set**: registers a family tree from an existing message link
+  - **/link family upload**: registers a family tree by uploading the file directly
+
+- **/trees**: family tree editor
+  - **/trees link**: links your Discord account to the family tree editor
+  - **/trees show**: lists your family trees
+  - **/trees share**: shares a tree with another Discord user
+  - **/trees unshare**: revokes a user's access to one of your trees
+
+### admin
 
 - **/time**: controls passage of in-universe time (admin only; see [docs/features/timekeeping.md](docs/features/timekeeping.md))
   - **/time advance**: manually advances to the next year, ignoring all checks
@@ -56,37 +82,29 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
 - **/query**: message searches (admin only)
   - **/query pins \<channel\>**: finds all "pinned a message" system messages in a channel
 
-- **/debug**: diagnostic info (admin only)
-  - **/debug version**: current version and container build time
-  - **/debug scheduler**: currently running background tasks
-  - **/debug year_stats**: current state of timekeeping calculations
-  - **/debug message_stats [channel]**: count of stored messages for a channel or the whole guild
-  - **/debug message \<link\>**: raw info about a specific message
-  - **/debug dump_config**: prints loaded config to console
-  - **/debug dump_starboard**: dumps 50 random starboard bot messages to a file
-  - **/debug force_error**: throws an internal error (for testing)
+### admin api
 
-- **/fix**: repair and rebuild commands (bot owner only)
-  - **/fix logo**: forces the logo update task to run immediately
-  - **/fix year_links**: forces the year links channel to be rebuilt
-  - **/fix messages \<channel\>**: verifies and backfills any missing stored messages in a channel
-  - **/fix author_names [user]**: re-resolves usernames and updates all stored messages
-  - **/fix reconcile [days]**: scans recent guild history and reconciles starboard state
-  - **/fix emoji**: uploads and verifies all custom emojis on the secondary server
-  - **/fix starboard recount**: re-fetches live Discord reactions and updates starboard counts
-  - **/fix starboard recover [days]**: scans the starboard channel and restores any missing db records
-  - **/fix starboard regen**: rebuilds every starboard post for this guild
-  - **/fix starboard purge \<message_link\>**: removes a message from the starboard database
+repair and diagnostic operations are no longer slash commands. they live on attu_server's api-key protected `/admin` routes, which call the bot over the bridge:
 
-## Setup
+| area | routes |
+|---|---|
+| guilds | list guilds, channels, roles; read and patch per-guild config keys; enable or disable features |
+| reload | guild, theme, or system reload signals |
+| ops | message backfill (channel or guild), ccboard regen/purge/recover/cleanup/recount, logo and emoji-sync and year-links triggers, version/scheduler/year-stats/epoch info, message inspection |
 
-### Configuration
+`scripts/nova_admin.py` is an interactive REPL over those routes (`guild`, `config`, `feature`, `reload`, `backfill`, `ccboard`, `trigger`, `info`, `inspect`); `scripts/bridge_curl.py` signs raw bridge calls for manual use.
 
-1. copy `config/sample.env` to `.env` and fill in postgres credentials
+## setup
+
+### configuration
+
+1. copy `config/sample.env` to `.env` and fill in the postgres credentials (FerretDB runs on postgres until the mongo cutover)
 2. copy `config/attu-bot.sample.toml` to `.secrets/attu-bot.toml` and fill in your values (bot token, wiki credentials, authorized guild IDs, etc.); the compose stack mounts both files into each container
-3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and can be updated via bot commands
+3. runtime guild settings (epoch, channels, roles, theme) live in MongoDB and are updated through bot commands or the admin API
 
-### Docker (recommended)
+compose is split into `docker-compose.prod.yml` (bot, server, database) and `docker-compose.dev.yml` (database, dev seed, tests, standalone `mongo`); there is no default `docker-compose.yml`, so pass `-f` or add a gitignored symlink named `docker-compose.yml` pointing at the one you use
+
+### docker (recommended)
 
 ```bash
 git clone https://github.com/jhnhnck/attu-bot.git && cd attu-bot
@@ -94,75 +112,70 @@ mkdir -p .secrets
 cp config/sample.env .env
 cp config/attu-bot.sample.toml .secrets/attu-bot.toml
 vim .env .secrets/attu-bot.toml
-docker compose up --build -d
-docker compose logs -f
+docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
-### Local development
+### local development
 
-uv + pnpm workspace; member packages live under `apps/` and `packages/`.
+uv workspace; member packages live under `apps/` and `packages/`.
 
 ```bash
-uv venv && source .venv/bin/activate
 uv sync
-pnpm install
 cp config/attu-bot.sample.toml .secrets/attu-bot.toml
-python apps/bot/doom-bot.py bot
+uv run python apps/bot/doom-bot.py bot
 ```
 
-## Development
+## development
 
-See [docs/architecture.md](docs/architecture.md) for full architecture, coding conventions, and contributor guidelines.
+see [docs/architecture.md](docs/architecture.md) for package layout and file roles; coding conventions and project rules live in `CLAUDE.md` and the skills under `.claude/skills/`.
 
-### Tests
+### tests
 
 primary path: run from the venv, no docker relaunch needed.
 
 ```bash
-python scripts/run_tests.py
+uv run python scripts/run_tests.py
 ```
 
 docker is available as an alternative, but only for unit and component suites; the `tests` container has no `.secrets` mount, so integration tests can't find a config file that way.
 
 ```bash
-docker compose run --build --rm --quiet-build tests scripts/run_tests.py
+docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests scripts/run_tests.py
 ```
 
 what each suite needs:
 
 - unit: no db needed; either path works
-- component: needs a mongo instance - `docker compose up -d mongo` before a venv run, or the docker `tests` path; point a venv run at it with `TEST_DB_URL=mongodb://localhost:27017/doombot`
-- integration: needs a valid, current `.secrets/attu-bot.toml`; its `config_version` must be at or above what `nova_core/config.py`'s `__config_version__` requires, or the run fails with a version-gate error - a stale local secrets file fails this way
+- component: needs a mongo instance; `docker compose -f docker-compose.dev.yml up -d mongo` before a venv run, or the docker `tests` path; point a venv run at it with `TEST_DB_URL=mongodb://localhost:27017/doombot`
+- integration: needs a valid, current `.secrets/attu-bot.toml`; its `config_version` must be at or above what `nova_core/config.py`'s `__config_version__` requires, or the run fails with a version-gate error
 
 `ATTU_CONFIG_FILE` and `TEST_DB_URL` point at two different things, not one value with a precedence order:
 
 - `ATTU_CONFIG_FILE` (and the toml's `database.url`) govern integration tests and real bot startup
 - `TEST_DB_URL` only governs `tests/conftest.py`'s component-test fixtures, which connect to mongo directly and never call `config.on_init()`
 
-a git worktree never carries `.secrets/` (gitignored, not copied by `git worktree add`), so integration tests run from a worktree need `ATTU_CONFIG_FILE` pointed at the main checkout's copy:
+a git worktree never carries `.secrets/` (gitignored, not copied by `git worktree add`), so integration tests run from a worktree need `ATTU_CONFIG_FILE` pointed at the main checkout's copy, or a symlink to it:
 
 ```bash
-ATTU_CONFIG_FILE=/home/jhn/Projects/doom-bot/.secrets/attu-bot.toml python scripts/run_tests.py
+ATTU_CONFIG_FILE=<main-checkout>/.secrets/attu-bot.toml uv run python scripts/run_tests.py
 ```
 
-or symlink `.secrets` from the main checkout into the worktree instead.
+the dev-compose `mongo` service carries two workarounds the component suite depends on (a `GLIBC_TUNABLES` rseq override for newer host kernels and a raised `nofile` ulimit); see the comments on that service before changing it.
 
-a full local component run against the dev-compose `mongo:8` service can hit a reproducible container crash on long runs (known issue, still open); the venv component path isn't unconditionally solid yet.
-
-### Linting
+### linting
 
 ```bash
-ruff check .
-ruff format --check .
-npm run lint
+uv run ruff check .
+uv run ruff format --check .
 ```
 
-## Credits
+## credits
 
-- Progress bar emojis from [emoji.gg Progress Bar Pack](https://emoji.gg/pack/7783-progress-bar)
+- progress bar emojis from [emoji.gg Progress Bar Pack](https://emoji.gg/pack/7783-progress-bar)
 
-## License
+## license
 
 Copyright (c) 2026 John Hancock, The Attu Project
 
-This project is licensed under the Apache License, Version 2.0; See [LICENSE](LICENSE) for full text
+This project is licensed under the Apache License, Version 2.0; see [LICENSE](LICENSE) for full text

@@ -1,6 +1,6 @@
 # AttuBot / Doom Bot
 
-Additional docs are in `docs/` (architecture in `docs/architecture.md`, config system in `docs/config-system.md`, style guides in `docs/style/`, feature specs in `docs/features/`, dev guides in `docs/dev/`).
+Additional docs are in `docs/` (architecture in `docs/architecture.md`, config system in `docs/config-system.md`, style guides in `docs/style/`, feature specs in `docs/features/`; backlog in `docs/to-do.md`, bug log in `docs/bugs.md`, active plans in `.claude/plans/`).
 
 ## rules
 

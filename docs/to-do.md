@@ -13,7 +13,7 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
-- ⭕ `medium priority` `low effort` post-merge: reconcile `.gitignore` with `docs/dev/process.md` — the doc says plans live in `notes/plans/<project>.md` (implying tracked) but `.gitignore:56-57` ignores `notes/plans/` and `notes/reports/`. either drop those gitignore lines so plans/reports are tracked, or update the process doc to reflect that they're local-only. handle once the dev-tree WIP merges so we're not editing both trees in parallel
+- ⭕ `low priority` `low effort` `.gitignore` still ignores `notes/plans/` and `notes/reports/`, but plans now live tracked in `.claude/plans/` and `notes/` only holds `plans/archived/`; drop the dead ignore lines (and the leftover `notes/` dir if nothing else lands there)
 
 ### eggs / hatch game
 
@@ -60,7 +60,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 ### admin / attu_server
 
 - 🔴 `27 Aug 2026` repl-commands branch: noun-first nova_admin.py REPL, bridge ops endpoints (`/bridge/ops/*`), server-side ops routes (`attu_server/api/admin/ops.py`), feature toggle bug fix; discord slash commands removed from fix.py and debug.py; smoke test gate still open (see below)
-- ⭕ `medium priority` `medium effort` implement `POST /bridge/fix/recalculate-starboard` in `doom_bot/bridge/router.py` — the `fix.py` admin endpoint ships with a 501 fallback until the bridge side lands; this is the bridge companion needed to make `fix recalculate-starboard` functional end-to-end. nova-w3 or standalone bridge task. carried from plan: nova-w5 (2026-08-12)
+- ⭕ `medium priority` `medium effort` implement `POST /bridge/fix/recalculate-starboard` in `apps/bot/nova_core/bridge/router.py`; the `fix.py` admin endpoint ships with a 501 fallback until the bridge side lands; this is the bridge companion needed to make `fix recalculate-starboard` functional end-to-end. nova-w3 or standalone bridge task. carried from plan: nova-w5 (2026-08-12)
 - ⭕ `medium priority` `low effort` run `scripts/nova_admin.py` smoke test against dev server: verify `guilds`, `use <slug>`, `config get <key>`, `config set <key> <value>`, `feature enable <name>`, `reload guild` all complete without error; record results in `.claude/plans/nova-w5/log.md` before final merge (plan merge gate). carried from plan: nova-w5 (2026-08-12)
 - ⭕ `low priority` `low effort` `apps/server/pyproject.toml` declares only `attu-logging`; all other server runtime deps (fastapi, httpx, tomlkit, uvicorn, itsdangerous) live in `apps/bot/pyproject.toml`; uv workspace resolves transitively so no runtime failures, but dep ownership is wrong. carried from plan: nova-w5 (2026-08-12)
 - ⭕ `low priority` `low effort` docker creates an empty `.secrets/attu-bot.toml/` directory (owned by root) when running `docker compose` from a worktree that lacks the secrets file, blocking component/integration tests in worktrees; workaround: `sudo rm -rf .secrets && mkdir .secrets && ln -sf /home/jhn/Projects/doom-bot/.secrets/attu-bot.toml .secrets/attu-bot.toml`; fix with a compose volume mount or a setup script that creates the symlink automatically. carried from plan: nova-w5 (2026-08-12)

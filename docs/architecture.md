@@ -40,19 +40,19 @@ each file is a pycord extension (`setup(bot)` function) registering a `SlashComm
 
 | file | slash group | purpose |
 |---|---|---|
-| `debug.py` | `/debug` | diagnostic commands - version, scheduler state, year stats, message stats, starboard dump, config dump |
-| `fix.py` | `/fix` | repair/rebuild commands - logo refresh, year links rebuild, message backfill, starboard learn and recount |
+| `debug.py` | `/version`, `/pong`, `/color` | top-level diagnostic commands; deeper diagnostics moved to the admin api (`/admin/ops/info/*`) |
+| `fix.py` | (none) | background job functions for repair and maintenance (channel/guild backfill, ccboard regen/purge/recover/cleanup/recount); no slash commands, invoked via bridge ops endpoints |
 | `marker.py` | `/marker` | save, set, and clear year marker messages |
 | `query.py` | `/query` | channel pin queries |
-| `stars.py` | `/stars` | starboard browsing (`random`, `lost`, `recheck`) and leaderboards (`most-stars`, `most-starred`, `most-given`) |
+| `stars.py` | `/stars` | starboard browsing (`random`, `lost`, `recheck`) and `/stars leaderboard` (`most-stars`, `most-starred`, `most-given`, `top-messages`) |
 | `time.py` | `/time` | in-universe time controls - advance, pause, resume, dilate |
 | `wiki.py` | `/wiki` | wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family view`, `family set`, `family upload`) |
 | `trees.py` | `/trees` | family tree editor link, show, share, and unshare commands |
-| `eggs.py` | `/eggs` | egg collection game - hatch, view, give, progress |
+| `eggs.py` | `/egg`, `/eggs` | egg collection game - collect, hatch, view, give, progress, `/eggs leaderboard` (`hatched`, `collected`) |
 | `remind.py` | `/remind` | in-universe date reminders - add, list, cancel |
-| `cc_stars.py` | `/cc-stars` | ccboard browsing and leaderboards |
+| `cc_stars.py` | `/cc stars` | ccboard browsing and leaderboards (walking-skeleton stub; `/stars leaderboard top-messages` covers ccboard today) |
 
 ## package: `apps/bot/nova_core/database/`
 
@@ -171,6 +171,7 @@ use `from attu_logging import get_logger` everywhere; never the stdlib `logging`
 | `deps.py` | fastapi dependency providers (db, config, current user) |
 | `preflight.py` | startup checks (bridge reachable, db connected) |
 | `api/me.py` | `/api/me` - current user endpoint |
+| `api/admin/` | api-key protected `/admin` routes - `guilds.py` (list, channels, roles), `config_routes.py` (get/patch guild config keys), `features.py` (enable/disable), `reload.py` (guild/theme/system), `ops.py` (backfill, ccboard repairs, triggers, info, inspect), `slugs.py` (guild slug resolution); driven by `scripts/nova_admin.py` |
 
 ---
 
@@ -212,6 +213,7 @@ packages/
 config/                      # sample/reference config files (not used at runtime)
 scripts/                     # utility scripts (backup, migration, test runner, bridge_curl)
 tests/                       # pytest test suites
-notes/                       # project notes (not code); subdirs: style/, features/, dev/, plans/
+docs/                        # mkdocs source: architecture, config system, features, style, to-do, bugs
+.claude/plans/               # active multi-phase plans; archived/ holds shipped ones
 wip/                         # work-in-progress scratch space (excluded from lint)
 ```
