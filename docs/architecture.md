@@ -65,13 +65,13 @@ each file is a pycord extension (`setup(bot)` function) registering a `SlashComm
 
 ## package: `packages/shared-models/attu_models/`
 
-canonical source of every mongo document, repository, and `MongoStorage`. used by both the bot and the server.
+shared mongo documents, repositories, and `MongoStorage`, used by both the bot and the server. feature-owned repositories live with their feature package instead (`nova_core/starboard/`, `ccboard/`, `eggs/`, `wiki/`, `trees/`, `reminders/`).
 
 | file | role |
 |---|---|
 | `connection.py` | `MongoStorage` singleton; `connect()`, `get_db()`, `close()` |
-| `documents.py` | pydantic document models - `GuildConfigDocument`, `YearDocument`, `MessageDocument`, `StarredMessageDocument`, `ChatConfigDocument`, etc. |
-| `repositories.py` | async repository classes - `ConfigRepository`, `YearRepository`, `YearMarkerRepository`, `MessageRepository`, `StarboardRepository`, `ReloadSignalRepository`, etc. |
+| `documents.py` | pydantic document models - `GuildConfigDocument`, `ThemeDocument`, `SystemConfigDocument`, `YearMarkerDocument`, `YearDocument`, `MessageDocument` and its `MessageAuthor` / `MessageContent` / `MessageRefs` parts |
+| `repositories.py` | async repository classes - `ConfigRepository`, `YearMarkerRepository`, `YearRepository`, `MessageRepository` |
 
 ## package: `apps/bot/nova_core/tasks/`
 

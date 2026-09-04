@@ -48,6 +48,6 @@ same as global: SPDX-only for JS/TS, shebang-then-SPDX for shell.
 
 ## cross-references
 
-- `docs/agents.md` "file header" section - shows the older verbose form; flag for update when this skill is adopted
+- `CLAUDE.md` - project rules and personality conventions the header text follows
 - `comment-style` - lowercase rules (the docstring period is the one exception)
 - `LICENSE` - the Apache 2.0 text

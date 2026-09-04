@@ -1,6 +1,6 @@
 ---
 name: message-style
-description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `doom_bot/commands/`, `doom_bot/client/`, `doom_bot/tasks/`, or `doom_bot/web/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo.
+description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `apps/bot/nova_core/commands/`, `apps/bot/nova_core/client/`, `apps/bot/nova_core/tasks/`, or `apps/server/attu_server/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo.
 ---
 
 # message-style (AttuBot overlay)
@@ -85,7 +85,7 @@ log-side errors follow the log rules above (lowercase, no terminal punctuation, 
 
 ## the ephemeral rule
 
-from `docs/agents.md` (coding conventions, discord section):
+the rule:
 
 > **ephemeral responses**: use `ephemeral=True` only for errors and validation failures; successful command responses should be public (no `ephemeral` argument).
 
@@ -133,6 +133,6 @@ standard Discord emoji names (`:ballot_box_with_check:`, `:no_entry:`) are fine 
 
 ## cross-references
 
-- `docs/agents.md` - ephemeral rule (discord coding conventions section); personality section for semicolons / dashes / american english
+- `CLAUDE.md` - personality section for semicolons, dashes, and american english; `docs/style/command_usage.md` for the ephemeral rule
 - `pycord` skill (`embeds` section) - embed construction (titles, fields, colors)
 - `commit-style` skill - related custom-emoji usage in commit subjects

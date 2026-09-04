@@ -40,8 +40,6 @@ notes/
 apps/bot/assets/doombot-seed/
 
 # disabled apps (manifest still needed for uv workspace sync)
-apps/chat/
-!apps/chat/pyproject.toml
 
 # misc
 backups/

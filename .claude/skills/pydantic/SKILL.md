@@ -1,6 +1,6 @@
 ---
 name: pydantic
-description: pydantic v2 reference card for AttuBot - validation, serialization, the document/runtime model split, and the six-step tier-3 config plumbing checklist. trigger when editing or creating files under doom_bot/database/models.py, doom_bot/config.py, doom_bot/web/forms.py, or doom_bot/client/markers.py / years.py; when any file imports pydantic; when adding or renaming guild config fields; when writing field_validator / model_validator / ConfigDict; when answering questions about validation, model serialization, ValidationError handling, or "why is this config value not being read from the database."
+description: pydantic v2 reference card for AttuBot - validation, serialization, the document/runtime model split, and the tier-3 config plumbing checklist. trigger when editing or creating files under `packages/shared-models/attu_models/`, `apps/bot/nova_core/config.py`, `apps/bot/nova_core/client/markers.py` or `years.py`, or `apps/server/attu_server/`; when any file imports pydantic; when adding or renaming guild config fields; when writing field_validator / model_validator / ConfigDict; when answering questions about validation, model serialization, ValidationError handling, or "why is this config value not being read from the database".
 ---
 
 # pydantic reference
@@ -160,9 +160,9 @@ class GuildEpochForm(BaseModel):
 | `instance.model_dump()` | dict of field values. options: `exclude_none=True`, `exclude_defaults=True`, `exclude={'field'}`, `include={...}`, `by_alias=True`, `mode='json'` (forces json-serializable primitives). |
 | `instance.model_dump_json()` | json string in one shot. respects the same options. |
 | `instance.model_copy(update={'field': value})` | shallow copy with overrides; does **not** re-run validators. use `Model.model_validate(instance.model_dump() \| {...})` if you need re-validation. |
-| `Model.model_fields` | dict of `FieldInfo` keyed by field name; used in `web/forms.py` `flatten_form_data` to route flat form keys into nested sections. |
+| `Model.model_fields` | dict of `FieldInfo` keyed by field name; used to walk nested config sections generically. |
 
-**discord snowflake / json quirk**: snowflakes are stored as `int` in mongodb (see `docs/agents.md` mongodb section) but **must** be serialized as strings whenever they cross into the web layer or json — js `Number` loses precision above 2^53. plain `model_dump_json()` will emit them as integers, so the web layer either casts to `str(...)` explicitly or relies on form models that declare them as `int` on the way in but render them as strings in templates. don't trust the default for snowflakes; check the route.
+**discord snowflake / json quirk**: snowflakes are stored as `int` in mongodb (see the snowflake pitfall in `CLAUDE.md`) but **must** be serialized as strings whenever they cross into json; js `Number` loses precision above 2^53. plain `model_dump_json()` will emit them as integers, so the web layer either casts to `str(...)` explicitly or relies on form models that declare them as `int` on the way in but render them as strings in templates. don't trust the default for snowflakes; check the route.
 
 ## the document vs runtime model convention
 
@@ -172,26 +172,26 @@ mongodb document  ──►  document model           ──►  runtime model
                        extra='ignore'                wraps document; adds behavior
 ```
 
-- **document models** live in `doom_bot/database/models.py`. pure persistence shape; field types match what mongodb stores; `extra='ignore'` for forward compat. examples: `GuildConfigDocument`, `YearDocument`, `YearMarkerDocument`, `MessageDocument`, `EggDocument`, `ChatConfigDocument`.
-- **runtime models** live in `doom_bot/config.py` (the `GuildConfig` family) or `doom_bot/client/*.py` (`Year` in `years.py`, `YearMarker` in `markers.py`). they wrap a document, expose async `save()` / `update()` / `delete()` methods that call the repository, and host classmethods like `get(...)` / `all_for_guild(...)` that hydrate runtime instances from documents.
+- **document models** live in `packages/shared-models/attu_models/documents.py`. pure persistence shape; field types match what mongodb stores; `extra='ignore'` for forward compat. examples: `GuildConfigDocument`, `YearDocument`, `YearMarkerDocument`, `MessageDocument`, `EggDocument`, `ChatConfigDocument`.
+- **runtime models** live in `apps/bot/nova_core/config.py` (the `GuildConfig` family) or `apps/bot/nova_core/client/*.py` (`Year` in `years.py`, `YearMarker` in `markers.py`). they wrap a document, expose async `save()` / `update()` / `delete()` methods that call the repository, and host classmethods like `get(...)` / `all_for_guild(...)` that hydrate runtime instances from documents.
 - the **conversion happens in one place per type**: `NovaConfig.load_guild()` for guild config; `Year.get` / `YearMarker.get` for the rest. that single hydration site is where missing fields silently default.
 
 why the split: the document is the on-the-wire schema and must tolerate drift; the runtime model is the in-memory api surface and is allowed to add computed properties, async methods, and stricter typing without polluting mongodb's view.
 
-## tier-3 config field plumbing - the six-step checklist
+## tier-3 config field plumbing - the three-step checklist
 
-**this is the codebase's canonical silent-failure mode.** adding a guild-level config field but missing any of the six steps causes the field to silently use its hardcoded default in production regardless of what is stored in mongodb. there is no runtime warning. quoted from `docs/agents.md` ("adding a new config field" → "tier 3 - mongodb"):
+**this is the codebase's canonical silent-failure mode.** adding a guild-level config field but missing any of the three steps causes the field to silently use its hardcoded default in production regardless of what is stored in mongodb. there is no runtime warning.
 
-1. **`doom_bot/database/models.py`** - add the field to `GuildConfigDocument` (or the relevant document model) with a default. `extra='ignore'` means anything not listed here is **dropped on read** - this is the root cause of the failure mode.
-2. **`doom_bot/config.py`** - add the field to the corresponding runtime model (`GuildConfig`, `GuildChannels`, `GuildEpoch`, `GuildRoles`, `GuildUsers`, `GuildStarboard`, etc.) with the same default.
-3. **`doom_bot/config.py`** - in `NovaConfig.load_guild()`, pass the value explicitly when constructing the runtime model from the document. **this is the step most often missed.** if the construction call is `GuildEpoch(**doc.epoch)` it will pick up the new field automatically; if it's a positional or hand-listed kwarg form, the new field is silently dropped.
-4. **`doom_bot/web/forms.py`** - add the field to the corresponding `*Form` model (`GuildConfigForm` and the relevant subform). without this, web saves silently drop the field on its way back to the database.
-5. **`assets/templates/guild_config.html`** - add the form control.
-6. **`assets/static/js/app.js`** - in `loadGuildConfig()`, add a `populateField('field_name', data.field_name)` call so the control reflects the saved value when the page loads.
+1. **`packages/shared-models/attu_models/documents.py`** - add the field to `GuildConfigDocument` (or the relevant document model) with a default. `extra='ignore'` means anything not listed here is **dropped on read** - this is the root cause of the failure mode.
+2. **`apps/bot/nova_core/config.py`** - add the field to the corresponding runtime model (`GuildConfig`, `GuildChannels`, `GuildEpoch`, `GuildRoles`, `GuildUsers`, `GuildStarboard`, etc.) with the same default.
+3. **`apps/bot/nova_core/config.py`** - in `NovaConfig.load_guild()`, pass the value explicitly when constructing the runtime model from the document. **this is the step most often missed.** if the construction call is `GuildEpoch(**doc.epoch)` it will pick up the new field automatically; if it is a positional or hand-listed kwarg form, the new field is silently dropped.
+
+there is no per-field web or form step any more: the legacy quart interface is gone, and the admin api patches any dotted key generically (`PATCH /admin/guilds/{slug}/config/{key}` in `apps/server/attu_server/api/admin/config_routes.py`) and validates the result against `GuildConfigDocument`. two consequences worth knowing:
+
+- a field whose name ends in `_channel` or `_id` goes through `_resolve_snowflake`, so a patch may pass a channel or role slug instead of a raw snowflake.
+- a field that gates a feature also needs an entry in `_FEATURE_FIELDS` (`apps/server/attu_server/api/admin/features.py`) before the enable and disable routes will accept its name.
 
 **verification**: write a roundtrip test (`tests/python/component/test_db_repositories.py` has the templates - see `TestConfigRepositoryGuild.test_roundtrip`). save a document with the field set to a non-default value, reload via `load_guild()` (or the relevant repo `get_*`), assert the value survives. this is the **only** mechanical way to catch a missed step; the lint suite will not.
-
-if the field gates an extension (`False → True` flips it on), there are two more locations - see the agents.md "if the field gates an extension" subsection.
 
 ## tier-2 config field plumbing (toml)
 
@@ -200,47 +200,46 @@ simpler; two locations:
 1. add the field to the relevant pydantic model in `config.py` (e.g. `ChatConfig`, `TreesConfig`).
 2. add it with a placeholder to `config/attu-bot.sample.toml` so a fresh deploy has a working stub.
 
-if the toml file *format* changes (renamed key, new required section), bump `__config_version__` in `doom_bot/__init__.py` so `_version_gte` rejects out-of-date config files. db schema migrations bump `__schema__` instead; do not confuse them.
+if the toml file *format* changes (renamed key, new required section), bump `__config_version__` in `apps/bot/nova_core/__init__.py` so `_version_gte` rejects out-of-date config files. db schema migrations bump `__schema__` instead; do not confuse them.
 
-## web form validation pattern
+## admin api route pattern
 
-every mutating endpoint in `doom_bot/web/routes.py` follows this shape:
+mutating routes live under `apps/server/attu_server/api/admin/` and are registered on the `/admin` router, which carries the api-key dependency. the shape:
 
 ```python
-from pydantic import ValidationError
-from doom_bot.web.forms import GuildEpochForm
+from fastapi import HTTPException, status
+from pydantic import BaseModel, ValidationError
 
-try:
-    form_data = await request.get_json()
-    if not form_data:
-        return jsonify({'error': 'No data provided'}), 400
 
-    validated = GuildEpochForm(**form_data)  # raises ValidationError on bad input
-    old_section = guild.epoch.model_dump()
-    guild.epoch = GuildEpoch(**validated.model_dump())
-    await guild.save()
-    await bridge.trigger_reload('guild', guild_id)  # trigger bot reload via bridge
+class ConfigPatch(BaseModel):
+    value: Any
 
-    new_section = guild.epoch.model_dump()
-    changes = compare_configs(old_section, new_section, prefix='epoch')
-    if changes:
-        await log_audit('guild', 'update', changes, guild_id=guild_id)
 
-    return jsonify({'success': True, 'message': 'Epoch saved'})
-except ValidationError as e:
-    return jsonify({'error': 'Validation failed', 'fields': _validation_error_fields(e)}), 400
-except Exception as e:
-    logger.error(f'error saving epoch for guild {guild_id}: {e}')
-    return jsonify({'error': 'Failed to save epoch'}), 500
+@router.patch('/guilds/{slug}/config/{key}')
+async def patch_guild_config(slug: str, key: str, body: ConfigPatch, ...) -> dict[str, Any]:
+    guild_id = resolve_guild_id(slug, await _build_guild_slug_map(config, bridge))
+    if guild_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='guild not found')
+
+    # validate the whole document after the edit, not just the field
+    try:
+        GuildConfigDocument.model_validate(doc_data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    await repo.update_guild_field(guild_id, key, resolved)
+    await bridge.invalidate_guild_cache(guild_id)
+    await bridge.trigger_reload('guild', guild_id)
+    return {'key': key, 'value': resolved}
 ```
 
 mandatory parts when adding a new mutation route:
 
-- validate with a pydantic form model from `web/forms.py`; never trust raw json.
-- on `ValidationError`, return `400` with `{'error': 'Validation failed', 'fields': _validation_error_fields(e)}`. the helper reshapes `e.errors()` into a `'channels.activity' → 'msg'` dict that the frontend renders inline.
-- on success, return `{'success': True, 'message': '...'}`.
-- always call `bridge.trigger_reload(...)` after a successful save so the bot process reloads; missing this causes the bot's in-memory config to drift from mongodb until restart.
-- audit-log diffs via `web_app.audit_logger.log_change(...)` (or `log_audit(...)` helper).
+- parse the body with a pydantic model; never trust raw json.
+- validate the resulting document against its document model before writing, so a bad patch is rejected rather than persisted.
+- raise `HTTPException` with a useful `detail` on failure; return a plain dict on success.
+- always call `bridge.trigger_reload(...)` after a successful save (plus `bridge.invalidate_guild_cache(guild_id)` for guild config) so the bot process reloads; missing this causes the bot's in-memory config to drift from mongodb until restart.
+- serialize discord snowflakes as strings in the response; js `Number` loses precision above 2^53.
 
 `ValidationError.errors()` returns a list of dicts with `loc` (tuple of str/int), `msg`, `type`, `input`, and optional `ctx`. `loc` is a path tuple - join with `.` to display field paths.
 
@@ -261,5 +260,5 @@ mandatory parts when adding a new mutation route:
 
 - pydantic v2 docs: https://docs.pydantic.dev/latest/
 - v1 → v2 migration guide: https://docs.pydantic.dev/latest/migration/
-- repo conventions: `docs/agents.md` (the "pydantic" and "configuration system" sections)
-- canonical examples: `doom_bot/database/models.py` (documents), `doom_bot/config.py` `GuildEpoch` (model_validator + legacy migration) and `NovaConfig.load_guild()` (hydration site), `doom_bot/web/forms.py` (form validation), `doom_bot/client/years.py` and `doom_bot/client/markers.py` (runtime-wraps-document pattern)
+- repo conventions: `docs/config-system.md` (three-tier config, adding new fields, schema versioning)
+- canonical examples: `packages/shared-models/attu_models/documents.py` (documents), `apps/bot/nova_core/config.py` `GuildEpoch` (model_validator + legacy migration) and `NovaConfig.load_guild()` (hydration site), `apps/server/attu_server/api/admin/config_routes.py` (patch validation), `apps/bot/nova_core/client/years.py` and `apps/bot/nova_core/client/markers.py` (runtime-wraps-document pattern)

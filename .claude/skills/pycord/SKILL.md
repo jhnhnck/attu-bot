@@ -1,6 +1,6 @@
 ---
 name: pycord
-description: pycord (py-cord) v2.x reference card for AttuBot. trigger when editing or creating files under doom_bot/commands/ or doom_bot/client/, when any file imports discord, discord.ext.commands, discord.ui, or discord.commands, when writing slash commands, SlashCommandGroup, options, cogs, extensions, intents, views, buttons, modals, selects, or interaction handling, and when answering questions about pycord vs discord.py / nextcord differences.
+description: pycord (py-cord) v2.x reference card for AttuBot. trigger when editing or creating files under apps/bot/nova_core/commands/ or apps/bot/nova_core/client/, when any file imports discord, discord.ext.commands, discord.ui, or discord.commands, when writing slash commands, SlashCommandGroup, options, cogs, extensions, intents, views, buttons, modals, selects, or interaction handling, and when answering questions about pycord vs discord.py / nextcord differences.
 ---
 
 # pycord reference
@@ -18,14 +18,14 @@ pycord exposes two unrelated namespaces; conflating them is the most common mist
 | `from discord.ext import commands` | `@commands.check`, `@commands.cooldown`, `commands.Context`, `commands.Bot` (prefix-command bot; this repo uses `discord.Bot` instead). predicate-style decorators for slash commands live here. |
 | `from discord import commands` (a.k.a. `discord.commands`) | only `option`, `SlashCommandGroup`, `slash_command`, and the permission decorators (`default_permissions`, `guild_only`, `is_nsfw`). |
 
-**rule: `discord.commands.check` does not exist.** `@commands.check(predicate)` always comes from `discord.ext.commands`. predicates in this repo live in `doom_bot/client/util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`).
+**rule: `discord.commands.check` does not exist.** `@commands.check(predicate)` always comes from `discord.ext.commands`. predicates in this repo live in `apps/bot/nova_core/client/util.py` (`is_bot_owner`, `is_authorized_guild`, `has_announcements_role`).
 
 ```python
 import discord
 from discord import ApplicationContext, Bot, SlashCommandGroup
 from discord.ext import commands  # for @commands.check
 
-from doom_bot.client.util import is_authorized_guild
+from nova_core.client.util import is_authorized_guild
 
 group = SlashCommandGroup('marker', description='...')
 
@@ -39,7 +39,7 @@ async def marker_save(ctx: ApplicationContext, year: int):
 
 ## extension contract
 
-every file under `doom_bot/commands/` is an extension. the loader in `doom_bot/client/__init__.py` calls `bot.load_extension(name)` for each module discovered via `pkgutil.iter_modules(doom_bot.commands.__path__)`.
+every file under `apps/bot/nova_core/commands/` is an extension. the loader in `apps/bot/nova_core/client/__init__.py` calls `bot.load_extension(name)` for each module discovered via `pkgutil.iter_modules(nova_core.commands.__path__)`.
 
 - `setup(bot: Bot)` is **synchronous**; not `async def`. pycord rejects coroutine setups.
 - one positional arg, the `Bot` instance.
@@ -57,23 +57,22 @@ def setup(bot: Bot):
 
 | method | when to use |
 |---|---|
-| `bot.load_extension('doom_bot.commands.foo')` | once at startup; called by the auto-loader. |
-| `bot.reload_extension('doom_bot.commands.foo')` | hot-reload after code or config change. on `False → True` transitions of an extension-gating config field, the activating task and `tasks/reload_watcher.py` both call this. |
-| `bot.unload_extension('doom_bot.commands.foo')` | on `True → False` transitions of an extension-gating config field. |
+| `bot.load_extension('nova_core.commands.foo')` | once at startup; called by the auto-loader. |
+| `bot.reload_extension('nova_core.commands.foo')` | hot-reload after a code or config change. no code path calls this today; the db-polled reload watcher was removed, and a bridge `/reload` only re-reads config into the existing extensions. |
+| `bot.unload_extension('nova_core.commands.foo')` | tear an extension down; also uncalled today. a feature toggled off through the admin api stays loaded and is gated by its config field at command time. |
 | `await bot.sync_commands()` | push command tree to discord; called once in `_do_ready_init()` and again after any reload that adds or removes commands. async; only valid after `on_ready`. |
 
 reloading **does not** push the new tree to discord on its own; pair `reload_extension` with `await bot.sync_commands()` if the command set changed.
 
 ## bot construction and intents
 
-defined in `doom_bot/client/core.py`; do not re-instantiate. import the singleton:
+defined in `apps/bot/nova_core/client/core.py`; do not re-instantiate. import the singleton:
 
 ```python
-from doom_bot.client.core import bot
-
-# or
-from doom_bot import bot
+from nova_core.client.core import bot
 ```
+
+`nova_core/__init__.py` does **not** re-export `bot`; `from nova_core import bot` fails, and tests that patch it there patch nothing.
 
 intents enabled in this repo: `default()` plus `message_content`, `members`, `emojis_and_stickers`, `moderation`. all four are privileged (except `emojis_and_stickers`) and must also be toggled in the discord developer portal. do not silently flip an intent off; check the portal first.
 
@@ -128,23 +127,20 @@ decorator order matters: `@group.command(...)` outermost, then `@discord.command
 | `ctx.author`, `ctx.user` | invoker; in slash commands these are the same. |
 | `ctx.guild`, `ctx.channel`, `ctx.interaction` | usual discord refs. |
 
-**ephemeral rule (from `docs/agents.md`)**: `ephemeral=True` is only for errors and validation failures. successful responses are public; do not pass `ephemeral` at all.
+**ephemeral rule (see `docs/style/command_usage.md`)**: `ephemeral=True` is only for errors and validation failures. successful responses are public; do not pass `ephemeral` at all.
 
 ## error handling
 
-global handler is `on_application_command_error` in `doom_bot/client/events.py`. **extension commands should raise naturally**; do not wrap every command body in a try/except. the global handler dispatches on `CheckFailure`, `UnauthorizedGuild`, `MissingPermissions`, and a generic fallback that posts to the error webhook via `logger.send_to_webhook`.
-
-quoted from `docs/agents.md`:
-> `on_application_command_error` in `events.py` is the global handler - extension-level commands should raise naturally
+global handler is `on_application_command_error` in `apps/bot/nova_core/client/events.py`. **extension commands should raise naturally**; do not wrap every command body in a try/except. the global handler dispatches on `CheckFailure`, `UnauthorizedGuild`, `MissingPermissions`, and a generic fallback that posts to the error webhook via `attu_logging.webhook.send_to_webhook`.
 
 if you need command-local recovery (e.g. a 404 from an external api becomes a friendly response), catch the specific exception and respond; let everything else propagate.
 
 ## embeds
 
-prefer `make_embed(...)` from `doom_bot.client.embeds` over raw `discord.Embed(...)`. the wrapper auto-applies the guild theme color and a utc timestamp; bare `discord.Embed(...)` skips both and drifts from house style. drop down to raw `discord.Embed` only when you need something the wrapper does not expose (e.g. `set_image()`).
+prefer `make_embed(...)` from `nova_core.client.embeds` over raw `discord.Embed(...)`. the wrapper auto-applies the guild theme color and a utc timestamp; bare `discord.Embed(...)` skips both and drifts from house style. drop down to raw `discord.Embed` only when you need something the wrapper does not expose (e.g. `set_image()`).
 
 ```python
-from doom_bot.client.embeds import make_embed
+from nova_core.client.embeds import make_embed
 
 embed = make_embed(
     'Member Joined',
@@ -240,12 +236,12 @@ async def on_raw_reaction_add(payload: RawReactionActionEvent): ...
 - `app_commands.command` / `app_commands.Group` are discord.py imports; pycord equivalents are `discord.slash_command` and `discord.SlashCommandGroup`.
 - 3s response window: any awaited io before `respond` or `defer` risks the interaction timing out.
 - changing the command tree (new command, renamed group, changed option) requires `await bot.sync_commands()` to take effect in the discord client.
-- discord snowflake ids exceed js's safe int range; serialize them as strings in any json crossing into the web layer.
-- never start a discord interaction during testing; the rules in `CLAUDE.md` and `docs/agents.md` forbid it without explicit user approval.
+- discord snowflake ids exceed js's safe int range; serialize them as strings in any json response.
+- never start a discord interaction during testing; `CLAUDE.md` rule #2 forbids it without explicit user approval.
 
 ## quick links
 
 - pycord docs (stable): https://docs.pycord.dev/en/stable/
 - pycord guide: https://guide.pycord.dev/
 - pycord github: https://github.com/Pycord-Development/pycord
-- repo conventions: `docs/agents.md` (the `discord (pycord)` section), `docs/style/embed_usage.md`, `docs/style/button_usage.md`
+- repo conventions: `docs/style/command_usage.md`, `docs/style/embed_usage.md`, `docs/style/button_usage.md`, `docs/style/view_usage.md`, `docs/style/select_usage.md`

@@ -11,10 +11,10 @@ reading logs from the AttuBot containers with `docker compose logs`. assume **pr
 
 | stack | working dir | compose file | containers (service → name) |
 |---|---|---|---|
-| **prod** (default) | `/srv/services/doom-bot` | `docker-compose.prod.yml` | `core` → `doom-bot-core-1`, `legacy-web` → `doom-bot-legacy-web-1`, `ferret`, `postgres` |
-| **dev** | `/srv/services/doom-bot-dev` | `docker-compose.dev.yml` | only data-plane in normal use (`ferret`, `postgres`); `core`/`legacy-web` are for hand-runs; `tests` is one-shot |
+| **prod** (default) | `/srv/services/doom-bot` | `docker-compose.prod.yml` | `core` → `doom-bot-core-1`, `server` → `doom-bot-server-1`, `ferret`, `postgres` |
+| **dev** | `/home/jhn/Projects/doom-bot` | `docker-compose.dev.yml` | data-plane only (`ferret`, `postgres`, `mongo`); no bot service; `tests` is one-shot (`attu-dev-tests`) |
 
-`docker-compose.yml` in each dir is a symlink to `*.prod.yml` / `*.dev.yml`. `docker compose logs` from inside the dir works without `-f <file>`. from anywhere, use `-f /srv/services/doom-bot/docker-compose.prod.yml`.
+there is no committed `docker-compose.yml`, so always pass the file: `docker compose -f /srv/services/doom-bot/docker-compose.prod.yml logs`.
 
 prod services use `logging: driver: journald`, so logs also live in the host journal — `journalctl CONTAINER_NAME=doom-bot-core-1 ...` is an alternative to `docker compose logs` when you need richer time-range or persistence beyond what docker keeps. the docker frontend reads from journald either way.
 
@@ -33,13 +33,13 @@ docker compose logs --no-log-prefix   # strip the `core-1  | ` per-line prefix
 docker compose logs --no-color        # strip *docker's* coloring; does NOT strip structlog ANSI
 ```
 
-multi-service: `docker compose logs core legacy-web`. omit a service name to get all.
+multi-service: `docker compose logs core server`. omit a service name to get all.
 
 > `-f` against prod is fine; if you `run_in_background: true` the Bash call, you'll be notified on output. do not poll with `sleep` loops.
 
 ## the two render shapes
 
-`apps/bot/doom_bot/logging.py` selects the renderer from `LOG_FORMAT`:
+`packages/attu-logging/attu_logging/config.py` selects the renderer from `LOG_FORMAT`:
 
 - `LOG_FORMAT` unset or `console` → `structlog.dev.ConsoleRenderer(colors=True, force_colors=True)` ← **prod default today**
 - `LOG_FORMAT=json` → `structlog.processors.JSONRenderer` + iso `TimeStamper`
@@ -52,8 +52,8 @@ after `--no-log-prefix` and ANSI-stripping, one record looks like:
 
 ```
 [debug    ] GET https://discord.com/api/v10/... has returned 200 [discord.http]
-[info     ] changing icon rotation from 134.13 to 134.25 [doom_bot.tasks.logo_update]
-[warning  ] slow task: LogoUpdateEvent took 5151ms [doom_bot.tasks.scheduler]
+[info     ] changing icon rotation from 134.13 to 134.25 [nova_core.tasks.logo_update]
+[warning  ] slow task: LogoUpdateEvent took 5151ms [nova_core.tasks.scheduler]
 ```
 
 structure: `[<level padded to 9 chars>] <event message>     <key>=<value> ... [<logger.name>]`
@@ -65,12 +65,12 @@ multi-line records (tracebacks via `format_exc_info`) span many physical lines �
 ### json shape
 
 ```json
-{"event":"slow task: LogoUpdateEvent took 5151ms","logger":"doom_bot.tasks.scheduler","level":"warning","timestamp":"2026-05-09T13:42:01.123456Z"}
+{"event":"slow task: LogoUpdateEvent took 5151ms","logger":"nova_core.tasks.scheduler","level":"warning","timestamp":"2026-05-09T13:42:01.123456Z"}
 ```
 
 contextvars/kwargs land as top-level keys alongside `event`/`logger`/`level`/`timestamp`. tracebacks come through as `exception` (string).
 
-**enabling json in prod** requires editing `docker-compose.prod.yml` (add `LOG_FORMAT: "json"` under the `core:` and/or `legacy-web:` `environment:` block) and `docker compose up -d core`. that is a deploy-shaped change — confirm with the user before doing it. for a one-shot inspection, prefer parsing the console output (recipes below) over flipping the format.
+**enabling json in prod** requires editing `docker-compose.prod.yml` (add `LOG_FORMAT: "json"` under the `core:` and/or `server:` `environment:` block) and `docker compose up -d core`. that is a deploy-shaped change; confirm with the user before doing it. for a one-shot inspection, prefer parsing the console output (recipes below) over flipping the format.
 
 ## stripping ANSI from console output
 
@@ -128,9 +128,9 @@ filter by level:
 eval "$LOGS" | jq 'select(.level=="warning" or .level=="error" or .level=="critical")'
 ```
 
-filter by logger (prefix match — useful for "everything from doom_bot.tasks"):
+filter by logger (prefix match, useful for "everything from nova_core.tasks"):
 ```bash
-eval "$LOGS" | jq 'select(.logger | startswith("doom_bot.tasks"))'
+eval "$LOGS" | jq 'select(.logger | startswith("nova_core.tasks"))'
 ```
 
 filter by event substring:
@@ -170,7 +170,7 @@ filter by level:
 
 filter by logger (the trailing `[logger.name]`):
 ```bash
-... | grep -E '\[doom_bot\.tasks\.[a-z_]+\]$'
+... | grep -E '\[nova_core\.tasks\.[a-z_]+\]$'
 ```
 
 filter by event substring (works on the middle of the line):
@@ -192,13 +192,13 @@ if you find yourself wanting structured queries against console output, that is 
 
 ## the discord.http knob
 
-`apps/bot/doom_bot/client/__init__.py:_setup_discord_logging` pins the `discord.http` logger to **WARNING when DEBUG is unset**, **DEBUG when DEBUG is set**. so in default prod logs you see only rate-limit warnings from pycord, not per-request traces. set `DEBUG: "1"` on the `core:` env in compose and restart to opt back in.
+`apps/bot/nova_core/client/__init__.py:_setup_discord_logging` pins the `discord.http` logger to **WARNING when DEBUG is unset**, **DEBUG when DEBUG is set**. so in default prod logs you see only rate-limit warnings from pycord, not per-request traces. set `DEBUG: "1"` on the `core:` env in compose and restart to opt back in.
 
 other noisy loggers pinned to WARNING in `_configure()`: `pymongo`, `aiohttp.access`, `discord.gateway`. they ignore `LOG_LEVEL=DEBUG` unless you change the pin.
 
 ## journalctl alternative (prod only)
 
-`docker-compose.prod.yml` sets `logging.driver: journald` for `core` and `legacy-web`. when docker's retention has rotated past what you need, the host journal still has it:
+`docker-compose.prod.yml` sets `logging.driver: journald` for `core` and `server`. when docker's retention has rotated past what you need, the host journal still has it:
 
 ```bash
 journalctl CONTAINER_NAME=doom-bot-core-1 --since "2 hours ago" -o cat

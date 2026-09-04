@@ -1,6 +1,6 @@
 ---
 name: mediawiki-api
-description: mediawiki action api + mwparserfromhell reference card for AttuBot's wiki layer. trigger when editing or creating files under doom_bot/wiki/, doom_bot/ingestor/pipelines/wiki.py, or doom_bot/commands/wiki.py; when any file imports mwparserfromhell or hits api.php / rest.php; when writing or reviewing wiki search, page fetch, page edit, login or csrf token flow, edit-conflict handling, recent-changes ingestion, allpages pagination, or section-split / wikitext-traversal logic.
+description: mediawiki action api + mwparserfromhell reference card for AttuBot's wiki layer. trigger when editing or creating files under `packages/attu-wiki/attu_wiki/` or `apps/bot/nova_core/commands/wiki.py`; when any file imports mwparserfromhell or hits api.php / rest.php; when writing or reviewing wiki search, page fetch, page edit, login or csrf token flow, edit-conflict handling, allpages pagination, or section-split / wikitext-traversal logic.
 ---
 
 # mediawiki api reference
@@ -16,7 +16,7 @@ mwparserfromhell version follows the lockfile; the traversal model has been stab
 | **action api** | `/api.php` | sprawling, idiosyncratic, fully featured | auth, page reads, edits, allpages, recentchanges, siteinfo, admin (block) |
 | **rest api** | `/rest.php/v1/...` | small, modern, partial replacement | full-text and title search only; everything else is incomplete or absent |
 
-the rest api is **not** a drop-in replacement; it covers a curated subset (search, page get, page history) and is missing edits, login, and most query modules. on some wikis it is disabled outright. default to the action api unless a specific endpoint is known to exist on rest.php; on this wiki only `/rest.php/v1/search/page` and `/rest.php/v1/search/title` are in active use (see `doom_bot/wiki/search.py`).
+the rest api is **not** a drop-in replacement; it covers a curated subset (search, page get, page history) and is missing edits, login, and most query modules. on some wikis it is disabled outright. default to the action api unless a specific endpoint is known to exist on rest.php; on this wiki only `/rest.php/v1/search/page` and `/rest.php/v1/search/title` are in active use (see `packages/attu-wiki/attu_wiki/search.py`).
 
 `WikiClient.__init__` already exposes both bases:
 
@@ -39,15 +39,15 @@ POST api.php  (form-encoded body with same keys)
 mandatory params on every read or write:
 
 - `format=json` - the only format this codebase parses; `xml` and `php` exist but are unused.
-- `formatversion=2` - **always pin this**. v1 and v2 response shapes differ enough to silently break the pydantic models in `doom_bot/wiki/models.py`. v1 returns `query.pages` as a dict keyed by page id; v2 returns it as a list. v1 omits missing fields entirely; v2 normalizes more keys. mixing versions across calls is the fastest way to introduce silent ingestion bugs.
+- `formatversion=2` - **always pin this**. v1 and v2 response shapes differ enough to silently break the pydantic models in `packages/attu-wiki/attu_wiki/models.py`. v1 returns `query.pages` as a dict keyed by page id; v2 returns it as a list. v1 omits missing fields entirely; v2 normalizes more keys. mixing versions across calls is the fastest way to introduce silent ingestion bugs.
 
-`doom_bot/wiki/auth.py:23-30` (`get_csrf`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
+`packages/attu-wiki/attu_wiki/auth.py:23-30` (`get_csrf`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
 
 ## auth flow (as actually implemented)
 
 this repo uses **bot passwords with `action=login`**, not `clientlogin`. credentials come from `Special:BotPasswords` and are stored in `assets/attu-bot.toml` as `[auth.wiki].user` / `.key` (e.g. `DoomBot@DoomBot`).
 
-implemented in `doom_bot/wiki/auth.py`; the dance is:
+implemented in `packages/attu-wiki/attu_wiki/auth.py`; the dance is:
 
 1. **fetch login token**
    ```
@@ -78,7 +78,7 @@ implemented in `doom_bot/wiki/auth.py`; the dance is:
 
 footguns specific to this repo:
 
-- `WikiClient.authenticate(user, key)` is only called from `doom_bot/commands/wiki.py:269` (`/wiki block`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
+- `WikiClient.authenticate(user, key)` is only called from `apps/bot/nova_core/commands/wiki.py:269` (`/wiki block`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
 - session cookies live on the shared `httpx.AsyncClient`. if you ever rebuild the client mid-process, you lose the session and silently drop to anon.
 - `clientlogin` (mw 1.27+) is the newer interactive flow with multi-step responses (captcha, 2fa). don't switch to it without a reason; bot passwords + `action=login` works fine on vanilla mw 1.44.
 
@@ -152,7 +152,7 @@ four parallel arrays of equal length; index `i` is one result. parse defensively
 
 ## editing pages
 
-implemented in `doom_bot/wiki/pages.py:41-58` (`PagesApi.edit`). minimum viable write:
+implemented in `packages/attu-wiki/attu_wiki/pages.py:41-58` (`PagesApi.edit`). minimum viable write:
 
 ```
 POST api.php
@@ -210,16 +210,16 @@ other write-path errors worth handling explicitly:
 
 - **`maxlag=5`** on every read; cheap insurance. on a `maxlag` error (http 200 with `error.code='maxlag'`) sleep the `Retry-After` seconds (default 5) and retry once. don't busy-loop. not currently passed by this repo's read calls; safe to add.
 - writes ignore `maxlag` server-side but obey the per-user write throttle, surfaced as `code=ratelimited`.
-- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`doom_bot/wiki/admin.py:44-54`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
+- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`packages/attu-wiki/attu_wiki/admin.py:44-54`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
 - for `assert=user` / `assert=bot` on write traffic: not currently used here. add it to a new write path if you want to fail loudly on session loss instead of silently writing as anon.
 
 ## mwparserfromhell traversal
 
 import once; parse once per page; reuse the result. `mwparserfromhell.parse(text)` returns a `Wikicode`.
 
-### the section split this repo actually uses
+### splitting a page into sections
 
-from `doom_bot/ingestor/pipelines/wiki.py:153-168`:
+the rag ingestor that used to consume this was removed with the chat stack; no code in this repo splits pages today. the pattern is kept here because it is the correct one for any future consumer:
 
 ```python
 parsed = mwparserfromhell.parse(wikitext)
@@ -231,17 +231,15 @@ for section in parsed.get_sections(include_lead=True, flat=True):
         sections.append((title, text))
 ```
 
-what each flag does and why these settings are right for the rag corpus:
+what each flag does:
 
-- `include_lead=True` - include the content before the first `==` heading as a section. omitting it loses the page's intro entirely. the lead has no heading object, so `filter_headings()` returns `[]` and `title` falls through to `''`; the pipeline labels it `'(intro)'` downstream.
-- `flat=True` - return one section per heading, **without** its subsections nested inside. `flat=False` would return each section as a tree containing all its children, which means the same text appears in multiple sections (the parent and each child) and the embedding corpus double-counts. always pass `flat=True` for ingestion.
-- `strip_code()` - render to plain text: drops templates, reduces links to display text, strips markup. fast and deterministic; loses structure (lists become flat lines, tables become whitespace). acceptable for embedding; not acceptable if you ever need to round-trip to wikitext.
-
-do not switch to `get_sections(flat=False)` or `include_lead=False` without also changing the ingestor's dedup logic in `_ingest_page`; the section `source_id` keying assumes one entry per heading.
+- `include_lead=True` - include the content before the first `==` heading as a section. omitting it loses the page's intro entirely. the lead has no heading object, so `filter_headings()` returns `[]` and `title` falls through to `''`.
+- `flat=True` - return one section per heading, **without** its subsections nested inside. `flat=False` returns each section as a tree containing all its children, so the same text appears in the parent and in each child and any downstream corpus double-counts it.
+- `strip_code()` - render to plain text: drops templates, reduces links to display text, strips markup. fast and deterministic; loses structure (lists become flat lines, tables become whitespace). fine for text extraction, not for round-tripping to wikitext.
 
 ### filter_templates and recursion
 
-`Wikicode.filter_templates(recursive=True)` is the **default**; it walks all descendants. `recursive=False` only looks at direct children of the wikicode, which means nested templates (very common - infoboxes contain other templates) are silently skipped. for ingestion or any analysis that must visit every template, never pass `recursive=False`.
+`Wikicode.filter_templates(recursive=True)` is the **default**; it walks all descendants. `recursive=False` only looks at direct children of the wikicode, which means nested templates (very common - infoboxes contain other templates) are silently skipped. for any analysis that must visit every template, never pass `recursive=False`.
 
 ```python
 for template in parsed.filter_templates():
@@ -283,13 +281,13 @@ key shapes:
 - session is carried on the shared `httpx.AsyncClient`; if you instantiate a second client mid-process you lose the session.
 - `bot=1` requires the account to have the bot flag; without it, the param is silently ignored and the edit shows up in normal recentchanges.
 - `mwparserfromhell.filter_templates(recursive=False)` skips nested templates (infobox-inside-infobox is common). leaving it at the default `True` is almost always correct.
-- `Wikicode.get_sections(flat=False)` returns nested wikicode trees and double-counts content under parent-child headings; use `flat=True` for embedding pipelines.
+- `Wikicode.get_sections(flat=False)` returns nested wikicode trees and double-counts content under parent-child headings; use `flat=True` when splitting a page.
 - `template.name` and `template.get('x').value` are `Wikicode`, not strings. `str(...)` plus `.strip()` (or `.strip_code()`) before comparing.
 - `action=opensearch` returns a four-element array, not a normal `{query: ...}` envelope. parse defensively.
 - the rest search api ignores `limit` slightly; truncate manually after parse (`search.py:36`).
 - `pages.edit` here does not pass `basetimestamp` / `baserevid`; concurrent edits will silently last-write-wins. add the params if a new write path needs conflict detection.
 - never run live edits or admin actions during testing or research. read-only api calls against a public wiki (e.g. en.wikipedia.org/w/api.php) are fine for verifying response shapes; writes against attuproject.org are not.
-- per `docs/agents.md` and `CLAUDE.md`: never trigger discord-side interactions or commit changes without explicit user instruction.
+- per `CLAUDE.md` rule #2: never trigger discord-side interactions or commit changes without explicit user instruction.
 
 ## quick links
 
@@ -303,11 +301,10 @@ key shapes:
 - mediawiki rest api: https://www.mediawiki.org/wiki/API:REST_API
 - mwparserfromhell docs: https://mwparserfromhell.readthedocs.io/
 - repo files (authoritative shapes):
-  - `doom_bot/wiki/client.py` - facade, base urls, user-agent
-  - `doom_bot/wiki/auth.py` - login + csrf flow
-  - `doom_bot/wiki/pages.py` - parse / revisions / extracts / allpages / recentchanges
-  - `doom_bot/wiki/search.py` - rest search variants + action siteinfo
-  - `doom_bot/wiki/admin.py` - block-with-retry pattern
-  - `doom_bot/wiki/models.py` - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail`
-  - `doom_bot/ingestor/pipelines/wiki.py` - section split, embedding, recent-changes loop
-  - `doom_bot/commands/wiki.py` - `/wiki random|lookup|block`, `WikiLinkView`, `WikiLookupView`
+  - `packages/attu-wiki/attu_wiki/client.py` - facade, base urls, user-agent
+  - `packages/attu-wiki/attu_wiki/auth.py` - login + csrf flow
+  - `packages/attu-wiki/attu_wiki/pages.py` - parse / revisions / extracts / allpages / recentchanges
+  - `packages/attu-wiki/attu_wiki/search.py` - rest search variants + action siteinfo
+  - `packages/attu-wiki/attu_wiki/admin.py` - block-with-retry pattern
+  - `packages/attu-wiki/attu_wiki/models.py` - `SearchResult`, `PageSummary`, `SiteInfo`, `PageThumbnail`
+  - `apps/bot/nova_core/commands/wiki.py` - `/wiki random|lookup|block`, `WikiLinkView`, `WikiLookupView`

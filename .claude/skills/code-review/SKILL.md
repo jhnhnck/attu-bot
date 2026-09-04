@@ -44,7 +44,7 @@ these are the failure modes that have actually shipped here. the diff is high-ri
 
 - **snowflake precision in json.** discord ids exceed `Number.MAX_SAFE_INTEGER`; any id sent to or read from the browser must be a string. failure mode shipped twice: `fix(web): parseInt was eating role ids`, `fix(web): trees roles silently zeroed on every save`. check both directions - serialization (`str(id)`) and deserialization (no `parseInt`/`Number()` on snowflakes; use `BigInt` or string compare)
 - **float-vs-int on legacy mongo docs.** older writes and ferret round-trips can return `float` where the model expects `int`; `int()` coerce in the model validator if the field comes off disk. failure mode shipped: `fix(eggs): coerce float collected_at and hatches_at to int on load`, `fix(starboard): ... int timestamps`. cross-reference: `ferretdb-quirks` skill
-- **per-process shared state.** the bot and (currently dormant) chat ingestor share collections; reload signals, scheduler queues, and persistent locks need a per-process key, not a shared one. failure mode shipped: `fix(signals): bot and ingestor were stealing each other's reload signals`. always scope cross-process db state by target
+- **per-process shared state.** the bot and server processes share collections; scheduler queues and persistent locks need a per-process key, not a shared one. the scheduler must only be registered in the bot process (`register_bot_tasks()` in `client/events.py`), never at module-import time. failure mode shipped: `fix(signals): bot and ingestor were stealing each other's reload signals`. always scope cross-process db state by target
 - **bot-as-actor edge cases.** modlog, starboard, and reaction handlers must check whether the bot itself is the actor before logging or echoing. failure modes shipped: `fix(modlog): bot users were ignored in kick/ban messages`, `fix(modlog): skip modlog post when bot is the delete actor`, `fix(starboard): bot-removal echo suppression prevents self-star cascade`
 - **persistent views need rebinding on startup.** any `discord.ui.View` with `timeout=None` must be re-registered (`bot.add_view(...)`) on `on_ready` or buttons die after restart. failure mode shipped: `fix(wiki): lookup buttons don't die on restart`
 - **mention scope on relayed user content.** any embed or message that re-renders user-supplied text into a discord message must pass `allowed_mentions=discord.AllowedMentions.none()` (or equivalent), or it can fire pings from quoted text. failure mode shipped: `fix(starboard): notification preview could fire pings from starred message text`
@@ -71,7 +71,7 @@ defer to: `mock-compensation` skill (the rule + standing cases), `docs/dev/testi
 question: would someone touching this area in three months understand it from the repo alone?
 
 - behavior or storage of a documented feature changed → corresponding `docs/features/*.md` updated in the same diff
-- new note file → reference table in `docs/agents.md` updated
+- new feature spec → `docs/features/` entry plus a nav row in `mkdocs.yml`
 - `docs/to-do.md` reflects what landed and what's deferred
 - inline comments earn their place per `comment-style`; default is no comment
 
@@ -94,7 +94,7 @@ threat model is small: web admin (discord oauth) and discord slash commands (per
 - **audit log coverage.** every web mutation goes through `web_app.audit_logger.log_change(...)`; missing audit on a mutation is a security finding, not a docs finding
 - **rule #2.** never call discord apis or webhooks from review tools without explicit instruction; never call `git push` or deploy without explicit instruction (rule #3)
 
-if the diff includes ai/llm tool changes, defer additionally to `claude-api` skill - though note `apps/chat/` is currently dormant.
+if the diff includes ai/llm tool changes, defer additionally to the `claude-api` skill.
 
 ## pass 7 - style
 
@@ -108,14 +108,14 @@ this pass does not restate rules. it routes to the canonical skill for each surf
 - new source file → `file-header` skill (SPDX + structured docstring)
 - pycord-specific patterns (extensions, slash commands, `discord.ext.commands.check`, embeds, views) → `pycord` skill
 - pydantic patterns (document/runtime split, validators, `ConfigDict`) → `pydantic` skill
-- mediawiki api code (`apps/bot/doom_bot/wiki/`) → `mediawiki-api` skill
+- mediawiki api code (`packages/attu-wiki/attu_wiki/`) → `mediawiki-api` skill
 - ferret/mongo divergence (`packages/shared-models/`, `client/migrations.py`) → `ferretdb-quirks` skill
 - docker compose work (`docker-compose.*.yml`, `scripts/`) → `docker-commands` skill
 - log-reading recipes during review → `container-logs` skill
 - commit message under review → `commit-style` skill
 - commit-split staging questions → generic `~/.claude/skills/commit-split/` (this project has no project-specific override)
 
-linting (`ruff check`, `ruff format --check`, `npm run lint`) and the noqa-reason rule are mechanical - they belong in `feature-completion`, not here. the style pass should still flag any `# noqa` without a reason as a finding (rule #4 is a hard rule; not a style preference).
+linting (`uv run ruff check`, `uv run ruff format --check`) and the noqa-reason rule are mechanical - they belong in `feature-completion`, not here. the style pass should still flag any `# noqa` without a reason as a finding (rule #4 is a hard rule; not a style preference).
 
 ## output shape
 
@@ -147,6 +147,6 @@ run order at a phase boundary: programmer → `feature-completion` → `code-rev
 ## cross-references
 
 - `docs/dev/process.md` - the loop this skill sits inside
-- `docs/agents.md` - architecture, conventions, rules, and the patterns-and-pitfalls list this skill draws from
+- `CLAUDE.md` - rules, pitfalls, and personality conventions this skill draws from; `docs/architecture.md` - package layout and file roles
 - canonical style skills: `comment-style`, `message-style`, `commit-style`, `file-header`, `pycord`, `pydantic`, `mediawiki-api`, `ferretdb-quirks`, `mock-compensation`, `docker-commands`, `container-logs`
 - shared sibling skills: `pre-mortem`, `integration-check`, `phase-retro`, `bug-triage`, `plan-revise`, `ship-readiness`

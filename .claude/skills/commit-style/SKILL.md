@@ -33,6 +33,6 @@ note: `feat(hatch): trading and collection info` - not "implement trading and co
 
 ## cross-references
 
-- `docs/agents.md` rule #3 - the no-unprompted-commits rule
-- `docs/agents.md` personality section - semicolons or regular dashes, american english, brief
+- `CLAUDE.md` rule #3 - the no-unprompted-push-or-deploy rule
+- `CLAUDE.md` personality section - semicolons or regular dashes, american english, brief
 - `feature-completion` - pre-commit checklist

@@ -39,6 +39,7 @@ Other common stale forms and their redirects:
 |---|---|
 | `notes/agents.md` | context-dependent (see table above) |
 | `notes/<file>.md` | `docs/<file>.md` |
+| `docs/dev/<file>.md` | no equivalent; deleted in `49d2e88`, see `README.md` |
 | `agents.md rule #N` | `CLAUDE.md rule #N` |
 
 When a link targets a file that no longer exists and a redirect is unknown, remove the link text and keep surrounding prose if it still makes sense; delete the sentence if it only existed to point elsewhere.
@@ -82,7 +83,7 @@ Fix mkdocs-style relative links (`[text](file.md)`) that point to files that hav
 - `agents.md` → no equivalent (link to `CLAUDE.md` if the context fits, otherwise remove)
 - `notes/style/` → `docs/style/`
 - `notes/features/` → `docs/features/`
-- `notes/dev/` → `docs/dev/`
+- `notes/dev/` and `docs/dev/` → no equivalent; the dev guides were deleted in `49d2e88` (2026-08-24). local-dev workflow now lives in `README.md`; plan and process material lives in `.claude/plans/`
 
 ### metadata sections
 
