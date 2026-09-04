@@ -24,10 +24,10 @@ dev postgres uses `tmpfs` for its data dir, so every dev start is from-scratch. 
 
 | task | command |
 |---|---|
-| run tests (dev) | `docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests` |
-| run tests with args | `docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests scripts/run_tests.py --coverage -x` |
-| run tests from the venv | `uv run python scripts/run_tests.py [args]` (needs the dev `mongo` service up for component tests) |
+| run tests (primary path) | `uv run python scripts/run_tests.py [args]` - all three suites |
 | dev mongo for venv tests | `docker compose -f docker-compose.dev.yml up -d mongo` (then `TEST_DB_URL=mongodb://localhost:27017/doombot`) |
+| run tests in docker (unit + component only) | `docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests` |
+| run tests in docker with args | `docker compose -f docker-compose.dev.yml run --build --rm --quiet-build tests scripts/run_tests.py --coverage -x` |
 | build dev images only | `docker compose -f docker-compose.dev.yml build` |
 | bring up prod | `docker compose -f docker-compose.prod.yml up --build -d` |
 | build prod images only | `docker compose -f docker-compose.prod.yml build` |
@@ -39,7 +39,9 @@ dev postgres uses `tmpfs` for its data dir, so every dev start is from-scratch. 
 | migrate prod to new host | `scripts/migrate_server.zsh [--ssh-user U] [--target-dir D] TARGET_HOST` |
 | read prod logs | see the `container-logs` skill — `docker compose logs`, `journalctl`, structlog parsing |
 
-`--quiet-build` is part of the canonical test form because every script-driven invocation already uses it; matching it everywhere keeps cold-cache rebuild output noise out of the way. `--profile tests` is **not** required: `docker compose run <svc>` auto-activates a profiled service. it is only needed if you ever say `up tests` (which is unusual — tests is one-shot, not long-running).
+the venv path is primary: `run_tests.py` runs the suites in the current interpreter and no longer relaunches itself into docker. the docker `tests` service is **unit and component only** - it mounts no `.secrets` and sets no `ATTU_CONFIG_FILE`, so integration tests cannot find a config file there and fail on `config.on_init()`. it does set `TEST_DB_URL` at the dev `ferret` service, so db-backed component tests work.
+
+`--quiet-build` is part of the canonical docker test form because every script-driven invocation already uses it; matching it everywhere keeps cold-cache rebuild output noise out of the way. `--profile tests` is **not** required: `docker compose run <svc>` auto-activates a profiled service. it is only needed if you ever say `up tests` (unusual; tests is one-shot, not long-running).
 
 ## scripts/ wrappers
 
@@ -70,6 +72,7 @@ workspace shape: root `pyproject.toml` declares a uv workspace over `apps/bot`, 
 
 ## gotchas
 
+- **the docker `tests` service cannot run integration tests.** no `.secrets` mount and no `ATTU_CONFIG_FILE` since `36f6fee` (2026-08-02); `TEST_DB_URL` covers unit and component only. run integration tests from the venv, or mount `.secrets` read-only into that service. tracked in `docs/bugs.md`.
 - **`tests` skips the seed.** in dev, the `tests` service depends on `ferret` (not `ferret-init`) by design — tests create their own data and would only be slowed down by waiting for the seed restore. if a test newly needs seed data, that is a test-design issue, not a compose issue.
 - **`--profile tests` is not needed for `run`.** `docker compose run tests` auto-activates the profile for that one invocation. only `up` needs `--profile tests`.
 - **prod `core` healthcheck reads `/tmp/bot-ready`.** the file is written from `apps/bot/nova_core/client/events.py:_READY_SENTINEL` once the bot reaches ready state. if the prod container is reported unhealthy after a deploy, that is the file to check.

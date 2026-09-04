@@ -37,13 +37,13 @@ the repo's cross-process notification path is the hmac-signed bridge: the server
 
 `collection.bulk_write([...])` (the wire-level `bulkWrite` command) returns `❌ Not implemented yet` per [compatibility](https://docs.ferretdb.io/migration/compatibility/).
 
-`update_many`, `insert_many`, and `delete_many` are individual commands and **are** supported - those are what the repo uses (`migrations.py:358`, `migrations.py:451`, `migrations.py:475`). do not refactor a loop of `update_one` into a single `bulk_write` call; iterate or use `update_many` with a filter.
+`update_many`, `insert_many`, and `delete_many` are individual commands and **are** supported - those are what the repo uses throughout `nova_core/client/migrations.py`. do not refactor a loop of `update_one` into a single `bulk_write` call; iterate or use `update_many` with a filter.
 
 ### 4. unique indexes on hot collections stall writes
 
 postgres takes `ACCESS EXCLUSIVE` on the table for a non-concurrent `CREATE UNIQUE INDEX`, blocking all reads and writes for the duration of the index build. on collections with many millions of rows (`messages`, `signals` historically) this can lock the table for hours.
 
-documentdb's `createIndexes` wrapper does not expose `CREATE INDEX CONCURRENTLY`; `unique=True` always takes the exclusive lock. the repo deliberately avoids `unique=True` on these collections and deduplicates via `update_one(filter, ..., upsert=True)` instead. see the in-code comments at `packages/shared-models/attu_models/repositories.py:329` (messages) and `packages/shared-models/attu_models/repositories.py:815` (reload_signals).
+documentdb's `createIndexes` wrapper does not expose `CREATE INDEX CONCURRENTLY`; `unique=True` always takes the exclusive lock. the repo deliberately avoids `unique=True` on the large collections and deduplicates via `update_one(filter, ..., upsert=True)` instead; see the comment above `MessageRepository.init_indexes` in `packages/shared-models/attu_models/repositories.py`. small collections keyed by a single id (wiki views, eggs, reminders, ccboard entries) do use `unique=True`, which is safe at their size.
 
 rule: never add `unique=True` to a collection that already has substantial production data without first checking row count and discussing the rollout. small or freshly-created collections are fine.
 
@@ -51,7 +51,7 @@ rule: never add `unique=True` to a collection that already has substantial produ
 
 [docs.ferretdb.io/guides/ttl-indexes/](https://docs.ferretdb.io/guides/ttl-indexes/): "The field must have a `Date` type." our document models store timestamps as `int` (unix seconds) - see `WikiViewDocument.expires_at`, `EggDocument.hatches_at`, `ReminderDocument.created_at`. an `expireAfterSeconds` index on any of these will silently never delete anything.
 
-the repo handles this manually: `WikiViewRepository.cleanup_expired()` runs `delete_many({'expires_at': {'$lte': time.time()}})` (`repositories.py:1256`). do not "improve" that into a TTL index without first changing the field type to BSON `Date` everywhere it is read or written.
+the repo handles this manually: `WikiViewRepository.delete_expired()` (`apps/bot/nova_core/wiki/repositories.py`) runs a `delete_many` against `expires_at`. do not "improve" that into a TTL index without first changing the field type to BSON `Date` everywhere it is read or written.
 
 ### 6. unsupported/uncertain index types
 
@@ -79,7 +79,7 @@ these are confirmed by [docs.ferretdb.io/migration/compatibility/](https://docs.
 - write commands: `find`, `find_one`, `update_one`, `update_many`, `insert_many`, `delete_one`, `delete_many`, `find_one_and_update`, `aggregate`
 - `upsert=True` on `update_one` / `update_many`
 
-representative pipelines (do not rewrite): `repositories.py:720` ($sample), `repositories.py:731` ($objectToArray + $unwind + $group), `repositories.py:1097` (group + sort + limit leaderboard), `migrations.py:342` (distinct via $group).
+representative pipelines (do not rewrite): `$sample` random-pick and the `$project` + `$group` leaderboards in `nova_core/starboard/repositories.py` and `nova_core/ccboard/repositories.py`, and the distinct-via-`$group` passes in `nova_core/client/migrations.py`.
 
 ## mongodump / mongorestore
 
@@ -112,7 +112,7 @@ per the user's working notes, BSON mongodump from the prior real-mongo era resto
 
 ## error-message tells
 
-ferretdb [intentionally preserves mongodb error codes but not exact text](https://docs.ferretdb.io/migration/compatibility/): "FerretDB uses the same error names and codes as MongoDB, but the exact error messages may sometimes be different." pattern-match on `OperationFailure.code`, not on the string. example already in repo: `repositories.py:829` checks `e.code == 86` (IndexKeySpecsConflict) on index drop/recreate.
+ferretdb [intentionally preserves mongodb error codes but not exact text](https://docs.ferretdb.io/migration/compatibility/): "FerretDB uses the same error names and codes as MongoDB, but the exact error messages may sometimes be different." pattern-match on `OperationFailure.code`, not on the string (e.g. `86` for IndexKeySpecsConflict on an index drop and recreate).
 
 ## when uncertain, the dev stack is cheap
 

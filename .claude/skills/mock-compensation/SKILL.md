@@ -15,7 +15,7 @@ silent test passage is the worst failure mode. a mock that hides a broken decora
 
 - **mocked in:** [`tests/python/unit/test_start_bot_loop.py`](tests/python/unit/test_start_bot_loop.py) — `bot.load_extension()` is mocked to verify call orchestration.
 - **what the mock hides:** import-time evaluation of every command module. decorators (`@discord.slash_command`, `@commands.check`, etc.) run at import; a missing import or attribute error never reaches the orchestration test.
-- **compensation:** `TestExtensionImports.test_extension_imports_cleanly` ([`tests/python/unit/test_start_bot_loop.py:360`](tests/python/unit/test_start_bot_loop.py#L360)) does a real `importlib.import_module()` for every entry in `nova_core.extensions_list`.
+- **compensation:** `TestExtensionImports.test_extension_imports_cleanly` (in [`tests/python/unit/test_start_bot_loop.py`](tests/python/unit/test_start_bot_loop.py)) does a real `importlib.import_module()` for every entry in `nova_core.extensions_list`.
 - **trigger:** any new file added under [`nova_core/commands/`](nova_core/commands/) — confirm the module is in `nova_core.extensions_list` and that this test still passes before merging.
 
 ### 2. permission checks

@@ -41,7 +41,7 @@ mandatory params on every read or write:
 - `format=json` - the only format this codebase parses; `xml` and `php` exist but are unused.
 - `formatversion=2` - **always pin this**. v1 and v2 response shapes differ enough to silently break the pydantic models in `packages/attu-wiki/attu_wiki/models.py`. v1 returns `query.pages` as a dict keyed by page id; v2 returns it as a list. v1 omits missing fields entirely; v2 normalizes more keys. mixing versions across calls is the fastest way to introduce silent ingestion bugs.
 
-`packages/attu-wiki/attu_wiki/auth.py:23-30` (`get_csrf`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
+`AuthApi.get_csrf` (`packages/attu-wiki/attu_wiki/auth.py`) currently omits `formatversion`; this happens to work because the `tokens` shape is identical across versions, but new call sites should pin v2 by default.
 
 ## auth flow (as actually implemented)
 
@@ -78,7 +78,7 @@ implemented in `packages/attu-wiki/attu_wiki/auth.py`; the dance is:
 
 footguns specific to this repo:
 
-- `WikiClient.authenticate(user, key)` is only called from `apps/bot/nova_core/commands/wiki.py:269` (`/wiki block`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
+- `WikiClient.authenticate(user, key)` is only called from the `/wiki block` command (`apps/bot/nova_core/commands/wiki.py`); there is no standing logged-in session. any new write path must call `await wiki.authenticate(...)` first or `get_csrf()` will return the anonymous-user `+\\` token, which mediawiki will reject for non-anon writes.
 - session cookies live on the shared `httpx.AsyncClient`. if you ever rebuild the client mid-process, you lose the session and silently drop to anon.
 - `clientlogin` (mw 1.27+) is the newer interactive flow with multi-step responses (captcha, 2fa). don't switch to it without a reason; bot passwords + `action=login` works fine on vanilla mw 1.44.
 
@@ -111,7 +111,7 @@ GET rest.php/v1/search/page?q=<query>&limit=<n>
 → { "pages": [ { "id", "key", "title", "excerpt", "matched_title", "description", "thumbnail" }, ... ] }
 ```
 
-`excerpt` includes `<span class="searchmatch">...</span>` highlighting markup; strip or render as appropriate. the api does not always respect `limit` exactly, so the repo truncates the list manually after parsing (`search.py:35-37`).
+`excerpt` includes `<span class="searchmatch">...</span>` highlighting markup; strip or render as appropriate. the api does not always respect `limit` exactly, so the repo truncates the list manually after parsing (`SearchApi.search`).
 
 ### rest api `/rest.php/v1/search/title` (title-only)
 
@@ -152,7 +152,7 @@ four parallel arrays of equal length; index `i` is one result. parse defensively
 
 ## editing pages
 
-implemented in `packages/attu-wiki/attu_wiki/pages.py:41-58` (`PagesApi.edit`). minimum viable write:
+implemented in `PagesApi.edit` (`packages/attu-wiki/attu_wiki/pages.py`). minimum viable write:
 
 ```
 POST api.php
@@ -210,7 +210,7 @@ other write-path errors worth handling explicitly:
 
 - **`maxlag=5`** on every read; cheap insurance. on a `maxlag` error (http 200 with `error.code='maxlag'`) sleep the `Retry-After` seconds (default 5) and retry once. don't busy-loop. not currently passed by this repo's read calls; safe to add.
 - writes ignore `maxlag` server-side but obey the per-user write throttle, surfaced as `code=ratelimited`.
-- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`packages/attu-wiki/attu_wiki/admin.py:44-54`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
+- the admin `block` action has its own throttle and is the most rate-limit-sensitive call in this repo. `admin.block` retries up to `max_retries=3` with a flat `asyncio.sleep(3)` between attempts (`AdminApi.block`, `packages/attu-wiki/attu_wiki/admin.py`); this is intentional and survives both transient http failures and short-lived rate limits. do not lower the retry count or remove the sleep.
 - for `assert=user` / `assert=bot` on write traffic: not currently used here. add it to a new write path if you want to fail loudly on session loss instead of silently writing as anon.
 
 ## mwparserfromhell traversal
@@ -284,7 +284,7 @@ key shapes:
 - `Wikicode.get_sections(flat=False)` returns nested wikicode trees and double-counts content under parent-child headings; use `flat=True` when splitting a page.
 - `template.name` and `template.get('x').value` are `Wikicode`, not strings. `str(...)` plus `.strip()` (or `.strip_code()`) before comparing.
 - `action=opensearch` returns a four-element array, not a normal `{query: ...}` envelope. parse defensively.
-- the rest search api ignores `limit` slightly; truncate manually after parse (`search.py:36`).
+- the rest search api ignores `limit` slightly; truncate manually after parse (`SearchApi.search`).
 - `pages.edit` here does not pass `basetimestamp` / `baserevid`; concurrent edits will silently last-write-wins. add the params if a new write path needs conflict detection.
 - never run live edits or admin actions during testing or research. read-only api calls against a public wiki (e.g. en.wikipedia.org/w/api.php) are fine for verifying response shapes; writes against attuproject.org are not.
 - per `CLAUDE.md` rule #2: never trigger discord-side interactions or commit changes without explicit user instruction.
