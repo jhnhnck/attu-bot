@@ -130,6 +130,17 @@ uv run python apps/bot/doom-bot.py bot
 
 see [docs/architecture.md](docs/architecture.md) for package layout and file roles; coding conventions and project rules live in `CLAUDE.md` and the skills under `.claude/skills/`.
 
+### worktrees
+
+multi-step work happens on a branch in `.claude/worktrees/<slug>/`. `scripts/dev-functions.zsh` holds the two helpers that close one out; source it from your shell rc:
+
+| command | effect |
+|---|---|
+| `plan-merge <slug>` | fast-forward the branch into trunk, remove the worktree, delete the branch |
+| `plan-remove <slug>` | drop the worktree and branch without merging (abandoned or superseded) |
+
+`<slug>` is the worktree directory name. both resolve the branch by trying `phase/<slug>`, then `worktree-<slug>`, then the bare slug, so either naming works. run them from trunk in the main checkout; `plan-merge` refuses to run while the shell is on the branch it is merging.
+
 ### tests
 
 primary path: run from the venv, no docker relaunch needed.
