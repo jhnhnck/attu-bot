@@ -13,6 +13,8 @@ _see the [meta](#meta) section at the end of this file for format reference._
 - `low priority` `medium effort` update docs, notes, and readme; reorganize and consolidate notes
 - `low priority` `low effort` scan for files over ~300 lines; add to-do items for any that should be split up
 - `medium priority` `low effort` scan codebase for TODO and FIXME comments; add any new items to the to-do list
+- ⭕ `low priority` `no effort` `docs/bugs.md` has a stray `## open` section after `## meta` holding one mkdocstrings item; it is outside the file's declared section list (untriaged / triaged / resolved / meta) and probably belongs under `## untriaged`
+- ⭕ `low priority` `no effort` `docs/to-do.md` meta lists a `coverage` section that does not exist in the file; drop it from the section list or add the section back
 - ⭕ `low priority` `low effort` `.gitignore` still ignores `notes/plans/` and `notes/reports/`, but plans now live tracked in `.claude/plans/` and `notes/` only holds `plans/archived/`; drop the dead ignore lines (and the leftover `notes/` dir if nothing else lands there)
 
 ### eggs / hatch game

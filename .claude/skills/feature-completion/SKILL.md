@@ -1,6 +1,6 @@
 ---
 name: feature-completion
-description: AttuBot end-of-task checklist - tests, documentation, configuration plumbing, admin api, and linting. trigger when the user signals task wrap-up ("ready to commit", "feature done", "ready for review", "I think that's it", "done", "looks good"); when running pytest, ruff check, ruff format, or `scripts/run_tests.py`; before drafting any `git commit` message; before reporting a feature, fix, or refactor as complete. canonical source for the checklist; the numbered rules in `CLAUDE.md` take precedence over anything here.
+description: AttuBot end-of-task checklist - tests, documentation, configuration plumbing, admin api, and linting. trigger when the user signals task wrap-up ("ready to commit", "feature done", "ready for review", "I think that's it", "done", "looks good"); when running pytest, ruff check, ruff format, or `scripts/run_tests.py`; before drafting any `git commit` message; before reporting a feature, fix, or refactor as complete. the condensed checklist in `CLAUDE.md` is canonical; this skill is its expansion, holding the rationale and the full item list. the numbered rules in `CLAUDE.md` take precedence over anything here.
 ---
 
 # feature completion checklist
