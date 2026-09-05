@@ -71,11 +71,9 @@ Remove a section when it describes a system or workflow that no longer exists an
 
 Do not remove sections just because they're short or feel redundant - only remove if the described system is gone.
 
-### `.meta.md` handling
+### `.meta.md` (removed)
 
-`docs/.meta.md` describes the old `notes/agents.md` system. It is now a historical artifact. Do not delete it, but if tasked with cleanup on this file specifically:
-- the changelog and metadata sections are worth keeping as history
-- the prescriptive instructions ("how to structure agents.md") are obsolete; flag for human review rather than auto-removing
+`docs/.meta.md` described the old `notes/agents.md` system and was deleted once that system was gone. Its one still-live rule - the backlog item format and the `last_updated` metadata convention - now lives in the `to-do` skill. Treat any surviving reference to `docs/.meta.md` as a stale link to remove.
 
 ### broken links
 
@@ -106,7 +104,7 @@ After cleanup, report:
 
 - **files changed**: N / total
 - **by category**: stale refs, path updates, removed sections, broken links, metadata updates
-- **flagged for human review**: sections that are probably obsolete but require a judgment call (e.g. `.meta.md` prescriptive content, historical coverage snapshots, doc files that may need broader rewrite)
+- **flagged for human review**: sections that are probably obsolete but require a judgment call (e.g. historical coverage snapshots, doc files that may need broader rewrite)
 
 If nothing needed fixing in a file, say so briefly.
 
@@ -116,7 +114,6 @@ If nothing needed fixing in a file, say so briefly.
 
 - content meaning - do not rewrite sentences, only fix references and remove dead sections
 - historical records (`docs/coverage.md` table, plan log files)
-- `docs/.meta.md` prescriptive sections without explicit instruction
 - `wip/` files
 - code blocks inside docs (don't "fix" paths that appear inside code examples unless they're clearly wrong)
 - mkdocs nav entries in `mkdocs.yml` — that's a separate task

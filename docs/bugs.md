@@ -1,6 +1,6 @@
 # bug log
 
-reported bugs live here, separate from the feature backlog in `docs/to-do.md`. run the `bug-triage` skill (`~/.claude/skills/bug-triage/`) to assign severity (`blocker` / `important` / `nit`) and disposition (`fix-now` / `fix-in-phase-N` / `defer` / `won't-fix`) — the skill is the cut-line authority and does not fix code itself.
+reported bugs live here, separate from the feature backlog in `docs/to-do.md`. the `to-do` skill owns the format and the triage rules: severity (`blocker` / `important` / `nit`) and disposition (`fix-now` / `fix-in-phase-N` / `defer` / `won't-fix`). triage classifies; it never fixes code itself.
 
 format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / `- 🔴` for resolved). see the [meta](#meta) section for the format reference.
 
@@ -72,7 +72,7 @@ format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / 
 
 ## triaged
 
-_(empty — populate via the `bug-triage` skill)_
+_(empty; populated at triage)_
 
 ---
 
@@ -89,7 +89,7 @@ _(empty — populate via the `bug-triage` skill)_
 
 untriaged: `- ⭕ \`bug\` [optional file:line] description (optional source/reporter)`
 
-triaged: `- [<severity>] <title> → <disposition> · <note>` per the `bug-triage` skill emit format; group by severity under the `## triaged` heading
+triaged: `- [<severity>] <title> → <disposition> · <note>`; group by severity under the `## triaged` heading
 
 resolved: `- 🔴 \`<date>\` description`; sort chronologically (oldest first), prune entries no longer referenced
 
@@ -112,13 +112,13 @@ defaults: blockers → fix-now or fix-in-phase-N (never defer); important → fi
 
 ### triage workflow
 
-invoke the `bug-triage` skill when:
+triage per the `to-do` skill when:
 
 - the untriaged list grows after a phase wraps
-- before `ship-readiness` is run
+- before a ship verdict
 - the user asks to "triage", "go through the bugs", "what's blocking ship", etc.
 
-the skill reads every entry in full, assigns severity + disposition, and surfaces patterns when 3+ items cluster around the same area, premise, or root cause. cluster patterns get handed to `plan-revise` for phase-level rework.
+read every entry in full, assign severity + disposition, and surface patterns when 3+ items cluster around the same area, premise, or root cause. cluster patterns are a plan-shape signal and feed the plan-revision step of `phase-close`.
 
 ### sections
 

@@ -211,7 +211,7 @@ when an item is completed, move it to the `# completed` section under the approp
 
 when adding a new item, sort it into the appropriate section by topic, or add a new section if none fits. assign priority and effort tags. if the scope, priority, or effort is unclear, ask clarifying questions before adding. split larger projects into multiple entries.
 
-bugs go in `docs/bugs.md`, not here. this file is for features, refactors, audits, and other forward work; defects go to the bug log so the `bug-triage` skill can cut them.
+bugs go in `docs/bugs.md`, not here. this file is for features, refactors, audits, and other forward work; defects go to the bug log so triage can cut them. the `to-do` skill owns the format for both files.
 
 ### sections
 

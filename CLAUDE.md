@@ -18,6 +18,20 @@ report immediately and stop; do not diverge down less optimal paths.
 1. a file appears moved or deleted unexpectedly.
 1. a build error occurs.
 
+## completion checklist
+
+walk this before reporting any feature, fix, or refactor as done, and before drafting a commit message. answer each as a literal yes/no; finish any applicable item that is no. the `feature-completion` skill holds the full version with rationale.
+
+- **tests** - unit tests for new logic in `tests/python/unit/`; component tests for new repository methods or DB operations in `tests/python/component/`; full suite green via `uv run python scripts/run_tests.py`
+- **mock compensation** - a new file under `nova_core/commands/` keeps `TestExtensionImports.test_extension_imports_cleanly` passing; a new `@commands.check` predicate gets a predicate test
+- **new migration** - has a rollback path test before merging
+- **new config field** - has a roundtrip test that saves a non-default value, reloads via `load_guild()`, and asserts it survives
+- **tier-3 config field** - all three plumbing steps done (`GuildConfigDocument`, runtime `GuildConfig`, and passed explicitly in `NovaConfig.load_guild()`); missing any one silently uses the default in production. if it gates a feature, add it to `_FEATURE_FIELDS`
+- **admin api** - every mutation calls `bridge.trigger_reload(...)` (plus `bridge.invalidate_guild_cache()` for guild config); snowflakes serialized as strings; new route registered under the `/admin` router; unit tests added
+- **docs** - feature spec in `docs/features/` updated with a bumped `last_updated`; `README.md` and `docs/architecture.md` tables updated for new slash commands or admin routes; `docs/to-do.md` and `docs/bugs.md` updated per the `to-do` skill
+- **lint** - `uv run ruff check .` and `uv run ruff format --check .` clean for touched files; every `noqa` has a reason (rule #4); no em-dashes in the diff
+- **final gate** - nothing pushed or deployed without explicit instruction (rule #3); local commits inside a worktree branch are fine
+
 ## sub-agents
 
 when operating as a sub-agent (spawned via the agent tool), assume other agents may be working concurrently in the same repository:
@@ -27,8 +41,8 @@ when operating as a sub-agent (spawned via the agent tool), assume other agents 
 - do not assume exclusive access to any file or the working directory
 - prefer additive changes; avoid deleting or overwriting files without checking for concurrent edits
 - if isolated git work is needed, use a worktree (`EnterWorktree`) rather than modifying the main tree
-- **do not run tests** - never invoke `pytest`, `npm test`, `python scripts/run_tests.py`, or any test runner; testing is the responsibility of the main agent only
-- **do not run docker commands** - never invoke `docker`, `docker compose`, or any container tooling
+- **tests are allowed** - run them from the venv, in your own worktree: `uv run python scripts/run_tests.py`. component suites need a reachable mongo and `TEST_DB_URL`
+- **do not run docker commands** - never invoke `docker`, `docker compose`, or any container tooling; ask the main agent to bring up `mongo` if a component suite needs it
 
 ## pitfalls
 
