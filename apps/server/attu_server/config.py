@@ -14,10 +14,6 @@ class DatabaseConfig(BaseModel):
     name: str
 
 
-class WebConfig(BaseModel):
-    secret_key: str
-
-
 class BridgeConfig(BaseModel):
     secret: str
     bot_url: str = 'http://core:5050'  # compose service name; overridable per env
@@ -31,14 +27,18 @@ class GuildEntry(BaseModel):
 
 
 class AuthConfig(BaseModel):
+    """attu-server auth material; reads [auth.server] in the shared toml."""
+
+    # bearer tokens accepted by the admin api
     api_keys: list[str] = []
+    # session cookie signing key
+    secret_key: str
 
 
 class ServerConfig(BaseModel):
     database: DatabaseConfig
-    web: WebConfig
     bridge: BridgeConfig
-    auth: AuthConfig = AuthConfig()
+    auth: AuthConfig
     guilds: list[GuildEntry] = []
 
 
@@ -58,9 +58,8 @@ def load_config(path: Path | None = None) -> ServerConfig:
     try:
         return ServerConfig(
             database=DatabaseConfig(**raw['database']),
-            web=WebConfig(**raw['auth']['web']),
             bridge=BridgeConfig(**raw['bridge']),
-            auth=AuthConfig(api_keys=list(raw['auth'].get('api_keys', []))),
+            auth=AuthConfig(**raw['auth']['server']),
             guilds=[GuildEntry(**g) for g in raw.get('guilds', [])],
         )
     except (KeyError, ValidationError) as e:

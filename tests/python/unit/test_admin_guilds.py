@@ -32,11 +32,9 @@ def test_load_config_wires_api_keys_and_guilds(tmp_path):
 url = "mongodb://localhost:27017/test"
 name = "test"
 
-[auth]
+[auth.server]
 api_keys = ["secret-1", "secret-2"]
-
-[auth.web]
-secret_key = "test-web-secret"
+secret_key = "test-session-secret"
 
 [bridge]
 secret = "test-bridge-secret"
@@ -62,7 +60,7 @@ role = "secondary"
 
 
 def test_load_config_defaults_when_sections_absent(tmp_path):
-    """auth.api_keys and guilds default to [] when sections are missing."""
+    """auth.server.api_keys and guilds default to [] when absent."""
     from attu_server.config import load_config
 
     toml_content = """\
@@ -70,8 +68,8 @@ def test_load_config_defaults_when_sections_absent(tmp_path):
 url = "mongodb://localhost:27017/test"
 name = "test"
 
-[auth.web]
-secret_key = "test-web-secret"
+[auth.server]
+secret_key = "test-session-secret"
 
 [bridge]
 secret = "test-bridge-secret"
@@ -191,14 +189,13 @@ def mock_bridge():
 @pytest.fixture
 def client(mock_bridge):
     from attu_server.api.admin import router as admin_router
-    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, GuildEntry, ServerConfig, WebConfig
+    from attu_server.config import AuthConfig, BridgeConfig, DatabaseConfig, GuildEntry, ServerConfig
 
     cfg = ServerConfig(
         database=DatabaseConfig(url='mongodb://localhost:27017', name='test'),
-        web=WebConfig(secret_key='test-session-secret'),
 
         bridge=BridgeConfig(secret='test-bridge-secret'),
-        auth=AuthConfig(api_keys=['valid-key']),
+        auth=AuthConfig(api_keys=['valid-key'], secret_key='test-session-secret'),
         guilds=[GuildEntry(id=111, role='primary'), GuildEntry(id=222, role='secondary')],
     )
 
