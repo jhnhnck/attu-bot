@@ -44,7 +44,7 @@ def _read_db_config() -> tuple[str, str]:
         with config_path.open() as f:
             raw = tomlkit.load(f)
         return str(raw['database']['url']), str(raw['database']['name'])  # pyright: ignore[reportIndexIssue]
-    return 'mongodb://mongo:27017', 'doombot'
+    return 'mongodb://localhost:27017', 'doombot'
 
 
 class _PrefixedDB:
