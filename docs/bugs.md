@@ -79,6 +79,7 @@ _(empty; populated at triage)_
 
 - 🔴 `2026-07-20` `apps/chat/attu_chat/web/routes.py` broken imports from deleted `doom_bot.web` modules — resolved by deleting `apps/chat/` entirely in e4920c4d (drop-chat slice)
 - 🔴 `2026-08-05` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate — removed in 84033bf (nova-w2 phase 1)
+- 🔴 `2026-09-06` `config/attu-bot.sample.toml` `[features].enabled` example listed `"trees"` and `"reminders"` as bare names; `loader.load_all` calls `importlib.import_module`, so both logged "feature not found, skipping" and silently never loaded. corrected to `nova_core.trees` / `nova_core.reminders`; any deployed config copied from the sample needs the same fix
 - 🔴 `2026-09-06` `scripts/deploy.py` hardcoded `_epoch_toml` out of sync with `~/.attu-epoch.toml`; migrated `compute_attu_year()` to read the file directly
 
 ---

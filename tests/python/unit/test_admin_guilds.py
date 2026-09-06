@@ -66,8 +66,6 @@ def test_load_config_defaults_when_sections_absent(tmp_path):
 url = "mongodb://localhost:27017/test"
 name = "test"
 
-[auth.server]
-
 [bridge]
 secret = "test-bridge-secret"
 """
