@@ -29,15 +29,7 @@ dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
 version_file = dev_dir / 'apps' / 'bot' / 'nova_core' / '__init__.py'
 
-# epoch snapshot - paste the output of /fix epoch here when the epoch changes
-_epoch_toml = """\
-[epoch]
-time = 1772229600
-year = 76
-length = 21
-paused = false
-rollover_minutes = 1020  # 17:00
-"""
+_epoch_file = Path.home() / '.attu-epoch.toml'
 
 
 # --- helpers ---
@@ -81,8 +73,10 @@ def parse_version(content: str) -> tuple[str, str]:
 
 
 def compute_attu_year() -> int:
-    """compute the current attu year from the epoch snapshot in _EPOCH_TOML."""
-    epoch = tomllib.loads(_epoch_toml)['epoch']
+    """compute the current attu year from ~/.attu-epoch.toml."""
+    if not _epoch_file.exists():
+        abort(f'epoch file not found: {_epoch_file}')
+    epoch = tomllib.loads(_epoch_file.read_text())['epoch']
     tz = ZoneInfo('UTC')
     rollover_minutes: int = epoch['rollover_minutes']
     rollover_time = datetime.min.time().replace(hour=rollover_minutes // 60, minute=rollover_minutes % 60, tzinfo=tz)

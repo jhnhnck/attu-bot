@@ -66,7 +66,6 @@ format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / 
 ### deploy
 
 - ⭕ `bug` `.env` sets `ATTU_CONFIG_FILE=./assets/attu-bot.toml`, a path that does not exist anywhere in the repo (README documents `.secrets/attu-bot.toml`); nothing in compose currently reads it (the `tests` service has no `env_file:`), so it is inert today but wrong for anything else that sources `.env`. carried from plan: venv-tests (2026-09-03)
-- ⭕ `smell` `scripts/deploy.py:37-44` the attu-year epoch snapshot (`_epoch_toml`) is hardcoded inline and manually re-pasted from `/fix epoch` whenever it changes. tree-editor's `publish-package.zsh` (attu-standalone-packaging plan) now reads the same epoch from a shared `~/.attu-epoch.toml` file on the host instead of duplicating the snapshot a third time. `deploy.py` should migrate `compute_attu_year()` to read that same file instead of `_epoch_toml`, so there's one canonical epoch copy on the host, not two independently-updated ones (from cross-repo work in tree-editor, not yet actioned here)
 
 ---
 
@@ -80,6 +79,7 @@ _(empty; populated at triage)_
 
 - 🔴 `2026-07-20` `apps/chat/attu_chat/web/routes.py` broken imports from deleted `doom_bot.web` modules — resolved by deleting `apps/chat/` entirely in e4920c4d (drop-chat slice)
 - 🔴 `2026-08-05` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate — removed in 84033bf (nova-w2 phase 1)
+- 🔴 `2026-09-06` `scripts/deploy.py` hardcoded `_epoch_toml` out of sync with `~/.attu-epoch.toml`; migrated `compute_attu_year()` to read the file directly
 
 ---
 
