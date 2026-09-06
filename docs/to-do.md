@@ -103,7 +103,6 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `medium effort` add tests for nova_core/modlog/handlers.py (77%) - 62 missed statements in mod log embed/event paths
 - ⭕ `low priority` `medium effort` add tests for tasks/message_backfill.py (71%) - 49 missed statements in batched fetch loop
 - ⭕ `low priority` `medium effort` add tests for commands/wiki.py (69%) - 42 missed statements in lookup pagination view
-- ⭕ `low priority` `medium effort` add tests for commands/trees.py (73%) - 65 missed statements across link/share/unshare paths
 - ⭕ `low priority` `low effort` add tests for config.py (65%) - 135 missed statements; gaps mostly in error paths and toml round-tripping
 - ⭕ `low priority` `low effort` split up large test files into focused modules by feature or command group
 - ⭕ `low priority` `medium effort` add tests for attu_wiki/pages.py (21%) - page fetch and parsing
@@ -138,6 +137,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 
 - 🔴 `26 April 2026` replace /link family trees with /trees — hmac-signed native tree editor integration; link/show/share/unshare commands with role mapping; bumped config_version to 2.5.4
 - 🔴 `4 May 2026` restore /link family commands (list, view, set, upload) alongside /trees; familyecho client and FamilyDocument/FamilyRepository back; both command groups coexist
+- 🔴 `6 September 2026` remove the /trees tree-editor integration; the external editor retired the bot-facing api. commands, TreesConfig, [trees] toml, and the two GuildRoles fields dropped; /link family and the FamilyEcho package unaffected
 
 ### reminders
 

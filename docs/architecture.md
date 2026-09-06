@@ -49,7 +49,6 @@ each file is a pycord extension (`setup(bot)` function) registering a `SlashComm
 | `wiki.py` | `/wiki` | wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family view`, `family set`, `family upload`) |
-| `trees.py` | `/trees` | family tree editor link, show, share, and unshare commands |
 | `eggs.py` | `/egg`, `/eggs` | egg collection game - collect, hatch, view, give, progress, `/eggs leaderboard` (`hatched`, `collected`) |
 | `remind.py` | `/remind` | in-universe date reminders - add, list, cancel |
 | `cc_stars.py` | `/cc stars` | ccboard browsing and leaderboards (walking-skeleton stub; `/stars leaderboard top-messages` covers ccboard today) |

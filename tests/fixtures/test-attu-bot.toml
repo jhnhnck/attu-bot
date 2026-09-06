@@ -23,11 +23,6 @@ role = "member"
 name = "Test Bot"
 welcome_message = "welcome"
 
-[trees]
-hmac_secret = "test-secret-not-real"
-dev_base_url = "https://dev.example.invalid"
-prod_base_url = "https://prod.example.invalid"
-
 [database]
 url = "mongodb://localhost:27017/doombot"
 name = "doombot"

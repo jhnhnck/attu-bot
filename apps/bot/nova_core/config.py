@@ -37,7 +37,6 @@ class RawConfig(TypedDict):
     database: dict[str, Any]
     auth: dict[str, Any]
     discord: dict[str, Any]
-    trees: dict[str, Any]
     features: NotRequired[dict[str, Any]]
 
 
@@ -122,8 +121,6 @@ class GuildEpoch(BaseModel):
 class GuildRoles(BaseModel):
     announcements: int = 0  # notification role for year changes
     bot_color: int = 0  # role whose color tracks the bot theme color
-    trees_admin_role: int = 0  # role ID → "admin" in the trees service
-    trees_user_role: int = 0  # role ID → "user" in the trees service
 
 
 class GuildUsers(BaseModel):
@@ -145,12 +142,6 @@ class HatchConfig(BaseModel):
     drop_weights: list[int]
     hatch_durations: dict[str, int]
     pools: dict[str, list[str]]  # key: rarity name, value: creature list
-
-
-class TreesConfig(BaseModel):
-    hmac_secret: str
-    dev_base_url: str
-    prod_base_url: str
 
 
 class BridgeConfig(BaseModel):
@@ -297,7 +288,6 @@ class NovaConfig:
         self.paths: PathsConfig = None
         self.database: DatabaseConfig = None
         self.hatch: HatchConfig = None
-        self.trees: TreesConfig = None
         self.bridge: BridgeConfig = None
         self.features_enabled: list[str] = []
 
@@ -401,12 +391,6 @@ class NovaConfig:
         except (ValidationError, KeyError) as err:
             logger.error(f'failed to validate hatch config: {err!s}')
             raise ConfigLoadError('invalid hatch configuration')
-
-        try:
-            self.trees = TreesConfig(**self._raw.get('trees', {}))
-        except (KeyError, ValidationError) as err:
-            logger.error(f'failed to validate trees configuration: {err!s}')
-            raise ConfigLoadError('invalid trees configuration (missing [trees] section?)')
 
         bridge_raw = self._raw.get('bridge')
         if bridge_raw is not None:

@@ -206,7 +206,7 @@ class TestLoadExtensions:
         with patch.object(nova_core.bot, 'load_extension') as mock_load:
             nova_core._load_extensions()
 
-        assert mock_load.call_count == 13
+        assert mock_load.call_count == 12
         mock_load.assert_has_calls(
             [
                 call('nova_core.commands.cc_stars'),
@@ -219,7 +219,6 @@ class TestLoadExtensions:
                 call('nova_core.commands.remind'),
                 call('nova_core.commands.stars'),
                 call('nova_core.commands.time'),
-                call('nova_core.commands.trees'),
                 call('nova_core.commands.wiki'),
                 call('nova_core.commands.year'),
             ],

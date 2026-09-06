@@ -58,12 +58,6 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
   - **/link family set**: registers a family tree from an existing message link
   - **/link family upload**: registers a family tree by uploading the file directly
 
-- **/trees**: family tree editor
-  - **/trees link**: links your Discord account to the family tree editor
-  - **/trees show**: lists your family trees
-  - **/trees share**: shares a tree with another Discord user
-  - **/trees unshare**: revokes a user's access to one of your trees
-
 ### admin
 
 - **/time**: controls passage of in-universe time (admin only; see [docs/features/timekeeping.md](docs/features/timekeeping.md))

@@ -42,10 +42,6 @@ slash command modules loaded via the feature manifest system.
 
 ::: nova_core.commands.time
 
-## nova_core.commands.trees
-
-::: nova_core.commands.trees
-
 ## nova_core.commands.wiki
 
 ::: nova_core.commands.wiki

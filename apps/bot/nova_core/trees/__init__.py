@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.trees | trees feature manifest."""
+"""nova_core.trees | family tree feature manifest."""
 
 import asyncio
 
@@ -28,16 +28,8 @@ def init_repos(db) -> None:
     _task.add_done_callback(_bg_tasks.discard)
 
 
-def _setup_commands(bot) -> None:
-    """register trees slash commands; deferred import to avoid circular dependency."""
-    from nova_core.commands.trees import setup as _setup
-
-    _setup(bot)
-
-
 manifest = FeatureManifest(
     name='trees',
-    setup=_setup_commands,
     document_classes=[FamilyDocument],
     repository_classes=[FamilyRepository],
 )

@@ -197,7 +197,7 @@ there is no per-field web or form step any more: the legacy quart interface is g
 
 simpler; two locations:
 
-1. add the field to the relevant pydantic model in `config.py` (e.g. `ChatConfig`, `TreesConfig`).
+1. add the field to the relevant pydantic model in `config.py` (e.g. `BridgeConfig`, `BackupConfig`).
 2. add it with a placeholder to `config/attu-bot.sample.toml` so a fresh deploy has a working stub.
 
 if the toml file *format* changes (renamed key, new required section), bump `__config_version__` in `apps/bot/nova_core/__init__.py` so `_version_gte` rejects out-of-date config files. db schema migrations bump `__schema__` instead; do not confuse them.
