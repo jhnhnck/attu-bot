@@ -14,7 +14,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.sessions import SessionMiddleware
 
 
 pytestmark = pytest.mark.unit
@@ -44,7 +43,7 @@ def client(mock_bridge):
     cfg = ServerConfig(
         database=DatabaseConfig(url='mongodb://localhost:27017', name='test'),
         bridge=BridgeConfig(secret='test-bridge-secret'),
-        auth=AuthConfig(api_keys=['valid-key'], secret_key='test-session-secret'),
+        auth=AuthConfig(api_keys=['valid-key']),
         guilds=[GuildEntry(id=111, role='primary')],
     )
 
@@ -59,7 +58,6 @@ def client(mock_bridge):
         yield
 
     app = FastAPI(lifespan=lifespan)
-    app.add_middleware(SessionMiddleware, secret_key='test-session-secret')
     app.include_router(admin_router, prefix='/api')
 
     with TestClient(app) as tc:

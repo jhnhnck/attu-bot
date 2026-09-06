@@ -14,7 +14,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.sessions import SessionMiddleware
 
 
 pytestmark = pytest.mark.unit
@@ -24,7 +23,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_load_config_wires_api_keys_and_guilds(tmp_path):
-    """load_config reads auth.api_keys and [[guilds]] from TOML."""
+    """load_config reads auth.server.api_keys and [[guilds]] from TOML."""
     from attu_server.config import load_config
 
     toml_content = """\
@@ -34,7 +33,6 @@ name = "test"
 
 [auth.server]
 api_keys = ["secret-1", "secret-2"]
-secret_key = "test-session-secret"
 
 [bridge]
 secret = "test-bridge-secret"
@@ -69,7 +67,6 @@ url = "mongodb://localhost:27017/test"
 name = "test"
 
 [auth.server]
-secret_key = "test-session-secret"
 
 [bridge]
 secret = "test-bridge-secret"
@@ -193,9 +190,8 @@ def client(mock_bridge):
 
     cfg = ServerConfig(
         database=DatabaseConfig(url='mongodb://localhost:27017', name='test'),
-
         bridge=BridgeConfig(secret='test-bridge-secret'),
-        auth=AuthConfig(api_keys=['valid-key'], secret_key='test-session-secret'),
+        auth=AuthConfig(api_keys=['valid-key']),
         guilds=[GuildEntry(id=111, role='primary'), GuildEntry(id=222, role='secondary')],
     )
 
@@ -206,7 +202,6 @@ def client(mock_bridge):
         yield
 
     app = FastAPI(lifespan=lifespan)
-    app.add_middleware(SessionMiddleware, secret_key='test-session-secret')
     app.include_router(admin_router, prefix='/api')
 
     with TestClient(app) as tc:

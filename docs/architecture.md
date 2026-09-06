@@ -168,9 +168,8 @@ use `from attu_logging import get_logger` everywhere; never the stdlib `logging`
 | `main.py` | fastapi app factory + lifespan + gzip middleware |
 | `config.py` | `ServerConfig`, `BridgeConfig`, `DatabaseConfig`, `WebConfig` - loaded from `attu-bot.toml` |
 | `bridge_client.py` | async httpx client for calling the bridge using the identical HMAC signing scheme |
-| `deps.py` | fastapi dependency providers (db, config, current user) |
+| `deps.py` | fastapi dependency providers (db, config, bridge, api-key auth) |
 | `preflight.py` | startup checks (bridge reachable, db connected) |
-| `api/me.py` | `/api/me` - current user endpoint |
 | `api/admin/` | api-key protected `/admin` routes - `guilds.py` (list, channels, roles), `config_routes.py` (get/patch guild config keys), `features.py` (enable/disable), `reload.py` (guild/theme/system), `ops.py` (backfill, ccboard repairs, triggers, info, inspect), `slugs.py` (guild slug resolution); driven by `scripts/nova_admin.py` |
 
 ---

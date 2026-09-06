@@ -31,14 +31,12 @@ class AuthConfig(BaseModel):
 
     # bearer tokens accepted by the admin api
     api_keys: list[str] = []
-    # session cookie signing key
-    secret_key: str
 
 
 class ServerConfig(BaseModel):
     database: DatabaseConfig
     bridge: BridgeConfig
-    auth: AuthConfig
+    auth: AuthConfig = AuthConfig()
     guilds: list[GuildEntry] = []
 
 
@@ -59,7 +57,7 @@ def load_config(path: Path | None = None) -> ServerConfig:
         return ServerConfig(
             database=DatabaseConfig(**raw['database']),
             bridge=BridgeConfig(**raw['bridge']),
-            auth=AuthConfig(**raw['auth']['server']),
+            auth=AuthConfig(**raw.get('auth', {}).get('server', {})),
             guilds=[GuildEntry(**g) for g in raw.get('guilds', [])],
         )
     except (KeyError, ValidationError) as e:

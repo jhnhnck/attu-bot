@@ -22,12 +22,8 @@ name = "doombot"
 token = "TOKEN_GOES_HERE"
 
 [auth.server]
-# attu-server auth material
-# bearer tokens for the admin API; add one per client
+# bearer tokens for the attu-server admin API; add one per client
 api_keys = []
-# session cookie signing key - required for production
-# generate with: python -c "import secrets; print(secrets.token_hex(32))"
-secret_key = "your-secret-key-here"
 
 [auth.wiki]
 # MediaWiki bot credentials
