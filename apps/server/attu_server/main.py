@@ -52,7 +52,8 @@ def create_app(cfg: ServerConfig | None = None) -> FastAPI:
     cfg = cfg or load_config()
     app = FastAPI(title='attu_server', version=__version__, lifespan=_build_lifespan(cfg))
 
-    # csrf is enforced per-request in deps.require_csrf
+    # session holds only the csrf token minted by GET /api/me; nothing validates it
+    # yet and no login flow writes user_id, so it is a stub for the unbuilt web layer
     app.add_middleware(SessionMiddleware, secret_key=cfg.auth.secret_key, session_cookie='attu_session', https_only=False)
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 
