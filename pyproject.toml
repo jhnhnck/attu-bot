@@ -80,42 +80,43 @@ select = [
 ]
 
 ignore = [
-  "E111",
-  "E114",
-  "E117",
-  "E303",
-  "ISC001",
-  "PLC1901",
-  "PLC2701",
-  "PLR0904",
-  "PLR0914",
-  "PLR0917",
-  "PLR1702",
-  "PLR6104",
-  "PLR6201",
-  "PLR6301",
-  "PLW1514",
-  "RET501",
-  "RET502",
-  "RET503",
-  "RUF029",
-  "RUF052",
-  "RUF067",
-  "RUF069",
-  "S404",
-  "E501",
-  "PLC0415",
-  "PLR0913",
-  "PLE1205",
-  "PLR2004",
-  "RUF012",
-  "TC001",
-  "TC002",
-  "TC003",
-  "TRY002",
-  "TRY003",
-  "UP037",
-  "COM812",
+  "indentation-with-invalid-multiple",
+  "indentation-with-invalid-multiple-comment",
+  "over-indented",
+  "too-many-blank-lines",
+  "single-line-implicit-string-concatenation",
+  "compare-to-empty-string",
+  "import-private-name",
+  "too-many-public-methods",
+  "too-many-locals",
+  "too-many-positional-arguments",
+  "too-many-nested-blocks",
+  "non-augmented-assignment",
+  "literal-membership",
+  "no-self-use",
+  "unspecified-encoding",
+  "unnecessary-return-none",
+  "implicit-return-value",
+  "implicit-return",
+  "unused-async",
+  "used-dummy-variable",
+  "non-empty-init-module",
+  "float-equality-comparison",
+  "suspicious-subprocess-import",
+  "line-too-long",
+  "import-outside-top-level",
+  "too-many-arguments",
+  "logging-too-many-args",
+  "magic-value-comparison",
+  "mutable-class-default",
+  "typing-only-first-party-import",
+  "typing-only-third-party-import",
+  "typing-only-standard-library-import",
+  "raise-vanilla-class",
+  "raise-vanilla-args",
+  "quoted-annotation",
+  "missing-trailing-comma",
+  "noqa-comments",  # preview rule wants `ruff: ignore`; rule #4 is built on `noqa` and cannot be edited
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -145,20 +146,20 @@ exclude = ["*.wip.py", "wip/", ".venv/"]
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/**" = [
-  "T201",
+  "print",
 ]
 "tests/**" = [
-  "S101",
-  "S106",
-  "E402",
+  "assert",
+  "hardcoded-password-func-arg",
+  "module-import-not-at-top-of-file",
 ]
-"apps/bot/nova_core/commands/debug.py" = ["S311"]
-"apps/bot/nova_core/eggs/hatching.py" = ["S311"]
-"apps/bot/nova_core/tasks/logo_update.py" = ["S311"]
+"apps/bot/nova_core/commands/debug.py" = ["suspicious-non-cryptographic-random-usage"]
+"apps/bot/nova_core/eggs/hatching.py" = ["suspicious-non-cryptographic-random-usage"]
+"apps/bot/nova_core/tasks/logo_update.py" = ["suspicious-non-cryptographic-random-usage"]
 "scripts/nova_admin.py" = [
-  "PLR0911",  # cmd.Cmd do_* methods use early returns per branch; count scales with subcommand count
-  "PLR0912",  # cmd.Cmd do_* methods use if/elif chains; branch count scales with subcommand count
-  "PLR0915",  # cmd.Cmd do_* methods are inherently large; statement count scales with subcommand count
+  "too-many-return-statements",  # cmd.Cmd do_* methods use early returns per branch; count scales with subcommand count
+  "too-many-branches",  # cmd.Cmd do_* methods use if/elif chains; branch count scales with subcommand count
+  "too-many-statements",  # cmd.Cmd do_* methods are inherently large; statement count scales with subcommand count
 ]
 
 [tool.pytest.ini_options]
