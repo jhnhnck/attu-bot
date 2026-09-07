@@ -160,10 +160,10 @@ logger = structlog.stdlib.get_logger(__name__)
 
 # --- Wiki Commands ---
 
-wiki_group = SlashCommandGroup('wiki', description='Utilities for managing and querying the wiki')
+wiki_group = SlashCommandGroup('wiki', description='search and manage the wiki')
 
 
-@wiki_group.command(name='random', description='Get a random page from the wiki')
+@wiki_group.command(name='random', description='get a random page from the wiki')
 async def wiki_random(ctx: ApplicationContext):
     await ctx.defer()
     wiki = get_wiki()
@@ -175,8 +175,8 @@ async def wiki_random(ctx: ApplicationContext):
 _SEARCH_LIMIT = 11
 
 
-@wiki_group.command(name='lookup', description='Search the wiki for relevent pages')
-@discord.commands.option(name='query', required=True, description='Search Query', input_type=str)
+@wiki_group.command(name='lookup', description='search the wiki for matching pages')
+@discord.commands.option(name='query', required=True, description='what to search the wiki for', input_type=str)
 async def wiki_lookup(ctx: ApplicationContext, query: str):
     await ctx.defer()
     wiki = get_wiki()
@@ -246,9 +246,9 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
 # --- Wiki Admin Commands ---
 
 
-@wiki_group.command(name='block', description='Blocks a specified user from the wiki (Admin only)')
-@discord.commands.option(name='user', required=True, description='Wiki Username (case sensitive probably)', input_type=str)
-@discord.commands.option(name='reason', required=True, description='Reason for blocking', input_type=str)
+@wiki_group.command(name='block', description='block a user from editing the wiki (admin only)')
+@discord.commands.option(name='user', required=True, description='who to block (wiki username, case sensitive)', input_type=str)
+@discord.commands.option(name='reason', required=True, description='why they are being blocked', input_type=str)
 @commands.has_permissions(administrator=True)
 @commands.check(is_authorized_guild)
 async def wiki_block(ctx: ApplicationContext, user: str, reason: str):

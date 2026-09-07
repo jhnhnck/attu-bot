@@ -43,14 +43,14 @@ each file is a pycord extension (`setup(bot)` function) registering a `SlashComm
 | `fix.py` | (none) | background job functions for repair and maintenance (channel/guild backfill, ccboard regen/purge/recover/cleanup/recount); no slash commands, invoked via bridge ops endpoints |
 | `marker.py` | `/marker` | save, set, and clear year marker messages |
 | `query.py` | `/query` | channel pin queries |
-| `stars.py` | `/stars` | starboard browsing (`random`, `lost`, `recheck`) and `/stars leaderboard` (`most-stars`, `most-starred`, `most-given`, `top-messages`) |
+| `stars.py` | `/stars` | starboard browsing (`random`, `lost`, `recheck`) and `/stars leaderboard` (`most-stars`, `most-starred`, `most-given`) |
 | `time.py` | `/time` | in-universe time controls - advance, pause, resume, dilate |
 | `wiki.py` | `/wiki` | wiki lookup (`random`, `lookup`) and admin (`block`); uses `WikiLinkView` / `WikiLookupView` |
 | `year.py` | `/year` | year check, search, and link commands |
 | `link.py` | `/link` | FamilyEcho family tree commands (`family list`, `family view`, `family set`, `family upload`) |
 | `eggs.py` | `/egg`, `/eggs` | egg collection game - collect, hatch, view, give, progress, `/eggs leaderboard` (`hatched`, `collected`) |
 | `remind.py` | `/remind` | in-universe date reminders - add, list, cancel |
-| `cc_stars.py` | `/cc stars` | ccboard browsing and leaderboards (walking-skeleton stub; `/stars leaderboard top-messages` covers ccboard today) |
+| `cc_stars.py` | `/cc stars` | ccboard browsing and leaderboards (`top-messages`); the `test` command is still a walking-skeleton stub |
 
 ## package: `apps/bot/nova_core/database/`
 

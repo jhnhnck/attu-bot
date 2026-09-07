@@ -22,11 +22,11 @@ _MESSAGE_LINK_RE = re.compile(r'https://discord\.com/channels/(\d+)/(\d+)/(\d+)'
 
 # --- Link Commands ---
 
-link_group = SlashCommandGroup('link', description='Link utilities')
-family_group = link_group.create_subgroup('family', description='FamilyEcho family tree commands')
+link_group = SlashCommandGroup('link', description='family tree links')
+family_group = link_group.create_subgroup('family', description='register and view FamilyEcho family trees')
 
 
-@family_group.command(name='list', description='List all registered family trees')
+@family_group.command(name='list', description='list the registered family trees')
 async def family_list(ctx: ApplicationContext):
     config.guild(ctx.guild.id)  # ensures guild is authorized
 
@@ -39,8 +39,8 @@ async def family_list(ctx: ApplicationContext):
     await ctx.respond('**registered families:**\n' + '\n'.join(f'- {n}' for n in lines))
 
 
-@family_group.command(name='view', description='Get a temporary FamilyEcho viewer link for a registered family')
-@discord.commands.option(name='name', required=True, description='Family name')
+@family_group.command(name='view', description='get a temporary FamilyEcho viewer link for a registered family')
+@discord.commands.option(name='name', required=True, description='which family to view (from /link family list)')
 async def family_view(ctx: ApplicationContext, name: str):
     config.guild(ctx.guild.id)  # ensures guild is authorized
 
@@ -61,9 +61,9 @@ async def family_view(ctx: ApplicationContext, name: str):
     await ctx.respond(f'**{family.display_name}** - [open family tree]({url})\n-# link is valid for approximately 24 hours')
 
 
-@family_group.command(name='set', description='Register a FamilyEcho family tree from an existing message link')
-@discord.commands.option(name='name', required=True, description='Family name')
-@discord.commands.option(name='message_link', required=True, description='Discord link to the message containing the FamilyScript file')
+@family_group.command(name='set', description='register a family tree from a file already posted in a message')
+@discord.commands.option(name='name', required=True, description='name to register the family under')
+@discord.commands.option(name='message_link', required=True, description='the message holding the FamilyScript file (full discord link)')
 @commands.check(has_announcements_role)
 async def family_set(ctx: ApplicationContext, name: str, message_link: str):
     config.guild(ctx.guild.id)  # ensures guild is authorized
@@ -123,8 +123,8 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
     await ctx.respond(f'registered family **{name.strip()}**; use `/link family view name:{name.strip()}` to get a viewer link')
 
 
-@family_group.command(name='upload', description='Register a FamilyEcho family tree by uploading the file directly')
-@discord.commands.option(name='name', required=True, description='Family name')
+@family_group.command(name='upload', description='register a family tree by uploading the file directly')
+@discord.commands.option(name='name', required=True, description='name to register the family under')
 @discord.commands.option(name='file', required=True, description='FamilyScript .txt or GEDCOM .ged file downloaded from familyecho.com', input_type=discord.Attachment)
 @commands.check(has_announcements_role)
 async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attachment):

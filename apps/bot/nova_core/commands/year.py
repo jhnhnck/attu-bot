@@ -20,11 +20,11 @@ logger = structlog.stdlib.get_logger(__name__)
 
 # --- Year Commands ---
 
-year_group = SlashCommandGroup('year', description='Utilities related to current, past or future years')
+year_group = SlashCommandGroup('year', description='look up current, past and future years')
 
 
-@year_group.command(name='check', description='Prints out information related to a specified year; if not specified, year defaults to the next year')
-@discord.commands.option(name='year', required=False, description='Year Number', input_type=int, min_value=1)
+@year_group.command(name='check', description='show what happens in a year (defaults to next year)')
+@discord.commands.option(name='year', required=False, description='which year to check (defaults to next)', input_type=int, min_value=1)
 async def year_check(ctx: ApplicationContext, year: int):
     guild_config = config.guild(ctx.guild.id)
     elapsed_days, current_year = get_year_status(guild=guild_config.id)
@@ -66,8 +66,8 @@ async def year_check(ctx: ApplicationContext, year: int):
         await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
 
 
-@year_group.command(name='search', description='Prints search query for timlining')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
+@year_group.command(name='search', description="build a discord search query for a year's messages")
+@discord.commands.option(name='year', required=True, description='which year to build the query for (1 or later)', input_type=int, min_value=1)
 async def year_search(ctx: ApplicationContext, year: int):
     guild_config = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild_config.id)
@@ -113,9 +113,9 @@ async def find_marker_link(year: int, channel: TextChannel) -> str:
     )
 
 
-@year_group.command(name='link', description='Links to the specified year in a lore channel; if not specified, channel defaults to #lore-news')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='channel', required=False, description='Lore Channel', input_type=TextChannel)
+@year_group.command(name='link', description="link to a year's marker in a lore channel (defaults to #lore-news)")
+@discord.commands.option(name='year', required=True, description='which year to link to (1 or later)', input_type=int, min_value=1)
+@discord.commands.option(name='channel', required=False, description='which lore channel to link in (defaults to #lore-news)', input_type=TextChannel)
 async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | None):
     cfg = config.guild(ctx.guild.id)
     _, current_year = get_year_status(guild=cfg.id)

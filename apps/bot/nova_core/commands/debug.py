@@ -12,7 +12,6 @@ import discord
 import structlog
 from discord import ApplicationCommand, ApplicationContext, Bot
 
-import attu_logging
 from nova_core import __build_time__, __schema__, __title__, __version__
 from nova_core.client.core import config
 from nova_core.client.embeds import make_embed, ui_emoji
@@ -21,7 +20,7 @@ from nova_core.client.embeds import make_embed, ui_emoji
 logger = structlog.stdlib.get_logger(__name__)
 
 
-@discord.slash_command(name='color', description='Shows the current bot theme color')
+@discord.slash_command(name='color', description='show the current theme color')
 async def command_color(ctx: ApplicationContext):
     if not config.theme:
         await ctx.respond('Failed: no theme color configured', ephemeral=True)
@@ -32,7 +31,9 @@ async def command_color(ctx: ApplicationContext):
     await ctx.respond(embed=embed)
 
 
-@discord.slash_command(name='pong', description='Another simple command to test if the bot is online')
+# message-style wants an imperative fragment; /ping and /pong are third person and
+# matched word-for-word on purpose, and the delayed reply below stays unadvertised
+@discord.slash_command(name='pong', description='pongs you')
 async def command_pong(ctx: ApplicationContext):
     async def wait_random():
         sleep_time = 5 * randrange(25, 240)
@@ -52,24 +53,7 @@ async def command_pong(ctx: ApplicationContext):
         scheduler.add_job(wait_random(), 'PongTask', ctx.author.name)
 
 
-@discord.slash_command(name='test', description='Simple command to test with')
-async def command_test(ctx: ApplicationContext):
-    """Utility command for debugging - kept unregistered for manual use when needed"""
-    if not config.is_owner(ctx.author.id):
-        await ctx.respond('Do I know you?', ephemeral=True)
-        return
-
-    try:
-        pass
-
-    except Exception as err:
-        await attu_logging.webhook.send_to_webhook(err)
-
-        await ctx.respond('https://discord.com/channels/572148465870700544/1256800104082313257')
-        return
-
-
-@discord.slash_command(name='version', description='Displays the current version and container build time')
+@discord.slash_command(name='version', description='show the bot version and container build time')
 async def command_version(ctx: ApplicationContext):
     build_format = '%a %b %d %H:%M:%S %Z %Y'
     build_time = datetime.strptime(__build_time__, build_format)
@@ -93,5 +77,4 @@ def setup(bot: Bot):
 
     bot.add_application_command(cast('ApplicationCommand', command_color))
     bot.add_application_command(cast('ApplicationCommand', command_pong))
-    # bot.add_application_command(cast(ApplicationCommand, command_test))
     bot.add_application_command(cast('ApplicationCommand', command_version))

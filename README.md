@@ -50,7 +50,8 @@ A Discord bot for the Attu Project that automates in-universe timekeeping, year-
   - **/stars leaderboard most-stars**: top users by total stars received
   - **/stars leaderboard most-starred**: top users by number of messages on the starboard
   - **/stars leaderboard most-given**: top users by total stars given
-  - **/stars leaderboard top-messages**: top messages by stars (ccboard only)
+- **/cc stars**: ccboard browsing and leaderboards
+  - **/cc stars top-messages**: top messages by stars
 
 - **/link family**: FamilyEcho family trees
   - **/link family list**: lists all registered family trees

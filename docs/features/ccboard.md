@@ -143,7 +143,7 @@ repair and inspection ops are admin api routes under `/admin/ops/{slug}/ccboard/
 | `/stars leaderboard most-stars` | top users by total points received (ccboard-backed) |
 | `/stars leaderboard most-starred` | top users by number of board entries (ccboard-backed) |
 | `/stars leaderboard most-given` | top users by total points given (ccboard-backed) |
-| `/stars leaderboard top-messages` | top entries by total points (ccboard-backed); shows "coming soon" on non-enabled guilds |
+| `/cc stars top-messages` | top entries by total points (ccboard-backed); shows "coming soon" on non-enabled guilds |
 | `job_convert_starboard_to_ccboard` (`ccboard/migration.py`; no command or api entry point today) | one-shot migration; copies `starboard` records into `ccboard_reactions` + `ccboard_entries`. idempotent. requires a non-empty `ccboard.emojis`. |
 | `ccboard regen` | marks every entry in the guild dirty so the manager rebuilds all posts on the next tick |
 | `ccboard purge <id>` | accepts the original message, the board post, or a `/stars` display message; soft-deletes every reaction record, deletes the board post if linked, removes the entry |

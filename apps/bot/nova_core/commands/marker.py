@@ -18,13 +18,13 @@ logger = structlog.stdlib.get_logger(__name__)
 
 # --- Marker Commands ---
 
-marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='Utilities related to managing year markers (Admin Only)')
+marker_group = SlashCommandGroup('marker', default_member_permissions=Permissions.all(), description='manage year markers (admin only)')
 
 
-@marker_group.command(name='save', description='Updates marker to point to a different message')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='link', required=True, description='Message Link', input_type=str)
-@discord.commands.option(name='force', required=False, description='Override Mode', input_type=bool, default=False)
+@marker_group.command(name='save', description="point a year's marker at a different message")
+@discord.commands.option(name='year', required=True, description='which year to move the marker to (1 to current)', input_type=int, min_value=1)
+@discord.commands.option(name='link', required=True, description='the message the marker should point at (full discord link)', input_type=str)
+@discord.commands.option(name='force', required=False, description='accept a link far from the expected time', input_type=bool, default=False)
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
     if 'discord.com/channels' not in link:
@@ -64,9 +64,9 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(guild_config.id, marker.channel, marker.message)}')
 
 
-@marker_group.command(name='set', description='Sets marker timestamp for when a specifc year starts')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='snowflake', required=True, description='Message ID', input_type=int)
+@marker_group.command(name='set', description='set when a year starts, from a message id')
+@discord.commands.option(name='year', required=True, description='which year to set the start of (1 or later)', input_type=int, min_value=1)
+@discord.commands.option(name='snowflake', required=True, description='the message whose timestamp starts the year', input_type=int)
 @commands.check(is_authorized_guild)
 async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     guild_config = config.guild(ctx.guild.id)
@@ -87,9 +87,9 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
 
 
-@marker_group.command(name='clear', description='Removes marker for a specific channel and year')
-@discord.commands.option(name='year', required=True, description='Year Number', input_type=int, min_value=1)
-@discord.commands.option(name='channel', required=True, description='Lore Channel', input_type=discord.TextChannel)
+@marker_group.command(name='clear', description="remove a year's marker from a lore channel")
+@discord.commands.option(name='year', required=True, description='which year to clear (1 or later)', input_type=int, min_value=1)
+@discord.commands.option(name='channel', required=True, description='which lore channel to clear it from', input_type=discord.TextChannel)
 @commands.check(is_authorized_guild)
 async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.TextChannel):
     guild_config = config.guild(ctx.guild.id)

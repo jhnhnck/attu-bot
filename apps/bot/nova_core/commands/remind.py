@@ -19,17 +19,17 @@ from nova_core.reminders.task import _get_repo, compute_fire_time, format_attu_d
 
 logger = structlog.stdlib.get_logger(__name__)
 
-remind_group = SlashCommandGroup('remind', description='set reminders for in-universe haracalnde dates')
+remind_group = SlashCommandGroup('remind', description='reminders for in-universe Haracalnde dates')
 
 
 # --- /remind add ---
 
 
-@remind_group.command(name='add', description='Set a reminder for a Haracalnde date')
-@discord.commands.option(name='year', required=True, description='Haracalnde year (PC era)', input_type=int, min_value=1)
-@discord.commands.option(name='month', required=False, description='Haracalnde month (1-12)', input_type=int, min_value=1, max_value=12)
-@discord.commands.option(name='day', required=False, description='Haracalnde day (1-30)', input_type=int, min_value=1, max_value=30)
-@discord.commands.option(name='note', required=False, description='Optional note for the reminder', input_type=str)
+@remind_group.command(name='add', description='set a reminder for a Haracalnde date')
+@discord.commands.option(name='year', required=True, description='which Haracalnde year to fire in (PC)', input_type=int, min_value=1)
+@discord.commands.option(name='month', required=False, description='which month to fire in (1-12)', input_type=int, min_value=1, max_value=12)
+@discord.commands.option(name='day', required=False, description='when in the month to fire (1-30)', input_type=int, min_value=1, max_value=30)
+@discord.commands.option(name='note', required=False, description='note to include with the reminder (optional)', input_type=str)
 @commands.check(is_authorized_guild)
 async def remind_add(ctx: ApplicationContext, year: int, month: int | None = None, day: int | None = None, note: str | None = None):
     if day is not None and month is None:
@@ -87,7 +87,7 @@ async def remind_add(ctx: ApplicationContext, year: int, month: int | None = Non
 # --- /remind list ---
 
 
-@remind_group.command(name='list', description='View your active reminders')
+@remind_group.command(name='list', description='show your active reminders')
 @commands.check(is_authorized_guild)
 async def remind_list(ctx: ApplicationContext):
     repo = _get_repo()
@@ -113,8 +113,8 @@ async def remind_list(ctx: ApplicationContext):
 # --- /remind cancel ---
 
 
-@remind_group.command(name='cancel', description='Cancel an active reminder')
-@discord.commands.option(name='reminder_id', required=True, description='Reminder ID (from /remind list)', input_type=str)
+@remind_group.command(name='cancel', description='cancel an active reminder')
+@discord.commands.option(name='reminder_id', required=True, description='which reminder to cancel (from /remind list)', input_type=str)
 @commands.check(is_authorized_guild)
 async def remind_cancel(ctx: ApplicationContext, reminder_id: str):
     repo = _get_repo()

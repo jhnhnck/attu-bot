@@ -16,7 +16,7 @@ from nova_core.eggs.documents import EggDocument
 logger = structlog.stdlib.get_logger(__name__)
 
 eggs_group = SlashCommandGroup('eggs', description='egg collection game')
-leaderboard_group = eggs_group.create_subgroup('leaderboard', 'Egg leaderboards')
+leaderboard_group = eggs_group.create_subgroup('leaderboard', 'egg collector rankings')
 
 _give_filter_choices = ['hatched', 'unhatched']
 _give_page_size = 24
@@ -156,7 +156,7 @@ class EggSelectView(discord.ui.View):
 # --- Commands ---
 
 
-@discord.slash_command(name='egg', description='Collect an egg!')
+@discord.slash_command(name='egg', description='collect an egg')
 async def egg_command(ctx: ApplicationContext):
     await ctx.defer()
 
@@ -180,7 +180,7 @@ async def egg_command(ctx: ApplicationContext):
     await ctx.respond(f'you received an egg: {result}')
 
 
-@eggs_group.command(name='hatch', description='Hatch your next ready egg')
+@eggs_group.command(name='hatch', description='hatch your next ready egg')
 async def eggs_hatch(ctx: ApplicationContext):
     await ctx.defer()
 
@@ -202,7 +202,7 @@ async def eggs_hatch(ctx: ApplicationContext):
         await ctx.respond(f'hatching! {result}')
 
 
-@eggs_group.command(name='view', description='View your egg collection thread')
+@eggs_group.command(name='view', description='open your egg collection thread')
 async def eggs_view(ctx: ApplicationContext):
     await ctx.defer()
 
@@ -223,7 +223,7 @@ async def eggs_view(ctx: ApplicationContext):
     await ctx.respond(thread_url)
 
 
-@eggs_group.command(name='give', description='Give one of your eggs to another user')
+@eggs_group.command(name='give', description='give one of your eggs to another user')
 @discord.commands.option(name='user', required=True, description='who to give the egg to', input_type=discord.Member)
 @discord.commands.option(name='filter', required=False, description='show only hatched or unhatched eggs (omit for all)', choices=_give_filter_choices)
 async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str | None = None):  # noqa: A002 - pycord maps slash option name to parameter name; user-facing option must stay `filter`
@@ -282,7 +282,7 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str |
     await ctx.respond('pick an egg to give:', view=select_view, ephemeral=True)
 
 
-@eggs_group.command(name='progress', description='View your egg collection progress')
+@eggs_group.command(name='progress', description='show how much of the set you have collected')
 async def eggs_progress(ctx: ApplicationContext):
     await ctx.defer()
 
@@ -321,7 +321,7 @@ def _fmt_leaderboard(rows: list[dict], value_key: str, label: str) -> str:
     return '\n'.join(lines)
 
 
-@leaderboard_group.command(name='hatched', description='Top egg collectors by total hatched')
+@leaderboard_group.command(name='hatched', description='top collectors by eggs hatched')
 async def eggs_leaderboard_hatched(ctx: ApplicationContext):
     await ctx.defer()
 
@@ -336,7 +336,7 @@ async def eggs_leaderboard_hatched(ctx: ApplicationContext):
     await ctx.respond(embed=embed)
 
 
-@leaderboard_group.command(name='collected', description='Top egg collectors by most complete set')
+@leaderboard_group.command(name='collected', description='top collectors by most complete set')
 async def eggs_leaderboard_collected(ctx: ApplicationContext):
     await ctx.defer()
 

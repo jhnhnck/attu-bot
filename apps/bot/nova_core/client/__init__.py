@@ -40,7 +40,9 @@ logger.info('initializing')
 # --- commands ---
 
 
-@discord.slash_command(name='ping', description='Simple command to test if the bot is online')
+# message-style wants an imperative fragment; /ping and /pong are third person and
+# matched word-for-word on purpose
+@discord.slash_command(name='ping', description='pings you')
 async def command_ping(ctx: ApplicationContext):
     latency_ms = round(ctx.bot.latency * 1000)
     await ctx.respond(f'Pong! ({latency_ms}ms) {ui_emoji("rockball")}')

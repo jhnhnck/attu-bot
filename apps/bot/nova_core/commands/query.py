@@ -17,11 +17,11 @@ logger = structlog.stdlib.get_logger(__name__)
 
 # --- Query Commands ---
 
-query_group = SlashCommandGroup('query', default_member_permissions=Permissions.all(), description="Performs searches for specific messages if that's your thing")
+query_group = SlashCommandGroup('query', default_member_permissions=Permissions.all(), description='search for specific messages (admin only)')
 
 
-@query_group.command(name='pins', description='Finds all the "pinned a message" messages in a channel')
-@discord.commands.option(name='channel', required=True, description='Channel', input_type=discord.TextChannel)
+@query_group.command(name='pins', description='find the "pinned a message" notices in a channel')
+@discord.commands.option(name='channel', required=True, description='which channel to search', input_type=discord.TextChannel)
 @commands.check(is_bot_owner)
 async def query_pins(ctx: ApplicationContext, channel: discord.TextChannel):
     _, current_year = get_year_status()

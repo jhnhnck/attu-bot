@@ -16,8 +16,8 @@ logger = structlog.stdlib.get_logger(__name__)
 
 _PAGE_SIZE = 10
 
-stars_group = SlashCommandGroup('stars', description='Starboard browsing and leaderboards')
-leaderboard_group = stars_group.create_subgroup('leaderboard', 'Starboard leaderboards')
+stars_group = SlashCommandGroup('stars', description='starboard browsing and leaderboards')
+leaderboard_group = stars_group.create_subgroup('leaderboard', 'starboard rankings')
 
 
 def _get_sb_repo():
@@ -141,12 +141,12 @@ async def _show_random_message(ctx: ApplicationContext, min_total: int, max_tota
         logger.warning(f'starboard: could not store random response message - {err}')
 
 
-@stars_group.command(name='random', description='Shows a random message with 2 or more stars')
+@stars_group.command(name='random', description='show a random message with 2 or more stars')
 async def stars_random(ctx: ApplicationContext):
     await _show_random_message(ctx, min_total=2)
 
 
-@stars_group.command(name='lost', description='Shows a random message with exactly 1 star')
+@stars_group.command(name='lost', description='show a random message with exactly 1 star')
 async def stars_lost(ctx: ApplicationContext):
     await _show_random_message(ctx, min_total=1, max_total=1)
 
@@ -234,8 +234,8 @@ def _build_recheck_response(doc_before, doc_after, sb, guild_id: int, message_id
     return f'recheck complete - {status} - {count_str}'
 
 
-@stars_group.command(name='recheck', description='Force-updates the starboard post for a specific message')
-@discord.commands.option(name='message_link', required=True, description='Full Discord message link to recheck')
+@stars_group.command(name='recheck', description='rebuild the starboard post for a message')
+@discord.commands.option(name='message_link', required=True, description='the message to recheck (full discord link)')
 async def stars_recheck(ctx: ApplicationContext, message_link: str):  # noqa: PLR0911 - branchy validation chain with one early-return per precondition failure
     from nova_core.starboard.handlers import backfill_message_reactions, parse_jump_url
 
@@ -318,22 +318,7 @@ async def _leaderboard_embed(ctx: ApplicationContext, rows: list[dict], value_ke
     await ctx.respond(embed=embed)
 
 
-async def _cc_top_messages_embed(ctx: ApplicationContext, entries: list, guild_id: int, title: str) -> None:
-    """build and send a numbered top-messages embed from BoardEntryDocument list."""
-    if not entries:
-        await ctx.respond(f'no data yet for {title.lower()} {ui_emoji("rockball_player")}', ephemeral=True)
-        return
-
-    lines = []
-    for i, entry in enumerate(entries[:_PAGE_SIZE], start=1):
-        jump_url = f'https://discord.com/channels/{guild_id}/{entry.channel_id}/{entry.message_id}'
-        lines.append(f'**{i}.** {jump_url} — **{entry.positive_points}** stars')
-
-    embed = discord.Embed(title=title, description='\n'.join(lines), color=theme_color())
-    await ctx.respond(embed=embed)
-
-
-@leaderboard_group.command(name='most-stars', description='Top users by total stars received')
+@leaderboard_group.command(name='most-stars', description='top users by stars received')
 async def stars_most_stars(ctx: ApplicationContext):
     guild_id = ctx.guild.id
     try:
@@ -361,7 +346,7 @@ async def stars_most_stars(ctx: ApplicationContext):
     await _leaderboard_embed(ctx, rows, 'total_stars', 'stars received', 'Most Stars Received')
 
 
-@leaderboard_group.command(name='most-starred', description='Top users by number of messages on the starboard')
+@leaderboard_group.command(name='most-starred', description='top users by messages on the starboard')
 async def stars_most_starred(ctx: ApplicationContext):
     guild_id = ctx.guild.id
     try:
@@ -389,7 +374,7 @@ async def stars_most_starred(ctx: ApplicationContext):
     await _leaderboard_embed(ctx, rows, 'starred_messages', 'messages starred', 'Most Messages Starred')
 
 
-@leaderboard_group.command(name='most-given', description='Top users by total stars given')
+@leaderboard_group.command(name='most-given', description='top users by stars given')
 async def stars_most_given(ctx: ApplicationContext):
     guild_id = ctx.guild.id
     try:
@@ -415,29 +400,6 @@ async def stars_most_given(ctx: ApplicationContext):
         return
     rows = await sb_repo.leaderboard_most_given(guild_id, limit=_PAGE_SIZE)
     await _leaderboard_embed(ctx, rows, 'total_given', 'stars given', 'Most Stars Given')
-
-
-@leaderboard_group.command(name='top-messages', description='Top messages by stars (ccboard only)')
-async def stars_top_messages(ctx: ApplicationContext):
-    guild_id = ctx.guild.id
-    try:
-        guild_config = config.guild(guild_id)
-    except Exception:
-        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
-        return
-
-    if not guild_config.ccboard.enabled:
-        await ctx.respond('this feature is coming soon', ephemeral=True)
-        return
-
-    try:
-        entry_repo = _get_entry_repo()
-    except RuntimeError:
-        await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
-        return
-
-    entries = await entry_repo.leaderboard_top_messages(guild_id, limit=_PAGE_SIZE)
-    await _cc_top_messages_embed(ctx, entries, guild_id, 'Top Messages')
 
 
 # --- Extension Def ---

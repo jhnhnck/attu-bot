@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
-from nova_core.commands.stars import _build_recheck_response, _cc_top_messages_embed, _leaderboard_embed, _resolve_recheck_target, _show_random_message
+from nova_core.commands.cc_stars import _cc_top_messages_embed
+from nova_core.commands.stars import _build_recheck_response, _leaderboard_embed, _resolve_recheck_target, _show_random_message
 from nova_core.database.models import MessageAuthor, MessageContent, MessageDocument, StarredMessageDocument
 from tests.conftest import test_guild
 
@@ -623,9 +624,9 @@ class TestLeaderboardCCBoardRouting:
         make_guild(guild_id=test_guild)
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from nova_core.commands.stars import stars_top_messages
+        from nova_core.commands.cc_stars import cc_top_messages
 
-        await stars_top_messages(ctx)
+        await cc_top_messages(ctx)
 
         assert 'coming soon' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
@@ -641,10 +642,10 @@ class TestLeaderboardCCBoardRouting:
         mock_entry_repo = AsyncMock()
         mock_entry_repo.leaderboard_top_messages = AsyncMock(return_value=[])
 
-        with patch('nova_core.commands.stars._get_entry_repo', return_value=mock_entry_repo):
-            from nova_core.commands.stars import stars_top_messages
+        with patch('nova_core.commands.cc_stars._get_entry_repo', return_value=mock_entry_repo):
+            from nova_core.commands.cc_stars import cc_top_messages
 
-            await stars_top_messages(ctx)
+            await cc_top_messages(ctx)
 
         mock_entry_repo.leaderboard_top_messages.assert_called_once()
 
