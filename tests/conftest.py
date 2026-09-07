@@ -17,6 +17,37 @@ _time.tzset()
 # with actual .secrets/attu-bot.toml) still takes precedence if already set.
 os.environ.setdefault('ATTU_CONFIG_FILE', str(Path(__file__).parent / 'fixtures' / 'test-attu-bot.toml'))
 
+
+def _align_fixture_db_url() -> None:
+    """point the fixture config's [database] url at TEST_DB_URL when one is set.
+
+    integration tests reach the database through `config.on_init()`, which reads
+    the toml directly rather than TEST_DB_URL, so the fixture's hardcoded
+    localhost url is the only address they ever try. that resolves on a dev host
+    but not inside the compose `tests` service, where mongo lives at another
+    hostname - pymongo then blocks on server selection until the suite times out.
+    rewrite a temp copy so both paths agree on where the database is.
+    """
+    db_url = os.environ.get('TEST_DB_URL')
+    if not db_url:
+        return
+    src = Path(os.environ['ATTU_CONFIG_FILE'])
+    if not src.exists() or src.name != 'test-attu-bot.toml':
+        return  # a real config was supplied; never rewrite it
+
+    import tempfile
+
+    import tomlkit
+
+    doc = tomlkit.parse(src.read_text())
+    doc['database']['url'] = db_url  # pyright: ignore[reportIndexIssue]
+    dest = Path(tempfile.mkdtemp(prefix='attu-test-config-')) / src.name
+    dest.write_text(tomlkit.dumps(doc))
+    os.environ['ATTU_CONFIG_FILE'] = str(dest)
+
+
+_align_fixture_db_url()
+
 # configure logging before any repo import so module-level loggers see the right
 # handlers/processors. tests don't run an app entrypoint, so without this call
 # the first emit binds to structlog's default config instead of ours.

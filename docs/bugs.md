@@ -10,8 +10,6 @@ format and conventions match `docs/to-do.md` (all lowercase, `- ⭕` for open / 
 
 ### testing
 
-- ⭕ `bug` `tests/python/integration/test_startup.py` `TestBotReadyPath` fails in all environments: main checkout fails with `ConfigLoadError: config file version 2.6.0 is below required 2.7.0` (dev secrets out of date) and with `missing config file` (path lookup issue); worktrees fail because no secrets are mounted. found during item/tests-no-env-secrets; pre-existing before that slice. carried from plan: nova-w2 (2026-08-09)
-- ⭕ `bug` `docker-compose.dev.yml` `tests` service has had no `.secrets` mount and no `ATTU_CONFIG_FILE` since `36f6fee` (2026-08-02), so integration tests run through `docker compose run --build --rm tests` cannot find a config file; `TEST_DB_URL` covers unit/component only. fix: mount `.secrets` read-only into that one service, or accept that integration tests are venv-only (README already documents docker as unit/component-only). carried from plan: venv-tests (2026-09-03)
 
 
 ### starboard
@@ -81,6 +79,7 @@ _(empty; populated at triage)_
 - 🔴 `2026-08-05` `tests/python/unit/test_feature_loader.py:10` `TZ=UTC`/`_time.tzset()` boilerplate — removed in 84033bf (nova-w2 phase 1)
 - 🔴 `2026-09-06` `config/attu-bot.sample.toml` `[features].enabled` example listed `"trees"` and `"reminders"` as bare names; `loader.load_all` calls `importlib.import_module`, so both logged "feature not found, skipping" and silently never loaded. corrected to `nova_core.trees` / `nova_core.reminders`; any deployed config copied from the sample needs the same fix
 - 🔴 `2026-09-06` `scripts/deploy.py` `--revert` restored prod's code but not its config; across a `__config_version__` change the older image faced a config it could not parse, so the bot stayed down after a rollback. configs are now snapshotted per tag (`attu-bot.toml.<tag>`) and restored on revert, which aborts when the snapshot is missing
+- 🔴 `2026-09-06` `tests/python/integration/test_startup.py` `TestBotReadyPath::test_reaches_test_mode_shutdown` hung until timeout in the docker `tests` service. the earlier diagnosis (no `.secrets` mount, no `ATTU_CONFIG_FILE`) was superseded by `9448091`; the real cause was that `config.on_init()` reads `[database] url` from the toml and ignores `TEST_DB_URL`, so the fixture's hardcoded `localhost:27017` resolved on a dev host but pointed at nothing in-container and pymongo blocked on server selection. `tests/conftest.py` now rewrites a temp copy of the fixture to match `TEST_DB_URL`; all three suites pass in docker
 - 🔴 `2026-09-06` `scripts/deploy.py` hardcoded `_epoch_toml` out of sync with `~/.attu-epoch.toml`; migrated `compute_attu_year()` to read the file directly
 
 ---

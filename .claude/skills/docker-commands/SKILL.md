@@ -40,7 +40,7 @@ dev postgres uses `tmpfs` for its data dir, so every dev start is from-scratch. 
 | migrate prod to new host | `scripts/migrate_server.zsh [--ssh-user U] [--target-dir D] TARGET_HOST` |
 | read prod logs | see the `container-logs` skill — `docker compose logs`, `journalctl`, structlog parsing |
 
-the venv path is primary: `run_tests.py` runs the suites in the current interpreter and no longer relaunches itself into docker. the docker `tests` service is **unit and component only** - it mounts no `.secrets` and sets no `ATTU_CONFIG_FILE`, so integration tests cannot find a config file there and fail on `config.on_init()`. it does set `TEST_DB_URL` at the dev `ferret` service, so db-backed component tests work.
+the venv path is primary: `run_tests.py` runs the suites in the current interpreter and no longer relaunches itself into docker. the docker `tests` service runs **all three suites**. it needs no `.secrets` mount: `tests/conftest.py` defaults `ATTU_CONFIG_FILE` to the checked-in `tests/fixtures/test-attu-bot.toml`, and when `TEST_DB_URL` is set it rewrites that fixture's `[database] url` to match, so the integration path and the component path resolve the same database.
 
 `--quiet-build` is part of the canonical docker test form because every script-driven invocation already uses it; matching it everywhere keeps cold-cache rebuild output noise out of the way. `--profile tests` is **not** required: `docker compose run <svc>` auto-activates a profiled service. it is only needed if you ever say `up tests` (unusual; tests is one-shot, not long-running).
 
@@ -73,7 +73,7 @@ workspace shape: root `pyproject.toml` declares a uv workspace over `apps/bot`, 
 
 ## gotchas
 
-- **the docker `tests` service cannot run integration tests.** no `.secrets` mount and no `ATTU_CONFIG_FILE` since `36f6fee` (2026-08-02); `TEST_DB_URL` covers unit and component only. run integration tests from the venv, or mount `.secrets` read-only into that service. tracked in `docs/bugs.md`.
+- **integration tests reach the database through the config toml, not `TEST_DB_URL`.** `config.on_init()` reads `[database] url` directly, so a hardcoded `localhost` in the fixture resolves on a dev host but points at nothing inside the `tests` container, where pymongo then blocks until the suite times out. `tests/conftest.py` keeps the two in sync by rewriting a temp copy of the fixture when `TEST_DB_URL` is set; a real `ATTU_CONFIG_FILE` is never rewritten.
 - **`tests` skips the seed.** in dev, the `tests` service depends on `ferret` (not `ferret-init`) by design — tests create their own data and would only be slowed down by waiting for the seed restore. if a test newly needs seed data, that is a test-design issue, not a compose issue.
 - **`--profile tests` is not needed for `run`.** `docker compose run tests` auto-activates the profile for that one invocation. only `up` needs `--profile tests`.
 - **prod `core` healthcheck reads `/tmp/bot-ready`.** the file is written from `apps/bot/nova_core/client/events.py:_READY_SENTINEL` once the bot reaches ready state. if the prod container is reported unhealthy after a deploy, that is the file to check.
