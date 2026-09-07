@@ -103,7 +103,7 @@ robust filter for a console-mode log to "only structlog lines":
 ```bash
 docker compose logs --no-log-prefix --tail 1000 core \
   | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' \
-  | grep -E '^\[(trace|alert|debug|info|warning|error|critical) *\] '
+  | grep -E '^\[(debug|info|warning|error|critical) *\] '
 ```
 
 robust filter for a json-mode log to "only valid json records":

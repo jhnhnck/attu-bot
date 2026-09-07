@@ -1,6 +1,6 @@
 ---
 name: message-style
-description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `apps/bot/nova_core/commands/`, `apps/bot/nova_core/client/`, `apps/bot/nova_core/tasks/`, or `apps/server/attu_server/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, or error formatting in this repo. not for python inline comments (that's `comment-style`), not for embed or view construction (that's the `pycord` skill), not for commit subjects (that's `commit-style`).
+description: AttuBot log message and Discord response conventions - tone, capitalization, error format, custom emojis, and the ephemeral rule. trigger when editing or creating files under `apps/bot/nova_core/commands/`, `apps/bot/nova_core/client/`, `apps/bot/nova_core/tasks/`, or `apps/server/attu_server/`; when writing any line containing `logger.`, `await ctx.respond`, `await interaction.response`, or `followup.send`; when drafting any user-facing string the bot will send to Discord; when answering questions about bot voice, log style, which log level to use, or error formatting in this repo. not for python inline comments (that's `comment-style`), not for embed or view construction (that's the `pycord` skill), not for commit subjects (that's `commit-style`).
 ---
 
 # message-style (AttuBot overlay)
@@ -29,6 +29,31 @@ the failure this rule exists to prevent is a message that is short, lowercase, c
 
 this applies to Discord responses as much as to logs; the reader there has even less context to fill a gap with.
 
+## log levels
+
+plain `structlog.stdlib.BoundLogger` over stdlib logging; there is no custom level. pick by what the line means, not by how urgent it feels.
+
+| level | means | typical content |
+|---|---|---|
+| `debug` | our internals and the wire | payloads, cache hits, query shapes, parsed values |
+| `info` | a state change an operator wants without turning the level up | config loaded, year advanced, task registered, guild reloaded |
+| `warning` | degraded or skipped; the bot carried on | a backfill chunk that failed, a lookup that missed, a retry |
+| `error` | an operation failed and something asked for did not happen | a command handler raised, a write was rejected, a fetch gave up |
+| `critical` | the process is exiting | migration refused, extensions failed to load, incompatible config version |
+
+**`critical` means exiting; say so in the message.** the level is the claim and the message is the evidence for it. a `critical` that does not name the exit reads as a false alarm, and one that does not name what it was doing leaves nothing to act on.
+
+**do not use the aliases.** `logger.warn` is a deprecated alias for `warning`, `logger.fatal` one for `critical`. both split greps over our own logs; write `logger.warning` and `logger.critical`.
+
+**attach the traceback when logging inside an `except` block** - `logger.exception(...)`, or `exc_info=err` on an `error` call. a bare `error` in an exception handler throws away the only part that locates the failure.
+
+two mechanisms ride on the level, so it is not a free choice:
+
+- `attu_logging.config` routes below `warning` to stdout and `warning` and above to stderr; that boundary is the operator-attention line
+- `pymongo`, `aiohttp.access`, `discord.gateway`, and `discord.http` are pinned to `warning`, so our own lines below that are most of what a default run shows
+
+the discord error webhook is **not** level-triggered; `attu_logging.webhook.send_to_webhook(err)` is an explicit call. raising a line to `error` notifies nobody on its own.
+
 ## log messages - AttuBot additions
 
 universal rules apply. AttuBot-specific patterns on top:
@@ -55,7 +80,7 @@ logger.debug(f'hit cache for {year} PC in #{channel.name}')
 logger.info(f'[{cfg!s}] advancing to year {year} PC')
 logger.warn(f'[{guild.name}] epoch changed: old={old_time},{old_year} new={new_time},{year}')
 logger.error(f'could not find channel #{channel_name} for construction')
-logger.fatal('incompatible config version')
+logger.critical(f'incompatible config version: file={file_version} required>={__config_version__}; exiting')
 ```
 
 **bad messages** - each correction changes exactly what its reason says; none of them quietly drops a fact.
