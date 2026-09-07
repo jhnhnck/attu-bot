@@ -14,10 +14,6 @@ entry point, config, and manifest.
 
 ::: nova_core.config
 
-## nova_core.webhook
-
-::: nova_core.webhook
-
 ## nova_core.client.core
 
 ::: nova_core.client.core

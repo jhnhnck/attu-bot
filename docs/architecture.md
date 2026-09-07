@@ -14,7 +14,6 @@ Entry point: `apps/bot/doom-bot.py` launches the Discord bot (pycord).
 | `config.py` | `NovaConfig` - three-stage config loader (`on_init` → `on_load` → `on_ready`); pydantic models for all config sections including `GuildConfig` |
 | `loader.py` | feature manifest loader; calls `mod.init_repos(db)` on each feature module after loading its manifest |
 | `manifest.py` | `FeatureManifest` dataclass; describes a loadable bot feature |
-| `webhook.py` | error webhook reporter; forwards unhandled exceptions to a Discord webhook |
 
 ## package: `apps/bot/nova_core/client/`
 
@@ -156,7 +155,7 @@ signing payload: `ts\nMETHOD\npath\nbody`. header: `x-bridge-signature: t=<ts>,v
 |---|---|
 | `__init__.py` | `get_logger(__name__)` factory; exports `Logger` |
 | `config.py` | logging setup, level configuration, `DEBUG` env var handling |
-| `webhook.py` | `send_to_webhook()` - forwards warn/error/fatal/alert to Discord webhook |
+| `webhook.py` | `send_to_webhook()` - posts an exception and traceback to the discord error webhook; called explicitly, not triggered by log level |
 
 use `from attu_logging import get_logger` everywhere; never the stdlib `logging` module directly.
 
