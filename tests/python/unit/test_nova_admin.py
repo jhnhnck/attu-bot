@@ -59,6 +59,31 @@ def test_get_guilds_on_error_returns_empty():
     assert result == []
 
 
+# --- ping ---
+
+
+def test_ping_success():
+    session = _session()
+    client = MagicMock()
+    client.request.return_value = _resp({'ok': True})
+
+    result = session.ping(client)
+
+    assert result is True
+
+
+def test_ping_failure(capsys):
+    session = _session()
+    client = MagicMock()
+    client.request.return_value = _resp({'detail': 'unauthorized'}, status=401)
+
+    result = session.ping(client)
+
+    assert result is False
+    out = capsys.readouterr().out
+    assert 'error 401' in out
+
+
 # --- select_guild ---
 
 

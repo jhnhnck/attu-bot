@@ -71,6 +71,10 @@ class _AdminSession:
         result = self._request(client, 'GET', '/api/admin/guilds')
         return result if isinstance(result, list) else []
 
+    def ping(self, client: httpx.Client) -> bool:
+        """verify the server is reachable and the api key is valid."""
+        return self._request(client, 'GET', '/api/admin/ping') is not None
+
     def select_guild(self, client: httpx.Client, slug: str) -> bool:
         guilds = self.get_guilds(client)
         guild = next((g for g in guilds if g.get('slug') == slug), None)
@@ -620,6 +624,13 @@ def main() -> int:
     session = _AdminSession(api_key=args.api_key, server_url=args.server)
     # no read timeout so long-running ops (90s budget + latency) don't time out at the client
     with httpx.Client(timeout=httpx.Timeout(30.0, read=None)) as client:
+        try:
+            reachable = session.ping(client)
+        except httpx.TransportError as e:
+            print(f'error: cannot reach {args.server} - {e}', file=sys.stderr)
+            return 1
+        if not reachable:
+            return 1
         AdminCmd(session, client).cmdloop()
     return 0
 
