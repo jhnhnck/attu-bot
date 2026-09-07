@@ -25,4 +25,4 @@ async def cc_stars_test(ctx: ApplicationContext):
 def setup(bot: Bot):
     logger.info(f'registered: {__name__}')
 
-    bot.add_application_command(cast(ApplicationCommand, cc_group))
+    bot.add_application_command(cast('ApplicationCommand', cc_group))

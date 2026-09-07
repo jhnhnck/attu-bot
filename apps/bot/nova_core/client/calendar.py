@@ -37,8 +37,7 @@ def format_year_line(year: int, level: int = 1) -> str:
         return f'{"#" * level} {sep} Year {year} PC {sep}'
     if sep in flipped_separators:
         return f'{"#" * level} {sep * 3} Year {year} PC {flipped_separators[sep] * 3}'
-    else:
-        return f'{"#" * level} {sep * 3} Year {year} PC {sep * 3}'
+    return f'{"#" * level} {sep * 3} Year {year} PC {sep * 3}'
 
 
 def get_year_status(guild: int | None = None) -> tuple[int, int]:

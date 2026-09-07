@@ -43,5 +43,5 @@ async def send_to_webhook(error: Exception, location: str = '', logger_name: str
             end_msg = location if len(location) > 0 else f'(location not set; called from {logger_name})'
             await webhook.send(end_msg, username='DoomBot')
 
-    except Exception as err:
+    except Exception:
         logger.exception('issue logging error to configured webhook')

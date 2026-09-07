@@ -107,7 +107,6 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable[[Callable[[],
 @migration(old='0.0.0', new='1.8.0-pre9')
 async def migration_bootstrap():
     """bootstrap migration for fresh databases."""
-    pass
 
 
 # version 1.8.0
@@ -152,7 +151,7 @@ async def migration_backfill_years():
     for guild_id in config.authorized_guilds:
         try:
             _, current_year = get_year_status(guild_id)
-        except Exception as e:
+        except Exception:
             logger.exception(f'skipping guild {guild_id} during year backfill')
             continue
 
@@ -200,7 +199,7 @@ async def migration_fix_year_data():
     for guild_id in config.authorized_guilds:
         try:
             _, current_year = get_year_status(guild_id)
-        except Exception as e:
+        except Exception:
             logger.exception(f'skipping guild {guild_id} during year fix')
             continue
 
@@ -254,7 +253,7 @@ async def migration_add_guild_to_markers():
                 guild_cfg = config.guild(guild_id)
                 for channel_id in guild_cfg.channels.lore_channels:
                     channel_to_guild[channel_id] = guild_id
-            except Exception as e:
+            except Exception:
                 logger.exception(f'could not load lore channels for guild {guild_id}')
 
         all_docs = await collection.find({}).to_list(length=None)
@@ -621,6 +620,7 @@ async def migration_target_signals():
     from pymongo.errors import OperationFailure
 
     from nova_core.client.core import db
+
     logger.info('running migration to 2.5.5: targeting reload signals')
 
     database = db.get_db()

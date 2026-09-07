@@ -96,7 +96,7 @@ async def get_guild_channels(guild_id: int) -> list[dict[str, Any]] | None:
 
         _cache.set(cache_key, result)
         return result
-    except Exception as e:
+    except Exception:
         logger.exception(f'failed to fetch channels for guild {guild_id} via pycord')
         return None
 
@@ -129,7 +129,7 @@ async def get_guild_roles(guild_id: int) -> list[dict[str, Any]] | None:
 
         _cache.set(cache_key, result)
         return result
-    except Exception as e:
+    except Exception:
         logger.exception(f'failed to fetch roles for guild {guild_id} via pycord')
         return None
 
@@ -151,7 +151,7 @@ async def get_user_info(user_id: int) -> dict[str, Any] | None:
         }
         _cache.set(cache_key, result)
         return result
-    except Exception as e:
+    except Exception:
         logger.exception(f'failed to fetch user {user_id} via pycord')
         return None
 
@@ -172,7 +172,7 @@ async def get_guild_info(guild_id: int) -> dict[str, Any] | None:
         }
         _cache.set(cache_key, result)
         return result
-    except Exception as e:
+    except Exception:
         logger.exception(f'failed to fetch guild {guild_id} via pycord')
         return None
 

@@ -40,7 +40,6 @@ class BaseTask(ABC):
     @abstractmethod
     async def run(self) -> None:
         """single execution body - called once per schedule tick."""
-        pass
 
     async def next_run(self) -> datetime | None:
         """return the datetime for the next execution.
@@ -52,8 +51,6 @@ class BaseTask(ABC):
 
     async def on_start(self) -> None:
         """called once before the first run. use to await dependencies."""
-        pass
 
     async def on_stop(self) -> None:
         """called once after the loop exits. use for cleanup."""
-        pass

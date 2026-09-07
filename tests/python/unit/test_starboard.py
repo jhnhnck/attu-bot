@@ -792,6 +792,7 @@ async def test_handle_star_clear_redirects_starboard_channel(make_starboard_guil
     mock_sb_repo.get_by_starboard_message.assert_called_once_with(test_starboard_msg)
     mock_sb_repo.clear_all_reactions.assert_called_once_with(test_message)
 
+
 class TestStarboardChannelFallthrough:
     """verify that regular messages in the starboard channel can still be starred"""
 

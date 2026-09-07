@@ -103,7 +103,7 @@ async def _deliver_reminder(reminder: ReminderDocument) -> None:
 
     try:
         await channel.send(content=f'<@{reminder.user_id}>', embed=embed)
-    except discord.HTTPException as e:
+    except discord.HTTPException:
         logger.exception(f'reminder {reminder.reminder_id}: failed to send')
 
 

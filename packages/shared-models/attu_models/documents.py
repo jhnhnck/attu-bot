@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """attu_models.documents | pydantic models for MongoDB documents."""
 
-import time
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict

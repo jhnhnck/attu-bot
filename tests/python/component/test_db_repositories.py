@@ -919,5 +919,3 @@ class TestStarboardRepository:
         result = await repo.add_reaction(1, '⭐', user_id=1)
         # total should now be 1, not 99
         assert result.total_reactions == 1
-
-

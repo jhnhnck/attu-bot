@@ -23,7 +23,7 @@ def _register_ping_command(bot) -> None:
     """add the top-level /ping slash command to the bot."""
     from nova_core.client import command_ping
 
-    bot.add_application_command(cast(discord.ApplicationCommand, command_ping))
+    bot.add_application_command(cast('discord.ApplicationCommand', command_ping))
 
 
 BASE_PACKAGE: tuple[BasePackageSpec, ...] = (

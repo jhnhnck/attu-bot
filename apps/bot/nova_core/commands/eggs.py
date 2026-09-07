@@ -359,5 +359,5 @@ def setup(bot: Bot):
     egg_command.guild_ids = active_guilds
     eggs_group.guild_ids = active_guilds
     logger.info(f'registered: {__name__} for guilds {active_guilds}')
-    bot.add_application_command(cast(ApplicationCommand, egg_command))
-    bot.add_application_command(cast(ApplicationCommand, eggs_group))
+    bot.add_application_command(cast('ApplicationCommand', egg_command))
+    bot.add_application_command(cast('ApplicationCommand', eggs_group))

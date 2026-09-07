@@ -22,7 +22,7 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 def is_bot_owner(ctx: Context) -> bool:
-    user_id = cast(discord.ApplicationContext, ctx).user.id
+    user_id = cast('discord.ApplicationContext', ctx).user.id
     return config.is_owner(user_id)
 
 
@@ -40,7 +40,7 @@ def has_announcements_role(ctx: Context) -> bool:
     role_id = gc.roles.announcements
     if role_id == 0:
         return False
-    app_ctx = cast(discord.ApplicationContext, ctx)
+    app_ctx = cast('discord.ApplicationContext', ctx)
     return isinstance(app_ctx.author, discord.Member) and any(r.id == role_id for r in app_ctx.author.roles)
 
 

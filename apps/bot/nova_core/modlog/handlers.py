@@ -36,7 +36,7 @@ async def _send_embed(guild_id: int, embed: discord.Embed) -> None:
         return
     try:
         await channel.send(embed=embed)
-    except Exception as err:
+    except Exception:
         logger.exception(f'failed to send modlog embed for guild {guild_id}')
 
 

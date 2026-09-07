@@ -40,7 +40,7 @@ async def job_construct_year_links(guild_id: int):
         channel = guild.get_channel_or_thread(channel_id)
 
         if channel is not None and channel.type == ChannelType.text:
-            lore_channels.append(cast(TextChannel, channel))
+            lore_channels.append(cast('TextChannel', channel))
 
     async def generate_links_block(year: int) -> str:
         year_str = format_year_line(year, level=2)

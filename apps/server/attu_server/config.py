@@ -51,7 +51,7 @@ def load_config(path: Path | None = None) -> ServerConfig:
         raise ServerConfigError(f'config file not found: {p}')
 
     with p.open() as f:
-        raw = cast(dict[str, Any], tomlkit.load(f))
+        raw = cast('dict[str, Any]', tomlkit.load(f))
 
     try:
         return ServerConfig(

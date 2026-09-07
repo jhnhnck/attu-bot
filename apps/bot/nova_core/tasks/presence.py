@@ -37,7 +37,7 @@ class PresenceUpdateTask(BaseTask):
 
         try:
             count = await _egg_repo.count_hatched()
-        except Exception as err:
+        except Exception:
             logger.exception('presence: failed to count hatched eggs')
             return
         try:
@@ -47,7 +47,7 @@ class PresenceUpdateTask(BaseTask):
                     name=f'{count} eggs hatched',
                 )
             )
-        except Exception as err:
+        except Exception:
             logger.exception('presence: failed to update presence')
 
 

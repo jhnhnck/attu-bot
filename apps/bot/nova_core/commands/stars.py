@@ -446,4 +446,4 @@ async def stars_top_messages(ctx: ApplicationContext):
 def setup(bot: Bot):
     logger.info(f'registered: {__name__}')
 
-    bot.add_application_command(cast(ApplicationCommand, stars_group))
+    bot.add_application_command(cast('ApplicationCommand', stars_group))

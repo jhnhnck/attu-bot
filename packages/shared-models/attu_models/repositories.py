@@ -491,5 +491,3 @@ class MessageRepository:
         )
         docs = await cursor.to_list(length=None)
         return [MessageDocument(**{k: v for k, v in doc.items() if k != '_id'}) for doc in docs]
-
-

@@ -91,7 +91,7 @@ async def command_version(ctx: ApplicationContext):
 def setup(bot: Bot):
     logger.info(f'registered: {__name__}')
 
-    bot.add_application_command(cast(ApplicationCommand, command_color))
-    bot.add_application_command(cast(ApplicationCommand, command_pong))
+    bot.add_application_command(cast('ApplicationCommand', command_color))
+    bot.add_application_command(cast('ApplicationCommand', command_pong))
     # bot.add_application_command(cast(ApplicationCommand, command_test))
-    bot.add_application_command(cast(ApplicationCommand, command_version))
+    bot.add_application_command(cast('ApplicationCommand', command_version))

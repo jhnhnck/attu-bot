@@ -162,8 +162,7 @@ def main() -> int:
         sys.stdout.write(report)
     else:
         try:
-            with pathlib.Path(args.output).open('w', encoding='utf-8') as f:
-                f.write(report)
+            pathlib.Path(args.output).write_text(report, encoding='utf-8')
         except OSError as e:
             print(f'error: could not write to {args.output}: {e}', file=sys.stderr)
             return 1

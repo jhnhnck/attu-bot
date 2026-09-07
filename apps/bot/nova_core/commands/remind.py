@@ -148,4 +148,4 @@ async def remind_cancel(ctx: ApplicationContext, reminder_id: str):
 def setup(bot: Bot):
     logger.info(f'registered: {__name__}')
 
-    bot.add_application_command(cast(ApplicationCommand, remind_group))
+    bot.add_application_command(cast('ApplicationCommand', remind_group))

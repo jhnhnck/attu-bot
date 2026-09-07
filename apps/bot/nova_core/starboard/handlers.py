@@ -175,7 +175,7 @@ async def _check_and_announce_sweep(guild_id: int, author_id: int, channel) -> N
             return
         await channel.send(content=text)
         logger.info(f'starboard: sweep announced for author {author_id} - streak {streak}')
-    except Exception as err:
+    except Exception:
         logger.exception(f'starboard: sweep announcement failed for author {author_id}')
 
 
@@ -831,18 +831,18 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
         notification_content = f'{leading_emoji} {leading_count} | @{msg_doc.author.name}: {preview}'
         try:
             sb_msg = await channel.send(content=notification_content, embeds=embeds, allowed_mentions=discord.AllowedMentions.none())  # preview contains raw user text
-        except Exception as err:
+        except Exception:
             logger.exception(f'starboard: failed to send post for message {doc.message_id}')
             return
         try:
             await repo.set_starboard_message(doc.message_id, sb_msg.id)
-        except Exception as err:
+        except Exception:
             # post was created in discord but db write failed - delete the orphan so the
             # next reaction can retry cleanly rather than creating a duplicate
             logger.exception(f'starboard: failed to record post {sb_msg.id} for message {doc.message_id}; deleting orphan')
             try:
                 await sb_msg.delete()
-            except Exception as del_err:
+            except Exception:
                 logger.exception(f'starboard: failed to delete orphan post {sb_msg.id}; manual cleanup may be needed')
             return
         for emoji in doc.reactions:
@@ -914,7 +914,7 @@ async def _sync_starboard_post(guild_id: int, doc: StarredMessageDocument, guild
                     except Exception as react_err:
                         logger.warning(f'starboard: failed to add reaction {emoji} to replacement post: {react_err}')
             logger.info(f'starboard: replaced uneditable post {doc.starboard_message_id} with {new_msg.id} for message {doc.message_id}')
-        except Exception as err:
+        except Exception:
             logger.exception(f'starboard: failed to send replacement for post {doc.starboard_message_id}')
-    except Exception as err:
+    except Exception:
         logger.exception(f'starboard: failed to update post {doc.starboard_message_id}')

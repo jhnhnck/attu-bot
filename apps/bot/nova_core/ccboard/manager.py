@@ -107,7 +107,7 @@ class ManagerTask(BaseTask):
 
             try:
                 settled = await entry_repo.find_settled(guild_id, now=now, debounce_seconds=_SETTLE_SECONDS, limit=_BATCH_LIMIT)
-            except Exception as err:
+            except Exception:
                 logger.exception(f'ccboard manager: find_settled failed for guild {guild_id}')
                 continue
 
@@ -116,13 +116,13 @@ class ManagerTask(BaseTask):
                 async with lock:
                     try:
                         await self._sync_post(entry, cc_cfg)
-                    except Exception as err:
+                    except Exception:
                         # leave is_dirty=True so the next tick retries; log and move on
                         logger.exception(f'ccboard manager: sync failed for message {entry.message_id}')
                         continue
                     try:
                         await entry_repo.mark_synced(entry.message_id, now=now)
-                    except Exception as err:
+                    except Exception:
                         logger.exception(f'ccboard manager: mark_synced failed for message {entry.message_id}')
 
     async def _sync_post(self, entry: BoardEntryDocument, cfg: GuildCCBoard) -> None:  # noqa: PLR0911, PLR0912, PLR0915 - branchy create/update/delete/replace logic with multiple discord error cases
@@ -205,9 +205,9 @@ class ManagerTask(BaseTask):
                     except Exception as react_err:
                         logger.warning(f'ccboard manager: failed to add reaction {emoji} to replacement post: {react_err}')
                 logger.info(f'ccboard manager: replaced uneditable post {entry.starboard_message_id} with {new_msg.id} for message {entry.message_id}')
-            except Exception as err:
+            except Exception:
                 logger.exception(f'ccboard manager: failed to send replacement for post {entry.starboard_message_id}')
-        except Exception as err:
+        except Exception:
             logger.exception(f'ccboard manager: failed to update post {entry.starboard_message_id}')
 
     async def _create_post(
@@ -227,13 +227,13 @@ class ManagerTask(BaseTask):
         new_msg = await channel.send(content=content, embeds=embeds, allowed_mentions=discord.AllowedMentions.none())
         try:
             await entry_repo.set_starboard_message(entry.message_id, new_msg.id)
-        except Exception as err:
+        except Exception:
             # discord post created but db write failed; delete the orphan so the next tick
             # can retry without leaving a duplicate
             logger.exception(f'ccboard manager: failed to record post {new_msg.id} for message {entry.message_id}; deleting orphan')
             try:
                 await new_msg.delete()
-            except Exception as del_err:
+            except Exception:
                 logger.exception(f'ccboard manager: failed to delete orphan post {new_msg.id}; manual cleanup may be needed')
             raise
 
@@ -266,7 +266,7 @@ class ManagerTask(BaseTask):
             embed = discord.Embed(color=theme_color(), description=description)
             await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
             logger.info(f'ccboard manager: sweep announced for author {credited} streak {streak}')
-        except Exception as err:
+        except Exception:
             logger.exception('ccboard manager: sweep announcement failed')
 
 

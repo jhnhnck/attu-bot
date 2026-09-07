@@ -491,7 +491,7 @@ def start_bridge_task() -> None:
         except asyncio.CancelledError:
             logger.info('bridge cancelled; shutting down')
             raise
-        except Exception as e:
+        except Exception:
             logger.exception('bridge server crashed')
             bot._bridge_started = False
 

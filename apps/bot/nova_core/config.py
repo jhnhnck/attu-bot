@@ -3,6 +3,7 @@
 
 import asyncio
 import datetime
+from itertools import starmap
 from os import environ, getenv
 from pathlib import Path
 from typing import Any, Literal, NotRequired, TypedDict, cast, override
@@ -315,13 +316,12 @@ class NovaConfig:
         logger.info(f'loading config from "{self.path}"')
 
         with self.path.open() as file:
-            self._raw = cast(RawConfig, tomlkit.load(file))
+            self._raw = cast('RawConfig', tomlkit.load(file))
 
         if not _version_gte(self._raw['config_version'], __config_version__):
             logger.critical(f'incompatible config version: file={self._raw["config_version"]} required>={__config_version__}')
             raise ConfigLoadError(f'config file version {self._raw["config_version"]} is below required {__config_version__}')
-        else:
-            logger.info(f'config file version {self._raw["config_version"]} satisfies >={__config_version__}')
+        logger.info(f'config file version {self._raw["config_version"]} satisfies >={__config_version__}')
 
         self.bot_token = self._raw['auth']['bot']['token']
 
@@ -335,39 +335,39 @@ class NovaConfig:
             raise ConfigLoadError('no [[guilds]] entries found in config file')
         try:
             self.guild_entries = [GuildEntry(**entry) for entry in raw_entries]
-        except (ValidationError, TypeError) as err:
+        except (ValidationError, TypeError):
             logger.exception('failed to validate guilds configuration')
             raise ConfigLoadError('invalid [[guilds]] entry (each entry requires id: int and role: str)')
         self.authorized_guilds = {entry.id for entry in self.guild_entries}
 
         try:
             self.bot = BotConfig(**self._raw['bot'])
-        except (KeyError, ValidationError) as err:
+        except (KeyError, ValidationError):
             logger.exception('failed to validate bot configuration')
             raise ConfigLoadError('invalid bot configuration (missing [bot] section?)')
 
         try:
             self.paths = PathsConfig(**self._raw.get('paths', {}))
-        except ValidationError as err:
+        except ValidationError:
             logger.exception('failed to validate paths configuration')
             raise ConfigLoadError('invalid paths configuration')
 
         try:
             self.database = DatabaseConfig(**self._raw.get('database', {}))
-        except ValidationError as err:
+        except ValidationError:
             logger.exception('failed to validate database configuration')
             raise ConfigLoadError('invalid database configuration')
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
 
-        except ValidationError as err:
+        except ValidationError:
             logger.exception('failed to validate wiki auth configuration')
             raise ConfigLoadError('invalid wiki auth configuration')
 
         try:
             self.backup = BackupConfig(**self._raw.get('backup', {}))
-        except ValidationError as err:
+        except ValidationError:
             logger.exception('failed to validate backup configuration')
             raise ConfigLoadError('invalid backup configuration')
 
@@ -377,7 +377,7 @@ class NovaConfig:
                 logger.error('hatch.toml missing')
                 raise ConfigLoadError('missing hatch.toml')
             with hatch_path.open() as f:
-                raw_hatch = cast(dict, tomlkit.load(f))
+                raw_hatch = cast('dict', tomlkit.load(f))
             raw_r = raw_hatch['rarities']
             self.hatch = HatchConfig(
                 tuning=HatchTuning(**raw_hatch['tuning']),
@@ -388,7 +388,7 @@ class NovaConfig:
             )
         except ConfigLoadError:
             raise
-        except (ValidationError, KeyError) as err:
+        except (ValidationError, KeyError):
             logger.exception('failed to validate hatch config')
             raise ConfigLoadError('invalid hatch configuration')
 
@@ -396,7 +396,7 @@ class NovaConfig:
         if bridge_raw is not None:
             try:
                 self.bridge = BridgeConfig(**bridge_raw)
-            except ValidationError as err:
+            except ValidationError:
                 logger.exception('failed to validate bridge configuration')
                 raise ConfigLoadError('invalid bridge configuration (check [bridge] section)')
 
@@ -434,7 +434,7 @@ class NovaConfig:
             try:
                 success = await self.load_guild(guild_id)
                 return (guild_id, success)
-            except Exception as e:
+            except Exception:
                 logger.exception(f'failed to load guild {guild_id} during parallel load')
                 return (guild_id, False)
 
@@ -473,7 +473,7 @@ class NovaConfig:
                 try:
                     await self.config_repo.update_guild_field(guild_id, 'users.markers', guild.users.markers)
                     return guild_id
-                except Exception as e:
+                except Exception:
                     logger.exception(f'failed to update markers for guild {guild_id}')
                     return None
             return None
@@ -481,7 +481,7 @@ class NovaConfig:
         # skip in test mode to avoid DB writes
         if not self.test_mode:
             await asyncio.gather(
-                *[_update_guild_markers(idx, guild) for idx, guild in self.guilds.items()],
+                *list(starmap(_update_guild_markers, self.guilds.items())),
                 return_exceptions=False,
             )
 
@@ -511,7 +511,7 @@ class NovaConfig:
                 try:
                     logger.info(f'fetching guild {guild_id} info from api (not in cache)')
                     guild_obj = await bot.fetch_guild(guild_id)
-                except Exception as e:
+                except Exception:
                     logger.exception(f'failed to fetch guild {guild_id} from api')
                     return (guild_id, None)
             return (guild_id, guild_obj.name if guild_obj else None)
@@ -535,8 +535,7 @@ class NovaConfig:
     def guild(self, guild: int) -> GuildConfig:
         if guild in self.authorized_guilds:
             return self.guilds[guild]
-        else:
-            raise UnauthorizedGuild(guild)
+        raise UnauthorizedGuild(guild)
 
     def primary(self) -> GuildConfig:
         entry = self.get_guild_by_role('primary')
@@ -610,7 +609,7 @@ class NovaConfig:
 
             return True
 
-        except ValidationError as err:
+        except ValidationError:
             logger.exception(f'failed to validate {guild}')
 
             if prev_state is not None:
@@ -651,7 +650,7 @@ class NovaConfig:
 
             return True
 
-        except ValidationError as err:
+        except ValidationError:
             logger.exception('failed to validate theme')
 
             if prev_state is not None:
@@ -662,8 +661,7 @@ class NovaConfig:
     def _get_event(self, key: str) -> asyncio.Event:
         if key in self._events:
             return self._events[key]
-        else:
-            raise ValueError(f'invalid config event: {key}')
+        raise ValueError(f'invalid config event: {key}')
 
     async def wait_for_init(self) -> Literal[True]:
         return await self._get_event('init').wait()
@@ -690,24 +688,23 @@ class NovaConfig:
             if isinstance(value, BaseModel):
                 return {k: convert_value(v) for k, v in vars(value).items()}
 
-            elif isinstance(value, list | set):
+            if isinstance(value, list | set):
                 return [convert_value(item) for item in value]
 
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 return {k: convert_value(v) for k, v in value.items()}
 
-            elif isinstance(value, Path | ZoneInfo):
+            if isinstance(value, Path | ZoneInfo):
                 return str(value)
 
-            else:
-                return value
+            return value
 
         for key, value in vars(self).items():
             if key == 'guilds':
                 guilds = []
 
                 for idx, guild in self.guilds.items():
-                    guilds.append({**{'name': str(guild)}, **{key: convert_value(value) for key, value in vars(guild).items()}})
+                    guilds.append({'name': str(guild), **{key: convert_value(value) for key, value in vars(guild).items()}})
 
                 result[key] = guilds
 
@@ -717,7 +714,7 @@ class NovaConfig:
             else:
                 result[key] = convert_value(value)
 
-        return cast(NovaConfigRepr, result)
+        return cast('NovaConfigRepr', result)
 
     def to_repr(self) -> NovaConfigRepr:
         banned_keys = ['bot_token', 'global_keys', 'guild_keys', 'valid_keys', 'test_mode', 'authorized_guilds', 'valid_guilds']

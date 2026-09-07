@@ -39,7 +39,7 @@ class ErrorHookTask(BaseTask):
 
         try:
             guild = bot.get_guild(config.error_log[0])
-            error_log = cast(TextChannel, guild.get_channel(config.error_log[1]))
+            error_log = cast('TextChannel', guild.get_channel(config.error_log[1]))
 
             webhooks = await error_log.webhooks()
             webhook_urls = [hook.url for hook in webhooks]
@@ -62,10 +62,10 @@ class ErrorHookTask(BaseTask):
                 logger.info(f'created new webhook: {hook.name}-{hook.id}')
                 config.error_hook = hook.url
                 await config.config_repo.update_system_field('error_hook', hook.url)
-            except Exception as create_err:
+            except Exception:
                 logger.exception('failed to create new webhook for error log')
 
-        except Exception as err:
+        except Exception:
             logger.exception('failed acquiring new webhook for error log')
 
 

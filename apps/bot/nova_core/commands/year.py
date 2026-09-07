@@ -78,7 +78,7 @@ async def year_search(ctx: ApplicationContext, year: int):
         await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
         return
 
-    elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
+    if (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
         await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
         return
 
@@ -123,7 +123,7 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
     canon_channels = [*cfg.channels.lore_channels, cfg.channels.meta_chat, *cfg.channels.canon_channels]
 
     if channel is None:
-        channel = cast(TextChannel, ctx.guild.get_channel_or_thread(canon_channels[0]))
+        channel = cast('TextChannel', ctx.guild.get_channel_or_thread(canon_channels[0]))
 
     if year < 1 or year > current_year:
         await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
