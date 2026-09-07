@@ -194,6 +194,34 @@ standard Discord emoji names (`:ballot_box_with_check:`, `:no_entry:`) are fine 
 | `<t:{unix}:R>` | relative timestamps ("in 3 days") |
 | `## Heading` | headers for list-style or multi-section responses |
 
+## help text (slash commands)
+
+group, command, and option descriptions are what a user reads in the picker before they know what anything does. same bar as every other message: say what it does, and what the user has to decide.
+
+- **all lowercase**, first word included; in-universe terms keep their case (`PC`, `Haracalnde`)
+- **no trailing period and no exclamation mark**
+- **imperative fragment** - `collect an egg`, never `Collects an egg` and never `Egg collection`
+- **describe the effect, not the mechanism**
+- **100 characters hard.** discord refuses to register a longer description; `/year info` currently sits at exactly 100, so there is no room left in it
+- every group, command, and option takes one, and it has to say something the name does not; discord already renders the name beside it
+
+**groups name the area, not the fact that they are a group.** `Link utilities` and `Utilities related to managing year markers` spend the whole line saying "these are commands".
+
+**options say what the value does to the command,** with bounds, format, source, or default in parentheses:
+
+| bad | correct | why |
+|---|---|---|
+| `Year Number` | `which year to move the marker to (1 to current)` | restates the option name; the bound is what validation actually enforces |
+| `Override Mode` | `accept a link far from the expected time` | names the mode but never what it overrides |
+| `Search Query` | `what to search the wiki for` | restates the option name |
+| `Wiki Username (case sensitive probably)` | `who to block (case sensitive)` | "probably" hands our uncertainty to the user |
+
+**mark admin-only once, on the group,** as `(admin only)`. repeating it on every child command is noise, and `default_member_permissions` already hides them.
+
+**never ship internal state.** `(phase 2 stub)` and `walking-skeleton stub; replaced by real /cc stars commands in phase 2.6+` name our plan structure to end users. a command that is not ready says what the user gets instead: `not implemented yet`.
+
+changed descriptions reach discord when the bot next starts and pushes its command definitions; they are not inert.
+
 ## cross-references
 
 - `CLAUDE.md` - personality section for semicolons, dashes, and american english; `docs/style/command_usage.md` for the ephemeral rule
