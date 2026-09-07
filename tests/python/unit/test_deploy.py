@@ -341,3 +341,23 @@ class TestUvLockInBumpCommit:
         # locate the commit-and-tag step and confirm uv.lock is included in the git add invocation
         match = re.search(r"git_cmd\(\['add',\s*str\(version_file\),\s*str\(pyproject_file\),\s*str\(lock_file\)\]\)", source)
         assert match is not None, 'expected git add to include uv.lock alongside version_file and pyproject_file'
+
+    def test_relocks_before_committing(self):
+        """git-adding uv.lock is inert unless the bump step regenerates it first"""
+        import deploy as _deploy
+
+        source = Path(_deploy.__file__).read_text()
+        relock = re.search(r"run_cmd\(\['uv', 'lock'\], cwd=dev_dir\)", source)
+        assert relock is not None, 'expected the bump step to run `uv lock` after rewriting pyproject.toml'
+
+        bump = source.index('pyproject_file.write_text(pyproject_updated)')
+        add = source.index("'add', str(version_file)")
+        assert bump < relock.start() < add, '`uv lock` must run after the pyproject rewrite and before the git add'
+
+    def test_lock_restored_when_commit_fails(self):
+        """a failed commit rolls the lock back alongside __init__.py and pyproject.toml"""
+        import deploy as _deploy
+
+        source = Path(_deploy.__file__).read_text()
+        assert 'lock_file.write_text(lock_content)' in source, 'expected the rollback paths to restore uv.lock'
+        assert source.count('lock_file.write_text(lock_content)') == 2, 'expected both the commit-failure and interrupt rollbacks to restore uv.lock'

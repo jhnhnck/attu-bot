@@ -29,6 +29,7 @@ except ImportError:
 dev_dir = Path(__file__).parent.parent.resolve()
 prod_dir = Path('/srv/services/doom-bot')
 version_file = dev_dir / 'apps' / 'bot' / 'nova_core' / '__init__.py'
+lock_file = dev_dir / 'uv.lock'
 
 _epoch_file = Path.home() / '.attu-epoch.toml'
 
@@ -419,6 +420,7 @@ if __name__ == '__main__':
     content = ''
     pyproject_content = ''
     pyproject_file: Path | None = None
+    lock_content = ''
     saved_sha: str | None = None
     # trunk's pre-bump sha; rollback resets to this rather than HEAD~1 so a
     # second rollback (interrupt during the first) cannot eat a real commit
@@ -478,19 +480,35 @@ if __name__ == '__main__':
             pyproject_file.write_text(pyproject_updated)
             version_modified = True
 
+            # uv copies the workspace member's version into uv.lock; relock here so the bump
+            # commit carries it, otherwise the next `uv run` dirties the tree one deploy later
+            lock_content = lock_file.read_text()
+            try:
+                run_cmd(['uv', 'lock'], cwd=dev_dir)
+            except RuntimeError as e:
+                version_file.write_text(content)
+                pyproject_file.write_text(pyproject_content)
+                lock_content = ''
+                version_modified = False
+                abort(f'uv lock failed after version bump (bump reverted): {e}')
+            print(colored('  uv.lock synced', 'green'))
+        else:
+            print(colored('  (dry run) would sync uv.lock', 'dark_grey'))
+
         n += 1
         header(n, total, 'committing and tagging')
         if not dry_run:
             try:
-                lock_file = dev_dir / 'uv.lock'
                 git_cmd(['add', str(version_file), str(pyproject_file), str(lock_file)])
                 git_cmd(['commit', '-m', f'chore(deploy): bump version to {new_ver}'])
                 committed = True
                 git_cmd(['tag', new_tag])
             except RuntimeError as e:
-                # restore the file if commit failed before any git state changed
+                # restore the files if commit failed before any git state changed
                 version_file.write_text(content)
                 pyproject_file.write_text(pyproject_content)
+                if lock_content:
+                    lock_file.write_text(lock_content)
                 abort(f'git commit/tag failed: {e}')
             print(colored(f'  committed and tagged {new_tag}', 'green'))
         else:
@@ -598,6 +616,8 @@ if __name__ == '__main__':
                 version_file.write_text(content)
                 if pyproject_content and pyproject_file is not None:
                     pyproject_file.write_text(pyproject_content)
+                if lock_content:
+                    lock_file.write_text(lock_content)
         sys.exit(130)
 
     finally:
