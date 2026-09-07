@@ -43,7 +43,6 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` partial-pagination degradation not verified on real discord: `_collect_live_reactions` sets `partial=True` on any pagination failure; `_compute_diff` globally suppresses removes. path is unit-tested and conservative; production-against-flaky-stream codepath not smoke-tested. 🎯 carried in from plan: ccboard #15 (2026-06-05)
 - ⭕ `low priority` `low effort` per-emoji partial isolation: a single flaky emoji sets `partial=True` on the whole entry, suppressing removes for every emoji — including healthy ones. conservative; sharpen to per-emoji flags if production shows it bites. 🎯 carried in from plan: ccboard #16 (2026-06-05)
 - ⭕ `low priority` `low effort` per-record `point_value` delta logging missing: `_apply_diff` logs only the aggregate `recount=N` line; add a debug-log line per record showing before/after `point_value` whenever a recount changes it. land as a small standalone patch anytime. 🎯 carried in from plan: ccboard #17 (2026-06-05)
-- ⭕ `low priority` `low effort` pre-existing import-sort error in `tests/python/unit/test_run_tests.py` fails `ruff check` on the whole repo. auto-fixable: `ruff check --fix tests/python/unit/test_run_tests.py`. land as a standalone `chore: ruff` commit. 🎯 carried in from plan: ccboard #21 (2026-06-05)
 
 ### wiki
 
@@ -80,10 +79,11 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 - ⭕ `future idea` `medium effort` discord oauth login for wiki apps (trees editor, other external tools); was previously wired through the deleted webauthn/passkey web admin flow; revisit when building the new web layer
-- ⭕ `low priority` `low effort` standalone lint-cleanup pass: fix RUF105 (noqa format, 47+ codebase-wide instances) and PLW0717 (too-many-statements-in-try-clause, 30+ instances across `apps/bot/`); pre-existing debt carried verbatim into `nova_core/modlog/handlers.py` from `client/modlog.py`; ruff --fix cannot auto-resolve PLW0717 (requires extracting inner blocks). carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `medium effort` standalone lint-cleanup pass: PLW0717 (too-many-statements-in-try-clause, 27 instances across `apps/bot/`); pre-existing debt carried verbatim into `nova_core/modlog/handlers.py` from `client/modlog.py`; ruff --fix cannot auto-resolve it (requires extracting inner blocks). the RUF105 half of this item was settled on 2026-09-06. carried from plan: nova-w3 (2026-08-14)
 - ⭕ `low priority` `low effort` same standalone lint-cleanup pass: PLW0717 in `nova_core/client/events.py` - `_restore_wiki_views` (18+ stmts), `_do_ready_init` try blocks (7 and 9 stmts); three `too-many-statements-in-try-clause` violations; pre-existing, unchanged by any nova-w3 phase. carried from plan: nova-w3 (2026-08-14)
-- ⭕ `low priority` `low effort` standalone pyproject.toml update: fix rule-codes-in-selectors violations (28+ instances) - ruff now requires rule names (e.g. `isort`) instead of rule codes (e.g. `I001`) in `lint.ignore` and `lint.per-file-ignores`; pre-existing, none introduced by nova-w3. carried from plan: nova-w3 (2026-08-14)
-- ⭕ `low priority` `low effort` same standalone lint-cleanup pass: RUF103 invalid suppression syntax (use `# noqa: CODE` not `# ruff: ignore[...]`) in `events.py` lines 28/102 and `wiki/__init__.py` lines 15/29; also S108/PLR0915/PLW0603/S105 in `events.py`, `wiki/__init__.py`, and `test_wiki_http.py`; pre-existing, none introduced by nova-w3. carried from plan: nova-w3 (2026-08-14)
+- ⭕ `low priority` `medium effort` remaining ruff backlog after the 2026-09-06 lint pass: 119 errors across 27 rules, none auto-fixable and each needing a human call. largest groups after PLW0717 (tracked above) are TRY300 (14), the DTZ naive-datetime family (18 across DTZ001/011/005/007), B904 raise-without-from (9), then TRY301, PT019, PERF401, FURB118, FURB113 (5 each); the rest are singles.
+- ⭕ `low priority` `no effort` `ruff format --check` fails on four files this pass did not touch: `docs/style/command_usage.md`, `tests/python/unit/test_admin_ops.py`, `tests/python/unit/test_nova_admin.py`, `tests/python/unit/test_util.py`. blank-line-only diffs; run `ruff format` on them as a standalone chore commit.
+- ⭕ `future idea` `medium effort` decide whether to migrate the 71 `# noqa:` comments to ruff's newer `# ruff: ignore[rule-name]` form. the preview rule RUF105 wants it and ships no working autofix in ruff 0.16.6, so it is ignored in `pyproject.toml` for now; two sites already use the new form (`client/events.py:28` and `:102`). CLAUDE.md rule #4 is written around `noqa`, so the rule would need rewording first.
 
 ### code audits
 
@@ -178,6 +178,11 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - 🔴 `11 April 2026` remove meaningless `GIT_CHANGED` line-count from dockerfile version string (always 0 on tagged deploys)
 - 🔴 `11 April 2026` centralize hard-coded custom emojis into `ui_emojis` guild config with web interface and `ui_emoji()` helper
 - 🔴 `4 May 2026` deploy.py --deploy with no bump arg: resume mode that just restarts containers and pushes when trunk is already at the new tag; bump step also git-adds uv.lock now
+- 🔴 `2026-09-06` deploy.py bump step now runs `uv lock` after rewriting `apps/bot/pyproject.toml`; the existing git-add of uv.lock was inert because nothing regenerated the file, so the lock sat at 80.0 while pyproject reached 85.0.1 and every post-deploy `uv run` dirtied the tree
+- 🔴 `2026-09-06` fix pre-existing import-sort error in `tests/python/unit/test_run_tests.py`
+- 🔴 `2026-09-06` replace rule codes with rule names in `lint.ignore` and `lint.per-file-ignores` (46 RUF201 violations, ruff autofix)
+- 🔴 `2026-09-06` RUF103 suppression syntax and the S108/PLR0915/PLW0603/S105 cluster in `events.py`, `wiki/__init__.py`, and `test_wiki_http.py` no longer fire; `# ruff: ignore[...]` is valid again in ruff 0.16.6
+- 🔴 `2026-09-06` convert 63 `logger.error` calls in except blocks to `logger.exception` (TRY400) and strip the now-redundant exception interpolation from all 60 affected messages (TRY401); structlog's `format_exc_info` carries the error text on the traceback lines instead
 
 ### testing
 
@@ -225,6 +230,6 @@ bugs go in `docs/bugs.md`, not here. this file is for features, refactors, audit
 ### metadata
 
 ```yaml
-last_updated: 2026-08-22
-total_completed: 73
+last_updated: 2026-09-06
+total_completed: 78
 ```
