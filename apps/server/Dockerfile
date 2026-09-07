@@ -17,8 +17,8 @@ RUN useradd --home-dir /home/attu --uid 1100 attu; \
     chown -Rc attu:attu $SERVER_HOME
 
 # minimal system deps; curl for the healthcheck only
-RUN --mount=type=cache,target=/var/lib/apt \
-    --mount=type=cache,target=/var/cache/apt \
+RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eux; \
     apt-get update -qq; \
     apt-get install -qq curl

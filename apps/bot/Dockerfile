@@ -34,8 +34,8 @@ RUN useradd --home-dir /home/doom --uid 1000 doom; \
     chown -Rc doom:doom /home/doom;
 
 # install system dependencies
-RUN --mount=type=cache,target=/var/lib/apt \
-    --mount=type=cache,target=/var/cache/apt \
+RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eux; \
     apt-get update -qq; \
     apt-get install -qq \
@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/var/lib/apt \
 SHELL [ "/usr/bin/zsh", "-euc" ]
 
 # repeat TODO: hardcoded version; keep updated
-RUN --mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
     curl -fsSL "https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-x86_64-100.15.0.deb" -o "/tmp/mongodb-database-tools.deb"; \
     dpkg -i "/tmp/mongodb-database-tools.deb";
 

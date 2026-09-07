@@ -266,7 +266,7 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='bump version, tag, and optionally deploy nova_core')
-    parser.add_argument('bump', nargs='?', default=None, choices=['minor', 'patch'], help='version bump type (default: minor)')
+    parser.add_argument('bump', nargs='?', default=None, choices=['minor', 'patch'], help='version bump type; omitting it with --deploy resumes an already-bumped deploy instead of bumping')
     parser.add_argument('--no-tests', action='store_true', help='skip all test runs')
     parser.add_argument('--dry-run', action='store_true', help='print steps without making changes')
     parser.add_argument('--deploy', action='store_true', help='rebuild containers and push to remote after tagging and merging trunk')
@@ -347,6 +347,9 @@ if __name__ == '__main__':
     pyproject_content = ''
     pyproject_file: Path | None = None
     saved_sha: str | None = None
+    # trunk's pre-bump sha; rollback resets to this rather than HEAD~1 so a
+    # second rollback (interrupt during the first) cannot eat a real commit
+    saved_trunk_sha: str = git_cmd(['rev-parse', 'HEAD'])
     new_tag: str | None = None
     new_ver: str | None = None
 
@@ -417,7 +420,7 @@ if __name__ == '__main__':
                 print(colored('  merged', 'green'))
             except RuntimeError as e:
                 # undo the version bump commit and tag before aborting
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on merge failure
+                subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - rollback on merge failure; saved_trunk_sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on merge failure
                 abort(f'merge into prod failed (version bump rolled back): {e}')
         else:
@@ -466,7 +469,7 @@ if __name__ == '__main__':
             if merged and not dry_run:
                 print(colored('rolling back prod and trunk to previous state', 'yellow'), file=sys.stderr)
                 trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
-                dev_reset = subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - undo version bump commit on trunk
+                dev_reset = subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - reset trunk to its pre-bump sha, idempotent across repeated rollbacks; sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on trunk
                 rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
@@ -483,11 +486,11 @@ if __name__ == '__main__':
             if merged and saved_sha and new_tag:
                 print(colored('rolling back prod and trunk to previous state', 'yellow'), file=sys.stderr)
                 subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback on interrupt
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on interrupt
+                subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - rollback on interrupt; saved_trunk_sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
             elif committed and new_tag:
                 print(colored('rolling back version commit and tag', 'yellow'), file=sys.stderr)
-                subprocess.run(['git', 'reset', '--hard', 'HEAD~1'], check=False)  # noqa: S607 - rollback on interrupt
+                subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - rollback on interrupt; saved_trunk_sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
             elif version_modified and content:
                 version_file.write_text(content)
