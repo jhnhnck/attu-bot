@@ -24,7 +24,7 @@ the failure this rule exists to prevent is a message that is short, lowercase, c
 | `'config loaded'` | `f'[{cfg!s}] loaded [{count}] markers'` |
 | `'epoch changed'` | `f'[{guild.name}] epoch changed: old={old_time},{old_year} new={new_time},{year}'` |
 | `'could not find channel'` | `f'could not find channel #{channel_name} for construction'` |
-| `'Failed: invalid input'` | ``f'Failed: year {year} PC is already linked to {channel.mention}'`` |
+| `'invalid input'` | ``f'year {year} PC is already linked to {channel.mention}'`` |
 | `'Done!'` on a mutation | ``f'Changed `{key}` from `{old}` to `{new}`'`` |
 
 this applies to Discord responses as much as to logs; the reader there has even less context to fill a gap with.
@@ -92,7 +92,7 @@ logger.critical(f'incompatible config version: file={file_version} required>={__
 | `'An error occurred while updating year.'` | `f'could not update year {year} PC; {err!s}'` | "an error occurred" names nothing; subject and cause restored, not removed |
 | `'Updating year %s' % year` | `f'updating year {year} PC'` | `%s` instead of an f-string; case otherwise |
 | `'config loaded'` | `f'[{cfg!s}] loaded [{count}] markers'` | no guild and no count; nothing to compare against the next run |
-| `'Failed: an error occurred'` | ``f'Failed: year {year} PC is already linked to {channel.mention}'`` | discord errors sit at the same bar; name the constraint that stopped it |
+| `'An unexpected error occurred'` | ``f'year {year} PC is already linked to {channel.mention}'`` | discord errors sit at the same bar; name the constraint that stopped it |
 
 ## discord response messages
 
@@ -122,19 +122,25 @@ logger.critical(f'incompatible config version: file={file_version} required>={__
 - show before/after for mutations: `` "Changed `x` from `old` to `new`" ``
 - very short for trivial completions: `"Done!"`, `"Refreshing!"`
 
-## errors - exact shape
+## errors
 
-every error message starts with `Failed:` followed by a lowercase reason.
+**no prefix.** an error carries no `Failed:` marker and no required emoji; the message itself says what went wrong. two things already separate a failure from a success without a label: errors are ephemeral and successes are public (see the ephemeral rule), and the wording names the failure.
 
-```
-Failed: <reason in lowercase>
-```
+**the bot owns its own failures, not yours.** who actually failed decides the register:
+
+| what happened | register | example |
+|---|---|---|
+| something broke on our side | first person, bot as subject; say it was reported when the webhook fired | `I couldn't get at that message; {err!s}` |
+| the request was invalid | state the constraint; the bot is not at fault and does not apologize for it | `year {year} PC hasn't happened yet; I only go up to {current_year} PC` |
+| the caller is not allowed | a refusal, not a failure; this is where the aggressive register belongs | `Nice try! {ui_emoji("rockball")}` |
+
+false humility is its own failure. never write "I couldn't" about a value the user typed wrong; the bot did not fail there, and pretending otherwise buries the constraint the reader needs.
 
 - the reason explains the specific constraint, not "an error occurred"
 - include actionable suggestions when relevant: `` "if correct, override with `force:true`" ``
-- include the underlying exception when it adds information: `"Failed: Couldn't parse value; {err!s}"`
+- include the underlying exception when it adds information
 - use a semicolon to join the reason and the underlying detail (personality rule: never em-dashes)
-- never place any emoji inside the reason text - emojis only at the end of the top-level message string
+- never place any emoji inside the reason text - an emoji, when there is one, goes at the end of the message
 
 **every failure names its subject.** a timeout or a lookup failure that does not say what it waited for or looked up is one message standing in for four different failures:
 
@@ -146,6 +152,20 @@ logger.error(f'timed out after {timeout}s waiting for {what}')
 
 log-side errors follow the log rules above (lowercase, no terminal punctuation, brief).
 
+## energy and stakes
+
+the bot's excitement runs inverse to what is at risk. it is thrilled about an egg and goes flat when a guild's timeline is about to change; when it stops playing, something real is happening.
+
+| tier | what it covers | shape |
+|---|---|---|
+| loud | personal, reversible, fun - `/egg`, `/eggs *`, `/ping`, `/pong`, `/color`, `/version`, `/wiki random`, `/wiki lookup`, `/stars random`, `/stars lost`, leaderboards | exclamation mark; an emoji where one already fits |
+| plain | ordinary state changes - `/remind *`, `/link family *`, `/query pins`, `/stars recheck`, `/year *` | lowercase, no exclamation, no emoji |
+| quiet | irreversible or affects other people - `/marker save`, `/marker set`, `/marker clear`, `/time *`, `/wiki block`, ccboard purge and regen | no exclamation, no emoji; name what changed or what was lost |
+
+the quiet tier is the characterizing move, not a lapse in voice. a flat line on a destructive command is the bot telling the reader this one counts.
+
+**sanctioned exception.** `/time advance` answers `Weap. No longer going to try my best, just forcing new year instead`. that is a loud line on a quiet-tier command on purpose; the bot is being petulant about being overridden. leave it alone.
+
 ## the ephemeral rule
 
 the rule:
@@ -156,25 +176,28 @@ this is a recurring footgun. defaults to repeat:
 
 ```python
 # good - error is ephemeral, success is public
-await ctx.respond(f'Failed: year {year} PC is already linked', ephemeral=True)
+await ctx.respond(f'year {year} PC is already linked to {channel.mention}', ephemeral=True)
 await ctx.respond(f'Linked year {year} PC to {channel.mention}')
 
 # bad - hides a successful mutation from the channel
 await ctx.respond('Done!', ephemeral=True)
 
 # bad - leaks an error publicly
-await ctx.respond('Failed: not allowed in this channel')
+await ctx.respond('not allowed in this channel')
 ```
 
 ## custom emojis
 
-three custom server emojis, each with a distinct role:
+read them from config with `ui_emoji(name)`; never hardcode `<:name:id>`. migration 2.5.4 seeds four into `config.theme.ui_emojis`.
 
-| name | full syntax | when to use |
-|---|---|---|
-| `:rockball:` | `<:rockball:1308981475114225694>` | playful / personality moments - ping responses, permission denial sarcasm, general fun |
-| `:rockball_player:` | `<:rockball_player:1308977543034048552>` | errors and unexpected failures - no results, message not found, unhandled exceptions |
-| `:tieteran_wave:` | `<:tieteran_wave:1308636215930654801>` | reaction-only; on wiki bot activity messages for blocked / registered events |
+| name | role |
+|---|---|
+| `rockball` | aggressive and cheeky - denials, permission refusals, ping and pong banter |
+| `rockball_player` | failure and empty results - no matches, nothing found, unexpected errors |
+| `crackerpeaty` | possessive refusal - "that one is not yours to touch" |
+| `tieteran_wave` | reaction-only; on wiki bot activity messages for blocked / registered events |
+
+**emoji are sparse affect, not markers.** most messages carry none, and an error is never required to have one. use one only where it already earns its place; do not add emoji to a message to signal that it failed.
 
 standard Discord emoji names (`:ballot_box_with_check:`, `:no_entry:`) are fine for simple status indicators in embeds.
 
