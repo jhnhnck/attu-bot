@@ -1,6 +1,6 @@
 [project]
 name = "nova-core"
-version = "80.0"
+version = "85.0"
 requires-python = "==3.13.*"
 dependencies = [
     "aiohttp",
