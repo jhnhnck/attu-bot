@@ -161,7 +161,7 @@ async def egg_command(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     result, remaining = await hatching.collect_egg(
@@ -185,7 +185,7 @@ async def eggs_hatch(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     result, next_ts = await hatching.hatch_egg(ctx.guild_id, ctx.author.id)
@@ -207,7 +207,7 @@ async def eggs_view(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     from nova_core.eggs.hatching import _egg_user_repo
@@ -230,7 +230,7 @@ async def eggs_give(ctx: ApplicationContext, user: discord.Member, filter: str |
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     if ctx.author.id == user.id:
@@ -287,7 +287,7 @@ async def eggs_progress(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     from nova_core.eggs.emojis import render_progress_bar
@@ -326,7 +326,7 @@ async def eggs_leaderboard_hatched(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     from nova_core.eggs.hatching import _egg_repo
@@ -341,7 +341,7 @@ async def eggs_leaderboard_collected(ctx: ApplicationContext):
     await ctx.defer()
 
     if not ctx.guild_id or ctx.guild_id not in config.authorized_guilds:
-        await ctx.respond('not available here', ephemeral=True)
+        await ctx.respond("eggs only work in a server I'm set up for", ephemeral=True)
         return
 
     from nova_core.eggs.hatching import _egg_repo

@@ -51,7 +51,7 @@ async def cc_top_messages(ctx: ApplicationContext):
     try:
         guild_config = config.guild(guild_id)
     except Exception:
-        await ctx.respond('Failed: guild configuration not found', ephemeral=True)
+        await ctx.respond("I couldn't load this server's config", ephemeral=True)
         return
 
     if not guild_config.ccboard.enabled:
@@ -61,7 +61,7 @@ async def cc_top_messages(ctx: ApplicationContext):
     try:
         entry_repo = _get_entry_repo()
     except RuntimeError:
-        await ctx.respond('Failed: ccboard not initialized yet', ephemeral=True)
+        await ctx.respond("the ccboard isn't ready yet", ephemeral=True)
         return
 
     entries = await entry_repo.leaderboard_top_messages(guild_id, limit=_PAGE_SIZE)

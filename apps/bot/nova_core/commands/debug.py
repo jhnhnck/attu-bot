@@ -23,7 +23,7 @@ logger = structlog.stdlib.get_logger(__name__)
 @discord.slash_command(name='color', description='show the current theme color')
 async def command_color(ctx: ApplicationContext):
     if not config.theme:
-        await ctx.respond('Failed: no theme color configured', ephemeral=True)
+        await ctx.respond('no theme color is configured for this server', ephemeral=True)
         return
 
     hex_color = config.theme.bot_color

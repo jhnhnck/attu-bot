@@ -52,7 +52,7 @@ async def time_dilate(ctx: ApplicationContext, days):
 
     # catch to keep from trying entering number of weeks
     if days > 0 and days % 7 != 0:
-        await ctx.respond('Failed: dilation amount must be divisible by 7', ephemeral=True)
+        await ctx.respond('dilation has to be a multiple of 7 days', ephemeral=True)
         return
 
     if guild.epoch.paused:

@@ -448,7 +448,7 @@ class TestEggCommands:
         from nova_core.commands.eggs import egg_command
 
         await egg_command(ctx)
-        assert ctx._responses[0]['args'][0] == 'not available here'
+        assert ctx._responses[0]['args'][0] == "eggs only work in a server I'm set up for"
 
     async def test_eggs_hatch_no_eggs(self):
         with patch('nova_core.commands.eggs.hatching.hatch_egg', new=AsyncMock(return_value=('no_eggs', None))):
@@ -537,7 +537,7 @@ class TestEggsLeaderboardHatched:
         from nova_core.commands.eggs import eggs_leaderboard_hatched
 
         await eggs_leaderboard_hatched(ctx)
-        assert ctx._responses[0]['args'][0] == 'not available here'
+        assert ctx._responses[0]['args'][0] == "eggs only work in a server I'm set up for"
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_with_data(self):
@@ -580,7 +580,7 @@ class TestEggsLeaderboardCollected:
         from nova_core.commands.eggs import eggs_leaderboard_collected
 
         await eggs_leaderboard_collected(ctx)
-        assert ctx._responses[0]['args'][0] == 'not available here'
+        assert ctx._responses[0]['args'][0] == "eggs only work in a server I'm set up for"
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_with_data(self):
@@ -1156,7 +1156,7 @@ class TestEggsGiveCommand:
         from nova_core.commands.eggs import eggs_give
 
         await eggs_give(ctx, self.mock_user, None)
-        assert ctx._responses[0]['args'][0] == 'not available here'
+        assert ctx._responses[0]['args'][0] == "eggs only work in a server I'm set up for"
 
     async def test_give_to_self(self):
         """giving an egg to yourself is rejected"""

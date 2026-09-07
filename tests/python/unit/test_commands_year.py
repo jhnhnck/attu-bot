@@ -172,8 +172,8 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
-        assert 'valid' in response.lower()
+        assert 'years start at 1 PC' in response
+        assert '1 pc' in response.lower()
 
 
 # --- /year search command tests ---
@@ -242,8 +242,8 @@ class TestYearSearchCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
-        assert 'valid' in response.lower()
+        assert 'years start at 1 PC' in response
+        assert '1 pc' in response.lower()
 
 
 # --- /year link command tests ---
@@ -313,8 +313,8 @@ class TestYearLinkCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
-        assert 'valid' in response.lower()
+        assert 'only years 1 PC through' in response
+        assert '1 pc' in response.lower()
 
     @pytest.mark.asyncio
     async def test_link_invalid_year_too_high(self, mock_ctx, guild):
@@ -326,8 +326,8 @@ class TestYearLinkCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
-        assert 'valid' in response.lower()
+        assert 'only years 1 PC through' in response
+        assert '1 pc' in response.lower()
 
     @pytest.mark.asyncio
     @freeze_time('2024-01-08 12:00:00')
@@ -349,7 +349,7 @@ class TestYearLinkCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
+        assert "isn't a lore channel" in response
         assert 'lore channel' in response.lower()
 
     @pytest.mark.asyncio
@@ -372,4 +372,4 @@ class TestYearLinkCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Failed' in response
+        assert "isn't a lore channel" in response

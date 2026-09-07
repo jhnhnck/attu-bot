@@ -213,7 +213,7 @@ async def on_application_command_error(ctx: ApplicationContext, error: Exception
 
     else:
         if ctx.command.name != 'force_error':
-            await ctx.respond(f'An unexpected error occurred! {ui_emoji("rockball_player")}')
+            await ctx.respond(f"Something broke on my end! I've told the humans {ui_emoji('rockball_player')}")
 
         if hasattr(ctx.response, 'jump_url'):
             link = ctx.response.jump_url

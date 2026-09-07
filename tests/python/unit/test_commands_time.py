@@ -184,8 +184,8 @@ class TestTimeDilateCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'failed' in response.lower()
-        assert 'divisible by 7' in response.lower()
+        assert 'multiple of 7' in response
+        assert 'multiple of 7' in response.lower()
 
     @pytest.mark.asyncio
     async def test_dilate_not_divisible_by_7_other_values(self, mock_ctx, guild):
@@ -200,7 +200,7 @@ class TestTimeDilateCommand:
 
             mock_ctx.respond.assert_called_once()
             response = mock_ctx._responses[0]['args'][0]
-            assert 'divisible by 7' in response.lower(), f'days={bad_days} should be rejected'
+            assert 'multiple of 7' in response.lower(), f'days={bad_days} should be rejected'
 
     @pytest.mark.asyncio
     async def test_dilate_valid_paused(self, mock_ctx, make_guild):
@@ -256,7 +256,7 @@ class TestTimeDilateCommand:
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
         # should not show the failure message
-        assert 'failed' not in response.lower()
+        assert 'multiple of 7' not in response
 
     @pytest.mark.asyncio
     async def test_dilate_negative_days_skips_validation(self, mock_ctx, guild):
@@ -269,4 +269,4 @@ class TestTimeDilateCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'failed' not in response.lower()
+        assert 'multiple of 7' not in response

@@ -31,7 +31,7 @@ async def year_check(ctx: ApplicationContext, year: int):
     year = year if year is not None else (current_year + 1)
 
     if year <= 0:
-        await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
+        await ctx.respond('years start at 1 PC', ephemeral=True)
 
     elif year < current_year:
         year_record = await Year.get(guild_config.id, year)
@@ -75,7 +75,7 @@ async def year_search(ctx: ApplicationContext, year: int):
     msg = []
 
     if year <= 0:
-        await ctx.respond('Failed: only years 1 PC or later are valid options', ephemeral=True)
+        await ctx.respond('years start at 1 PC', ephemeral=True)
         return
 
     if (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
@@ -126,14 +126,14 @@ async def year_link(ctx: ApplicationContext, year: int, channel: TextChannel | N
         channel = cast('TextChannel', ctx.guild.get_channel_or_thread(canon_channels[0]))
 
     if year < 1 or year > current_year:
-        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'only years 1 PC through {current_year} PC exist', ephemeral=True)
 
     # skip if its a not a text channel (so we can be unspecific about canon_channels)
     elif channel.type not in (ChannelType.text, ChannelType.news):
-        await ctx.respond(f'Failed: command does not work on whatever {channel.mention} is', ephemeral=True)
+        await ctx.respond(f"{channel.mention} isn't a lore channel", ephemeral=True)
 
     elif channel.id not in canon_channels:
-        await ctx.respond('Failed: this command only works on lore channels', ephemeral=True)
+        await ctx.respond("that isn't a lore channel", ephemeral=True)
 
     else:
         link = await find_marker_link(year, channel)

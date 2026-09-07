@@ -281,7 +281,7 @@ class TestStarsRecheck:
         await stars_recheck(ctx, message_link='not-a-link')
 
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
-        assert 'invalid message link' in ctx._responses[0]['args'][0]
+        assert 'does not look like a discord message link' in ctx._responses[0]['args'][0]
 
     async def test_recheck_rejects_wrong_guild_link(self, stars_repos, mock_ctx_factory):
         """recheck responds ephemeral when the message link is from a different guild"""

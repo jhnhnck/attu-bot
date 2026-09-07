@@ -33,13 +33,13 @@ remind_group = SlashCommandGroup('remind', description='reminders for in-univers
 @commands.check(is_authorized_guild)
 async def remind_add(ctx: ApplicationContext, year: int, month: int | None = None, day: int | None = None, note: str | None = None):
     if day is not None and month is None:
-        await ctx.respond('failed: day requires a month', ephemeral=True)
+        await ctx.respond('day needs a month to go with it', ephemeral=True)
         return
 
     guild_config = config.guild(ctx.guild.id)
 
     if guild_config.epoch.paused:
-        await ctx.respond('failed: time is paused; reminders cannot be set while time is frozen', ephemeral=True)
+        await ctx.respond('time is paused', ephemeral=True)
         return
 
     reminder = ReminderDocument(
@@ -56,13 +56,13 @@ async def remind_add(ctx: ApplicationContext, year: int, month: int | None = Non
 
     fire_dt = await compute_fire_time(reminder)
     if fire_dt is None:
-        await ctx.respond('failed: could not compute fire time for that date', ephemeral=True)
+        await ctx.respond("I couldn't work out when that date lands", ephemeral=True)
         return
 
     from datetime import datetime
 
     if fire_dt <= datetime.now().astimezone():
-        await ctx.respond('failed: dates must be in the future', ephemeral=True)
+        await ctx.respond('that date has already passed', ephemeral=True)
         return
 
     repo = _get_repo()
@@ -126,15 +126,15 @@ async def remind_cancel(ctx: ApplicationContext, reminder_id: str):
         reminder = await repo.get_by_prefix(reminder_id, ctx.guild.id, ctx.user.id)
 
     if reminder is None or reminder.guild_id != ctx.guild.id:
-        await ctx.respond('failed: reminder not found', ephemeral=True)
+        await ctx.respond('no reminder with that id', ephemeral=True)
         return
 
     if reminder.user_id != ctx.user.id:
-        await ctx.respond('failed: that reminder belongs to someone else', ephemeral=True)
+        await ctx.respond("that reminder isn't yours", ephemeral=True)
         return
 
     if reminder.fired:
-        await ctx.respond('failed: you have already been reminded of that', ephemeral=True)
+        await ctx.respond('you have already been reminded of that', ephemeral=True)
         return
 
     date_str = format_attu_date(reminder)

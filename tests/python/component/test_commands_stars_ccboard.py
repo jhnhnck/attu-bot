@@ -345,4 +345,4 @@ class TestCCBoardStarsRecheck:
             await stars_recheck(ctx, link)
 
         mock_sb.assert_called_once()
-        assert 'not initialized' in ctx._responses[0]['args'][0]
+        assert "isn't ready yet" in ctx._responses[0]['args'][0]

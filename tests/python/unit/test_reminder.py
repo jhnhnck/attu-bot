@@ -146,7 +146,7 @@ class TestRemindAddValidation:
 
         mock_ctx.respond.assert_called_once()
         args = mock_ctx._responses[0]
-        assert 'day requires a month' in args['args'][0]
+        assert 'day needs a month' in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio
@@ -176,7 +176,7 @@ class TestRemindAddValidation:
 
         mock_ctx.respond.assert_called_once()
         args = mock_ctx._responses[0]
-        assert 'must be in the future' in args['args'][0]
+        assert 'already passed' in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio
@@ -250,7 +250,7 @@ class TestRemindCancelValidation:
             await remind_cancel(mock_ctx, reminder_id=other_user_reminder.reminder_id)
 
         args = mock_ctx._responses[0]
-        assert 'belongs to someone else' in args['args'][0]
+        assert "isn't yours" in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio
@@ -266,7 +266,7 @@ class TestRemindCancelValidation:
             await remind_cancel(mock_ctx, reminder_id='nonexistent')
 
         args = mock_ctx._responses[0]
-        assert 'not found' in args['args'][0]
+        assert 'no reminder with that id' in args['args'][0]
         assert args['kwargs'].get('ephemeral') is True
 
     @pytest.mark.asyncio

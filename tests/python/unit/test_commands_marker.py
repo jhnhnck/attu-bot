@@ -65,7 +65,7 @@ class TestMarkerSave:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'not a valid discord message link' in mock_ctx._responses[0]['args'][0]
+        assert 'does not look like a discord message link' in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_invalid_year_ephemeral(self, mock_ctx):
@@ -97,7 +97,7 @@ class TestMarkerSave:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'not a lore channel' in mock_ctx._responses[0]['args'][0]
+        assert "isn't a lore channel" in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_time_diff_too_large_without_force(self, mock_ctx):
@@ -202,7 +202,7 @@ class TestMarkerSet:
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
         # response contains discord timestamp format <t:UNIX:d>
-        assert 'Adjusted' in response
+        assert 'adjusted' in response
         assert f'<t:{int(old_time.timestamp())}:d>' in response
         assert f'<t:{int(new_time.timestamp())}:d>' in response
         est_marker.update.assert_called_once()
@@ -231,7 +231,7 @@ class TestMarkerClear:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'could not clear marker' in mock_ctx._responses[0]['args'][0]
+        assert "there's no marker for year" in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_success_clears_and_responds(self, mock_ctx):
@@ -255,7 +255,7 @@ class TestMarkerClear:
         marker.delete.assert_called_once()
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Cleared' in response
+        assert 'cleared' in response
         assert '5 PC' in response
         # should not be ephemeral (success)
         kwargs = mock_ctx._responses[0]['kwargs']

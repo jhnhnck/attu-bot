@@ -134,7 +134,7 @@ class TestFamilyView:
         assert len(mock_ctx._responses) == 1
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'could not generate viewer link' in mock_ctx._responses[0]['args'][0]
+        assert "couldn't get a viewer link" in mock_ctx._responses[0]['args'][0]
 
 
 # --- /link family set ---
@@ -152,7 +152,7 @@ class TestFamilySet:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'not look like a valid discord message link' in mock_ctx._responses[0]['args'][0]
+        assert 'does not look like a discord message link' in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_no_attachment_ephemeral(self, mock_ctx):
@@ -234,7 +234,7 @@ class TestFamilyUpload:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert 'does not look like a FamilyScript' in mock_ctx._responses[0]['args'][0]
+        assert "doesn't look like a FamilyScript" in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_success_saves_and_responds(self, mock_ctx):

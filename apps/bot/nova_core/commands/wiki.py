@@ -221,7 +221,7 @@ async def wiki_lookup(ctx: ApplicationContext, query: str):
         view = WikiLookupView(message_id, ctx.user.id, pages, site_info, embed, url)
 
         if ctx.guild_id is None or ctx.channel_id is None:
-            await ctx.respond('Failed: this command must be used in a server', ephemeral=True)
+            await ctx.respond('this command must be used in a server', ephemeral=True)
             return
 
         repo = _get_view_repo()
@@ -257,14 +257,14 @@ async def wiki_block(ctx: ApplicationContext, user: str, reason: str):
     if extract is not None:
         user = extract[1]
 
-    await ctx.respond(f'Blocking user [{user}]: {reason}')
+    await ctx.respond(f'blocking {user}; {reason}')
 
     wiki = get_wiki()
     await wiki.authenticate(config.wiki.user, config.wiki.key)
     success = await wiki.admin.block(user, f'{reason} (on behalf of {ctx.user.global_name})')
 
     if not success:
-        await ctx.edit(content=f'Failed: could not block user [{user}] after 3 attempts')
+        await ctx.edit(content=f"I couldn't block {user} after 3 tries")
         await attu_logging.webhook.send_to_webhook(Exception(f'wiki.admin.block() failed for user "{user}" after 3 retries'))
 
 

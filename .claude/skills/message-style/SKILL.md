@@ -136,6 +136,10 @@ logger.critical(f'incompatible config version: file={file_version} required>={__
 
 false humility is its own failure. never write "I couldn't" about a value the user typed wrong; the bot did not fail there, and pretending otherwise buries the constraint the reader needs.
 
+**never print an exception to discord.** `{err}` and friends stay out of the response; the traceback belongs in `logger.exception(...)` and the error webhook. a stack trace or a driver message tells the reader nothing they can act on and leaks our internals into a channel.
+
+**one clause.** an error says the one thing that went wrong and stops. no trailing "; try again in a moment", no restating the constraint a second way. the sole exception is a remedy the reader cannot discover anywhere else - `; if correct, override with `force:true`` names a flag that appears in no other place.
+
 - the reason explains the specific constraint, not "an error occurred"
 - include actionable suggestions when relevant: `` "if correct, override with `force:true`" ``
 - include the underlying exception when it adds information

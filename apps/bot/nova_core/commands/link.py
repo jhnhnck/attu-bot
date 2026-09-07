@@ -46,7 +46,7 @@ async def family_view(ctx: ApplicationContext, name: str):
 
     family = await get_family(ctx.guild.id, name)
     if family is None:
-        await ctx.respond(f'Failed: no family named "{name}" is registered; use /link family set to add one', ephemeral=True)
+        await ctx.respond(f'no family named "{name}" is registered', ephemeral=True)
         return
 
     await ctx.defer()
@@ -55,7 +55,7 @@ async def family_view(ctx: ApplicationContext, name: str):
         url = await get_viewer_url(family.file_content)
     except Exception:
         logger.exception(f'family_view: FamilyEcho API call failed for "{name}"')
-        await ctx.respond('Failed: could not generate viewer link - FamilyEcho API may be unavailable', ephemeral=True)
+        await ctx.respond("I couldn't get a viewer link from FamilyEcho", ephemeral=True)
         return
 
     await ctx.respond(f'**{family.display_name}** - [open family tree]({url})\n-# link is valid for approximately 24 hours')
@@ -70,7 +70,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
 
     match = _MESSAGE_LINK_RE.search(message_link)
     if not match:
-        await ctx.respond('Failed: that does not look like a valid discord message link', ephemeral=True)
+        await ctx.respond('that does not look like a discord message link', ephemeral=True)
         return
 
     channel_id = int(match.group(2))
@@ -81,12 +81,12 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         msg = await channel.fetch_message(message_id)  # type: ignore[union-attr]
     except Exception as err:
         logger.warning(f'family_set: could not fetch message {message_id} from channel {channel_id}: {err}')
-        await ctx.respond('Failed: could not fetch that message; check the link and that I have access to that channel', ephemeral=True)
+        await ctx.respond("I couldn't get at that message", ephemeral=True)
         return
 
     family_attachments = [a for a in msg.attachments if a.filename.lower().endswith(('.txt', '.ged'))]
     if not family_attachments:
-        await ctx.respond('Failed: no .txt or .ged file found on that message', ephemeral=True)
+        await ctx.respond('no .txt or .ged file found on that message', ephemeral=True)
         return
 
     try:
@@ -94,11 +94,11 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         content = raw.decode('utf-8')
     except Exception as err:
         logger.warning(f'family_set: failed to read attachment: {err}')
-        await ctx.respond('Failed: could not read the file from that message', ephemeral=True)
+        await ctx.respond("I couldn't read the file on that message", ephemeral=True)
         return
 
     if not is_family_file(content):
-        await ctx.respond('Failed: file on that message does not look like a FamilyScript or GEDCOM file from familyecho.com', ephemeral=True)
+        await ctx.respond("that file doesn't look like a FamilyScript or GEDCOM file from familyecho.com", ephemeral=True)
         return
 
     normalized = name.strip().lower()
@@ -117,7 +117,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
         await save_family(doc)
     except Exception:
         logger.exception(f'family_set: failed to save family "{normalized}"')
-        await ctx.respond('Failed: could not save the family record', ephemeral=True)
+        await ctx.respond("I couldn't save the family record", ephemeral=True)
         return
 
     await ctx.respond(f'registered family **{name.strip()}**; use `/link family view name:{name.strip()}` to get a viewer link')
@@ -135,11 +135,11 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         content = raw.decode('utf-8')
     except Exception as err:
         logger.warning(f'family_upload: failed to read attachment: {err}')
-        await ctx.respond('Failed: could not read the attached file', ephemeral=True)
+        await ctx.respond("I couldn't read the attached file", ephemeral=True)
         return
 
     if not is_family_file(content):
-        await ctx.respond('Failed: attached file does not look like a FamilyScript or GEDCOM file from familyecho.com', ephemeral=True)
+        await ctx.respond("that file doesn't look like a FamilyScript or GEDCOM file from familyecho.com", ephemeral=True)
         return
 
     normalized = name.strip().lower()
@@ -156,7 +156,7 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
         await save_family(doc)
     except Exception:
         logger.exception(f'family_upload: failed to save family "{normalized}"')
-        await ctx.respond('Failed: could not save the family record', ephemeral=True)
+        await ctx.respond("I couldn't save the family record", ephemeral=True)
         return
 
     await ctx.respond(f'registered family **{name.strip()}**; use `/link family view name:{name.strip()}` to get a viewer link')

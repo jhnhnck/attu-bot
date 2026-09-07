@@ -28,7 +28,7 @@ marker_group = SlashCommandGroup('marker', default_member_permissions=Permission
 @commands.check(is_authorized_guild)
 async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool):
     if 'discord.com/channels' not in link:
-        await ctx.respond('Failed: not a valid discord message link', ephemeral=True)
+        await ctx.respond('that does not look like a discord message link', ephemeral=True)
         return
 
     ids = link.split('/')[-3:]
@@ -39,22 +39,22 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
         _, current_year = get_year_status(guild=guild_config.id)
 
     except UnauthorizedGuild:
-        await ctx.respond('Failed: guild not in the authorized guilds list', ephemeral=True)
+        await ctx.respond("this server isn't set up for me", ephemeral=True)
         return
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'only years 1 PC through {current_year} PC exist', ephemeral=True)
         return
 
     if channel not in guild_config.channels.lore_channels:
-        await ctx.respond('Failed: channel is not a lore channel', ephemeral=True)
+        await ctx.respond("that isn't a lore channel", ephemeral=True)
         return
 
     est_marker = await YearMarker.get(channel=channel, year=year)
     time_diff = abs((snowflake_time(est_marker.message) - snowflake_time(message)).total_seconds())
 
     if time_diff > 600 and not force:
-        await ctx.respond(f'Failed: provided link is {int(time_diff)} seconds off from expected; if correct, override with `force:true`', ephemeral=True)
+        await ctx.respond(f'provided link is {int(time_diff)} seconds off from expected; if correct, override with `force:true`', ephemeral=True)
         return
 
     marker, created = await YearMarker.get_or_create(guild=guild, channel=channel, year=year, message=message)
@@ -74,7 +74,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     snowflake = int(snowflake)
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'only years 1 PC through {current_year} PC exist', ephemeral=True)
         return
 
     est_marker = await YearMarker.get_any(guild=guild_config.id, year=year)
@@ -84,7 +84,7 @@ async def marker_set(ctx: ApplicationContext, year: int, snowflake: int):
     logger.info(f'moving {year} PC start from {est_marker.message} to {snowflake}')
     await est_marker.update(message=snowflake)
 
-    await ctx.respond(f'Adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
+    await ctx.respond(f'adjusted {year} PC start from <t:{old_time}:d> to <t:{new_time}:d>')
 
 
 @marker_group.command(name='clear', description="remove a year's marker from a lore channel")
@@ -96,21 +96,21 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
     _, current_year = get_year_status(guild=guild_config.id)
 
     if year < 1 or year >= current_year:
-        await ctx.respond(f'Failed: only years 1 PC through {current_year} PC are valid options', ephemeral=True)
+        await ctx.respond(f'only years 1 PC through {current_year} PC exist', ephemeral=True)
         return
 
     if channel.id not in guild_config.channels.lore_channels:
-        await ctx.respond('Failed: channel is not a lore channel', ephemeral=True)
+        await ctx.respond("that isn't a lore channel", ephemeral=True)
         return
 
     marker = await YearMarker.get(channel=channel.id, year=year)
 
     if marker is not None:
         await marker.delete()
-        await ctx.respond(f'Cleared saved marker for {year} PC in <#{channel.id}>')
+        await ctx.respond(f'cleared the marker for {year} PC in <#{channel.id}>')
 
     else:
-        await ctx.respond('Failed: could not clear marker as it did not exist', ephemeral=True)
+        await ctx.respond(f"there's no marker for year {year} PC in {channel.mention}", ephemeral=True)
 
 
 # --- Extension Def ---

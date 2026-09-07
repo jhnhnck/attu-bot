@@ -251,7 +251,7 @@ class TestShowRandomMessage:
         with patch('nova_core.commands.stars._get_sb_repo', side_effect=RuntimeError('no repo')):
             await _show_random_message(ctx, min_total=2)
 
-        assert 'not initialized' in ctx._responses[0]['args'][0]
+        assert "isn't ready yet" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_guild_config_not_found(self, mock_ctx_factory):
@@ -266,7 +266,7 @@ class TestShowRandomMessage:
         ):
             await _show_random_message(ctx, min_total=2)
 
-        assert 'guild configuration not found' in ctx._responses[0]['args'][0]
+        assert "couldn't load this server's config" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_original_message_not_in_db(self, mock_ctx_factory, guild):
@@ -285,7 +285,7 @@ class TestShowRandomMessage:
         ):
             await _show_random_message(ctx, min_total=2)
 
-        assert 'original message not found' in ctx._responses[0]['args'][0]
+        assert "don't have a record of that message" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
 
@@ -421,7 +421,7 @@ class TestResolveRecheckTarget:
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
 
         assert result is None
-        assert 'no matching original' in ctx._responses[0]['args'][0]
+        assert "can't find the message it came from" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_starboard_channel_non_bot_message_force(self, mock_ctx_factory, guild):
@@ -464,7 +464,7 @@ class TestResolveRecheckTarget:
             result = await _resolve_recheck_target(ctx, guild_config, sb_channel, 9001, discord_msg)
 
         assert result is None
-        assert 'could not fetch original message' in ctx._responses[0]['args'][0]
+        assert "couldn't get at the original message" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
 
@@ -518,7 +518,7 @@ class TestShowRandomMessageCCBoardRouting:
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
     async def test_ccboard_not_initialized_responds_ephemeral(self, mock_ctx_factory, make_guild):
-        """ccboard path: entry repo not initialized → 'ccboard not initialized' response."""
+        """ccboard path: entry repo not initialized -> "ccboard isn't ready yet" response."""
         from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)
@@ -529,7 +529,7 @@ class TestShowRandomMessageCCBoardRouting:
         with patch('nova_core.commands.stars._get_entry_repo', side_effect=RuntimeError('not initialized')):
             await _show_random_message(ctx, min_total=2)
 
-        assert 'ccboard not initialized' in ctx._responses[0]['args'][0]
+        assert "ccboard isn't ready yet" in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
 
 
@@ -695,15 +695,15 @@ class TestRecheckCCBoardRouting:
 
         mock_reconcile.assert_not_called()
         mock_sb.assert_called_once()
-        assert 'not initialized' in ctx._responses[0]['args'][0]
+        assert "isn't ready yet" in ctx._responses[0]['args'][0]
 
     async def test_recheck_invalid_link_responds_ephemeral(self, mock_ctx_factory):
-        """invalid link responds ephemeral with 'invalid message link'."""
+        """invalid link responds ephemeral saying it does not look like a discord message link."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
         from nova_core.commands.stars import stars_recheck
 
         await stars_recheck(ctx, 'not-a-link')
 
-        assert 'invalid message link' in ctx._responses[0]['args'][0]
+        assert 'does not look like a discord message link' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True

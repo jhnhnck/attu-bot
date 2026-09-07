@@ -47,4 +47,4 @@ class TestColorCommand:
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]
         assert response['kwargs'].get('ephemeral') is True
-        assert 'Failed:' in response['args'][0]
+        assert 'no theme color is configured' in response['args'][0]
