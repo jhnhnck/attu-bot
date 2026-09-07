@@ -220,10 +220,24 @@ version = "0.0.0"
 source = { virtual = "apps/server" }
 dependencies = [
     { name = "attu-logging" },
+    { name = "attu-models" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "tomlkit" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "attu-logging", virtual = "packages/attu-logging" }]
+requires-dist = [
+    { name = "attu-logging", virtual = "packages/attu-logging" },
+    { name = "attu-models", virtual = "packages/shared-models" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "tomlkit" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
+]
 
 [[package]]
 name = "attu-wiki"

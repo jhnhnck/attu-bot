@@ -4,6 +4,12 @@ version = "0.0.0"
 requires-python = "==3.13.*"
 dependencies = [
     "attu-logging",
+    "attu-models",
+    "fastapi>=0.115.0",
+    "httpx",
+    "pydantic",
+    "tomlkit",
+    "uvicorn>=0.34.0",
 ]
 
 [tool.uv]
@@ -11,3 +17,4 @@ package = false
 
 [tool.uv.sources]
 attu-logging = { workspace = true }
+attu-models = { workspace = true }

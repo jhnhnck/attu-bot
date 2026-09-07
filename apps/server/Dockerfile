@@ -12,7 +12,11 @@ ENV PATH="$SERVER_HOME/.venv/bin:$PATH"
 ENV PYTHONPATH="$SERVER_HOME/apps/server:$SERVER_HOME/packages/shared-models"
 
 WORKDIR $SERVER_HOME/
-RUN useradd --home-dir /home/attu --uid 1100 attu; \
+# the shared .secrets/attu-bot.toml on the host is mode 0660 owned by uid/gid
+# 1000 (the same identity the core container runs as). attu keeps its own uid
+# for separation but joins gid 1000 so the read-only mount is readable.
+RUN groupadd --gid 1000 hostsecrets; \
+    useradd --home-dir /home/attu --uid 1100 --groups hostsecrets attu; \
     mkdir -p $SERVER_HOME; \
     chown -Rc attu:attu $SERVER_HOME
 
@@ -30,6 +34,10 @@ COPY --chown=attu:attu ./pyproject.toml ./uv.lock $SERVER_HOME/
 COPY --chown=attu:attu ./apps/bot/pyproject.toml $SERVER_HOME/apps/bot/pyproject.toml
 COPY --chown=attu:attu ./apps/server/pyproject.toml $SERVER_HOME/apps/server/pyproject.toml
 COPY --chown=attu:attu ./packages/shared-models/pyproject.toml $SERVER_HOME/packages/shared-models/pyproject.toml
+# attu-logging and attu-wiki are package = false, so only their manifests are
+# needed; uv still requires every workspace member present to resolve at all
+COPY --chown=attu:attu ./packages/attu-logging/pyproject.toml $SERVER_HOME/packages/attu-logging/pyproject.toml
+COPY --chown=attu:attu ./packages/attu-wiki/pyproject.toml $SERVER_HOME/packages/attu-wiki/pyproject.toml
 
 # install only the server's dep tree
 RUN --mount=type=cache,target=$SERVER_HOME/.cache/,uid=1100,gid=1100 \
