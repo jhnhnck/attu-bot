@@ -38,7 +38,7 @@ class LogoUpdateTask(BaseTask):
         try:
             await guild.edit(icon=guild_icon, reason='logo update task')
         except Exception as err:
-            logger.error(f'logo update: failed to update guild icon: {err}')
+            logger.exception('logo update: failed to update guild icon')
 
         emoji_name = guild.name.replace(' ', '_').lower()
         try:
@@ -49,7 +49,7 @@ class LogoUpdateTask(BaseTask):
                     break
             await guild.create_custom_emoji(name=emoji_name, image=guild_icon, reason='logo update task')
         except Exception as err:
-            logger.error(f'logo update: failed to update guild emoji: {err}')
+            logger.exception('logo update: failed to update guild emoji')
 
         role_id = config.primary().roles.bot_color
         if role_id:
@@ -59,7 +59,7 @@ class LogoUpdateTask(BaseTask):
                     await role.edit(color=discord.Color(int(computed_color.lstrip('#'), 16)), reason='logo update task')
                     logger.debug(f'updated bot_color role {role.name} to {computed_color}')
                 except Exception as err:
-                    logger.error(f'logo update: failed to update bot_color role: {err}')
+                    logger.exception('logo update: failed to update bot_color role')
 
     @webhook_logging(scope=logger)
     async def run(self) -> None:
@@ -95,7 +95,7 @@ class LogoUpdateTask(BaseTask):
         try:
             await bot.user.edit(avatar=bot_avatar)
         except Exception as err:
-            logger.error(f'logo update: failed to update bot avatar: {err}')
+            logger.exception('logo update: failed to update bot avatar')
 
         # store new rotation and computed hex (keeps web ui and util.py in sync)
         config.theme.rotation = new_rotation % 360

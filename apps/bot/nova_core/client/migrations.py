@@ -76,7 +76,7 @@ def migration(old: str, new: str, stage: str = 'load') -> Callable[[Callable[[],
             try:
                 await func()
             except Exception as e:
-                logger.error(f'migration to {new} failed: {e}')
+                logger.exception(f'migration to {new} failed')
                 raise MigrationError(f'Migration to {new} failed') from e
 
             # bump version in MongoDB
@@ -153,7 +153,7 @@ async def migration_backfill_years():
         try:
             _, current_year = get_year_status(guild_id)
         except Exception as e:
-            logger.error(f'skipping guild {guild_id} during year backfill: {e}')
+            logger.exception(f'skipping guild {guild_id} during year backfill')
             continue
 
         count = 0
@@ -201,7 +201,7 @@ async def migration_fix_year_data():
         try:
             _, current_year = get_year_status(guild_id)
         except Exception as e:
-            logger.error(f'skipping guild {guild_id} during year fix: {e}')
+            logger.exception(f'skipping guild {guild_id} during year fix')
             continue
 
         all_years = await year_repo.all_for_guild(guild_id)
@@ -255,7 +255,7 @@ async def migration_add_guild_to_markers():
                 for channel_id in guild_cfg.channels.lore_channels:
                     channel_to_guild[channel_id] = guild_id
             except Exception as e:
-                logger.error(f'could not load lore channels for guild {guild_id}: {e}')
+                logger.exception(f'could not load lore channels for guild {guild_id}')
 
         all_docs = await collection.find({}).to_list(length=None)
         updated = deleted = skipped = 0
@@ -287,7 +287,7 @@ async def migration_add_guild_to_markers():
         await marker_repo.init_indexes()
 
     except Exception:
-        logger.error('migration 2.2.5 failed; restoring collection from snapshot')
+        logger.exception('migration 2.2.5 failed; restoring collection from snapshot')
         await _restore_collection(database, YearMarkerRepository.COLLECTION, backup)
         raise
 
@@ -562,7 +562,7 @@ async def migration_restructure_messages():
         logger.info(f'migration 2.5.2: restructured {result.modified_count} message documents')
 
     except Exception:
-        logger.error('migration 2.5.2 failed; restoring messages collection from snapshot')
+        logger.exception('migration 2.5.2 failed; restoring messages collection from snapshot')
         await _restore_collection(database, MessageRepository.COLLECTION, backup)
         raise
 
@@ -602,7 +602,7 @@ async def migration_seed_ui_emojis():
         logger.info(f'migration 2.5.4: {"seeded" if result.modified_count else "already populated, skipped"} ui_emojis')
 
     except Exception:
-        logger.error('migration 2.5.4 failed; restoring global_config from snapshot')
+        logger.exception('migration 2.5.4 failed; restoring global_config from snapshot')
         await _restore_collection(database, 'global_config', backup)
         raise
 

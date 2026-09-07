@@ -336,39 +336,39 @@ class NovaConfig:
         try:
             self.guild_entries = [GuildEntry(**entry) for entry in raw_entries]
         except (ValidationError, TypeError) as err:
-            logger.error(f'failed to validate guilds configuration: {err!s}')
+            logger.exception('failed to validate guilds configuration')
             raise ConfigLoadError('invalid [[guilds]] entry (each entry requires id: int and role: str)')
         self.authorized_guilds = {entry.id for entry in self.guild_entries}
 
         try:
             self.bot = BotConfig(**self._raw['bot'])
         except (KeyError, ValidationError) as err:
-            logger.error(f'failed to validate bot configuration: {err!s}')
+            logger.exception('failed to validate bot configuration')
             raise ConfigLoadError('invalid bot configuration (missing [bot] section?)')
 
         try:
             self.paths = PathsConfig(**self._raw.get('paths', {}))
         except ValidationError as err:
-            logger.error(f'failed to validate paths configuration: {err!s}')
+            logger.exception('failed to validate paths configuration')
             raise ConfigLoadError('invalid paths configuration')
 
         try:
             self.database = DatabaseConfig(**self._raw.get('database', {}))
         except ValidationError as err:
-            logger.error(f'failed to validate database configuration: {err!s}')
+            logger.exception('failed to validate database configuration')
             raise ConfigLoadError('invalid database configuration')
 
         try:
             self.wiki = WikiAuth(**self._raw['auth']['wiki'])
 
         except ValidationError as err:
-            logger.error(f'failed to validate wiki auth configuration: {err!s}')
+            logger.exception('failed to validate wiki auth configuration')
             raise ConfigLoadError('invalid wiki auth configuration')
 
         try:
             self.backup = BackupConfig(**self._raw.get('backup', {}))
         except ValidationError as err:
-            logger.error(f'failed to validate backup configuration: {err!s}')
+            logger.exception('failed to validate backup configuration')
             raise ConfigLoadError('invalid backup configuration')
 
         try:
@@ -389,7 +389,7 @@ class NovaConfig:
         except ConfigLoadError:
             raise
         except (ValidationError, KeyError) as err:
-            logger.error(f'failed to validate hatch config: {err!s}')
+            logger.exception('failed to validate hatch config')
             raise ConfigLoadError('invalid hatch configuration')
 
         bridge_raw = self._raw.get('bridge')
@@ -397,7 +397,7 @@ class NovaConfig:
             try:
                 self.bridge = BridgeConfig(**bridge_raw)
             except ValidationError as err:
-                logger.error(f'failed to validate bridge configuration: {err!s}')
+                logger.exception('failed to validate bridge configuration')
                 raise ConfigLoadError('invalid bridge configuration (check [bridge] section)')
 
         features_raw = self._raw.get('features', {})
@@ -435,7 +435,7 @@ class NovaConfig:
                 success = await self.load_guild(guild_id)
                 return (guild_id, success)
             except Exception as e:
-                logger.error(f'failed to load guild {guild_id} during parallel load: {e!s}')
+                logger.exception(f'failed to load guild {guild_id} during parallel load')
                 return (guild_id, False)
 
         results = await asyncio.gather(
@@ -474,7 +474,7 @@ class NovaConfig:
                     await self.config_repo.update_guild_field(guild_id, 'users.markers', guild.users.markers)
                     return guild_id
                 except Exception as e:
-                    logger.error(f'failed to update markers for guild {guild_id}: {e!s}')
+                    logger.exception(f'failed to update markers for guild {guild_id}')
                     return None
             return None
 
@@ -512,7 +512,7 @@ class NovaConfig:
                     logger.info(f'fetching guild {guild_id} info from api (not in cache)')
                     guild_obj = await bot.fetch_guild(guild_id)
                 except Exception as e:
-                    logger.error(f'failed to fetch guild {guild_id} from api: {e}')
+                    logger.exception(f'failed to fetch guild {guild_id} from api')
                     return (guild_id, None)
             return (guild_id, guild_obj.name if guild_obj else None)
 
@@ -611,7 +611,7 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(f'failed to validate {guild}: {err!s}')
+            logger.exception(f'failed to validate {guild}')
 
             if prev_state is not None:
                 self.guilds[guild] = prev_state
@@ -652,7 +652,7 @@ class NovaConfig:
             return True
 
         except ValidationError as err:
-            logger.error(f'failed to validate theme: {err!s}')
+            logger.exception('failed to validate theme')
 
             if prev_state is not None:
                 self.theme = prev_state

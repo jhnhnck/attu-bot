@@ -254,7 +254,7 @@ async def store_message(message: Message) -> None:
             logger.debug(f'store_message: retrying {message.id} after connection reset')
             await _get_repo().upsert(doc)
     except Exception as err:
-        logger.error(f'failed to store message {message.id}: {err}')
+        logger.exception(f'failed to store message {message.id}')
 
 
 # --- log embed builders ---
@@ -404,7 +404,7 @@ async def log_edit(payload: RawMessageUpdateEvent) -> None:
     try:
         await channel.send(embed=embed)
     except Exception as err:
-        logger.error(f'failed to send edit log for message {payload.message_id}: {err}')
+        logger.exception(f'failed to send edit log for message {payload.message_id}')
 
 
 async def _get_message_delete_actor(guild: discord.Guild, author_id: int, channel_id: int) -> 'discord.User | discord.Member | None':
@@ -509,7 +509,7 @@ async def log_delete(payload: RawMessageDeleteEvent) -> None:  # noqa: PLR0912, 
     try:
         await channel.send(embed=embed)
     except Exception as err:
-        logger.error(f'failed to send delete log for message {payload.message_id}: {err}')
+        logger.exception(f'failed to send delete log for message {payload.message_id}')
 
 
 async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
@@ -546,4 +546,4 @@ async def log_bulk_delete(payload: RawBulkMessageDeleteEvent) -> None:
     try:
         await channel.send(embed=embed)
     except Exception as err:
-        logger.error(f'failed to send bulk delete log in channel {payload.channel_id}: {err}')
+        logger.exception(f'failed to send bulk delete log in channel {payload.channel_id}')

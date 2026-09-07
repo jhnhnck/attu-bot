@@ -54,7 +54,7 @@ async def family_view(ctx: ApplicationContext, name: str):
     try:
         url = await get_viewer_url(family.file_content)
     except Exception as err:
-        logger.error(f'family_view: FamilyEcho API call failed for "{name}": {err}')
+        logger.exception(f'family_view: FamilyEcho API call failed for "{name}"')
         await ctx.respond('Failed: could not generate viewer link - FamilyEcho API may be unavailable', ephemeral=True)
         return
 
@@ -116,7 +116,7 @@ async def family_set(ctx: ApplicationContext, name: str, message_link: str):
     try:
         await save_family(doc)
     except Exception as err:
-        logger.error(f'family_set: failed to save family "{normalized}": {err}')
+        logger.exception(f'family_set: failed to save family "{normalized}"')
         await ctx.respond('Failed: could not save the family record', ephemeral=True)
         return
 
@@ -155,7 +155,7 @@ async def family_upload(ctx: ApplicationContext, name: str, file: discord.Attach
     try:
         await save_family(doc)
     except Exception as err:
-        logger.error(f'family_upload: failed to save family "{normalized}": {err}')
+        logger.exception(f'family_upload: failed to save family "{normalized}"')
         await ctx.respond('Failed: could not save the family record', ephemeral=True)
         return
 

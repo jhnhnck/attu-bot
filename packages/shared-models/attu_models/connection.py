@@ -78,11 +78,11 @@ class MongoStorage:
                     logger.warn(f'mongodb connection attempt {attempt} failed: {e!s}; retrying in {delay:.0f}s')
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f'mongodb connection failed after {max_attempts} attempts: {e!s}')
+                    logger.exception(f'mongodb connection failed after {max_attempts} attempts')
 
             except Exception as e:
                 last_err = e
-                logger.error(f'mongodb connection failed with unexpected error: {e!s}')
+                logger.exception('mongodb connection failed with unexpected error')
                 break  # non-connection errors are not retried
 
         raise RuntimeError(f'MongoDB connection failed: {last_err!s}') from last_err

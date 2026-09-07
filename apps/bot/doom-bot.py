@@ -15,7 +15,6 @@ _configure_logging(level='DEBUG' if 'DEBUG' in environ else None)
 
 import sys  # noqa: E402 - configure must run before any other import
 import time  # noqa: E402 - configure must run before any other import
-import traceback  # noqa: E402 - configure must run before any other import
 
 import structlog  # noqa: E402 - configure must run before any other import
 
@@ -43,9 +42,8 @@ try:
 
         start_bot_loop()
 
-except Exception as error:
-    tb_str = ''.join(traceback.format_exception(error))
-    logger.error(f'{error!s}\n{tb_str}')
+except Exception:
+    logger.exception('fatal error in bot loop')
 
     if 'TEST_MODE' not in environ:
         logger.critical('Fatal error encountered; will exit/restart in 60 secs')

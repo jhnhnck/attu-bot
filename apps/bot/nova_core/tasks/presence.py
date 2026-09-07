@@ -38,7 +38,7 @@ class PresenceUpdateTask(BaseTask):
         try:
             count = await _egg_repo.count_hatched()
         except Exception as err:
-            logger.error(f'presence: failed to count hatched eggs: {err}')
+            logger.exception('presence: failed to count hatched eggs')
             return
         try:
             await bot.change_presence(
@@ -48,7 +48,7 @@ class PresenceUpdateTask(BaseTask):
                 )
             )
         except Exception as err:
-            logger.error(f'presence: failed to update presence: {err}')
+            logger.exception('presence: failed to update presence')
 
 
 # singleton instance for registration

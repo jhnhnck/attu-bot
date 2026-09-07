@@ -442,7 +442,7 @@ class TestRunGuildEditFails:
             await task.run()
 
         # guild error logged
-        assert any('failed to update guild icon' in str(c) for c in mock_logger.error.call_args_list)
+        assert any('failed to update guild icon' in str(c) for c in mock_logger.exception.call_args_list)
         # bot avatar update still attempted
         mock_bot.user.edit.assert_awaited_once()
         # theme still saved
@@ -470,7 +470,7 @@ class TestRunBotEditFails:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        assert any('failed to update bot avatar' in str(c) for c in mock_logger.error.call_args_list)
+        assert any('failed to update bot avatar' in str(c) for c in mock_logger.exception.call_args_list)
         # emoji creation still attempted
         guild.create_custom_emoji.assert_awaited_once()
         theme.save.assert_awaited_once()
@@ -502,7 +502,7 @@ class TestRunEmojiUpdateFails:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        assert any('failed to update guild emoji' in str(c) for c in mock_logger.error.call_args_list)
+        assert any('failed to update guild emoji' in str(c) for c in mock_logger.exception.call_args_list)
         mock_role.edit.assert_awaited_once()
         theme.save.assert_awaited_once()
 
@@ -532,7 +532,7 @@ class TestRunRoleUpdateFails:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        assert any('failed to update bot_color role' in str(c) for c in mock_logger.error.call_args_list)
+        assert any('failed to update bot_color role' in str(c) for c in mock_logger.exception.call_args_list)
         theme.save.assert_awaited_once()
 
 

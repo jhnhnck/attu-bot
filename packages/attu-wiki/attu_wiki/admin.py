@@ -45,7 +45,7 @@ class AdminApi:
                 return True
 
             except Exception as error:
-                logger.error(f'block(): attempt {attempt + 1} failed: {error}')
+                logger.exception(f'block(): attempt {attempt + 1} failed')
                 await asyncio.sleep(3)
 
         return False

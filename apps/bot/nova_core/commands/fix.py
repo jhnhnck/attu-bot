@@ -54,7 +54,7 @@ async def job_backfill_channel(
     try:
         backfilled = await backfill_task._backfill_channel(guild_id, channel)  # pyright: ignore[reportArgumentType]
     except Exception as err:
-        logger.error(f'fix messages: error scanning channel {channel_id}: {err}')
+        logger.exception(f'fix messages: error scanning channel {channel_id}')
         await _safe_edit(status_msg, f'Error scanning <#{channel_id}>; check logs')
         return 0, 0
 

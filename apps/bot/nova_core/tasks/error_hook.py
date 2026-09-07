@@ -63,10 +63,10 @@ class ErrorHookTask(BaseTask):
                 config.error_hook = hook.url
                 await config.config_repo.update_system_field('error_hook', hook.url)
             except Exception as create_err:
-                logger.error(f'failed to create new webhook for error log: {create_err}')
+                logger.exception('failed to create new webhook for error log')
 
         except Exception as err:
-            logger.error(f'failed acquiring new webhook for error log: {err}')
+            logger.exception('failed acquiring new webhook for error log')
 
 
 # singleton instance for registration

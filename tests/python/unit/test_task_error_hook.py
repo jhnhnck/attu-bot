@@ -263,8 +263,8 @@ class TestRunDiscordApiError:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        mock_logger.error.assert_called_once()
-        assert 'failed to create' in mock_logger.error.call_args[0][0]
+        mock_logger.exception.assert_called_once()
+        assert 'failed to create' in mock_logger.exception.call_args[0][0]
         # config should remain unchanged
         mock_cfg.config_repo.update_system_field.assert_not_awaited()
 
@@ -284,8 +284,8 @@ class TestRunOuterException:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        mock_logger.error.assert_called_once()
-        assert 'failed acquiring' in mock_logger.error.call_args[0][0]
+        mock_logger.exception.assert_called_once()
+        assert 'failed acquiring' in mock_logger.exception.call_args[0][0]
 
 
 # --- run - config persistence after webhook update ---

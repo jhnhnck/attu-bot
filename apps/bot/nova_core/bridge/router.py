@@ -492,7 +492,7 @@ def start_bridge_task() -> None:
             logger.info('bridge cancelled; shutting down')
             raise
         except Exception as e:
-            logger.error(f'bridge server crashed: {e!s}')
+            logger.exception('bridge server crashed')
             bot._bridge_started = False
 
     bot.loop.create_task(_serve())

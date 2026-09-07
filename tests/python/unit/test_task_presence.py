@@ -127,8 +127,8 @@ class TestRunCountError:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        mock_logger.error.assert_called_once()
-        assert 'failed to count hatched eggs' in str(mock_logger.error.call_args)
+        mock_logger.exception.assert_called_once()
+        assert 'failed to count hatched eggs' in str(mock_logger.exception.call_args)
         mock_bot.change_presence.assert_not_awaited()
 
 
@@ -153,8 +153,8 @@ class TestRunPresenceError:
             mock_logger.send_to_webhook = AsyncMock()
             await task.run()
 
-        mock_logger.error.assert_called_once()
-        assert 'failed to update presence' in str(mock_logger.error.call_args)
+        mock_logger.exception.assert_called_once()
+        assert 'failed to update presence' in str(mock_logger.exception.call_args)
 
 
 # --- singleton and metadata ---
