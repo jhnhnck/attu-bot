@@ -263,9 +263,9 @@ class TestCCBoardLeaderboards:
 
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from nova_core.commands.stars import stars_top_messages
+        from nova_core.commands.cc_stars import cc_top_messages
 
-        await stars_top_messages(ctx)
+        await cc_top_messages(ctx)
 
         embed = ctx._responses[0]['kwargs']['embed']
         desc = embed.description
@@ -290,9 +290,9 @@ class TestCCBoardLeaderboards:
         cc_repos['cfg'].ccboard.enabled = False
         ctx = mock_ctx_factory(guild_id=test_guild)
 
-        from nova_core.commands.stars import stars_top_messages
+        from nova_core.commands.cc_stars import cc_top_messages
 
-        await stars_top_messages(ctx)
+        await cc_top_messages(ctx)
 
         assert 'coming soon' in ctx._responses[0]['args'][0]
         assert ctx._responses[0]['kwargs'].get('ephemeral') is True
