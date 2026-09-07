@@ -6,6 +6,7 @@ import argparse
 import json
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -30,6 +31,54 @@ prod_dir = Path('/srv/services/doom-bot')
 version_file = dev_dir / 'apps' / 'bot' / 'nova_core' / '__init__.py'
 
 _epoch_file = Path.home() / '.attu-epoch.toml'
+
+# the live config is gitignored, so a `git reset` across a config-format change
+# leaves the old image facing a config it cannot parse. snapshot it per tag so a
+# revert can put the matching one back.
+prod_config = prod_dir / '.secrets' / 'attu-bot.toml'
+
+
+def config_snapshot(tag: str) -> Path:
+    """path of the config snapshot belonging to a version tag."""
+    return prod_config.with_name(f'{prod_config.name}.{tag}')
+
+
+def save_config_snapshot(tag: str, dry_run: bool = False) -> None:
+    """copy the live prod config aside under its version tag; overwrites an existing one."""
+    dest = config_snapshot(tag)
+    if dry_run:
+        print(colored(f'  (dry run) would snapshot config to {dest.name}', 'dark_grey'))
+        return
+    if not prod_config.exists():
+        print(colored(f'  warning: {prod_config} not found; no config snapshot saved', 'yellow'), file=sys.stderr)
+        return
+    shutil.copy2(prod_config, dest)  # copy2 keeps mode and ownership bits the containers rely on
+    print(colored(f'  config snapshot saved as {dest.name}', 'green'))
+
+
+def require_config_snapshot(tag: str, force: bool = False) -> None:
+    """abort unless a config snapshot for `tag` exists, or the caller forced past it."""
+    snapshot = config_snapshot(tag)
+    if snapshot.exists():
+        print(colored(f'  found {snapshot.name}', 'green'))
+        return
+    if force:
+        print(colored(f'  no {snapshot.name}; --force given, keeping the current config', 'yellow'), file=sys.stderr)
+        return
+    abort(f'no config snapshot for {tag} at {snapshot}.\n  reverting the code without it leaves {prod_config.name} in a format the\n  {tag} image may not parse, which is how the bot stays down after a revert.\n  put the config that shipped with {tag} there, or pass --force to keep the current one.')
+
+
+def restore_config_snapshot(tag: str, dry_run: bool = False) -> bool:
+    """put the snapshot for `tag` back in place; return False when none exists."""
+    src = config_snapshot(tag)
+    if dry_run:
+        print(colored(f'  (dry run) would restore config from {src.name}', 'dark_grey'))
+        return True
+    if not src.exists():
+        return False
+    shutil.copy2(src, prod_config)
+    print(colored(f'  config restored from {src.name}', 'green'))
+    return True
 
 
 # --- helpers ---
@@ -144,9 +193,23 @@ def check_container_health(cwd: Path) -> list[str]:
     return problems
 
 
-def revert_to_tag(tag: str, dry_run: bool = False) -> None:
-    """revert prod to a previous version tag and rebuild containers."""
-    total = 5
+def rebuild_and_check(what: str, dry_run: bool = False) -> None:
+    """bring prod's containers up and fail if any are unhealthy after they settle."""
+    run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run)
+    if dry_run:
+        print(colored('  (dry run) would run docker compose up --build -d, then check health', 'dark_grey'))
+        return
+    print(colored('  waiting 60s for containers to stabilize', 'cyan'))
+    time.sleep(60)
+    problems = check_container_health(prod_dir)
+    if problems:
+        abort(f'unhealthy containers after {what}:\n  ' + '\n  '.join(problems))
+    print(colored('  all containers healthy', 'green'))
+
+
+def revert_to_tag(tag: str, dry_run: bool = False, force: bool = False) -> None:
+    """revert prod to a previous version tag, restore that tag's config, and rebuild."""
+    total = 6
     n = 0
 
     n += 1
@@ -167,7 +230,16 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
     print(colored(f'  prod is clean (currently at {current_sha})', 'green'))
 
     n += 1
+    header(n, total, f'checking for the config snapshot of {tag}')
+    require_config_snapshot(tag, force=force)
+
+    n += 1
     header(n, total, f'resetting prod to {tag}')
+    # snapshot the config we are leaving, under the tag it belongs to, so rolling
+    # forward again does not need it reconstructed by hand
+    outgoing_tag = git_cmd(['describe', '--tags', '--abbrev=0'], cwd=prod_dir)
+    if outgoing_tag and outgoing_tag != tag:
+        save_config_snapshot(outgoing_tag, dry_run=dry_run)
     if not dry_run:
         try:
             git_cmd(['reset', '--hard', tag], cwd=prod_dir)
@@ -179,23 +251,13 @@ def revert_to_tag(tag: str, dry_run: bool = False) -> None:
         print(colored(f'  (dry run) would git reset --hard {tag} and force-push origin prod', 'dark_grey'))
 
     n += 1
-    header(n, total, 'rebuilding containers')
-    run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run)
-    if not dry_run:
-        print(colored('  waiting 60s for containers to stabilize', 'cyan'))
-        time.sleep(60)
-    else:
-        print(colored('  (dry run) would run docker compose up --build -d', 'dark_grey'))
+    header(n, total, 'restoring config')
+    if not restore_config_snapshot(tag, dry_run=dry_run):
+        print(colored('  no snapshot restored; keeping the current config (--force)', 'yellow'), file=sys.stderr)
 
     n += 1
-    header(n, total, 'checking container health')
-    if not dry_run:
-        problems = check_container_health(prod_dir)
-        if problems:
-            abort('unhealthy containers after revert:\n  ' + '\n  '.join(problems))
-        print(colored('  all containers healthy', 'green'))
-    else:
-        print(colored('  (dry run) would check container health', 'dark_grey'))
+    header(n, total, 'rebuilding containers and checking health')
+    rebuild_and_check('revert', dry_run=dry_run)
 
     print(colored(f'\nreverted to {tag} successfully', 'light_green'))
     print(colored('  note: trunk branch still points to the pre-revert state; adjust manually if needed', 'cyan'))
@@ -270,16 +332,27 @@ if __name__ == '__main__':
     parser.add_argument('--no-tests', action='store_true', help='skip all test runs')
     parser.add_argument('--dry-run', action='store_true', help='print steps without making changes')
     parser.add_argument('--deploy', action='store_true', help='rebuild containers and push to remote after tagging and merging trunk')
-    parser.add_argument('--revert', metavar='TAG', help='revert trunk to a previous version tag and rebuild containers')
+    parser.add_argument('--revert', metavar='TAG', help='revert trunk to a previous version tag, restore that tag config, and rebuild containers')
+    parser.add_argument('--snapshot-config', metavar='TAG', help="copy prod's live config aside as the config belonging to TAG; run before migrating the config forward")
+    parser.add_argument('--force', action='store_true', help='with --revert, proceed even when TAG has no config snapshot')
     args = parser.parse_args()
 
     dry_run: bool = args.dry_run
     do_deploy: bool = args.deploy
     skip_tests: bool = args.no_tests
 
+    if args.snapshot_config:
+        if dry_run:
+            print(colored(f'  (dry run) would snapshot config as {config_snapshot(args.snapshot_config).name}', 'dark_grey'))
+        elif not prod_config.exists():
+            abort(f'no config at {prod_config}; nothing to snapshot')
+        else:
+            save_config_snapshot(args.snapshot_config)
+        sys.exit(0)
+
     if args.revert:
         try:
-            revert_to_tag(args.revert, dry_run=dry_run)
+            revert_to_tag(args.revert, dry_run=dry_run, force=args.force)
         except KeyboardInterrupt:
             print(colored('\ninterrupted', 'yellow'), file=sys.stderr)
             sys.exit(130)
@@ -361,6 +434,18 @@ if __name__ == '__main__':
         if trunk_dirty:
             abort('prod working directory is not clean:\n  ' + '\n  '.join(trunk_dirty))
         saved_sha = git_cmd(['rev-parse', 'HEAD'], cwd=prod_dir)
+        # warn now, not mid-incident, if the version we are replacing has no config
+        # snapshot; --revert to it would restore the code but leave a config the
+        # older image may refuse to parse
+        outgoing_tag = git_cmd(['describe', '--tags', '--abbrev=0'], cwd=prod_dir)
+        if outgoing_tag and not config_snapshot(outgoing_tag).exists():
+            print(
+                colored(
+                    f'  warning: no config snapshot for the current version {outgoing_tag};\n  --revert {outgoing_tag} will not be able to restore its config.\n  capture it first with: deploy.py --snapshot-config {outgoing_tag}',
+                    'yellow',
+                ),
+                file=sys.stderr,
+            )
         print(colored('  prod is clean', 'green'))
 
         if not skip_tests:
@@ -446,6 +531,11 @@ if __name__ == '__main__':
 
             n += 1
             header(n, total, 'restarting containers')
+            # record the config this version runs with, so a later --revert to it
+            # restores a config the image can parse. only the new tag is captured
+            # here: by now the live config has already been migrated forward, so
+            # writing it under the outgoing tag would be a lie.
+            save_config_snapshot(new_tag, dry_run=dry_run)
             if not dry_run:
                 subprocess.run(
                     ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
@@ -471,6 +561,16 @@ if __name__ == '__main__':
                 trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
                 dev_reset = subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - reset trunk to its pre-bump sha, idempotent across repeated rollbacks; sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - undo version tag on trunk
+                # the code is going back; the config has to go with it or the older
+                # image starts against a config it cannot parse
+                if outgoing_tag and not restore_config_snapshot(outgoing_tag):
+                    print(
+                        colored(
+                            f'warning: no config snapshot for {outgoing_tag}; prod code is rolled back but\n  {prod_config.name} is still the migrated one. restore it by hand before the\n  containers settle, or the bot will not come up.',
+                            'red',
+                        ),
+                        file=sys.stderr,
+                    )
                 rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
                     print(colored('warning: rollback may have failed; check prod and trunk manually', 'red'), file=sys.stderr)
@@ -488,6 +588,8 @@ if __name__ == '__main__':
                 subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback on interrupt
                 subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - rollback on interrupt; saved_trunk_sha is a local `git rev-parse` result, not user input
                 subprocess.run(['git', 'tag', '-d', new_tag], check=False)  # noqa: S603, S607 - rollback on interrupt
+                if outgoing_tag and not restore_config_snapshot(outgoing_tag):
+                    print(colored(f'warning: no config snapshot for {outgoing_tag}; {prod_config.name} left as-is', 'red'), file=sys.stderr)
             elif committed and new_tag:
                 print(colored('rolling back version commit and tag', 'yellow'), file=sys.stderr)
                 subprocess.run(['git', 'reset', '--hard', saved_trunk_sha], check=False)  # noqa: S603, S607 - rollback on interrupt; saved_trunk_sha is a local `git rev-parse` result, not user input

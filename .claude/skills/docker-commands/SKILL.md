@@ -33,6 +33,7 @@ dev postgres uses `tmpfs` for its data dir, so every dev start is from-scratch. 
 | build prod images only | `docker compose -f docker-compose.prod.yml build` |
 | stop prod (for restore/maintenance) | `docker compose -f docker-compose.prod.yml stop core server` |
 | deploy (bump + tag + merge + push) | `python scripts/deploy.py minor --deploy` |
+| snapshot the live config for the running tag | `python scripts/deploy.py --snapshot-config <tag>` |
 | revert to a prior tag | `python scripts/deploy.py --revert <tag>` |
 | restore prod from backup | `bash scripts/restore.sh /srv/backups/attu-bot/<ts>.tar.bz2` (run from prod dir) |
 | refresh dev seed | `bash scripts/create_dev_seed.sh /srv/backups/attu-bot/<ts>.tar.bz2` |
@@ -48,7 +49,7 @@ the venv path is primary: `run_tests.py` runs the suites in the current interpre
 | script | purpose |
 |---|---|
 | `scripts/run_tests.py` | three-suite pytest orchestrator (unit, component, integration). runs the suites directly in the current interpreter's venv; it no longer relaunches itself into docker. flags: `-v`, `-x`, `--coverage`, `--coverage-json`. |
-| `scripts/deploy.py` | bump-merge-deploy orchestrator. `bump` (`minor`\|`patch`), `--deploy`, `--revert TAG`, `--no-tests`, `--dry-run`. requires being on `trunk`; merges fast-forward into `prod`, tags, runs prod tests, restarts containers, 60s sleep, health-checks, then pushes. has rollback paths for most failure points. |
+| `scripts/deploy.py` | bump-merge-deploy orchestrator. `bump` (`minor`\|`patch`), `--deploy`, `--revert TAG`, `--snapshot-config TAG`, `--force`, `--no-tests`, `--dry-run`. requires being on `trunk`; merges fast-forward into `prod`, tags, runs prod tests, restarts containers, 60s sleep, health-checks, then pushes. has rollback paths for most failure points. **config snapshots**: the live `.secrets/attu-bot.toml` is gitignored, so reverting code across a `__config_version__` change would otherwise leave the old image facing a config it cannot parse. a deploy saves the config as `attu-bot.toml.<tag>`, and `--revert` restores that tag's copy, aborting if it is missing (`--force` overrides). capture the current version's config with `--snapshot-config <tag>` **before** migrating it forward. |
 | `scripts/coverage_report.py` | renders a `coverage.json` payload as the markdown coverage section in `docs/to-do.md`. pure formatter; reads stdin or path. `--threshold` for ci gating. |
 | `scripts/ferret_init.sh` | runs *inside* the dev `ferret-init` service. waits for ferret on tcp 27017, then `mongorestore`s the seed at `/tmp/seeds/doombot-seed/` excluding heavy/test collections. not invoked directly. |
 | `scripts/create_dev_seed.sh` | host script. extracts a `.tar.bz2` prod backup, strips heavy collections (`messages`, `chat_sources`, `families`, `chat_characters`, `test_*_messages`), and stages the result at `apps/bot/assets/doombot-seed/` for `ferret-init` to pick up next dev start. |
