@@ -72,7 +72,7 @@ async def remind_add(ctx: ApplicationContext, year: int, month: int | None = Non
     date_str = format_attu_date(reminder)
     fire_ts = int(fire_dt.timestamp())
     description = f'{date_str}\n> {reminder.note}' if reminder.note else date_str
-    embed = make_embed(title='reminder', description=description)
+    embed = make_embed(title='Reminder', description=description)
     embed.add_field(name='date', value=f'<t:{fire_ts}:R>', inline=False)
     await ctx.respond(embed=embed)
 
@@ -102,11 +102,11 @@ async def remind_list(ctx: ApplicationContext):
         date_str = format_attu_date(r)
         fire_dt = await compute_fire_time(r)
         fire_str = f'<t:{int(fire_dt.timestamp())}:R>' if fire_dt else 'unknown'
-        note_str = f' — {r.note}' if r.note else ''
+        note_str = f' - {r.note}' if r.note else ''
         short_id = r.reminder_id[:8]
         lines.append(f'`{short_id}` **{date_str}** {fire_str}{note_str}')
 
-    embed = make_embed(title='your reminders', description='\n'.join(lines))
+    embed = make_embed(title='Your Reminders', description='\n'.join(lines))
     await ctx.respond(embed=embed)
 
 

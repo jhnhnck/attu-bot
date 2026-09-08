@@ -205,7 +205,7 @@ class TestRemindAddValidation:
         # should have responded with an embed confirmation
         assert len(mock_ctx._responses) == 1
         embed = mock_ctx._responses[0]['kwargs']['embed']
-        assert embed.title == 'reminder'
+        assert embed.title == 'Reminder'
         assert '5 PC' in embed.description
         assert 'test note' in embed.description
 
@@ -327,7 +327,7 @@ class TestDeliverReminder:
         kwargs = mock_channel.send.call_args.kwargs
         assert f'<@{test_user}>' in kwargs['content']
         embed = kwargs['embed']
-        assert embed.title == 'reminder'
+        assert embed.title == 'Reminder'
         assert '15-3 5 PC' in embed.description
         assert 'do the thing' in embed.description
 

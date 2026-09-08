@@ -332,7 +332,7 @@ async def eggs_leaderboard_hatched(ctx: ApplicationContext):
     from nova_core.eggs.hatching import _egg_repo
 
     rows = await _egg_repo.leaderboard_most_hatched(ctx.guild_id)
-    embed = make_embed('most hatched', description=_fmt_leaderboard(rows, 'total', 'hatched'), timestamp=False)
+    embed = make_embed('Most Hatched', description=_fmt_leaderboard(rows, 'total', 'hatched'), timestamp=False)
     await ctx.respond(embed=embed)
 
 
@@ -347,7 +347,7 @@ async def eggs_leaderboard_collected(ctx: ApplicationContext):
     from nova_core.eggs.hatching import _egg_repo
 
     rows = await _egg_repo.leaderboard_most_unique(ctx.guild_id)
-    embed = make_embed('most complete set', description=_fmt_leaderboard(rows, 'unique', 'unique'), timestamp=False)
+    embed = make_embed('Most Complete Set', description=_fmt_leaderboard(rows, 'unique', 'unique'), timestamp=False)
     await ctx.respond(embed=embed)
 
 

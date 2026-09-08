@@ -99,7 +99,7 @@ async def _deliver_reminder(reminder: ReminderDocument) -> None:
         jump_url = format_message_link(reminder.guild_id, reminder.channel_id, reminder.message_id)
         description += f'\n{jump_url}'
 
-    embed = make_embed(title='reminder', description=description)
+    embed = make_embed(title='Reminder', description=description)
 
     try:
         await channel.send(content=f'<@{reminder.user_id}>', embed=embed)

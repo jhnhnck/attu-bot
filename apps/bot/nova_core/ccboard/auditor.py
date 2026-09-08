@@ -509,7 +509,7 @@ class AuditorTask(BaseTask):
 
         elapsed = time.monotonic() - start
         mode = 'dry_run' if dry_run else 'applied'
-        extra = ' (budget exhausted — re-run to continue)' if skipped else ''
+        extra = ' (budget exhausted - re-run to continue)' if skipped else ''
         summary = f'guild={guild_id} processed={processed}/{len(entries)} mutated={mutated_count} skipped={skipped} elapsed={elapsed:.1f}s [{mode}]{extra}'
         logger.info(f'ccboard auditor: reconcile_guild {summary}')
         return PassResult(
@@ -652,7 +652,7 @@ class AuditorTask(BaseTask):
 
         elapsed = time.monotonic() - start
         mode = 'dry_run' if dry_run else 'applied'
-        extra = ' (budget exhausted — re-run to continue)' if budget_exhausted else ''
+        extra = ' (budget exhausted - re-run to continue)' if budget_exhausted else ''
         action = 'would_create' if dry_run else 'created'
         summary = f'guild={guild_id} channels={channels_scanned} scanned={scanned} untracked={found} {action}={created} elapsed={elapsed:.1f}s [{mode}]{extra}'
         logger.info(f'ccboard auditor: discover_guild {summary}')
@@ -730,7 +730,7 @@ class AuditorTask(BaseTask):
 
         elapsed = time.monotonic() - start
         mode = 'dry_run' if dry_run else 'applied'
-        extra = ' (budget exhausted — re-run to continue)' if budget_exhausted else ''
+        extra = ' (budget exhausted - re-run to continue)' if budget_exhausted else ''
         action = 'would_delete' if dry_run else 'deleted'
         summary = f'guild={guild_id} scanned={scanned} orphans={candidates} {action}={deleted} grace={grace_days}d elapsed={elapsed:.1f}s [{mode}]{extra}'
         logger.info(f'ccboard auditor: cleanup_orphans {summary}')
