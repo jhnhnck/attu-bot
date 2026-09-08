@@ -77,6 +77,7 @@ all phases shipped on `feat/ccboard` (pending merge): foundation models/repos, b
 - ⭕ `low priority` `low effort` check for spelling across all notes / code
 - ⭕ `low priority` `low effort` add an `ASSETS_PATH` env var and use it directly instead of deriving the path from the config file's parent each time
 - ⭕ `low priority` `low effort` move guild-level calendar property to the guild object (`client/calendar.py:175`)
+- ⭕ `low priority` `medium effort` year strings hardcode the `PC` era; there is no era field on `GuildEpoch` or the `Year` model, so a `9 TT` year cannot be expressed. thread an era through the epoch config and every `{year} PC` string (`commands/year.py`, `commands/marker.py`, `tasks/nova_year.py`, `client/calendar.py`)
 - ⭕ `future idea` `very high effort` refactor out ferret and just use postgres + documentdb?
 - ⭕ `future idea` `medium effort` discord oauth login for wiki apps (trees editor, other external tools); was previously wired through the deleted webauthn/passkey web admin flow; revisit when building the new web layer
 - ⭕ `low priority` `medium effort` standalone lint-cleanup pass: PLW0717 (too-many-statements-in-try-clause, 27 instances across `apps/bot/`); pre-existing debt carried verbatim into `nova_core/modlog/handlers.py` from `client/modlog.py`; ruff --fix cannot auto-resolve it (requires extracting inner blocks). the RUF105 half of this item was settled on 2026-09-06. carried from plan: nova-w3 (2026-08-14)
@@ -230,6 +231,6 @@ bugs go in `docs/bugs.md`, not here. this file is for features, refactors, audit
 ### metadata
 
 ```yaml
-last_updated: 2026-09-06
+last_updated: 2026-09-07
 total_completed: 78
 ```

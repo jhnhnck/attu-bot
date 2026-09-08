@@ -43,7 +43,7 @@ async def year_check(ctx: ApplicationContext, year: int):
             await ctx.respond(f'{year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     elif guild_config.epoch.paused:
-        await ctx.respond('time is canceled')
+        await ctx.respond('sorry, time is cancelled until further notice')
 
     elif year == current_year:
         year_span = await get_year_span(year, guild=guild_config.id)

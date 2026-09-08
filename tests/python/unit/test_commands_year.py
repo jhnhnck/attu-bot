@@ -161,7 +161,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'time is canceled' in response
+        assert 'time is cancelled until further notice' in response
 
     @pytest.mark.asyncio
     async def test_check_invalid_year(self, mock_ctx, guild):
