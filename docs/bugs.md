@@ -82,6 +82,7 @@ _(empty; populated at triage)_
 - 🔴 `2026-09-06` `tests/python/integration/test_startup.py` `TestBotReadyPath::test_reaches_test_mode_shutdown` hung until timeout in the docker `tests` service. the earlier diagnosis (no `.secrets` mount, no `ATTU_CONFIG_FILE`) was superseded by `9448091`; the real cause was that `config.on_init()` reads `[database] url` from the toml and ignores `TEST_DB_URL`, so the fixture's hardcoded `localhost:27017` resolved on a dev host but pointed at nothing in-container and pymongo blocked on server selection. `tests/conftest.py` now rewrites a temp copy of the fixture to match `TEST_DB_URL`; all three suites pass in docker
 - 🔴 `2026-09-06` `scripts/deploy.py` hardcoded `_epoch_toml` out of sync with `~/.attu-epoch.toml`; migrated `compute_attu_year()` to read the file directly
 - 🔴 `2026-09-07` `docker-compose.prod.yml` `server` service crashed on startup with `PermissionError` reading the mounted `.secrets/attu-bot.toml`; `user: attu:attu` explicitly pins the group, which skips docker's supplementary-group lookup, so `attu`'s `hostsecrets` membership (gid 1000, set up in `apps/server/Dockerfile` for exactly this mount) never applied. changed to `user: attu:hostsecrets`
+- 🔴 `2026-09-07` `/version` always showed `<version>-dev` in prod; `apps/bot/Dockerfile`'s `git-info` build stage ran `git rev-parse --short HEAD` against a `COPY`'d `.git`, but `/srv/services/doom-bot` is a git worktree whose `.git` is a pointer file to a gitdir outside the build context, so the lookup always failed and fell back to the literal `'dev'`. the stage now takes `GIT_COMMIT` as a build `ARG` (default `dev`) instead of running git itself; `scripts/deploy.py` reads the real commit on the host (where the worktree's `.git` pointer resolves fine) and passes it through `docker-compose.prod.yml`'s `core.build.args`
 
 ---
 
@@ -133,7 +134,7 @@ read every entry in full, assign severity + disposition, and surface patterns wh
 
 ```yaml
 last_updated: 2026-09-07
-total_resolved: 7
+total_resolved: 8
 ```
 
 ## open

@@ -4,13 +4,14 @@ RUN set -eux; \
     cargo install --version ^0.46 resvg --quiet;
 
 # git-info stage: stamps version and build time into __init__.py via sed
+# GIT_COMMIT comes in as a build arg, not `git rev-parse`; prod's .git is a worktree pointer outside the build context, so git here could never resolve it
 FROM alpine:3.21 AS git-info
 ENV TZ="America/New_York"
-RUN apk add --no-cache git tzdata
+RUN apk add --no-cache tzdata
+ARG GIT_COMMIT=dev
 WORKDIR /src
-COPY . .
+COPY apps/bot/nova_core/__init__.py apps/bot/nova_core/__init__.py
 RUN set -eux; \
-    GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')"; \
     BUILD_TIME="$(date '+%a %b %d %H:%M:%S %Z %Y')"; \
     sed -i "s|__version__ = '\([^']*\)'|__version__ = '\1-${GIT_COMMIT}'|" apps/bot/nova_core/__init__.py; \
     sed -i "s|__build_time__ = '[^']*'|__build_time__ = '${BUILD_TIME}'|" apps/bot/nova_core/__init__.py;

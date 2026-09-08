@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import os
 import re
 import shlex
 import shutil
@@ -85,12 +86,12 @@ def restore_config_snapshot(tag: str, dry_run: bool = False) -> bool:
 # --- helpers ---
 
 
-def run_cmd(cmd: list[str], cwd: Path | None = None, capture: bool = True, dry_run: bool = False) -> str:
+def run_cmd(cmd: list[str], cwd: Path | None = None, capture: bool = True, dry_run: bool = False, env: dict[str, str] | None = None) -> str:
     """run a command; raise RuntimeError on failure; return stdout."""
     if dry_run:
         print(colored(f'    (dry run) {shlex.join(str(c) for c in cmd)}', 'dark_grey'))
         return ''
-    result = subprocess.run(cmd, capture_output=capture, text=True, check=False, cwd=cwd)  # noqa: S603 - cmd is a trusted list built from local config, not user input
+    result = subprocess.run(cmd, capture_output=capture, text=True, check=False, cwd=cwd, env=env)  # noqa: S603 - cmd is a trusted list built from local config, not user input
     if result.returncode != 0:
         out = (result.stdout + result.stderr).strip() if capture else ''
         raise RuntimeError(out or f'{cmd[0]} exited with code {result.returncode}')
@@ -100,6 +101,11 @@ def run_cmd(cmd: list[str], cwd: Path | None = None, capture: bool = True, dry_r
 def git_cmd(args: list[str], cwd: Path | None = None) -> str:
     """run a git command; always captures; raises RuntimeError on failure."""
     return run_cmd(['git', *args], cwd=cwd, capture=True)
+
+
+def build_env(cwd: Path) -> dict[str, str]:
+    """host env for a `docker compose up --build`, stamping GIT_COMMIT from cwd's HEAD."""
+    return {**os.environ, 'GIT_COMMIT': git_cmd(['rev-parse', '--short', 'HEAD'], cwd=cwd)}
 
 
 def abort(msg: str) -> NoReturn:
@@ -196,7 +202,7 @@ def check_container_health(cwd: Path) -> list[str]:
 
 def rebuild_and_check(what: str, dry_run: bool = False) -> None:
     """bring prod's containers up and fail if any are unhealthy after they settle."""
-    run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run)
+    run_cmd(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, capture=False, dry_run=dry_run, env=build_env(prod_dir))
     if dry_run:
         print(colored('  (dry run) would run docker compose up --build -d, then check health', 'dark_grey'))
         return
@@ -300,6 +306,7 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
                 ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
                 check=True,
                 cwd=prod_dir,
+                env=build_env(prod_dir),
             )
             print(colored('  waiting 60s for containers to stabilize', 'cyan'))
             time.sleep(60)
@@ -317,7 +324,7 @@ def deploy_only_run(skip_tests: bool = False, dry_run: bool = False) -> None:
         if not dry_run:
             print(colored('rolling back prod to previous state', 'yellow'), file=sys.stderr)
             trunk_reset = subprocess.run(['git', 'reset', '--hard', saved_sha], cwd=prod_dir, check=False)  # noqa: S603, S607 - rollback: trusted list, partial paths intentional
-            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
+            rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False, env=build_env(prod_dir))  # noqa: S607 - rollback: partial path intentional
             if trunk_reset.returncode != 0 or rebuild.returncode != 0:
                 print(colored('warning: rollback may have failed; check prod manually', 'red'), file=sys.stderr)
             else:
@@ -559,6 +566,7 @@ if __name__ == '__main__':
                     ['docker', 'compose', 'up', '--build', '-d'],  # noqa: S607 - partial path intentional; docker is on PATH in the deploy environment
                     check=True,
                     cwd=prod_dir,
+                    env=build_env(prod_dir),
                 )
                 print(colored('  waiting 60s for containers to stabilize', 'cyan'))
                 time.sleep(60)
@@ -589,7 +597,7 @@ if __name__ == '__main__':
                         ),
                         file=sys.stderr,
                     )
-                rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False)  # noqa: S607 - rollback: partial path intentional
+                rebuild = subprocess.run(['docker', 'compose', 'up', '--build', '-d'], cwd=prod_dir, check=False, env=build_env(prod_dir))  # noqa: S607 - rollback: partial path intentional
                 if trunk_reset.returncode != 0 or dev_reset.returncode != 0 or rebuild.returncode != 0:
                     print(colored('warning: rollback may have failed; check prod and trunk manually', 'red'), file=sys.stderr)
                 else:
