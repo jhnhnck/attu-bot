@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from deploy import abort, check_container_health, compute_new_version, deploy_only_run, parse_version
+from deploy import abort, check_container_health, compute_new_version, deploy_only_run, parse_version, rebuild_and_check
 
 
 def _proc(returncode: int = 0, stdout: str = '', stderr: str = '') -> subprocess.CompletedProcess:
@@ -204,6 +204,23 @@ class TestAbort:
         assert 'something went wrong' in captured.err
 
 
+# --- rebuild_and_check ---
+
+
+class TestRebuildAndCheck:
+    """prod_dir is a worktree; the host reads its commit and hands it to docker compose as an env var."""
+
+    def test_env_carries_git_commit(self):
+        with (
+            patch('deploy.git_cmd', return_value='a3eebb4'),
+            patch('deploy.run_cmd') as run_cmd_mock,
+            patch('deploy.time.sleep'),
+            patch('deploy.check_container_health', return_value=[]),
+        ):
+            rebuild_and_check('test')
+            assert run_cmd_mock.call_args.kwargs['env']['GIT_COMMIT'] == 'a3eebb4'
+
+
 # --- deploy_only_run ---
 
 
@@ -219,6 +236,8 @@ class TestDeployOnlyRun:
                 return dirty
             if args[:2] == ['rev-parse', 'HEAD']:
                 return 'abc123'
+            if args[:3] == ['rev-parse', '--short', 'HEAD']:
+                return 'a3eebb4'
             if args[:2] == ['describe', '--tags']:
                 return '78.2.0'
             if args[:2] == ['push', 'origin']:
@@ -313,6 +332,35 @@ class TestDeployOnlyRun:
         finally:
             self._exit(patches)
 
+    def test_restart_env_carries_git_commit(self):
+        """the restart's env carries GIT_COMMIT from the host, not from git inside the build stage."""
+        patches = self._patches()
+        mocks = self._enter(patches)
+        try:
+            _, _, subprocess_mock, _, _ = mocks
+            deploy_only_run(skip_tests=True, dry_run=False)
+
+            restart_calls = [c for c in subprocess_mock.call_args_list if c[0][0][:3] == ['docker', 'compose', 'up']]
+            assert len(restart_calls) == 1
+            assert restart_calls[0].kwargs['env']['GIT_COMMIT'] == 'a3eebb4'
+        finally:
+            self._exit(patches)
+
+    def test_rollback_rebuild_env_carries_git_commit(self):
+        patches = self._patches(health=['bot: state=exited'])
+        mocks = self._enter(patches)
+        try:
+            _, _, subprocess_mock, _, _ = mocks
+            with pytest.raises(SystemExit):
+                deploy_only_run(skip_tests=True, dry_run=False)
+
+            rebuild_calls = [c for c in subprocess_mock.call_args_list if c[0][0][:3] == ['docker', 'compose', 'up']]
+            assert len(rebuild_calls) == 2
+            for call in rebuild_calls:
+                assert call.kwargs['env']['GIT_COMMIT'] == 'a3eebb4'
+        finally:
+            self._exit(patches)
+
     def test_dry_run_skips_subprocess_and_push(self):
         patches = self._patches()
         mocks = self._enter(patches)
@@ -361,3 +409,20 @@ class TestUvLockInBumpCommit:
         source = Path(_deploy.__file__).read_text()
         assert 'lock_file.write_text(lock_content)' in source, 'expected the rollback paths to restore uv.lock'
         assert source.count('lock_file.write_text(lock_content)') == 2, 'expected both the commit-failure and interrupt rollbacks to restore uv.lock'
+
+
+# --- GIT_COMMIT env in the --deploy main flow ---
+
+
+class TestDeployFlowGitCommitEnv:
+    """the __main__ block's docker compose calls aren't in a testable function; check via source instead."""
+
+    def test_both_docker_compose_up_calls_pass_build_env(self):
+        import deploy as _deploy
+
+        source = Path(_deploy.__file__).read_text()
+        main_block = source[source.index("if __name__ == '__main__':") :]
+        calls = re.findall(r'subprocess\.run\(\s*\[.docker., .compose., .up.,[^)]*\)', main_block, re.DOTALL)
+        assert len(calls) == 2, 'expected exactly one initial restart and one rollback rebuild'
+        for call in calls:
+            assert 'env=build_env(prod_dir)' in call

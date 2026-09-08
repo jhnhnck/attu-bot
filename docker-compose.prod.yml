@@ -9,6 +9,8 @@ services:
       context: .
       dockerfile: apps/bot/Dockerfile
       target: doombox
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-dev}
     command: python -u apps/bot/doom-bot.py
     environment:
       ATTU_CONFIG_FILE: /home/doom/.secrets/attu-bot.toml
