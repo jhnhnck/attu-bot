@@ -157,7 +157,7 @@ class TestRunPendingMigrations:
         assert call_versions == ['2.5.3', '2.5.4']
 
 
-# --- migration_seed_ui_emojis (2.5.3 → 2.5.4) ---
+# --- migration_seed_ui_emojis (2.5.3 -> 2.5.4) ---
 
 
 class TestMigrationSeedUiEmojis:
@@ -180,7 +180,7 @@ class TestMigrationSeedUiEmojis:
         return db
 
     async def test_seeds_when_missing(self, mock_db):
-        """ui_emojis is empty or absent — migration inserts the default emojis"""
+        """ui_emojis is empty or absent - migration inserts the default emojis"""
         with patch('nova_core.client.core.db') as mock_core_db:
             mock_core_db.get_db.return_value = mock_db
 
@@ -230,7 +230,7 @@ class TestMigrationSeedUiEmojis:
         restore_collection.insert_many.assert_awaited_once()
 
     async def test_skips_when_already_populated(self, mock_db):
-        """ui_emojis already has values — filter excludes the doc, modified_count is 0"""
+        """ui_emojis already has values - filter excludes the doc, modified_count is 0"""
         mock_db.global_config.update_one.return_value.modified_count = 0
 
         with patch('nova_core.client.core.db') as mock_core_db:
@@ -256,7 +256,7 @@ class TestMigrationSeedUiEmojis:
         mock_core_db.get_db.assert_not_called()
 
 
-# --- migration_target_signals (2.5.4 → 2.5.5) ---
+# --- migration_target_signals (2.5.4 -> 2.5.5) ---
 
 
 class TestMigrationTargetSignals:

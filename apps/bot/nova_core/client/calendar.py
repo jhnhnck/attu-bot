@@ -192,21 +192,21 @@ async def move_epoch(length: int, guild: int | None = None):
 
         new_epoch_time = datetime.combine(friday, cfg.epoch.get_rollover_time()).timestamp()
         await cfg.set_epoch(new_epoch_time, current_year + 1)
-        note = f'epoch resumed from pause: {current_year + 1} PC will start on <t:{int(new_epoch_time)}:F>, length {old_year_length}→{length} days'
+        note = f'epoch resumed: {current_year + 1} PC starts <t:{int(new_epoch_time)}:F>; length old={old_year_length} new={length} days'
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % cfg.epoch.length):
         new_epoch_time = datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.get_rollover_time()).timestamp()
         await cfg.set_epoch(new_epoch_time, current_year)
-        note = f'epoch extended: {current_year} PC extended from {old_year_length} to {length} days (elapsed: {elapsed_days % old_year_length})'
+        note = f'epoch extended: {current_year} PC from {old_year_length} to {length} days (elapsed: {elapsed_days % old_year_length})'
 
     # wait for current year to complete first
     else:
         await cfg.set_epoch(year_span.end_time, current_year + 1)
-        note = f'epoch shortened: {current_year} PC will complete at {old_year_length} days, {current_year + 1} PC will be {length} days'
+        note = f'epoch shortened: {current_year} PC completes at {old_year_length} days, {current_year + 1} PC becomes {length} days'
 
     await cfg.set_year_length(length)
-    logger.info(f'[{cfg!s}] New Epoch Set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f> with year length of {cfg.epoch.length}')
+    logger.info(f'[{cfg!s}] epoch set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f>, length {cfg.epoch.length} days')
 
     # Update the current Year record with epoch change note
     current_year_record = await Year.get(guild_id, current_year)

@@ -70,57 +70,57 @@ class TestEpochValidator:
 class TestGetYearStatus:
     @freeze_time('2024-01-08 12:00:00')
     def test_mid_year(self, guild):
-        """7 days into a 14-day year, before rollover → year 1"""
+        """7 days into a 14-day year, before rollover -> year 1"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 7
         assert year == 1
 
     @freeze_time('2024-01-02 12:00:00')
     def test_day_one(self, guild):
-        """1 day after epoch start → year 1"""
+        """1 day after epoch start -> year 1"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 1
         assert year == 1
 
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
-        """exactly 14 days, after rollover → year 2"""
+        """exactly 14 days, after rollover -> year 2"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 14
         assert year == 2
 
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
-        """exactly 14 days, before rollover → still year 1 (boundary correction)"""
+        """exactly 14 days, before rollover -> still year 1 (boundary correction)"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 14
         assert year == 1
 
     @freeze_time('2024-01-29 18:00:00')
     def test_multiple_years_elapsed(self, guild):
-        """28 days = 2 full years → year 3"""
+        """28 days = 2 full years -> year 3"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 28
         assert year == 3
 
     @freeze_time('2024-02-26 18:00:00')
     def test_many_years(self, guild):
-        """56 days = 4 full years → year 5"""
+        """56 days = 4 full years -> year 5"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 56
         assert year == 5
 
     @freeze_time('2024-01-01 12:00:00')
     def test_epoch_start_day_before_rollover(self, guild):
-        """day zero, before rollover → boundary correction, year 0"""
+        """day zero, before rollover -> boundary correction, year 0"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 0
-        # at boundary (0 % 14 == 0) and before rollover → year - 1 = 0
+        # at boundary (0 % 14 == 0) and before rollover -> year - 1 = 0
         assert year == 0
 
     @freeze_time('2024-01-01 18:00:00')
     def test_epoch_start_day_after_rollover(self, guild):
-        """day zero, after rollover → year 1"""
+        """day zero, after rollover -> year 1"""
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 0
         assert year == 1
@@ -131,7 +131,7 @@ class TestGetYearStatus:
         make_guild(length=7)
         elapsed, year = get_year_status(test_guild)
         assert elapsed == 7
-        # at boundary, before rollover → year correction
+        # at boundary, before rollover -> year correction
         assert year == 1
 
     @freeze_time('2024-01-08 18:00:00')
@@ -171,28 +171,28 @@ class TestGetNextYear:
 
     @freeze_time('2024-01-15 18:00:00')
     def test_boundary_after_rollover(self, guild):
-        """at boundary after rollover → next year is one full length away"""
+        """at boundary after rollover -> next year is one full length away"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 29, 17, 0, tzinfo=utc)
         assert result == expected
 
     @freeze_time('2024-01-15 12:00:00')
     def test_boundary_before_rollover(self, guild):
-        """at boundary before rollover → next year is today at rollover"""
+        """at boundary before rollover -> next year is today at rollover"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 15, 17, 0, tzinfo=utc)
         assert result == expected
 
     @freeze_time('2024-01-10 12:00:00')
     def test_near_end_of_year(self, guild):
-        """9 days in → 5 days until boundary"""
+        """9 days in -> 5 days until boundary"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 15, 17, 0, tzinfo=utc)
         assert result == expected
 
     @freeze_time('2024-01-02 12:00:00')
     def test_start_of_year(self, guild):
-        """1 day in → 13 days remaining"""
+        """1 day in -> 13 days remaining"""
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 15, 17, 0, tzinfo=utc)
         assert result == expected
@@ -211,7 +211,7 @@ class TestGetNextYear:
 
     @freeze_time('2024-01-04 12:00:00')
     def test_short_year_length(self, make_guild):
-        """7-day years: 3 days in → 4 days remaining"""
+        """7-day years: 3 days in -> 4 days remaining"""
         make_guild(length=7)
         result = get_next_year(test_guild)
         expected = datetime(2024, 1, 8, 17, 0, tzinfo=utc)
@@ -283,7 +283,7 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_mid_year(self, guild):
-        """Jan 8 18:00 utc: 7d 1h into year 1 → proportional position in month 7"""
+        """Jan 8 18:00 utc: 7d 1h into year 1 -> proportional position in month 7"""
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(1704736800, test_guild)
@@ -291,7 +291,7 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_year_boundary_after_rollover(self, guild):
-        """Jan 15 18:00 utc: just past year 2 rollover → early month 1 of year 2"""
+        """Jan 15 18:00 utc: just past year 2 rollover -> early month 1 of year 2"""
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR2_SPAN
             result = await haracalnde_date(1705341600, test_guild)
@@ -299,7 +299,7 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_year_boundary_before_rollover(self, guild):
-        """Jan 15 12:00 utc: boundary correction → still year 1, near end"""
+        """Jan 15 12:00 utc: boundary correction -> still year 1, near end"""
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = self.YEAR1_SPAN
             result = await haracalnde_date(1705320000, test_guild)
@@ -307,19 +307,19 @@ class TestHaracalndeDate:
 
     @pytest.mark.asyncio
     async def test_tt_before_epoch_rollover(self, guild):
-        """Jan 1 12:00 utc: before epoch rollover → boundary correction → 1 TT"""
+        """Jan 1 12:00 utc: before epoch rollover -> boundary correction -> 1 TT"""
         result = await haracalnde_date(1704110400, test_guild)
         assert result == '5-12 1 TT'
 
     @pytest.mark.asyncio
     async def test_tt_one_year_before_epoch(self, guild):
-        """Dec 18 2023 18:00 utc: 14 days before epoch, after rollover → 1-1 1 TT"""
+        """Dec 18 2023 18:00 utc: 14 days before epoch, after rollover -> 1-1 1 TT"""
         result = await haracalnde_date(1702922400, test_guild)
         assert result == '1-1 1 TT'
 
     @pytest.mark.asyncio
     async def test_tt_two_years_before_epoch(self, guild):
-        """Dec 4 2023 18:00 utc: 28 days before epoch, after rollover → 1-1 2 TT"""
+        """Dec 4 2023 18:00 utc: 28 days before epoch, after rollover -> 1-1 2 TT"""
         result = await haracalnde_date(1701712800, test_guild)
         assert result == '1-1 2 TT'
 
@@ -331,7 +331,7 @@ class TestHaracalndeDate:
             mock_span.return_value = span_30d
             # Jan 8 17:00 utc: exactly 7 days after epoch rollover
             result = await haracalnde_date(1704733200, test_guild)
-        # 604800s / 2592000s * 360 = 84 → month 3, day 25
+        # 604800s / 2592000s * 360 = 84 -> month 3, day 25
         assert result == '25-3 1 PC'
 
     @pytest.mark.asyncio
@@ -340,6 +340,6 @@ class TestHaracalndeDate:
         empty_span = AttuYearSpan(start_time=0, end_time=0, duration=0)
         with patch('nova_core.client.calendar.get_year_span', new_callable=AsyncMock) as mock_span:
             mock_span.return_value = empty_span
-            # Jan 8 18:00 utc: day_of_year=7, int(7*360/14)=180 → 1-7
+            # Jan 8 18:00 utc: day_of_year=7, int(7*360/14)=180 -> 1-7
             result = await haracalnde_date(1704736800, test_guild)
         assert result == '1-7 1 PC'

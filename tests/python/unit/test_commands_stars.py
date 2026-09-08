@@ -501,7 +501,7 @@ class TestShowRandomMessageCCBoardRouting:
         mock_sb_repo.get_random.assert_called_once()
 
     async def test_ccboard_random_no_match_responds_ephemeral(self, mock_ctx_factory, make_guild):
-        """ccboard path: no matching entry → 'no messages found' response."""
+        """ccboard path: no matching entry -> 'no messages found' response."""
         from nova_core.config import GuildCCBoard
 
         gc = make_guild(guild_id=test_guild)

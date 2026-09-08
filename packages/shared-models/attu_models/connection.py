@@ -12,7 +12,7 @@ from pymongo.errors import ConfigurationError, ConnectionFailure
 
 logger = structlog.stdlib.get_logger(__name__)
 
-_RETRY_DELAYS = (2.0, 4.0, 8.0)  # seconds between attempts 1→2, 2→3, 3→4
+_RETRY_DELAYS = (2.0, 4.0, 8.0)  # seconds between attempts 1->2, 2->3, 3->4
 
 
 class MongoStorage:

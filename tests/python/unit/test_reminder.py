@@ -84,7 +84,7 @@ class TestComputeFireTime:
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
-            # month 3 (no day) → haracalnde_pos = (3-1)*30 + (1-1) = 60
+            # month 3 (no day) -> haracalnde_pos = (3-1)*30 + (1-1) = 60
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=None)
             result = await compute_fire_time(r)
 
@@ -98,7 +98,7 @@ class TestComputeFireTime:
         span = AttuYearSpan(start_time=1704067200, end_time=1705276800, duration=14)
 
         with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):
-            # 15-3 → haracalnde_pos = (3-1)*30 + (15-1) = 74
+            # 15-3 -> haracalnde_pos = (3-1)*30 + (15-1) = 74
             r = _make_reminder(attu_year=5, attu_month=3, attu_day=15)
             result = await compute_fire_time(r)
 
@@ -108,7 +108,7 @@ class TestComputeFireTime:
 
     @pytest.mark.asyncio
     async def test_paused_guild_returns_none(self, make_guild):
-        """Paused guild → cannot compute fire time."""
+        """Paused guild -> cannot compute fire time."""
         make_guild(paused=True)
         r = _make_reminder(attu_year=5)
         result = await compute_fire_time(r)
@@ -116,14 +116,14 @@ class TestComputeFireTime:
 
     @pytest.mark.asyncio
     async def test_unauthorized_guild_returns_none(self):
-        """Guild not in config → returns None."""
+        """Guild not in config -> returns None."""
         r = _make_reminder(guild_id=9999999999, attu_year=5)
         result = await compute_fire_time(r)
         assert result is None
 
     @pytest.mark.asyncio
     async def test_zero_span_returns_none(self, guild):
-        """Invalid span (start/end = 0) → returns None."""
+        """Invalid span (start/end = 0) -> returns None."""
         span = AttuYearSpan(start_time=0, end_time=0, duration=0)
 
         with patch('nova_core.reminders.task.get_year_span', new_callable=AsyncMock, return_value=span):

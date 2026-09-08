@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""tests.python.component.test_commands_fix_stars_convert | starboard → ccboard migration."""
+"""tests.python.component.test_commands_fix_stars_convert | starboard -> ccboard migration."""
 
 import time
 
@@ -196,7 +196,7 @@ class TestConvertMigration:
         assert entry.reply_snapshot.author.id == reply_target_user
 
     async def test_missing_message_uses_placeholder(self, convert_repos):
-        """no MessageDocument and no discord fallback (channel not in cache) → placeholder snapshot"""
+        """no MessageDocument and no discord fallback (channel not in cache) -> placeholder snapshot"""
         from unittest.mock import MagicMock, patch
 
         import discord

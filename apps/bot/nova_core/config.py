@@ -172,7 +172,7 @@ class GuildCCBoard(BaseModel):
     """ccboard config - replacement reaction-board with signed emoji weights and attribution.
 
     when `enabled` is False, the legacy starboard remains active and ccboard is dormant.
-    on the False → True transition, the bot reloads the ccboard extension and re-syncs
+    on the False -> True transition, the bot reloads the ccboard extension and re-syncs
     slash commands so the new /stars and /fix ccboard commands take effect.
     """
 

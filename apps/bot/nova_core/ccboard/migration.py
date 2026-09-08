@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""nova_core.ccboard.migration | one-shot starboard → ccboard data migration."""
+"""nova_core.ccboard.migration | one-shot starboard -> ccboard data migration."""
 
 import time
 

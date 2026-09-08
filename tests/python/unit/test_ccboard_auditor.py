@@ -341,7 +341,7 @@ class TestIsStale:
         assert _is_stale(rec, weights_updated_at=99) is False
 
     def test_uses_last_recounted_at_when_set(self):
-        """last_recounted_at overrides reacted_at — newer recount means fresh even if reacted_at is old"""
+        """last_recounted_at overrides reacted_at - newer recount means fresh even if reacted_at is old"""
         rec = _db_reaction(reactor_a, emoji_star, reacted_at=10, last_recounted_at=300)
         assert _is_stale(rec, weights_updated_at=200) is False
 

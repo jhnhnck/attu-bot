@@ -104,7 +104,7 @@ class TestCCBoardStarsRandom:
         assert 'stars' in content
 
     async def test_random_no_match_responds_ephemeral(self, cc_repos, mock_ctx_factory):
-        """ccboard random: empty db → 'no messages found' ephemeral."""
+        """ccboard random: empty db -> 'no messages found' ephemeral."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
         from nova_core.commands.stars import stars_random
@@ -161,7 +161,7 @@ class TestCCBoardStarsRandom:
         assert str(msg_id_a) not in content
 
     async def test_lost_no_match_responds_ephemeral(self, cc_repos, mock_ctx_factory):
-        """ccboard lost: no entries with positive_points=1 → 'no messages found'."""
+        """ccboard lost: no entries with positive_points=1 -> 'no messages found'."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
         from nova_core.commands.stars import stars_lost
@@ -300,7 +300,7 @@ class TestCCBoardLeaderboards:
 
 class TestCCBoardStarsRecheck:
     async def test_recheck_no_entry_returns_failed(self, cc_repos, mock_ctx_factory):
-        """no db entry → auditor returns 'Failed: no ccboard entry' in response."""
+        """no db entry -> auditor returns 'Failed: no ccboard entry' in response."""
         ctx = mock_ctx_factory(guild_id=test_guild)
 
         from nova_core.commands.stars import stars_recheck
@@ -312,7 +312,7 @@ class TestCCBoardStarsRecheck:
         assert 'no ccboard entry' in ctx._responses[0]['args'][0]
 
     async def test_recheck_with_entry_applies_reconcile(self, cc_repos, mock_ctx_factory):
-        """seeded entry → auditor runs reconcile and responds with the diff summary."""
+        """seeded entry -> auditor runs reconcile and responds with the diff summary."""
         from unittest.mock import MagicMock, patch
 
         await cc_repos['entry'].upsert(_entry(msg_id_a))

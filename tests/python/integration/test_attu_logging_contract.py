@@ -21,7 +21,7 @@ _ANSI_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
 
 # ============================================================
-# R1 — configure-vs-import timing
+# R1 - configure-vs-import timing
 # ============================================================
 
 
@@ -58,7 +58,7 @@ class TestConfigureRanBeforeStructlogBindings:
 
 
 # ============================================================
-# R3 — configure() idempotency
+# R3 - configure() idempotency
 # ============================================================
 
 
@@ -88,7 +88,7 @@ class TestConfigureIdempotent:
 
 
 # ============================================================
-# R4 — library-noise pinning
+# R4 - library-noise pinning
 # ============================================================
 
 
@@ -112,7 +112,7 @@ class TestLibraryNoisePins:
 
 
 # ============================================================
-# Rendered record shape — pin the contract the container-logs skill relies on
+# Rendered record shape - pin the contract the container-logs skill relies on
 # ============================================================
 
 
