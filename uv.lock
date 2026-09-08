@@ -1013,7 +1013,7 @@ wheels = [
 
 [[package]]
 name = "nova-core"
-version = "85.0.3"
+version = "85.1"
 source = { virtual = "apps/bot" }
 dependencies = [
     { name = "aiohttp" },
