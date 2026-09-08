@@ -81,6 +81,7 @@ _(empty; populated at triage)_
 - 🔴 `2026-09-06` `scripts/deploy.py` `--revert` restored prod's code but not its config; across a `__config_version__` change the older image faced a config it could not parse, so the bot stayed down after a rollback. configs are now snapshotted per tag (`attu-bot.toml.<tag>`) and restored on revert, which aborts when the snapshot is missing
 - 🔴 `2026-09-06` `tests/python/integration/test_startup.py` `TestBotReadyPath::test_reaches_test_mode_shutdown` hung until timeout in the docker `tests` service. the earlier diagnosis (no `.secrets` mount, no `ATTU_CONFIG_FILE`) was superseded by `9448091`; the real cause was that `config.on_init()` reads `[database] url` from the toml and ignores `TEST_DB_URL`, so the fixture's hardcoded `localhost:27017` resolved on a dev host but pointed at nothing in-container and pymongo blocked on server selection. `tests/conftest.py` now rewrites a temp copy of the fixture to match `TEST_DB_URL`; all three suites pass in docker
 - 🔴 `2026-09-06` `scripts/deploy.py` hardcoded `_epoch_toml` out of sync with `~/.attu-epoch.toml`; migrated `compute_attu_year()` to read the file directly
+- 🔴 `2026-09-07` `docker-compose.prod.yml` `server` service crashed on startup with `PermissionError` reading the mounted `.secrets/attu-bot.toml`; `user: attu:attu` explicitly pins the group, which skips docker's supplementary-group lookup, so `attu`'s `hostsecrets` membership (gid 1000, set up in `apps/server/Dockerfile` for exactly this mount) never applied. changed to `user: attu:hostsecrets`
 
 ---
 
@@ -131,8 +132,8 @@ read every entry in full, assign severity + disposition, and surface patterns wh
 ### metadata
 
 ```yaml
-last_updated: 2026-08-22
-total_resolved: 2
+last_updated: 2026-09-07
+total_resolved: 7
 ```
 
 ## open

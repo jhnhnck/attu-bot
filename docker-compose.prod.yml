@@ -40,7 +40,9 @@ services:
     logging:
       driver: journald
     restart: always
-    user: attu:attu
+    # name:group form drops supplementary groups; hostsecrets must be explicit
+    # for the secrets mount below (see apps/server/Dockerfile)
+    user: attu:hostsecrets
     ports:
       - "127.0.0.1:8080:5000"
     volumes:
