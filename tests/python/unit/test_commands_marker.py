@@ -155,7 +155,7 @@ class TestMarkerSave:
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
         assert 'Created' in response
-        assert 'marker for Year 5 PC' in response
+        assert 'marker for 5 PC' in response
         created_marker.update.assert_called_once()
 
 
@@ -231,7 +231,7 @@ class TestMarkerClear:
         mock_ctx.respond.assert_called_once()
         kwargs = mock_ctx._responses[0]['kwargs']
         assert kwargs.get('ephemeral') is True
-        assert "there's no marker for year" in mock_ctx._responses[0]['args'][0]
+        assert "there's no marker for 5 PC" in mock_ctx._responses[0]['args'][0]
 
     @pytest.mark.asyncio
     async def test_success_clears_and_responds(self, mock_ctx):

@@ -36,34 +36,34 @@ async def year_check(ctx: ApplicationContext, year: int):
     elif year < current_year:
         year_record = await Year.get(guild_config.id, year)
         if year_record:
-            await ctx.respond(f'Year {year} PC lasted for {year_record.duration} days, starting on <t:{year_record.start_time}:d> and ending on <t:{year_record.end_time}:d>')
+            await ctx.respond(f'{year} PC lasted for {year_record.duration} days, starting on <t:{year_record.start_time}:d> and ending on <t:{year_record.end_time}:d>')
         else:
             # fallback to computed span if no record exists
             year_span = await get_year_span(year, guild=guild_config.id)
-            await ctx.respond(f'Year {year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
+            await ctx.respond(f'{year} PC lasted for {year_span.duration} days, starting on <t:{year_span.start_time}:d> and ending on <t:{year_span.end_time}:d>')
 
     elif guild_config.epoch.paused:
-        await ctx.respond('Sorry! New Years is cancelled until further notice')
+        await ctx.respond('time is canceled')
 
     elif year == current_year:
         year_span = await get_year_span(year, guild=guild_config.id)
-        await ctx.respond(f'Year {year} PC will last for {year_span.duration} days, which started on <t:{year_span.start_time}:d> and will end on <t:{year_span.end_time}:d>')
+        await ctx.respond(f'{year} PC will last for {year_span.duration} days, which started on <t:{year_span.start_time}:d> and will end on <t:{year_span.end_time}:d>')
 
     elif year == (current_year + 1):
         year_span = await get_year_span(year, guild=guild_config.id)
         if (elapsed_days % guild_config.epoch.length) == 0 and datetime.now().time() < guild_config.epoch.get_rollover_time():
-            await ctx.respond(f'Happy New Year! Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
+            await ctx.respond(f'Happy New Year! Advancing to {current_year + 1} PC <t:{year_span.start_time}:R>')
 
         else:
-            await ctx.respond(f'Advancing to Year {current_year + 1} PC <t:{year_span.start_time}:R>')
+            await ctx.respond(f'Advancing to {current_year + 1} PC <t:{year_span.start_time}:R>')
 
     # easter egg (far future)
     elif (guild_config.epoch.length * (year - current_year - 1)) > (365 * 80):
-        await ctx.respond(f"Year {year} PC won't matter because we'll all be dead; try something sooner maybe")
+        await ctx.respond(f"{year} PC won't matter because we'll all be dead; try something sooner maybe")
 
     else:
         year_span = await get_year_span(year, guild=guild_config.id)
-        await ctx.respond(f'Year {year} PC will start on <t:{year_span.start_time}:d>')
+        await ctx.respond(f'{year} PC will start on <t:{year_span.start_time}:d>')
 
 
 @year_group.command(name='search', description="build a discord search query for a year's messages")
@@ -79,7 +79,7 @@ async def year_search(ctx: ApplicationContext, year: int):
         return
 
     if (guild_config.epoch.length * (year - current_year - 1)) > (365 * 10):
-        await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
+        await ctx.respond(f'{year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', "the only constant in the universe: the timeline isn't caught up that far"))
         return
 
     canon_channels = [*guild_config.channels.lore_channels, guild_config.channels.meta_chat, *guild_config.channels.canon_channels]
@@ -95,7 +95,7 @@ async def year_search(ctx: ApplicationContext, year: int):
         end = datetime.fromtimestamp(year_span.end_time, tz=config.timezone) + timedelta(days=1)
         msg.append(f'before:{end.strftime("%Y-%m-%d")}')
 
-    await ctx.respond(f'Year {year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
+    await ctx.respond(f'{year} PC: (paste in search bar)\n```\nMSG\n```\n'.replace('MSG', ' '.join(msg)))
 
 
 async def find_marker_link(year: int, channel: TextChannel) -> str:

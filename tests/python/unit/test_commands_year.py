@@ -42,7 +42,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Year 1 PC lasted for 14 days' in response
+        assert '1 PC lasted for 14 days' in response
         assert 'starting on' in response
         assert 'ending on' in response
 
@@ -64,7 +64,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Year 2 PC will last for 14 days' in response
+        assert '2 PC will last for 14 days' in response
         assert 'which started on' in response
         assert 'will end on' in response
 
@@ -88,7 +88,7 @@ class TestYearCheckCommand:
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
         # Should show "Advancing to Year 2 PC" but not "Happy New Year!" (not at boundary)
-        assert 'Advancing to Year 2 PC' in response
+        assert 'Advancing to 2 PC' in response
         assert 'Happy New Year!' not in response
 
     @pytest.mark.asyncio
@@ -109,7 +109,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Advancing to Year 2 PC' in response
+        assert 'Advancing to 2 PC' in response
         assert 'Happy New Year!' not in response
 
     @pytest.mark.asyncio
@@ -147,7 +147,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Year 3 PC will start on' in response
+        assert '3 PC will start on' in response
 
     @pytest.mark.asyncio
     @freeze_time('2024-01-08 12:00:00')
@@ -161,7 +161,7 @@ class TestYearCheckCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'cancelled' in response or 'paused' in response.lower()
+        assert 'time is canceled' in response
 
     @pytest.mark.asyncio
     async def test_check_invalid_year(self, mock_ctx, guild):
@@ -212,7 +212,7 @@ class TestYearSearchCommand:
 
         mock_ctx.respond.assert_called_once()
         response = mock_ctx._responses[0]['args'][0]
-        assert 'Year 1 PC' in response
+        assert '1 PC' in response
         assert 'in:channel-100' in response
         assert 'in:channel-200' in response
         assert 'in:channel-300' in response

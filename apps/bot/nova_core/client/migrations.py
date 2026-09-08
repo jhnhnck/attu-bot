@@ -159,7 +159,7 @@ async def migration_backfill_years():
         for yr in range(1, current_year + 1):
             start_ts = await YearMarker.timestamp(yr, guild_id)
             if start_ts is None:
-                logger.warning(f'no marker for year {yr} in guild {guild_id}, skipping')
+                logger.warning(f'no marker for {yr} PC in guild {guild_id}, skipping')
                 continue
 
             end_ts = await YearMarker.timestamp(yr + 1, guild_id) or 0 if yr < current_year else 0

@@ -183,10 +183,10 @@ class NovaYearTask(BaseTask):
         text = await wiki.pages.get(config.wiki.page)
         updated_page = re.sub(r'Current Year: [\d]+ PC', f'Current Year: {year} PC', text, flags=re.IGNORECASE)
 
-        await wiki.pages.edit(config.wiki.page, updated_page, f'Bumped to Year {year} PC')
+        await wiki.pages.edit(config.wiki.page, updated_page, f'Bumped to {year} PC')
 
         channel = guild.get_channel_or_thread(cfg.channels.announcements)
-        await channel.send(f'<@&{cfg.roles.announcements}> Year {year} PC. (weap)')
+        await channel.send(f'<@&{cfg.roles.announcements}> {year} PC. (weap)')
 
         from nova_core.tasks import scheduler
 

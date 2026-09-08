@@ -103,6 +103,8 @@ logger.critical(f'incompatible config version: file={file_version} required>={__
 - lowercase start for all prose messages
 - Title Case for embed titles and embed field names (no punctuation on either)
 - `PC` (post-calming) is always uppercase - in-universe proper term
+- **years are the number and the era, nothing else**: `7 PC`, `9 TT`. never `Year 7 PC`. this also removes the sentence-initial capital problem, since a year reference now opens with a digit
+  - the one exception is `format_year_line()` in `client/calendar.py`. it is not output; `markers.py` feeds it to `find_bot_header()` as a search prefix that has to keep matching year headers already posted in discord. changing it breaks marker resolution for every past year
 
 ### punctuation
 

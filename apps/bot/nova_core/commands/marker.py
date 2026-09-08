@@ -61,7 +61,7 @@ async def marker_save(ctx: ApplicationContext, year: int, link: str, force: bool
     await marker.update(message=message, exact=True)
 
     verb = 'Created' if created else 'Updated'
-    await ctx.respond(f'{verb} marker for Year {year} PC as {format_message_link(guild_config.id, marker.channel, marker.message)}')
+    await ctx.respond(f'{verb} marker for {year} PC as {format_message_link(guild_config.id, marker.channel, marker.message)}')
 
 
 @marker_group.command(name='set', description='set when a year starts, from a message id')
@@ -110,7 +110,7 @@ async def marker_clear(ctx: ApplicationContext, year: int, channel: discord.Text
         await ctx.respond(f'cleared the marker for {year} PC in <#{channel.id}>')
 
     else:
-        await ctx.respond(f"there's no marker for year {year} PC in {channel.mention}", ephemeral=True)
+        await ctx.respond(f"there's no marker for {year} PC in {channel.mention}", ephemeral=True)
 
 
 # --- Extension Def ---

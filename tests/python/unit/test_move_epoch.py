@@ -56,8 +56,8 @@ class TestMoveEpochYearUpdates:
             mock_update.assert_called_once()
             call_kwargs = mock_update.call_args[1]
             assert 'notes' in call_kwargs
-            assert 'Epoch extended' in call_kwargs['notes']
-            assert 'Year 5' in call_kwargs['notes']
+            assert 'epoch extended' in call_kwargs['notes']
+            assert '5 PC' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
@@ -96,7 +96,7 @@ class TestMoveEpochYearUpdates:
             mock_update.assert_called_once()
             call_kwargs = mock_update.call_args[1]
             assert 'notes' in call_kwargs
-            assert 'Epoch shortened' in call_kwargs['notes']
+            assert 'epoch shortened' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
@@ -134,7 +134,7 @@ class TestMoveEpochYearUpdates:
             mock_update.assert_called_once()
             call_kwargs = mock_update.call_args[1]
             assert 'notes' in call_kwargs
-            assert 'Epoch resumed' in call_kwargs['notes']
+            assert 'epoch resumed' in call_kwargs['notes']
 
     @pytest.mark.asyncio
     @freeze_time('2024-06-15 12:00:00')
@@ -182,7 +182,7 @@ class TestMoveEpochYearUpdates:
             assert 'notes' in call_kwargs
             notes = call_kwargs['notes']
             assert 'Previous change note' in notes
-            assert 'Epoch extended' in notes
+            assert 'epoch extended' in notes
             assert '\n' in notes  # Notes should be on separate lines
 
     @pytest.mark.asyncio

@@ -192,18 +192,18 @@ async def move_epoch(length: int, guild: int | None = None):
 
         new_epoch_time = datetime.combine(friday, cfg.epoch.get_rollover_time()).timestamp()
         await cfg.set_epoch(new_epoch_time, current_year + 1)
-        note = f'Epoch resumed from pause: Year {current_year + 1} will start on <t:{int(new_epoch_time)}:F>, length {old_year_length}→{length} days'
+        note = f'epoch resumed from pause: {current_year + 1} PC will start on <t:{int(new_epoch_time)}:F>, length {old_year_length}→{length} days'
 
     # new length longer than current year has lasted, just extend
     elif length >= (elapsed_days % cfg.epoch.length):
         new_epoch_time = datetime.combine(datetime.fromtimestamp(year_span.start_time).astimezone(), cfg.epoch.get_rollover_time()).timestamp()
         await cfg.set_epoch(new_epoch_time, current_year)
-        note = f'Epoch extended: Year {current_year} extended from {old_year_length} to {length} days (elapsed: {elapsed_days % old_year_length})'
+        note = f'epoch extended: {current_year} PC extended from {old_year_length} to {length} days (elapsed: {elapsed_days % old_year_length})'
 
     # wait for current year to complete first
     else:
         await cfg.set_epoch(year_span.end_time, current_year + 1)
-        note = f'Epoch shortened: Year {current_year} will complete at {old_year_length} days, Year {current_year + 1} will be {length} days'
+        note = f'epoch shortened: {current_year} PC will complete at {old_year_length} days, {current_year + 1} PC will be {length} days'
 
     await cfg.set_year_length(length)
     logger.info(f'[{cfg!s}] New Epoch Set: {cfg.epoch.year} PC at <t:{cfg.epoch.time}:f> with year length of {cfg.epoch.length}')
@@ -214,4 +214,4 @@ async def move_epoch(length: int, guild: int | None = None):
         existing_notes = current_year_record.notes
         updated_notes = f'{existing_notes}\n{note}' if existing_notes else note
         await current_year_record.update(notes=updated_notes.strip())
-        logger.info(f'[{cfg!s}] Updated Year {current_year} record: {note}')
+        logger.info(f'[{cfg!s}] updated {current_year} PC record: {note}')
